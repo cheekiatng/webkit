@@ -350,6 +350,7 @@ inline bool MachineThreads::Thread::suspend()
 #if OS(DARWIN)
     kern_return_t result = thread_suspend(platformThread);
     return result == KERN_SUCCESS;
+#elif OS(WINDOWS_PHONE)
 #elif OS(WINDOWS)
     bool threadIsSuspended = (SuspendThread(platformThreadHandle) != (DWORD)-1);
     ASSERT(threadIsSuspended);
@@ -366,6 +367,7 @@ inline void MachineThreads::Thread::resume()
 {
 #if OS(DARWIN)
     thread_resume(platformThread);
+#elif OS(WINDOWS_PHONE)
 #elif OS(WINDOWS)
     ResumeThread(platformThreadHandle);
 #elif USE(PTHREADS)
@@ -410,6 +412,9 @@ size_t MachineThreads::Thread::getRegisters(MachineThreads::Thread::Registers& r
     return user_count * sizeof(uintptr_t);
 // end OS(DARWIN)
 
+#elif OS(WINDOWS_PHONE)
+    regs.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL;
+    return sizeof(CONTEXT);
 #elif OS(WINDOWS)
     regs.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL;
     GetThreadContext(platformThreadHandle, &regs);

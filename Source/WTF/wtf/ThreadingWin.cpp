@@ -86,7 +86,7 @@
 #include "config.h"
 #include "Threading.h"
 
-#if OS(WINDOWS)
+#if OS(WINDOWS) && !USE(STDTHREAD)
 
 #include "DateMath.h"
 #include "dtoa.h"

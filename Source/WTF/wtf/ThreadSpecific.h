@@ -47,6 +47,10 @@
 
 #if USE(PTHREADS)
 #include <pthread.h>
+#elif USE(STDTHREAD)
+#include <thread>
+#include <atomic>
+#include "HashMap.h"
 #elif OS(WINDOWS)
 #include <windows.h>
 #endif
@@ -101,6 +105,8 @@ private:
 
 #if USE(PTHREADS)
     pthread_key_t m_key;
+#elif USE(STDTHREAD)
+    long m_key;
 #elif OS(WINDOWS)
     int m_index;
 #endif
@@ -154,6 +160,43 @@ inline void ThreadSpecific<T>::set(T* ptr)
 {
     ASSERT(!get());
     pthread_setspecific(m_key, new Data(ptr, this));
+}
+
+#elif USE(STDTHREAD)
+
+typedef long ThreadSpecificKey;
+typedef void (*Destructor)(void*);
+typedef std::pair<Destructor, void*> ThreadSpecificData;
+
+WTF_EXPORT_PRIVATE void threadSpecificKeyCreate(ThreadSpecificKey*, void (*)(void *));
+WTF_EXPORT_PRIVATE void threadSpecificKeyDelete(ThreadSpecificKey);
+WTF_EXPORT_PRIVATE void threadSpecificSet(ThreadSpecificKey, void*);
+WTF_EXPORT_PRIVATE void* threadSpecificGet(ThreadSpecificKey);
+
+WTF_EXPORT_PRIVATE HashMap<ThreadSpecificKey, ThreadSpecificData>& threadLocalHashMap();
+WTF_EXPORT_PRIVATE std::atomic<long>& tlsKeyCount();
+
+template<typename T>
+inline ThreadSpecific<T>::ThreadSpecific()
+    : m_key(tlsKeyCount()++)
+{
+    HashMap<ThreadSpecificKey, ThreadSpecificData>& map = threadLocalHashMap();
+    map.set(m_key, ThreadSpecificData(destroy, 0));
+}
+
+template<typename T>
+inline T* ThreadSpecific<T>::get()
+{
+    Data* data = static_cast<Data*>(threadLocalHashMap().get(m_key).second);
+    return data ? data->value : 0;
+}
+
+template<typename T>
+inline void ThreadSpecific<T>::set(T* ptr)
+{
+    ASSERT(!get());
+    HashMap<ThreadSpecificKey, ThreadSpecificData>& map = threadLocalHashMap();
+    map.set(m_key, ThreadSpecificData(destroy, new Data(ptr, this)));
 }
 
 #elif OS(WINDOWS)
@@ -231,6 +274,8 @@ inline void ThreadSpecific<T>::destroy(void* ptr)
 
 #if USE(PTHREADS)
     pthread_setspecific(data->owner->m_key, 0);
+#elif USE(STDTHREAD)
+    threadLocalHashMap().set(data->owner->m_key, ThreadSpecificData(destroy, 0));
 #elif OS(WINDOWS)
     TlsSetValue(tlsKeys()[data->owner->m_index], 0);
 #else

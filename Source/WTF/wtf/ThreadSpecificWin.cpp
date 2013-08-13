@@ -22,7 +22,7 @@
 #include "config.h"
 #include "ThreadSpecific.h"
 
-#if OS(WINDOWS)
+#if OS(WINDOWS) && !OS(WINDOWS_PHONE)
 
 #include "StdLibExtras.h"
 #include "ThreadingPrimitives.h"
