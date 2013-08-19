@@ -111,6 +111,7 @@ static bool parse(const char* string, GCLogging::Level& value)
 template<typename T>
 bool overrideOptionWithHeuristic(T& variable, const char* name)
 {
+#if OS(WINDOWS_PHONE)
     const char* stringValue = getenv(name);
     if (!stringValue)
         return false;
@@ -120,6 +121,7 @@ bool overrideOptionWithHeuristic(T& variable, const char* name)
     
     fprintf(stderr, "WARNING: failed to parse %s=%s\n", name, stringValue);
     return false;
+#endif
 }
 
 static unsigned computeNumberOfWorkerThreads(int maxNumberOfWorkerThreads, int minimum = 1)

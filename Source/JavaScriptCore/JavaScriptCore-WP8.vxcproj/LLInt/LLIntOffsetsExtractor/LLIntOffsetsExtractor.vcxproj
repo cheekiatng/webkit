@@ -1,0 +1,172 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{2eb302a6-d335-4965-98dd-f79e18f68afd}</ProjectGuid>
+    <RootNamespace>PhoneLib1</RootNamespace>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <MinimumVisualStudioVersion>11.0</MinimumVisualStudioVersion>
+    <ProjectName>LLIntOffsetsExtractor</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110_wp80</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110_wp80</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v110_wp80</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v110_wp80</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="..\..\..\..\..\WebKitLibraries\win\tools\vsprops\common.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <Import Project="..\..\..\..\..\WebKitLibraries\win\tools\vsprops\common.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="..\..\..\..\..\WebKitLibraries\win\tools\vsprops\common.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <Import Project="..\..\..\..\..\WebKitLibraries\win\tools\vsprops\common.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <GenerateManifest>false</GenerateManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <IncludePath>$(WP80ToolSetPath)include;$(WindowsSDK_IncludePath);..\..\..\;..\..\..\tools\;..\..\..\runtime\;..\..\..\llint\;..\..\..\jit\;..\..\..\disassembler\;..\..\..\heap\;..\..\..\debugger\;..\..\..\assembler\;..\..\..\profiler\;..\..\..\yarr\;..\..\..\interpreter\;..\..\..\bytecode\;..\..\..\dfg\;..\..\..\bytecompiler\;..\..\..\parser\;..\..\..\API\;..\..\..\ftl\;$(ConfigurationBuildDir)\DerivedSources\;$(ConfigurationBuildDir)\include\;$(ConfigurationBuildDir)\include\JavaScriptCore\;$(ConfigurationBuildDir)\include\private\;..\..\..\..\WTF;..\..\..\..\WTF\icu</IncludePath>
+    <OutDir>$(ConfigurationBuildDir)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <IncludePath>$(WP80ToolSetPath)include;$(WindowsSDK_IncludePath);..\..\..\;..\..\..\tools\;..\..\..\runtime\;..\..\..\llint\;..\..\..\jit\;..\..\..\disassembler\;..\..\..\heap\;..\..\..\debugger\;..\..\..\assembler\;..\..\..\profiler\;..\..\..\yarr\;..\..\..\interpreter\;..\..\..\bytecode\;..\..\..\dfg\;..\..\..\bytecompiler\;..\..\..\parser\;..\..\..\API\;..\..\..\ftl\;$(ConfigurationBuildDir)\DerivedSources\;$(ConfigurationBuildDir)\include\;$(ConfigurationBuildDir)\include\JavaScriptCore\;$(ConfigurationBuildDir)\include\private\;..\..\..\..\WTF;..\..\..\..\WTF\icu</IncludePath>
+    <OutDir>$(ConfigurationBuildDir)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>$(WP80ToolSetPath)include;$(WindowsSDK_IncludePath);..\..\..\;..\..\..\tools\;..\..\..\runtime\;..\..\..\llint\;..\..\..\jit\;..\..\..\disassembler\;..\..\..\heap\;..\..\..\debugger\;..\..\..\assembler\;..\..\..\profiler\;..\..\..\yarr\;..\..\..\interpreter\;..\..\..\bytecode\;..\..\..\dfg\;..\..\..\bytecompiler\;..\..\..\parser\;..\..\..\API\;..\..\..\ftl\;$(ConfigurationBuildDir)\DerivedSources\;$(ConfigurationBuildDir)\include\;$(ConfigurationBuildDir)\include\JavaScriptCore\;$(ConfigurationBuildDir)\include\private\;..\..\..\..\WTF;..\..\..\..\WTF\icu</IncludePath>
+    <OutDir>$(ConfigurationBuildDir)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>$(WP80ToolSetPath)include;$(WindowsSDK_IncludePath);..\..\..\;..\..\..\tools\;..\..\..\runtime\;..\..\..\llint\;..\..\..\jit\;..\..\..\disassembler\;..\..\..\heap\;..\..\..\debugger\;..\..\..\assembler\;..\..\..\profiler\;..\..\..\yarr\;..\..\..\interpreter\;..\..\..\bytecode\;..\..\..\dfg\;..\..\..\bytecompiler\;..\..\..\parser\;..\..\..\API\;..\..\..\ftl\;$(ConfigurationBuildDir)\DerivedSources\;$(ConfigurationBuildDir)\include\;$(ConfigurationBuildDir)\include\JavaScriptCore\;$(ConfigurationBuildDir)\include\private\;..\..\..\..\WTF;..\..\..\..\WTF\icu</IncludePath>
+    <OutDir>$(ConfigurationBuildDir)\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>STATICALLY_LINKED_WITH_WTF=1;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalUsingDirectories>$(WindowsSDK_MetadataPath);$(AdditionalUsingDirectories)</AdditionalUsingDirectories>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>STATICALLY_LINKED_WITH_WTF=1;_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalUsingDirectories>$(WindowsSDK_MetadataPath);$(AdditionalUsingDirectories)</AdditionalUsingDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <ClCompile>
+      <PreprocessorDefinitions>STATICALLY_LINKED_WITH_WTF=1;_LIB;__arm__=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalUsingDirectories>$(WindowsSDK_MetadataPath);$(AdditionalUsingDirectories)</AdditionalUsingDirectories>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <ClCompile>
+      <PreprocessorDefinitions>STATICALLY_LINKED_WITH_WTF=1;_LIB;__arm__=1;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalUsingDirectories>$(WindowsSDK_MetadataPath);$(AdditionalUsingDirectories)</AdditionalUsingDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <Reference Include="Windows">
+      <IsWinMDFile>true</IsWinMDFile>
+    </Reference>
+    <Reference Include="platform.winmd">
+      <IsWinMDFile>true</IsWinMDFile>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\llint\LLIntOffsetsExtractor.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="WMAppManifest.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\WTF\WTF-wp8\WTF-wp8.vcxproj">
+      <Project>{d61a05de-008b-4048-8f0b-4d9772f0ae36}</Project>
+      <Private>false</Private>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\WindowsPhone\v$(TargetPlatformVersion)\Microsoft.Cpp.WindowsPhone.$(TargetPlatformVersion).targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

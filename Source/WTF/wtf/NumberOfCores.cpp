@@ -62,7 +62,7 @@ int numberOfProcessorCores()
     long sysconfResult = sysconf(_SC_NPROCESSORS_ONLN);
 
     s_numberOfCores = sysconfResult < 0 ? defaultIfUnavailable : static_cast<int>(sysconfResult);
-#elif OS(WINDOWS)
+#elif OS(WINDOWS) && !OS(WINDOWS_PHONE)
     UNUSED_PARAM(defaultIfUnavailable);
     SYSTEM_INFO sysInfo;
     GetSystemInfo(&sysInfo);

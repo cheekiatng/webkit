@@ -178,8 +178,13 @@ void SamplingRegion::dump() { }
 */
 uint32_t SamplingFlags::s_flags = 1 << 15;
 
+#if OS(WINDOWS_PHONE)
 
-#if OS(WINDOWS)
+static void sleepForMicroseconds(unsigned us)
+{
+}
+
+#elif OS(WINDOWS)
 
 static void sleepForMicroseconds(unsigned us)
 {

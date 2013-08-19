@@ -77,6 +77,10 @@ static size_t computeRAMSize()
     if (pages == -1 || pageSize == -1)
         return ramSizeGuess;
     return pages * pageSize;
+#elif OS(WINDOWS_PHONE)
+    // See: http://msdn.microsoft.com/en-us/library/windowsphone/develop/jj681682(v=vs.105).aspx
+    // We cannot use GlobalMemoryStatusEx here, so assume we have the minimum amount for a Windows app.
+    return 150 * MB;
 #elif OS(WINDOWS)
     MEMORYSTATUSEX status;
     status.dwLength = sizeof(status);

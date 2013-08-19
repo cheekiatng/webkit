@@ -193,6 +193,30 @@ double currentTime()
     return utc / 1000.0;
 }
 
+#elif OS(WINDOWS_PHONE)
+
+double currentTime()
+{
+    static bool init = false;
+    static double lastTime;
+    static ULONGLONG lastTickCount;
+    if (!init) {
+        lastTime = lowResUTCTime();
+        lastTickCount = GetTickCount64();
+        init = true;
+        return lastTime;
+    }
+
+    ULONGLONG tickCountNow = GetTickCount64();
+    DWORD elapsed = tickCountNow - lastTickCount;
+    double timeNow = lastTime + (double)elapsed / 1000.;
+    if (elapsed >= 0x7FFFFFFF) {
+        lastTime = timeNow;
+        lastTickCount = tickCountNow;
+    }
+    return timeNow;
+}
+
 #else
 
 double currentTime()
@@ -306,7 +330,7 @@ std::chrono::microseconds currentCPUTime()
     mach_port_deallocate(mach_task_self(), threadPort);
 
     return std::chrono::seconds(info.user_time.seconds + info.system_time.seconds) + std::chrono::microseconds(info.user_time.microseconds + info.system_time.microseconds);
-#elif OS(WINDOWS)
+#elif OS(WINDOWS) && !OS(WINDOWS_PHONE)
     union {
         FILETIME fileTime;
         unsigned long long fileTimeAsLong;

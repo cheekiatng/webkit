@@ -35,7 +35,7 @@
 #include <unistd.h>
 #endif
 
-#if OS(WINDOWS)
+#if OS(WINDOWS) && !OS(WINDOWS_PHONE)
 #include <windows.h>
 #include <wincrypt.h> // windows.h must be included before wincrypt.h.
 #endif
@@ -73,6 +73,9 @@ void cryptographicallyRandomValuesFromOS(unsigned char* buffer, size_t length)
     
     close(fd);
 
+#elif OS(WINDOWS_PHONE)
+    buffer = 0;
+    length = 0;
 #elif OS(WINDOWS)
     HCRYPTPROV hCryptProv = 0;
     if (!CryptAcquireContext(&hCryptProv, 0, MS_DEF_PROV, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))

@@ -66,6 +66,10 @@
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
+#if OS(WINDOWS_PHONE)
+#include <datetimeapi.h>
+#endif
+
 using namespace WTF;
 
 namespace JSC {
@@ -211,17 +215,17 @@ static JSCell* formatLocaleDate(ExecState* exec, const GregorianDateTime& gdt, L
     size_t length = 0;
 
     if (format == LocaleDate) {
-        buffer.resize(GetDateFormatW(LOCALE_USER_DEFAULT, DATE_LONGDATE, &systemTime, 0, 0, 0));
-        length = GetDateFormatW(LOCALE_USER_DEFAULT, DATE_LONGDATE, &systemTime, 0, buffer.data(), buffer.size());
+        buffer.resize(GetDateFormatEx(0, DATE_LONGDATE, &systemTime, 0, 0, 0, 0));
+        length = GetDateFormatEx(0, DATE_LONGDATE, &systemTime, 0, buffer.data(), buffer.size(), 0);
     } else if (format == LocaleTime) {
-        buffer.resize(GetTimeFormatW(LOCALE_USER_DEFAULT, 0, &systemTime, 0, 0, 0));
-        length = GetTimeFormatW(LOCALE_USER_DEFAULT, 0, &systemTime, 0, buffer.data(), buffer.size());
+        buffer.resize(GetTimeFormatEx(0, 0, &systemTime, 0, 0, 0));
+        length = GetTimeFormatEx(0, 0, &systemTime, 0, buffer.data(), buffer.size());
     } else if (format == LocaleDateAndTime) {
-        buffer.resize(GetDateFormatW(LOCALE_USER_DEFAULT, DATE_LONGDATE, &systemTime, 0, 0, 0) + GetTimeFormatW(LOCALE_USER_DEFAULT, 0, &systemTime, 0, 0, 0));
-        length = GetDateFormatW(LOCALE_USER_DEFAULT, DATE_LONGDATE, &systemTime, 0, buffer.data(), buffer.size());
+        buffer.resize(GetDateFormatEx(0, DATE_LONGDATE, &systemTime, 0, 0, 0, 0) + GetTimeFormatEx(0, 0, &systemTime, 0, 0, 0));
+        length = GetDateFormatEx(0, DATE_LONGDATE, &systemTime, 0, buffer.data(), buffer.size(), 0);
         if (length) {
             buffer[length - 1] = ' ';
-            length += GetTimeFormatW(LOCALE_USER_DEFAULT, 0, &systemTime, 0, buffer.data() + length, buffer.size() - length);
+            length += GetTimeFormatEx(0, 0, &systemTime, 0, buffer.data() + length, buffer.size() - length);
         }
     } else
         RELEASE_ASSERT_NOT_REACHED();

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Label="UserMacros">
     <CONFIGURATIONBUILDDIR>$(WEBKIT_OUTPUTDIR)\$(Configuration)</CONFIGURATIONBUILDDIR>
@@ -36,14 +36,15 @@ set PLATFORMARCHITECTURE=$(PlatformArchitecture)
 set WEBKIT_LIBRARIES=$(WEBKIT_LIBRARIES)
 nmake /nologo -f $(ProjectName).make clean</NMakeCleanCommandLine>
     <TargetName>$(ProjectName)$(DebugSuffix)</TargetName>
+    <IncludePath>$(WP80ToolSetPath)include;$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalOptions>/bigobj /GS %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>_WINDOWS;WINVER=0x502;_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1;_HAS_EXCEPTIONS=0;BUILDING_$(ProjectName);NOMINMAX;WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;WINVER=0x502;_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1;_;BUILDING_$(ProjectName);NOMINMAX;WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="$(Platform)=='Win32'">WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="$(Platform)=='Win64'">x64</PreprocessorDefinitions>
-      <ExceptionHandling>false</ExceptionHandling>
+      <ExceptionHandling>Sync</ExceptionHandling>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <WarningLevel>Level4</WarningLevel>
       <TreatWarningAsError>false</TreatWarningAsError>

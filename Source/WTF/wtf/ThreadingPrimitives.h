@@ -43,10 +43,13 @@
 #include <windows.h>
 #endif
 
+#if OS(WINDOWS_PHONE)
+#include <thread>
+#endif
+
 #if USE(PTHREADS)
 #include <pthread.h>
 #endif
-
 
 namespace WTF {
 
