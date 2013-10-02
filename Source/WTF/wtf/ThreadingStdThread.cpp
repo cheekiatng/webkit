@@ -34,6 +34,10 @@
 
 #if USE(STDTHREAD)
 
+#include "DateMath.h"
+#include "dtoa.h"
+#include "dtoa/cached-powers.h"
+#include "RandomNumberSeed.h"
 #include "StdLibExtras.h"
 #include "CurrentTime.h"
 #include "ThreadFunctionInvocation.h"
@@ -154,18 +158,19 @@ void initializeThreading()
     if (atomicallyInitializedStaticMutex)
         return;
     atomicallyInitializedStaticMutex = new Mutex;
+    threadMapMutex();
+
+    WTF::double_conversion::initialize();
     // StringImpl::empty() does not construct its static string in a threadsafe fashion,
     // so ensure it has been initialized from here.
     StringImpl::empty();
+    atomicallyInitializedStaticMutex = new Mutex;
     threadMapMutex();
-    /*
-    WTF::double_conversion::initialize();
     initializeRandomNumberGenerator();
     StackStats::initialize();
     wtfThreadData();
     s_dtoaP5Mutex = new Mutex;
     initializeDates();
-    */
 }
 
 void lockAtomicallyInitializedStaticMutex()
