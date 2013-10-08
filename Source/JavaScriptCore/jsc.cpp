@@ -1670,21 +1670,16 @@ int jscmainRepeatable(const std::string& script, const std::string& fileName, st
     JSC::initializeThreading();
 
     bool success;
-    VM* vm = VM::create(LargeHeap).leakRef();
+    static VM* vm = VM::create(LargeHeap).leakRef();
 
     {
         APIEntryShim shim(vm);
         GlobalObject* globalObject = GlobalObject::create(*vm, GlobalObject::createStructure(*vm, jsNull()), Vector<String>());
         success = runWithScriptString(globalObject, script, fileName, exceptionString);
 
-        IdentifierTable* savedIdentifierTable = wtfThreadData().setCurrentIdentifierTable(vm->identifierTable);
-
         bool protectCountIsZero = Heap::heap(globalObject)->unprotect(globalObject);
         if (protectCountIsZero)
             vm->heap.reportAbandonedObjectGraph();
-        vm->deref();
-
-        wtfThreadData().setCurrentIdentifierTable(savedIdentifierTable);
     }
 
     return success ? 0 : 3;

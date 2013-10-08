@@ -11,7 +11,8 @@
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
     SupportedOrientations="Portrait" Orientation="Portrait"
-    shell:SystemTray.IsVisible="True">
+    shell:SystemTray.IsVisible="True"
+    Loaded="PageLoadedCallback">
 
     <!--LayoutRoot is the root grid where all page content is placed-->
     <Grid x:Name="LayoutRoot" Background="Transparent">
@@ -47,11 +48,13 @@
 
         <!--ContentPanel - place additional content here-->
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0">
+            <Button Name="StartTestsButton" Click="StartTestsCallback" Content="Start Tests" HorizontalAlignment="Left" Height="75" Margin="273,-147,0,0" VerticalAlignment="Top" Width="173"/>
+            <Button x:Name="ConfigureButton" Click="ConfigureCallback" Content="Configure" HorizontalAlignment="Left" Height="75" Margin="273,-84,0,0" VerticalAlignment="Top" Width="173"/>
+
             <TextBlock Name="StatusText" HorizontalAlignment="Left" Height="32" Margin="10,10,0,0" TextWrapping="Wrap" Text="TextBlock" VerticalAlignment="Top" Width="436"/>
             <ProgressBar Name="Progress" HorizontalAlignment="Left" Height="28" Margin="10,47,0,0" VerticalAlignment="Top" Width="426"/>
-            <Button Click="StartTestsCallback" Content="Start Tests" HorizontalAlignment="Left" Height="75" Margin="273,-97,0,0" VerticalAlignment="Top" Width="173"/>
-            <phone:LongListSelector Tap="FailedTestClickedCallback" Name="FailedTestsListSelector" HorizontalAlignment="Left" Height="471" Margin="10,126,0,0" VerticalAlignment="Top" Width="426"/>
-            <TextBlock x:Name="StatusText_Copy" HorizontalAlignment="Left" Height="32" Margin="10,94,0,0" TextWrapping="Wrap" Text="Failing tests" VerticalAlignment="Top" Width="436"/>
+            <phone:LongListSelector Name="FailedTestsListSelector" Tap="FailedTestClickedCallback" HorizontalAlignment="Left" Height="471" Margin="10,126,0,0" VerticalAlignment="Top" Width="426"/>
+            <TextBlock x:Name="FailingTestsText" HorizontalAlignment="Left" Height="32" Margin="10,94,0,0" TextWrapping="Wrap" Text="Failing tests" VerticalAlignment="Top" Width="436"/>
 
         </Grid>
 
