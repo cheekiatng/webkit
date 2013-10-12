@@ -8,7 +8,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TestRunnerComponent.cpp" />
-    <ClCompile Include="..\jsc.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestRunnerComponent.h" />

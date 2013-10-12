@@ -77,7 +77,7 @@ namespace TestRunner
             String ed = await LoadHarnessFile("ed.js");
             String testBuiltinObject = await LoadHarnessFile("testBuiltInObject.js");
             String testIntl = await LoadHarnessFile("testIntl.js");
-            return cth + sta + ed + testBuiltinObject + testIntl;
+            return cth + sta + ed + testBuiltinObject + testIntl + "\n";
         }
 
         private static async Task<String> LoadFileFromInstallationDirectorySubdirectory(string subdirectory, string filePath)
@@ -107,6 +107,14 @@ namespace TestRunner
             return testList.Split('\n').Where(t => t.Length > 0 && t[0] != '#').ToArray();
         }
 
+        static String StrictModeString(String testContents)
+        {
+            if (testContents.Contains("@onlyStrict"))
+                return "\"use strict\";\nvar strict_mode = true;\n";
+            else
+                return  "var strict_mode = false; \n";
+        }
+
         private async void StartTestsCallback(object sender, RoutedEventArgs e)
         {
             this.StartTestsButton.IsEnabled = false;
@@ -116,14 +124,15 @@ namespace TestRunner
             for (int i = 0; i < Progress.Maximum; i++)
             {
                 String script = await LoadSuiteFile(filteredTestPaths[i]);
-                String fullScript = harnessString + script;
+                bool positiveTest = !script.Contains("@negative");
+
+                String fullScript = StrictModeString(script) + harnessString + script;
                 TestRunnerComponent.ScriptResult result = this.scriptRunner.RunScript(fullScript, this.filteredTestPaths[i]);
 
                 StatusText.Text = "Ran " + (i + 1) + " of " + Progress.Maximum + " tests (" + this.failedTests.Count + " failed)";
-                System.Diagnostics.Debug.WriteLine("Test " + this.filteredTestPaths[i] + "(" + i + ")" + " passed: " + result.Success());
+                System.Diagnostics.Debug.WriteLine("Test " + this.filteredTestPaths[i] + "(" + i + ")" + " passed: " + result.Success() + " should be: " + positiveTest);
 
                 // FIXME: This likely deserves a better check.
-                bool positiveTest = !script.Contains("@negative");
                 if (positiveTest != result.Success())
                     this.failedTests.Add(result);
 
@@ -152,7 +161,7 @@ namespace TestRunner
             if (FailedTestsListSelector.SelectedItem is TestRunnerComponent.ScriptResult)
             {
                 TestRunnerComponent.ScriptResult result = (TestRunnerComponent.ScriptResult)FailedTestsListSelector.SelectedItem;
-                MessageBox.Show(result.TestPath() + "\n" + result.ExceptionString());
+                MessageBox.Show(result.ExceptionString());
             }
         }
 
