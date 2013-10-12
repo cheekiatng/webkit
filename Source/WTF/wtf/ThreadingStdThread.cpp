@@ -53,12 +53,6 @@ class StdThreadState {
 public:
     enum JoinableState {
         Joinable, // The default thread state. The thread can be joined on.
-
-        Joined, // Somebody waited on this thread to exit and this thread finally exited. This state is here because there can be a 
-                // period of time between when the thread exits (which causes pthread_join to return and the remainder of waitOnThreadCompletion to run) 
-                // and when threadDidExit is called. We need threadDidExit to take charge and delete the thread data since there's 
-                // nobody else to pick up the slack in this case (since waitOnThreadCompletion has already returned).
-
         Detached // The thread has been detached and can no longer be joined on. At this point, the thread must take care of cleaning up after itself.
     };
 
@@ -87,7 +81,6 @@ public:
     std::thread::id stdThreadID() { return m_stdThreadID; }
     void didBecomeDetached() { m_joinableState = Detached; }
     void didExit() { m_didExit = true; }
-    void didJoin() { m_joinableState = Joined; }
     bool hasExited() { return m_didExit; }
 
 private:
@@ -140,7 +133,7 @@ static ThreadIdentifier establishIdentifierForStdThreadState(StdThreadState* thr
 
 static ThreadIdentifier establishIdentifierForStdThread(std::thread* threadInstance)
 {
-    return establishIdentifierForStdThreadState(new StdThreadState(threadInstance));
+     return establishIdentifierForStdThreadState(new StdThreadState(threadInstance));
 }
 
 static ThreadIdentifier establishIdentifierForStdThreadID(std::thread::id stdThreadID)
@@ -148,7 +141,7 @@ static ThreadIdentifier establishIdentifierForStdThreadID(std::thread::id stdThr
     return establishIdentifierForStdThreadState(new StdThreadState(stdThreadID));
 }
 
-static std::thread * stdThreadForIdentifierWithLockAlreadyHeld(ThreadIdentifier id)
+static std::thread* stdThreadForIdentifierWithLockAlreadyHeld(ThreadIdentifier id)
 {
     return threadMap().get(id)->threadInstance();
 }
@@ -191,6 +184,17 @@ static void* wtfThreadEntryPoint(void* param)
     invocation->function(invocation->data);
 
     ThreadSpecificThreadExit();
+
+     ThreadIdentifier currentThreadId = identifierByStdThreadID(std::this_thread::get_id());
+    {
+        MutexLocker locker(threadMapMutex());
+        StdThreadState* state = threadMap().get(currentThreadId);
+        ASSERT(state);
+        state->didExit();
+
+        if (state->joinableState() != StdThreadState::Joinable)
+            threadMap().remove(currentThreadId);
+    }
 
     return 0;
 }
@@ -247,12 +251,8 @@ int waitForThreadCompletion(ThreadIdentifier threadID)
     ASSERT(state->joinableState() == StdThreadState::Joinable);
 
     // The thread has already exited, so clean up after it.
-    if (state->hasExited())
-        threadMap().remove(threadID);
-    // The thread hasn't exited yet, so don't clean anything up. Just signal
-    // that we've already joined on it so that it will clean up after itself.
-    else
-        state->didJoin();
+    ASSERT(state->hasExited());
+    threadMap().remove(threadID);
 
     return joinResult;
 }
