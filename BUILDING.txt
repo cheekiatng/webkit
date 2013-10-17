@@ -1,0 +1,26 @@
+To build on Windows, follow the following instructions:
+
+Do these instructions: http://www.webkit.org/building/tools.html
+Do these instructions: http://trac.webkit.org/wiki/BuildingOnWindows
+
+
+git config --system core.autocrlf false
+git clone https://github.com/matt-langston/webkit.git
+cd .\webkit
+git remote add webkit https://github.com/WebKit/webkit.git
+git remote add appcelerator https://github.com/appcelerator/webkit
+git fetch webkit
+git merge webkit/master
+git fetch appcelerator
+git checkout -b javascriptcore-wp8-test262 appcelerator/javascriptcore-wp8-test262
+git fetch appcelerator
+git merge appcelerator/javascriptcore-wp8-test262
+
+
+Then right-click on webkit/Source/JavaScriptCore/JavaScriptCore-WP8.vxcproj/JavaScriptCore.sln and select "Open with > Microsoft Visual Studio 2012".
+
+You should now be able to build and start the emulator.
+
+
+Common Errors:
+- Error about \r in build-generated-files.sh: Git mangled your line endings, so you need to set core.autocrlf to false and re-clone the repository.
