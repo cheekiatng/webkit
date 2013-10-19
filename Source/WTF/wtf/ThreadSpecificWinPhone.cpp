@@ -20,6 +20,8 @@ void ThreadSpecificThreadExit()
     while (i != map.end()) {
         i->value.first(i->value.second);
     }
+
+    delete g_threadLocalHashMap;
 }
 
 std::atomic<long>& tlsKeyCount()
