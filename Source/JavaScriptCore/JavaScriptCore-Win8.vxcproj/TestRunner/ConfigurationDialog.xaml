@@ -1,0 +1,27 @@
+﻿<UserControl
+    x:Class="TestRunner.ConfigurationDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:TestRunner"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="680" d:DesignWidth="480"
+    mc:Ignorable="d">
+
+    <Grid x:Name="LayoutRoot" Background="Black">
+        <CheckBox Name="CheckannexB" Content="annexB" HorizontalAlignment="Left" Height="70" Margin="11,40,0,0" VerticalAlignment="Top" Width="202"/>
+        <CheckBox Name="CheckbestPractice" Content="bestPractice" HorizontalAlignment="Left" Height="70" Margin="11,110,0,0" VerticalAlignment="Top" Width="202"/>
+        <CheckBox Name="Checkch06" Content="ch06" HorizontalAlignment="Left" Height="70" Margin="11,185,0,0" VerticalAlignment="Top" Width="202"/>
+        <CheckBox Name="Checkch07" Content="ch07" HorizontalAlignment="Left" Height="70" Margin="11,260,0,0" VerticalAlignment="Top" Width="202"/>
+        <CheckBox Name="Checkch08" Content="ch08" HorizontalAlignment="Left" Height="70" Margin="11,330,0,0" VerticalAlignment="Top" Width="202"/>
+        <CheckBox Name="Checkch09" Content="ch09" HorizontalAlignment="Left" Height="70" Margin="11,405,0,0" VerticalAlignment="Top" Width="202"/>
+        <CheckBox Name="Checkch10" Content="ch10" HorizontalAlignment="Left" Height="70" Margin="11,480,0,0" VerticalAlignment="Top" Width="202"/>
+        <CheckBox Name="Checkch11" Content="ch11" HorizontalAlignment="Left" Height="70" Margin="218,40,0,0" VerticalAlignment="Top" Width="202"/>
+        <CheckBox Name="Checkch12" Content="ch12" HorizontalAlignment="Left" Height="70" Margin="218,115,0,0" VerticalAlignment="Top" Width="202"/>
+        <CheckBox Name="Checkch13" Content="ch13" HorizontalAlignment="Left" Height="70" Margin="218,190,0,0" VerticalAlignment="Top" Width="202"/>
+        <CheckBox Name="Checkch14" Content="ch14" HorizontalAlignment="Left" Height="70" Margin="218,260,0,0" VerticalAlignment="Top" Width="202"/>
+        <CheckBox Name="Checkch15" Content="ch15" HorizontalAlignment="Left" Height="70" Margin="218,330,0,0" VerticalAlignment="Top" Width="202"/>
+        <CheckBox Name="Checkintl402" Content="intl402" HorizontalAlignment="Left" Height="70" Margin="218,405,0,0" VerticalAlignment="Top" Width="202"/>
+        <Button Content="Done" HorizontalAlignment="Left" Margin="350,498,0,-20" VerticalAlignment="Top" Click="DoneCallback"/>
+    </Grid>
+</UserControl>
