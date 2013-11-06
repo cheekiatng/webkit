@@ -64,7 +64,6 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>$(WP80ToolSetPath)include;$(WindowsSDK_IncludePath);..\;..\tools\;..\runtime\;..\llint\;..\jit\;..\disassembler\;..\heap\;..\debugger\;..\assembler\;..\profiler\;..\yarr\;..\interpreter\;..\bytecode\;..\dfg\;..\bytecompiler\;..\parser\;..\API\;..\ftl\;$(WEBKIT_OUTPUTDIR)\$(Configuration)\DerivedSources\;$(WEBKIT_OUTPUTDIR)\$(Configuration)\include\;$(WEBKIT_OUTPUTDIR)\$(Configuration)\include\JavaScriptCore\;$(WEBKIT_OUTPUTDIR)\$(Configuration)\include\private\;..\..\WTF;..\..\WTF\icu</IncludePath>
-    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>$(WP80ToolSetPath)include;$(WindowsSDK_IncludePath);..\;..\tools\;..\runtime\;..\llint\;..\jit\;..\disassembler\;..\heap\;..\debugger\;..\assembler\;..\profiler\;..\yarr\;..\interpreter\;..\bytecode\;..\dfg\;..\bytecompiler\;..\parser\;..\API\;..\ftl\;$(WEBKIT_OUTPUTDIR)\$(Configuration)\DerivedSources\;$(WEBKIT_OUTPUTDIR)\$(Configuration)\include\;$(WEBKIT_OUTPUTDIR)\$(Configuration)\include\JavaScriptCore\;$(WEBKIT_OUTPUTDIR)\$(Configuration)\include\private\;..\..\WTF;..\..\WTF\icu</IncludePath>
@@ -76,14 +75,12 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalUsingDirectories>$(WindowsSDK_MetadataPath);$(AdditionalUsingDirectories)</AdditionalUsingDirectories>
       <CompileAsWinRT>true</CompileAsWinRT>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>ole32.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateWindowsMetadata>true</GenerateWindowsMetadata>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
