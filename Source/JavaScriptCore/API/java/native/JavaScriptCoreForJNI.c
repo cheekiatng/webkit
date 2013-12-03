@@ -1,6 +1,6 @@
 //
-//  JSCoreFoundation.c
-//  JSCoreFoundation
+//  JavaScriptCoreJNI.c
+//  JavaScriptCoreJNI
 //
 //  Created by Kota Iguchi on 11/30/13.
 //  Copyright (c) 2013 Appcelerator, Inc. All rights reserved.
@@ -12,38 +12,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-static jclass  jniMethodInvokerClass = NULL;
-static jobject jniMethodInvokerObj   = NULL;
-
-extern bool JSCoreApp_Load(JavaVM* vm, JNIEnv* env, jclass invokerClass, jobject invokerObj,
-                           JSGlobalContextRef context, JSObjectRef global_object);
-    
-JNIEXPORT jboolean JNICALL
-Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSCVirtualMachineInitialize
-    (JNIEnv *env, jobject thiz, jlong jsContextRef, jobject jniMethodInvoker)
-{
-    JavaVM* jvm;
-    
-    JSGlobalContextRef context = (JSGlobalContextRef)jsContextRef;
-    JSObjectRef global_object = JSContextGetGlobalObject(context);
-    
-    jniMethodInvokerClass = (*env)->GetObjectClass(env, jniMethodInvoker);
-    jniMethodInvokerObj   = (*env)->NewGlobalRef(env, jniMethodInvoker);
-    
-    (*env)->GetJavaVM(env, &jvm);
-    return JSCoreApp_Load(jvm, env, jniMethodInvokerClass, jniMethodInvokerObj, context, global_object) ? JNI_TRUE : JNI_FALSE;
-}
-
-JNIEXPORT void JNICALL
-Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSCVirtualMachineRelease
-    (JNIEnv *env, jobject thiz)
-{
-    (*env)->DeleteGlobalRef(env, jniMethodInvokerObj);
-    
-    jniMethodInvokerClass = NULL;
-    jniMethodInvokerObj   = NULL;
-}
 
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSContextGroupCreate

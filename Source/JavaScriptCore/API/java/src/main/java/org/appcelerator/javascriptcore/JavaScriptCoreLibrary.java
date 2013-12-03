@@ -10,7 +10,7 @@ import com.appcelerator.javascriptcore.opaquetypes.JSClassRef;
 public class JavaScriptCoreLibrary {
 
     static {
-        System.loadLibrary("JSCoreFoundation");
+        System.loadLibrary("JavaScriptCoreJNI");
     }   
 
     private static final JavaScriptCoreLibrary instance = new JavaScriptCoreLibrary();
@@ -26,14 +26,6 @@ public class JavaScriptCoreLibrary {
     /*
      * Native method wrappers
      */
-    public boolean JSCVirtualMachineInitialize(JSContextRef context, ExternalMethodInvoker invoker) {
-        return NativeJSCVirtualMachineInitialize(context.p(), invoker);
-    }
-
-    public void JSCVirtualMachineRelease() {
-        NativeJSCVirtualMachineRelease();
-    }
-
     public JSObjectRef JSContextGetGlobalObject(JSContextRef context) {
         return new JSObjectRef(NativeJSContextGetGlobalObject(context.p()));
     }
@@ -157,8 +149,6 @@ public class JavaScriptCoreLibrary {
     /*
      * Native methods
      */
-    public native boolean NativeJSCVirtualMachineInitialize(long jsContextRef, ExternalMethodInvoker invoker);
-    public native void NativeJSCVirtualMachineRelease();
     public native long NativeJSContextGetGlobalObject(long jsContextRef);
     public native long NativeJSContextGetGroup(long jsContextRef);
     public native long NativeJSContextGroupCreate();

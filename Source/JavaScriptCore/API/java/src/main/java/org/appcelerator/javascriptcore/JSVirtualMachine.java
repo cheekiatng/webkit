@@ -18,13 +18,9 @@ public class JSVirtualMachine {
     private JSGlobalContextRef defaultContext;
     private ConcurrentMap<Long, JSGlobalContextRef> contextCache = new ConcurrentHashMap<Long, JSGlobalContextRef>();
 
-    public JSVirtualMachine(ExternalMethodInvoker externalMethodInvoker) {
+    public JSVirtualMachine() {
         contextGroupRef = jsc.JSContextGroupCreate();
         defaultContext  = createContext();
-
-        if (!jsc.JSCVirtualMachineInitialize(defaultContext, externalMethodInvoker)) {
-            throw new JavaScriptCoreException("Failed to initialize JSVirtualMachine");
-        }
     }
 
     public JSGlobalContextRef createContext() {
@@ -59,9 +55,7 @@ public class JSVirtualMachine {
 
     public void release() {
         releaseContexts();
-
         jsc.JSContextGroupRelease(contextGroupRef);
-        jsc.JSCVirtualMachineRelease();
     }
 
 }

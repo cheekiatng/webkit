@@ -19,7 +19,7 @@ project.ext.XcodeProjectDir = project.projectDir.absolutePath + "/native"
 project.ext.XcodeOutputDir = project.projectDir.absolutePath + "/libs"
 
 task jnibuild(type:Exec) {
-    commandLine 'xcodebuild','-sdk','macosx10.9','-project',project.ext.XcodeProjectDir+'/JSCoreFoundation.xcodeproj','ONLY_ACTIVE_ARCH=NO','-configuration','Debug','-target','JSCoreFoundation','CONFIGURATION_BUILD_DIR='+project.ext.XcodeOutputDir,'PROJECT_TEMP_DIR='+project.ext.XcodeTmpDir,'build'
+    commandLine 'xcodebuild','-sdk','macosx10.9','-project',project.ext.XcodeProjectDir+'/JavaScriptCoreJNI.xcodeproj','ONLY_ACTIVE_ARCH=NO','-configuration','Debug','-target','JavaScriptCoreJNI','CONFIGURATION_BUILD_DIR='+project.ext.XcodeOutputDir,'PROJECT_TEMP_DIR='+project.ext.XcodeTmpDir,'build'
     standardOutput = new ByteArrayOutputStream()
     ext.output = {
       return standardOutput.toString()

@@ -7,62 +7,57 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F92E516618499B84005CDEB6 /* JavaScriptCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F92E516518499B84005CDEB6 /* JavaScriptCore.framework */; };
-		F92E516918499BBF005CDEB6 /* JSCoreFoundation.c in Sources */ = {isa = PBXBuildFile; fileRef = F92E516818499BBF005CDEB6 /* JSCoreFoundation.c */; };
-		F92E516B18499CF3005CDEB6 /* HyperloopJSCoreApp.c in Sources */ = {isa = PBXBuildFile; fileRef = F92E516A18499CF3005CDEB6 /* HyperloopJSCoreApp.c */; };
+		F97C5C2E184DE3F0002A9E74 /* JavaScriptCoreForJNI.c in Sources */ = {isa = PBXBuildFile; fileRef = F97C5C2D184DE3F0002A9E74 /* JavaScriptCoreForJNI.c */; };
+		F97C5C30184DE400002A9E74 /* JavaScriptCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F97C5C2F184DE400002A9E74 /* JavaScriptCore.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		F919457A18499B4900EF61FB /* libJSCoreFoundation.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libJSCoreFoundation.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		F92E516518499B84005CDEB6 /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		F92E516818499BBF005CDEB6 /* JSCoreFoundation.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = JSCoreFoundation.c; sourceTree = "<group>"; };
-		F92E516A18499CF3005CDEB6 /* HyperloopJSCoreApp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = HyperloopJSCoreApp.c; sourceTree = "<group>"; };
-		F9933AEB18499E4C0050E221 /* HyperloopJSCoreApp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HyperloopJSCoreApp.h; sourceTree = "<group>"; };
+		F97C5C2D184DE3F0002A9E74 /* JavaScriptCoreForJNI.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = JavaScriptCoreForJNI.c; sourceTree = "<group>"; };
+		F97C5C2F184DE400002A9E74 /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		F9D71B5E184DE3CD00838DF4 /* libJavaScriptCoreJNI.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libJavaScriptCoreJNI.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		F919457718499B4900EF61FB /* Frameworks */ = {
+		F9D71B5B184DE3CD00838DF4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F92E516618499B84005CDEB6 /* JavaScriptCore.framework in Frameworks */,
+				F97C5C30184DE400002A9E74 /* JavaScriptCore.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		F919457118499B4900EF61FB = {
+		F97C5C31184DE450002A9E74 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				F9933AEB18499E4C0050E221 /* HyperloopJSCoreApp.h */,
-				F92E516A18499CF3005CDEB6 /* HyperloopJSCoreApp.c */,
-				F92E516818499BBF005CDEB6 /* JSCoreFoundation.c */,
-				F92E516718499B88005CDEB6 /* Frameworks */,
-				F919457B18499B4900EF61FB /* Products */,
-			);
-			sourceTree = "<group>";
-		};
-		F919457B18499B4900EF61FB /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				F919457A18499B4900EF61FB /* libJSCoreFoundation.dylib */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		F92E516718499B88005CDEB6 /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-				F92E516518499B84005CDEB6 /* JavaScriptCore.framework */,
+				F97C5C2F184DE400002A9E74 /* JavaScriptCore.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		F9D71B55184DE3CD00838DF4 = {
+			isa = PBXGroup;
+			children = (
+				F97C5C2D184DE3F0002A9E74 /* JavaScriptCoreForJNI.c */,
+				F97C5C31184DE450002A9E74 /* Frameworks */,
+				F9D71B5F184DE3CD00838DF4 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F9D71B5F184DE3CD00838DF4 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F9D71B5E184DE3CD00838DF4 /* libJavaScriptCoreJNI.dylib */,
+			);
+			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
-		F919457818499B4900EF61FB /* Headers */ = {
+		F9D71B5C184DE3CD00838DF4 /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -72,63 +67,62 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
-		F919457918499B4900EF61FB /* JSCoreFoundation */ = {
+		F9D71B5D184DE3CD00838DF4 /* JavaScriptCoreJNI */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = F919457E18499B4900EF61FB /* Build configuration list for PBXNativeTarget "JSCoreFoundation" */;
+			buildConfigurationList = F9D71B62184DE3CD00838DF4 /* Build configuration list for PBXNativeTarget "JavaScriptCoreJNI" */;
 			buildPhases = (
-				F919457618499B4900EF61FB /* Sources */,
-				F919457718499B4900EF61FB /* Frameworks */,
-				F919457818499B4900EF61FB /* Headers */,
+				F9D71B5A184DE3CD00838DF4 /* Sources */,
+				F9D71B5B184DE3CD00838DF4 /* Frameworks */,
+				F9D71B5C184DE3CD00838DF4 /* Headers */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = JSCoreFoundation;
-			productName = JSCoreFoundation;
-			productReference = F919457A18499B4900EF61FB /* libJSCoreFoundation.dylib */;
+			name = JavaScriptCoreJNI;
+			productName = JavaScriptCoreJNI;
+			productReference = F9D71B5E184DE3CD00838DF4 /* libJavaScriptCoreJNI.dylib */;
 			productType = "com.apple.product-type.library.dynamic";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		F919457218499B4900EF61FB /* Project object */ = {
+		F9D71B56184DE3CD00838DF4 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				LastUpgradeCheck = 0500;
 				ORGANIZATIONNAME = "Appcelerator, Inc.";
 			};
-			buildConfigurationList = F919457518499B4900EF61FB /* Build configuration list for PBXProject "JSCoreFoundation" */;
+			buildConfigurationList = F9D71B59184DE3CD00838DF4 /* Build configuration list for PBXProject "JavaScriptCoreJNI" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 			);
-			mainGroup = F919457118499B4900EF61FB;
-			productRefGroup = F919457B18499B4900EF61FB /* Products */;
+			mainGroup = F9D71B55184DE3CD00838DF4;
+			productRefGroup = F9D71B5F184DE3CD00838DF4 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				F919457918499B4900EF61FB /* JSCoreFoundation */,
+				F9D71B5D184DE3CD00838DF4 /* JavaScriptCoreJNI */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
-		F919457618499B4900EF61FB /* Sources */ = {
+		F9D71B5A184DE3CD00838DF4 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F92E516918499BBF005CDEB6 /* JSCoreFoundation.c in Sources */,
-				F92E516B18499CF3005CDEB6 /* HyperloopJSCoreApp.c in Sources */,
+				F97C5C2E184DE3F0002A9E74 /* JavaScriptCoreForJNI.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		F919457C18499B4900EF61FB /* Debug */ = {
+		F9D71B60184DE3CD00838DF4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -170,7 +164,7 @@
 			};
 			name = Debug;
 		};
-		F919457D18499B4900EF61FB /* Release */ = {
+		F9D71B61184DE3CD00838DF4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -206,7 +200,7 @@
 			};
 			name = Release;
 		};
-		F919457F18499B4900EF61FB /* Debug */ = {
+		F9D71B63184DE3CD00838DF4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				EXECUTABLE_PREFIX = lib;
@@ -214,7 +208,7 @@
 			};
 			name = Debug;
 		};
-		F919458018499B4900EF61FB /* Release */ = {
+		F9D71B64184DE3CD00838DF4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				EXECUTABLE_PREFIX = lib;
@@ -225,25 +219,25 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		F919457518499B4900EF61FB /* Build configuration list for PBXProject "JSCoreFoundation" */ = {
+		F9D71B59184DE3CD00838DF4 /* Build configuration list for PBXProject "JavaScriptCoreJNI" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				F919457C18499B4900EF61FB /* Debug */,
-				F919457D18499B4900EF61FB /* Release */,
+				F9D71B60184DE3CD00838DF4 /* Debug */,
+				F9D71B61184DE3CD00838DF4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		F919457E18499B4900EF61FB /* Build configuration list for PBXNativeTarget "JSCoreFoundation" */ = {
+		F9D71B62184DE3CD00838DF4 /* Build configuration list for PBXNativeTarget "JavaScriptCoreJNI" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				F919457F18499B4900EF61FB /* Debug */,
-				F919458018499B4900EF61FB /* Release */,
+				F9D71B63184DE3CD00838DF4 /* Debug */,
+				F9D71B64184DE3CD00838DF4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = F919457218499B4900EF61FB /* Project object */;
+	rootObject = F9D71B56184DE3CD00838DF4 /* Project object */;
 }

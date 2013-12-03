@@ -17,7 +17,7 @@ public class JSVirtualMachineTest {
 
     @Before
     public void setUp() throws Exception {
-        vm = new JSVirtualMachine(new HyperloopJavaMethodInvoker());
+        vm = new JSVirtualMachine();
     }
 
     @After
@@ -95,55 +95,5 @@ public class JSVirtualMachineTest {
     public void testJSCheckInvalidScriptSyntax() {
         JSGlobalContextRef context = vm.getDefaultContext();
         assertFalse(context.checkScriptSyntax("{#@%){"));
-    }
-
-    @Test
-    public void testObject_java() {
-        JSGlobalContextRef context = vm.getDefaultContext();
-        JSValueRef value = context.evaluateScript("java;");
-        assertTrue(value.isObject());
-    }
-
-    @Test
-    public void testObject_java_util() {
-        JSGlobalContextRef context = vm.getDefaultContext();
-        JSValueRef value = context.evaluateScript("java.util;");
-        assertTrue(value.isObject());
-    }
-
-    @Test
-    public void testObject_java_util_Date() {
-        JSGlobalContextRef context = vm.getDefaultContext();
-        JSValueRef value = context.evaluateScript("java.util.Date;");
-        assertTrue(value.isObject());
-    }
-
-    @Test
-    public void testNewObject_java_util_Date() {
-        JSGlobalContextRef context = vm.getDefaultContext();
-        JSValueRef value = context.evaluateScript("new java.util.Date();");
-        assertTrue(value.isObject());
-    }
-
-    @Test
-    public void testObject_java_util_Date_getTime() {
-        JSGlobalContextRef context = vm.getDefaultContext();
-        JSValueRef value = context.evaluateScript("new java.util.Date().getTime();");
-        assertTrue(value.isNumber());
-        assertTrue(value.toNumber() > 0);
-    }
-
-    @Test
-    public void testObject_java_util_Date_toString() {
-        JSGlobalContextRef context = vm.getDefaultContext();
-        JSValueRef value = context.evaluateScript("console.log(new java.util.Date().toString());");
-        assertTrue(value.isUndefined());
-    }
-
-    @Test
-    public void testObject_java_lang_System_out_println() {
-        JSGlobalContextRef context = vm.getDefaultContext();
-        JSValueRef value = context.evaluateScript("java.lang.System.out.println('Hello, java.io!');");
-        assertTrue(value.isUndefined());
     }
 }
