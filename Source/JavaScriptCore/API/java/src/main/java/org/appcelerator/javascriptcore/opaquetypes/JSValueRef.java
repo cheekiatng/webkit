@@ -1,13 +1,12 @@
 package com.appcelerator.javascriptcore.opaquetypes;
 
 import com.appcelerator.javascriptcore.JavaScriptCoreLibrary;
-import com.appcelerator.javascriptcore.JSExceptionHandler;
+import com.appcelerator.javascriptcore.JavaScriptException;
 
 public class JSValueRef extends PointerType {
 
     private JavaScriptCoreLibrary jsc = JavaScriptCoreLibrary.getInstance();
     private JSContextRef context;
-    private JSExceptionHandler exceptionHandler;
 
     public JSValueRef(JSContextRef context, long pointer) {
         super(pointer);
@@ -17,8 +16,8 @@ public class JSValueRef extends PointerType {
     public double toDouble() {
         JSValueRef exception = jsc.JSValueMakeNull(context);
         double value = jsc.JSValueToNumber(context, this, exception);
-        if (exceptionHandler != null && !exception.isNull()) {
-            exceptionHandler.handleException(context, exception);           
+        if (!exception.isNull()) {
+            throw new JavaScriptException(exception.toString(), exception);
         }
         return value;
     }
@@ -39,11 +38,33 @@ public class JSValueRef extends PointerType {
         return (long)toDouble();
     }
 
+    public boolean toBoolean() {
+        return jsc.JSValueToBoolean(context, this);
+    }
+
+    public JSObjectRef toObject() {
+        JSValueRef exception = jsc.JSValueMakeNull(context);
+        JSObjectRef value = jsc.JSValueToObject(context, this, exception);
+        if (!exception.isNull()) {
+            throw new JavaScriptException(exception.toString(), exception);
+        }
+        return value;
+    }
+
     public String toString() {
         JSValueRef exception = jsc.JSValueMakeNull(context);
         String value = jsc.JSValueToStringCopy(context, this, exception);
-        if (exceptionHandler != null && !exception.isNull()) {
-            exceptionHandler.handleException(context, exception);           
+        if (!exception.isNull()) {
+            throw new JavaScriptException(exception.toString(), exception);
+        }
+        return value;
+    }
+
+    public String toJSON(int indent) {
+        JSValueRef exception = jsc.JSValueMakeNull(context);
+        String value = jsc.JSValueCreateJSONString(context, this, indent, exception);
+        if (!exception.isNull()) {
+            throw new JavaScriptException(exception.toString(), exception);
         }
         return value;
     }
@@ -75,8 +96,8 @@ public class JSValueRef extends PointerType {
     public boolean isEqual(JSValueRef other) {
         JSValueRef exception = jsc.JSValueMakeNull(context);
         boolean result = jsc.JSValueIsEqual(context, this, other, exception);
-        if (exceptionHandler != null && !exception.isNull()) {
-            exceptionHandler.handleException(context, exception);           
+        if (!exception.isNull()) {
+            throw new JavaScriptException(exception.toString(), exception);
         }
         return result;
     }
@@ -85,7 +106,24 @@ public class JSValueRef extends PointerType {
         return jsc.JSValueIsStrictEqual(context, this, other);
     }
 
-    public void setExceptionHandler(JSExceptionHandler handler) {
-        this.exceptionHandler = handler;
+    public boolean isObjectOfClass(JSClassRef jsClass) {
+        return jsc.JSValueIsObjectOfClass(context, this, jsClass);
+    }
+
+    public boolean isInstanceOfConstructor(JSObjectRef object) {
+        JSValueRef exception = jsc.JSValueMakeNull(context);
+        boolean result = jsc.JSValueIsInstanceOfConstructor(context, this, object, exception);
+        if (!exception.isNull()) {
+            throw new JavaScriptException(exception.toString(), exception);
+        }
+        return result;
+    }
+
+    public void protect() {
+        jsc.JSValueProtect(context, this);
+    }
+
+    public void unprotect() {
+        jsc.JSValueUnprotect(context, this);
     }
 }

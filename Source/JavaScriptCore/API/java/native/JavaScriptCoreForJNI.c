@@ -153,7 +153,7 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueMakeBool
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jboolean arg)
 {
     JSGlobalContextRef ctx = (JSGlobalContextRef)jsContextRef;
-    return (jlong)JSValueMakeBoolean(ctx, (bool)arg);
+    return (jlong)JSValueMakeBoolean(ctx, arg == JNI_TRUE ? true : false);
 }
 
 JNIEXPORT jboolean JNICALL
@@ -205,6 +205,15 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsNumber
 }
 
 JNIEXPORT jboolean JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsBoolean
+    (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef)
+{
+    JSGlobalContextRef ctx = (JSGlobalContextRef)jsContextRef;
+    JSValueRef value = (JSValueRef)jsValueRef;
+    return JSValueIsBoolean(ctx, value) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsString
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef)
 {
@@ -229,7 +238,7 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueToBoolea
     JSGlobalContextRef ctx = (JSGlobalContextRef)jsContextRef;
     JSValueRef value = (JSValueRef)jsValueRef;
     
-    return JSValueToBoolean(ctx, value);
+    return JSValueToBoolean(ctx, value) ? JNI_TRUE : JNI_FALSE;
 }
 
 JNIEXPORT jdouble JNICALL
@@ -331,6 +340,46 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueUnprotec
     JSValueRef value = (JSValueRef)jsValueRef;
     JSValueUnprotect(ctx, value);
 }
+
+JNIEXPORT jstring JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueCreateJSONString
+    (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef, jint indent, jlong jsExceptionRef)
+{
+    JSGlobalContextRef ctx = (JSGlobalContextRef)jsContextRef;
+    JSValueRef value = (JSValueRef)jsValueRef;
+    JSValueRef* exception = (JSValueRef*)&jsExceptionRef;
+    
+    JSStringRef jsstring = JSValueCreateJSONString(ctx, value, indent, exception);
+    
+    if (!JSValueIsNull(ctx, *exception))
+    {
+        return NULL;
+    }
+    
+    size_t length = JSStringGetMaximumUTF8CStringSize(jsstring);
+    char* aschars = (char*)malloc(length);
+    JSStringGetUTF8CString(jsstring, aschars, length);
+    JSStringRelease(jsstring);
+    
+    jstring copy = (*env)->NewStringUTF(env, aschars);
+    free(aschars);
+    return copy;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueMakeString
+    (JNIEnv *env, jobject thiz, jlong jsContextRef, jstring value)
+{
+    JSGlobalContextRef ctx = (JSGlobalContextRef)jsContextRef;
+    
+    const char* aschars = (*env)->GetStringUTFChars(env, value, NULL);
+    JSStringRef svalue = JSStringCreateWithUTF8CString(aschars);
+    (*env)->ReleaseStringUTFChars(env, value, aschars);
+    
+    return (jlong)JSValueMakeString(ctx, svalue);
+}
+
+
 
 #ifdef __cplusplus
 }

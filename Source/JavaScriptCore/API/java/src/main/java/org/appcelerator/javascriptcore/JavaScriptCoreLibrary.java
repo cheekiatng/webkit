@@ -74,20 +74,40 @@ public class JavaScriptCoreLibrary {
         NativeJSGarbageCollect(context.p());
     }
 
+    public void JSValueProtect(JSContextRef context, JSValueRef value) {
+        NativeJSValueProtect(context.p(), value.p());
+    }
+
+    public void JSValueUnprotect(JSContextRef context, JSValueRef value) {
+        NativeJSValueUnprotect(context.p(), value.p());
+    }
+
+    public String JSValueCreateJSONString(JSContextRef context, JSValueRef value, int indent, JSValueRef exception) {
+        return NativeJSValueCreateJSONString(context.p(), value.p(), indent, exception.p());
+    }
+
+    public JSValueRef JSValueMakeBoolean(JSContextRef context, boolean value) {
+        return new JSValueRef(context, NativeJSValueMakeBoolean(context.p(), value));
+    }
+
     public JSValueRef JSValueMakeNull(JSContextRef context) {
         return new JSValueRef(context, NativeJSValueMakeNull(context.p()));
+    }
+
+    public JSValueRef JSValueMakeNumber(JSContextRef context, double number) {
+        return new JSValueRef(context, NativeJSValueMakeNumber(context.p(), number));
+    }
+
+    public JSValueRef JSValueMakeString(JSContextRef context, String string) {
+        return new JSValueRef(context, NativeJSValueMakeString(context.p(), string));
     }
 
     public JSValueRef JSValueMakeUndefined(JSContextRef context) {
         return new JSValueRef(context, NativeJSValueMakeUndefined(context.p()));
     }
 
-    public boolean JSValueIsProtect(JSContextRef context, JSValueRef value) {
-        return NativeJSValueProtect(context.p(), value.p());
-    }
-
-    public boolean JSValueIsUnprotect(JSContextRef context, JSValueRef value) {
-        return NativeJSValueUnprotect(context.p(), value.p());
+    public JSValueRef JSValueMakeFromJSONString(JSContextRef context, String string) {
+        return new JSValueRef(context, NativeJSValueMakeString(context.p(), string));
     }
 
     public boolean JSValueIsUndefined(JSContextRef context, JSValueRef value) {
@@ -161,10 +181,15 @@ public class JavaScriptCoreLibrary {
     public native long NativeJSEvaluateScript(long jsContextRef, String script, long jsExceptionRef);
     public native boolean NativeJSCheckScriptSyntax(long jsContextRef, String script, long jsExceptionRef);
     public native long NativeJSGarbageCollect(long jsContextRef);
+    public native void NativeJSValueProtect(long jsContextRef, long jsValueRef);
+    public native void NativeJSValueUnprotect(long jsContextRef, long jsValueRef);
+    public native String NativeJSValueCreateJSONString(long jsContextRef, long jsValueRef, int indent, long jsExceptionRef);
     public native long NativeJSValueMakeNull(long jsContextRef);
     public native long NativeJSValueMakeUndefined(long jsContextRef);
-    public native boolean NativeJSValueProtect(long jsContextRef, long jsValueRef);
-    public native boolean NativeJSValueUnprotect(long jsContextRef, long jsValueRef);
+    public native long NativeJSValueMakeBoolean(long jsContextRef, boolean value);
+    public native long NativeJSValueMakeNumber(long jsContextRef, double number);
+    public native long NativeJSValueMakeString(long jsContextRef, String string);
+    public native long NativeJSValueMakeFromJSONString(long jsContextRef, String string);
     public native boolean NativeJSValueIsObjectOfClass(long jsContextRef, long jsValueRef, long jsClassRef);
     public native boolean NativeJSValueIsInstanceOfConstructor(long jsContextRef, long jsValueRef, long jsObjectRef, long jsExceptionRef);
     public native boolean NativeJSValueIsUndefined(long jsContextRef, long jsValueRef);
