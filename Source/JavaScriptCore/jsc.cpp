@@ -743,15 +743,15 @@ EncodedJSValue JSC_HOST_CALL functionPrint(ExecState* exec)
     for (unsigned i = 0; i < exec->argumentCount(); ++i) {
         if (i) {
             putchar(' ');
-            OutputDebugStringA(" ");
+//            OutputDebugStringA(" ");
         }
 
-        OutputDebugStringA(exec->uncheckedArgument(i).toString(exec)->view(exec).get().utf8().data());
+//        OutputDebugStringA(exec->uncheckedArgument(i).toString(exec)->view(exec).get().utf8().data());
         printf("%s", exec->uncheckedArgument(i).toString(exec)->view(exec).get().utf8().data());
     }
 
     putchar('\n');
-    OutputDebugStringA("\n");
+//    OutputDebugStringA("\n");
     fflush(stdout);
     return JSValue::encode(jsUndefined());
 }
@@ -1363,7 +1363,7 @@ static bool runWithScripts(GlobalObject* globalObject, const Vector<Script>& scr
         if (dump && !evaluationException)
             printf("End: %s\n", returnValue.toString(globalObject->globalExec())->value(globalObject->globalExec()).utf8().data());
         if (evaluationException) {
-            OutputDebugStringA("Exception");
+//            OutputDebugStringA("Exception");
             printf("Exception: %s\n", evaluationException->value().toString(globalObject->globalExec())->value(globalObject->globalExec()).utf8().data());
             Identifier stackID = Identifier::fromString(globalObject->globalExec(), "stack");
             JSValue stackValue = evaluationException->value().get(globalObject->globalExec(), stackID);
