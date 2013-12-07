@@ -71,7 +71,7 @@
 #if OS(DARWIN) || (OS(LINUX) && !defined(__UCLIBC__))
 #include <cxxabi.h>
 #include <dlfcn.h>
-#include <execinfo.h>
+//#include <execinfo.h>
 #endif
 
 extern "C" {

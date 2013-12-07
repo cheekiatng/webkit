@@ -37,7 +37,22 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <elf.h>
+#if OS(ANDROID) 
+/* Android doesn't provide <asm/hwcap.h>, but cpu-features.c in the ndk
+ * in sources/android/cpufeatures has the following #defines referring to <asm/hwcap.h>
+ */
+// See <asm/hwcap.h> kernel header.
+#define HWCAP_VFP       (1 << 6)
+#define HWCAP_IWMMXT    (1 << 9)
+#define HWCAP_NEON      (1 << 12)
+#define HWCAP_VFPv3     (1 << 13)
+#define HWCAP_VFPv3D16  (1 << 14)
+#define HWCAP_VFPv4     (1 << 16)
+#define HWCAP_IDIVA     (1 << 17)
+#define HWCAP_IDIVT     (1 << 18)
+#else
 #include <asm/hwcap.h>
+#endif /* OS(ANDROID) */
 #endif
 
 namespace JSC {
