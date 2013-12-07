@@ -24,3 +24,178 @@ You should now be able to build and start the emulator.
 
 Common Errors:
 - Error about \r in build-generated-files.sh: Git mangled your line endings, so you need to set core.autocrlf to false and re-clone the repository.
+
+
+
+=============================================================================================
+Android
+=============================================================================================
+Requirements:
+Latest Android SDK and Android NDK (4.4/API 19, r9b)
+CMake (2.8.12.1)
+Android-CMake fork from https://bitbucket.org/ewing/android-cmake
+Mercurial (so you can develop on Android-CMake)
+ICU source code (52.1)
+Already assuming you know how to get WebKit (see Windows instructions above).
+
+
+Install CMake (and place it in your path)
+Install the Android SDK (API 19) and Android NDK r9b.
+	For Mac, I put the SDK in /Library/Frameworks/Android/android-sdk
+	and the NDK in /Library/Frameworks/Android/android-ndk
+	(The following commands assume this. Symlinks are okay.)
+
+# Set these environmental variables to where you installed everything
+# Be aware that these environmental variables are the semi-official sanctioned variables by Google via the Android NDK mailing list. (I didn’t pick these arbitrarily.)
+export ANDROID_SDK_ROOT=/Library/Frameworks/Android/android-sdk
+export ANDROID_NDK_ROOT=/Library/Frameworks/Android/android-ndk
+
+
+# I’m currently doing development with gcc 4.6/armeabi, but we may switch in the future.
+# Because WebKit uses C++11 standard library features, you MUST specify using the gnustl C++ library (as opposed to STLport) or compilation will fail.
+
+# Build the standalone toolchain for gcc 4.6 for both arm/armv7 and x86
+$ANDROID_NDK_ROOT/build/tools/make-standalone-toolchain.sh --toolchain=arm-linux-androideabi-4.6 --platform=android-19 --install-dir=$ANDROID_NDK_ROOT/standalone/arm-linux-androideabi-4.6 --system=darwin-x86_64 --stl=gnustl
+$ANDROID_NDK_ROOT/build/tools/make-standalone-toolchain.sh --toolchain=x86-4.6 --platform=android-19 --install-dir=$ANDROID_NDK_ROOT/standalone/x86-4.6 --system=darwin-x86_64 --stl=gnustl
+
+# If you want gcc 4.8:
+$ANDROID_NDK_ROOT/build/tools/make-standalone-toolchain.sh --toolchain=arm-linux-androideabi-4.8 --platform=android-19 --install-dir=$ANDROID_NDK_ROOT/standalone/arm-linux-androideabi-4.8 --system=darwin-x86_64 --stl=gnustl
+$ANDROID_NDK_ROOT/build/tools/make-standalone-toolchain.sh --toolchain=x86-4.8 --platform=android-19 --install-dir=$ANDROID_NDK_ROOT/standalone/x86-4.8 --system=darwin-x86_64 --stl=gnustl
+
+# If you want clang 3.3, you must override the defaults to pull in gcc 4.8 instead of gcc 4.6. clang still uses the GCC C++ library because clang’s is unfinished. But Android pulls in gcc 4.6 by default which has compatibility problems with clang 3.3 in C++11 mode.
+$ANDROID_NDK_ROOT/build/tools/make-standalone-toolchain.sh --toolchain=arm-linux-androideabi-4.8 --llvm-version=3.3 --platform=android-19 --install-dir=$ANDROID_NDK_ROOT/standalone/arm-linux-androideabi-clang3.3 --system=darwin-x86_64 --stl=gnustl
+$ANDROID_NDK_ROOT/build/tools/make-standalone-toolchain.sh --toolchain=x86-clang3.3 --llvm-version=3.3 --platform=android-19 --install-dir=$ANDROID_NDK_ROOT/standalone/x86-clang3.3 --system=darwin-x86_64 --stl=gnustl
+
+
+# For use down below, we set this environmental variable to represent one of the standalone toolchains.
+# This variable I made up and is not official in any way.
+# Note that building for separate architectures is a manual process.
+export NDK_STANDALONE_TOOLCHAIN_ROOT=$ANDROID_NDK_ROOT/standalone/arm-linux-androideabi-4.6
+
+
+
+# Now download or clone Android-CMake from https://bitbucket.org/ewing/android-cmake
+hg clone https://bitbucket.org/ewing/android-cmake
+
+# For documentation convenience, I set an environmental variable to point to the toolchain directory in android-cmake.
+export ANDROID_CMAKE_TOOLCHAIN_ROOT=./android-cmake/toolchain
+
+
+=============================================================================================
+ICU
+=============================================================================================
+# Make a directory called icu.
+# Download the ICU source code from http://www.icu-project.org
+# Extract the source so that it is in a directory under the icu directory you just made.
+# Rename the ICU source code directory to icu-52.1
+# Under the icu directory, make a directory called build_icu_mac (I’m assuming you are on a Mac)
+# Under the icu directory, make a directory called build_icu_android
+# The directory structure layout should look like:
+# icu/
+# 	build_icu_android/
+# 	build_icu_mac/
+# 	icu-52.1/
+
+
+#!/bin/sh
+# Original instructions from:
+# http://thebugfreeblog.blogspot.com/2013/05/cross-building-icu-for-applications-on.html
+# But we had to modify some things.
+# The path to ar must be in the cross-compile toolchain, not your host ar.
+# We need collation and formatting features.
+# We need to disable ICU’s manual version centric name mangling (I think it causes problems because WebKit has its own copy of ICU headers which causes version mismatches.)
+# If we build shared libraries, we need to define UEXPORT2 properly to export symbols we need in WebKit because ICU only sets up UEXPORT (not UEXPORT2).
+
+
+# Build host platform first
+
+# some building directory
+export MY_ICU_ROOT_DIR=/path/to/icu
+cd $MY_ICU_ROOT_DIR
+mkdir -p build_icu_mac
+cd build_icu_mac
+
+export ICU_SOURCES=$MY_ICU_ROOT_DIR/icu-52.1
+export CFLAGS="-O3 -fno-short-wchar -DU_USING_ICU_NAMESPACE=1 -fno-short-enums \
+-DUEXPORT2=__attribute__\(\(visibility\(\"default\"\)\)\) \
+-DU_HAVE_NL_LANGINFO_CODESET=0 -D__STDC_INT64__ -DU_TIMEZONE=0 \
+-DUCONFIG_NO_LEGACY_CONVERSION=1 -DUCONFIG_NO_BREAK_ITERATION=1 \
+-DUCONFIG_NO_COLLATION=0 -DUCONFIG_NO_FORMATTING=0 -DUCONFIG_NO_TRANSLITERATION=0 \
+-DUCONFIG_NO_REGULAR_EXPRESSIONS=1 -DU_DISABLE_RENAMING=1"
+export CPPFLAGS="-O3 -fno-short-wchar -DU_USING_ICU_NAMESPACE=1 -fno-short-enums \
+-DUEXPORT2=__attribute__\(\(visibility\(\"default\"\)\)\) \
+-DU_HAVE_NL_LANGINFO_CODESET=0 -D__STDC_INT64__ -DU_TIMEZONE=0 \
+-DUCONFIG_NO_LEGACY_CONVERSION=1 -DUCONFIG_NO_BREAK_ITERATION=1 \
+-DUCONFIG_NO_COLLATION=0 -DUCONFIG_NO_FORMATTING=0 -DUCONFIG_NO_TRANSLITERATION=0 \
+-DUCONFIG_NO_REGULAR_EXPRESSIONS=1 -DU_DISABLE_RENAMING=1"
+
+
+
+sh $ICU_SOURCES/source/runConfigureICU MacOSX --prefix=$PWD/icu_build --enable-extras=yes \
+--enable-strict=no -enable-static --enable-shared=no --enable-tests=yes \
+--enable-samples=no --enable-dyload=no
+make -j8
+make install
+
+
+
+# Now you can build for Android:
+
+cd $MY_ICU_ROOT_DIR
+mkdir -p build_icu_android
+cd build_icu_android 
+
+# Your standalone toolchain root:
+# export NDK_STANDALONE_TOOLCHAIN_ROOT=$ANDROID_NDK_ROOT/standalone/arm-linux-androideabi-4.6
+export AR=$NDK_STANDALONE_TOOLCHAIN_ROOT/bin/arm-linux-androideabi-ar
+export ICU_SOURCES=$MY_ICU_ROOT_DIR/icu-52.1
+export ANDROIDVER=19
+export BASE=$MY_ICU_ROOT_DIR
+export HOST_ICU=$BASE/build_icu_android
+export ICU_CROSS_BUILD=$BASE/build_icu_mac
+export CFLAGS="-I$NDK_STANDALONE_TOOLCHAIN_ROOT/sysroot/usr/include/ \
+-O3 -fno-short-wchar -DU_USING_ICU_NAMESPACE=1 -fno-short-enums \
+-DUEXPORT2=__attribute__\(\(visibility\(\"default\"\)\)\) \
+-DU_HAVE_NL_LANGINFO_CODESET=0 -D__STDC_INT64__ -DU_TIMEZONE=0 \
+-DUCONFIG_NO_LEGACY_CONVERSION=1 -DUCONFIG_NO_BREAK_ITERATION=1 \
+-DUCONFIG_NO_COLLATION=0 -DUCONFIG_NO_FORMATTING=0 -DUCONFIG_NO_TRANSLITERATION=0 \
+-DUCONFIG_NO_REGULAR_EXPRESSIONS=1 -DU_DISABLE_RENAMING=1"
+export CPPFLAGS="-I$NDK_STANDALONE_TOOLCHAIN_ROOT/sysroot/usr/include/ \
+-O3 -fno-short-wchar -DU_USING_ICU_NAMESPACE=1 -fno-short-enums \
+-DUEXPORT2=__attribute__\(\(visibility\(\"default\"\)\)\) \
+-DU_HAVE_NL_LANGINFO_CODESET=0 -D__STDC_INT64__ -DU_TIMEZONE=0 \
+-DUCONFIG_NO_LEGACY_CONVERSION=1 -DUCONFIG_NO_BREAK_ITERATION=1 \
+-DUCONFIG_NO_COLLATION=0 -DUCONFIG_NO_FORMATTING=0 -DUCONFIG_NO_TRANSLITERATION=0 \
+-DUCONFIG_NO_REGULAR_EXPRESSIONS=1 -DU_DISABLE_RENAMING=1"
+export LDFLAGS="-lc -lstdc++ -Wl,-rpath-link=$NDK_STANDALONE_TOOLCHAIN_ROOT/sysroot/usr/lib/"
+
+export PATH=$PATH:$NDK_STANDALONE_TOOLCHAIN_ROOT/bin
+
+$ICU_SOURCES/source/configure --with-cross-build=$ICU_CROSS_BUILD \
+--enable-extras=yes --enable-strict=no -enable-static --enable-shared=no \
+--enable-tests=no --enable-samples=no --enable-dyload=no \
+--host=arm-linux-androideabi --prefix=$PWD/icu_build
+make -j8
+make install 
+
+
+
+
+
+=============================================================================================
+WebKit via CMake
+=============================================================================================
+
+# CMake encourages out of source builds which is a really good idea.
+# Create a sibling directory to webkit (e.g. BUILD_WEBKIT) so they are side-by-side.
+mkdir -p BUILD_WEBKIT
+cd BUILD_WEBKIT
+
+cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_CMAKE_TOOLCHAIN_ROOT/android.toolchain.cmake -DANDROID_ABI=armeabi-v7a -DCMAKE_BUILD_TYPE=Debug  -DANDROID_STANDALONE_TOOLCHAIN=$NDK_STANDALONE_TOOLCHAIN_ROOT -DANDROID_USE_STLPORT=1 -DENABLE_WEBKIT=0 -ENABLE_WEBCORE=0 -DENABLE_TOOLS=0 -DENABLE_WEBKIT=0 -DENABLE_WEBKIT2=0 -DENABLE_API_TESTS=0 -DPORT=Android -DCMAKE_FIND_ROOT_PATH=$MY_ICU_ROOT_DIR/build_icu_android/icu_build -DPYTHON_EXECUTABLE=/usr/bin/python -DPERL_EXECUTABLE=/usr/bin/perl -DRUBY_EXECUTABLE=/usr/bin/ruby -DENABLE_LLINT=1 ../webkit/
+
+# If all goes well, the project should have successfully generated makefiles.
+# make
+# Use more cores
+make -j4
+# alternatively to see raw commands: make -j4 VERBOSE=1
+
