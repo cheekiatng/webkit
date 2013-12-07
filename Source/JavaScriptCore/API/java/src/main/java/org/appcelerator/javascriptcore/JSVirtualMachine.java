@@ -24,7 +24,7 @@ public class JSVirtualMachine {
     }
 
     public JSGlobalContextRef createContext() {
-        JSGlobalContextRef context = jsc.JSGlobalContextCreateInGroup(getContextGroupRef(), new JSClassRef());
+        JSGlobalContextRef context = jsc.JSGlobalContextCreateInGroup(getContextGroupRef(), null);
         contextCache.put(context.pointer(), context);
         return context;
     }

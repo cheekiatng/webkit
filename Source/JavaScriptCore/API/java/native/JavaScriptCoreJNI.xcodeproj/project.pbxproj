@@ -14,6 +14,7 @@
 /* Begin PBXFileReference section */
 		F97C5C2D184DE3F0002A9E74 /* JavaScriptCoreForJNI.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = JavaScriptCoreForJNI.c; sourceTree = "<group>"; };
 		F97C5C2F184DE400002A9E74 /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		F9A8A4DC18502AEC0087F098 /* JavaScriptCoreForJNI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = JavaScriptCoreForJNI.h; sourceTree = "<group>"; };
 		F9D71B5E184DE3CD00838DF4 /* libJavaScriptCoreJNI.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libJavaScriptCoreJNI.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -40,6 +41,7 @@
 		F9D71B55184DE3CD00838DF4 = {
 			isa = PBXGroup;
 			children = (
+				F9A8A4DC18502AEC0087F098 /* JavaScriptCoreForJNI.h */,
 				F97C5C2D184DE3F0002A9E74 /* JavaScriptCoreForJNI.c */,
 				F97C5C31184DE450002A9E74 /* Frameworks */,
 				F9D71B5F184DE3CD00838DF4 /* Products */,

@@ -7,11 +7,6 @@ public class JSContextRef extends PointerType {
 
     private JavaScriptCoreLibrary jsc = JavaScriptCoreLibrary.getInstance();
 
-    // defaults to NULL pointer
-    public JSContextRef() {
-        super();
-    }
-
     public JSContextRef(long pointer) {
         super(pointer);
     }

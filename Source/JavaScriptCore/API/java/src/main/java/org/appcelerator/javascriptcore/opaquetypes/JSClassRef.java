@@ -1,12 +1,13 @@
 package com.appcelerator.javascriptcore.opaquetypes;
 
 public class JSClassRef extends PointerType {
-    // defaults to NULL pointer
-    public JSClassRef() {
-        super();
+    private JSClassDefinition definition;
+    public JSClassRef(JSClassDefinition definition, long pointer) {
+        super(pointer);
+        this.definition = definition;
     }
 
-    public JSClassRef(long pointer) {
-        super(pointer);
+    public JSClassDefinition getDefinition() {
+        return definition;
     }
 }
