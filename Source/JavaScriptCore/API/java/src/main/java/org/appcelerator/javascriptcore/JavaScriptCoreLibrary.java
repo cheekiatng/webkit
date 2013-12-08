@@ -8,6 +8,8 @@ import com.appcelerator.javascriptcore.opaquetypes.JSObjectRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSClassRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSClassDefinition;
 import com.appcelerator.javascriptcore.opaquetypes.PointerType;
+import com.appcelerator.javascriptcore.opaquetypes.JSPropertyNameArrayRef;
+import com.appcelerator.javascriptcore.opaquetypes.JSPropertyNameAccumulatorRef;
 
 import com.appcelerator.javascriptcore.callbacks.JSObjectCallAsConstructorCallback;
 import com.appcelerator.javascriptcore.callbacks.JSObjectCallAsFunctionCallback;
@@ -72,12 +74,15 @@ public class JavaScriptCoreLibrary {
         return new JSGlobalContextRef(NativeJSGlobalContextRetain(p(context)));
     }
 
-    public JSValueRef JSEvaluateScript(JSContextRef context, String script, JSValueRef exception) {
-        return new JSValueRef(context, NativeJSEvaluateScript(p(context), script, p(exception)));
+    public JSValueRef JSEvaluateScript(JSContextRef context, String script) {
+        return new JSValueRef(context, NativeJSEvaluateScript(p(context), script));
     }
 
-    public boolean JSCheckScriptSyntax(JSContextRef context, String script, JSValueRef exception) {
-        return NativeJSCheckScriptSyntax(p(context), script, p(exception));
+    /*
+     * @returns true if syntax is OK. Otherwise it returns error string or false.
+     */
+    public JSValueRef JSCheckScriptSyntax(JSContextRef context, String script) {
+        return new JSValueRef(context, NativeJSCheckScriptSyntax(p(context), script));
     }
 
     public void JSGarbageCollect(JSContextRef context) {
@@ -92,8 +97,8 @@ public class JavaScriptCoreLibrary {
         NativeJSValueUnprotect(p(context), p(value));
     }
 
-    public String JSValueCreateJSONString(JSContextRef context, JSValueRef value, int indent, JSValueRef exception) {
-        return NativeJSValueCreateJSONString(p(context), p(value), indent, p(exception));
+    public String JSValueCreateJSONString(JSContextRef context, JSValueRef value, int indent) {
+        return NativeJSValueCreateJSONString(p(context), p(value), indent);
     }
 
     public JSValueRef JSValueMakeBoolean(JSContextRef context, boolean value) {
@@ -144,12 +149,12 @@ public class JavaScriptCoreLibrary {
         return NativeJSValueIsObject(p(context), p(value));
     }
 
-    public boolean JSValueIsEqual(JSContextRef context, JSValueRef a, JSValueRef b, JSValueRef exception) {
-        return NativeJSValueIsEqual(p(context), p(a), p(b), p(exception));
+    public boolean JSValueIsEqual(JSContextRef context, JSValueRef a, JSValueRef b) {
+        return NativeJSValueIsEqual(p(context), p(a), p(b));
     }
 
-    public boolean JSValueIsInstanceOfConstructor(JSContextRef context, JSValueRef value, JSObjectRef constructor, JSValueRef exception) {
-        return NativeJSValueIsInstanceOfConstructor(p(context), p(value), p(constructor), p(exception));
+    public boolean JSValueIsInstanceOfConstructor(JSContextRef context, JSValueRef value, JSObjectRef constructor) {
+        return NativeJSValueIsInstanceOfConstructor(p(context), p(value), p(constructor));
     }
 
     public boolean JSValueIsObjectOfClass(JSContextRef context, JSValueRef value, JSClassRef jsClass) {
@@ -164,16 +169,16 @@ public class JavaScriptCoreLibrary {
         return NativeJSValueToBoolean(p(context), p(value));
     }
 
-    public double JSValueToNumber(JSContextRef context, JSValueRef value, JSValueRef exception) {
-        return NativeJSValueToNumber(p(context), p(value), p(exception));
+    public double JSValueToNumber(JSContextRef context, JSValueRef value) {
+        return NativeJSValueToNumber(p(context), p(value));
     }
 
-    public String JSValueToStringCopy(JSContextRef context, JSValueRef value, JSValueRef exception) {
-        return NativeJSValueToStringCopy(p(context), p(value), p(exception));
+    public String JSValueToStringCopy(JSContextRef context, JSValueRef value) {
+        return NativeJSValueToStringCopy(p(context), p(value));
     }
 
-    public JSObjectRef JSValueToObject(JSContextRef context, JSValueRef value, JSValueRef exception) {
-        return new JSObjectRef(NativeJSValueToObject(p(context), p(value), p(exception)));
+    public JSObjectRef JSValueToObject(JSContextRef context, JSValueRef value) {
+        return new JSObjectRef(NativeJSValueToObject(p(context), p(value)));
     }
 
     public JSClassRef JSClassCreate(JSClassDefinition d) {
@@ -193,54 +198,126 @@ public class JavaScriptCoreLibrary {
             ));
     }
 
-    public JSObjectRef JSObjectCallAsConstructor(JSContextRef context, JSObjectRef jsObject, JSValueRef argv[], JSValueRef exception) {
+    public JSObjectRef JSObjectCallAsConstructor(JSContextRef context, JSObjectRef jsObject, JSValueRef argv[]) {
         long[] pargv = new long[argv.length];
         for (int i = 0; i < argv.length; i++) {
             pargv[i] = p(argv[i]);
         }
-        return new JSObjectRef(NativeJSObjectCallAsConstructor(p(context), p(jsObject), pargv.length, pargv, p(exception)));
+        return new JSObjectRef(NativeJSObjectCallAsConstructor(p(context), p(jsObject), pargv.length, pargv));
+    }
+
+    private long[] convertToLong(JSValueRef argv[]) {
+        long[] pargv = new long[argv.length];
+        for (int i = 0; i < argv.length; i++) {
+            pargv[i] = p(argv[i]);
+        }
+        return pargv;
     }
 
     public JSValueRef JSObjectCallAsFunction(JSContextRef context, JSObjectRef jsObject,
-                            JSObjectRef thisObject, JSValueRef argv[], JSValueRef exception) {
-        long[] pargv = new long[argv.length];
-        for (int i = 0; i < argv.length; i++) {
-            pargv[i] = p(argv[i]);
-        }
-        return new JSValueRef(context, NativeJSObjectCallAsFunction(p(context), p(jsObject), p(thisObject), pargv.length, pargv, p(exception)));
+                            JSObjectRef thisObject, JSValueRef argv[]) {
+        long[] pargv = convertToLong(argv);
+        return new JSValueRef(context, NativeJSObjectCallAsFunction(p(context), p(jsObject), p(thisObject), pargv.length, pargv));
     }
+
     public void JSObjectSetProperty(JSContextRef context, JSObjectRef jsObject,
-                                    String propertyName, JSValueRef value, int attributes, JSValueRef exception) {
-        NativeJSObjectSetProperty(p(context), p(jsObject), propertyName, p(value), attributes, p(exception));
+                                    String propertyName, JSValueRef value, int attributes) {
+        NativeJSObjectSetProperty(p(context), p(jsObject), propertyName, p(value), attributes);
     }
 
     public JSValueRef JSObjectGetProperty(JSContextRef context, JSObjectRef jsObject,
-                                            String propertyName, JSValueRef exception) {
-        return new JSValueRef(context, NativeJSObjectGetProperty(p(context), p(jsObject), propertyName, p(exception)));
+                                            String propertyName) {
+        return new JSValueRef(context, NativeJSObjectGetProperty(p(context), p(jsObject), propertyName));
     }
-/*
-    public void JSClassRelease(JSClassRef jsClass);
-    public JSClassRef JSClassRetain(JSClassRef jsClass);
-    public JSPropertyNameArrayRef JSObjectCopyPropertyNames(JSContextRef context, JSObjectRef jsObject);
-    public boolean JSObjectDeleteProperty(JSContextRef context, JSObjectRef jsObject, String propertyName, JSValueRef exception);
-    public JSValueRef JSObjectGetPropertyAtIndex(JSContextRef context, JSObjectRef jsObject, int propertyIndex, JSValueRef exception);
-    public JSValueRef JSObjectGetPrototype(JSContextRef context, JSObjectRef jsObject);
-    public boolean JSObjectHasProperty(JSContextRef context, JSObjectRef jsObject, String propertyName);
-    public boolean JSObjectIsConstructor(JSContextRef context, JSObjectRef jsObject);
-    public boolean JSObjectIsFunction(JSContextRef context, JSObjectRef jsObject);
-    public JSObjectRef JSObjectMakeArray(JSContextRef context, JSValueRef argv[], JSValueRef exception);
-    public JSObjectRef JSObjectMakeDate(JSContextRef context, JSValueRef argv[], JSValueRef exception);
-    public JSObjectRef JSObjectMakeError(JSContextRef context, JSValueRef argv[], JSValueRef exception);
-    public JSObjectRef JSObjectMakeFunction(JSContextRef context, String name, int paramCount, String paramNames[], String body, String sourceURL, int line, JSValueRef exception);
-    public JSObjectRef JSObjectMakeRegExp(JSContextRef context, JSValueRef argv[], JSValueRef exception);
-    public void JSObjectSetPropertyAtIndex(JSContextRef context, JSObjectRef jsObject, int propertyIndex, JSValueRef value, JSValueRef exception);
-    public void JSObjectSetPrototype(JSContextRef context, JSObjectRef jsObject, JSValueRef value);
-    public void JSPropertyNameAccumulatorAddName(JSPropertyNameAccumulatorRef accumulator, String propertyName);
-    public int JSPropertyNameArrayGetCount(JSPropertyNameArrayRef names);
-    public String JSPropertyNameArrayGetNameAtIndex(JSPropertyNameArrayRef names, int index);
-    public void JSPropertyNameArrayRelease(JSPropertyNameArrayRef names);
-    public void JSPropertyNameArrayRetain(JSPropertyNameArrayRef names);
-*/
+    
+    public void JSClassRelease(JSClassRef jsClass) {
+        NativeJSClassRelease(p(jsClass));
+    }
+    public JSClassRef JSClassRetain(JSClassRef jsClass) {
+        return new JSClassRef(NativeJSClassRetain(p(jsClass)));
+    }
+
+    public JSPropertyNameArrayRef JSObjectCopyPropertyNames(JSContextRef context, JSObjectRef jsObject) {
+        return new JSPropertyNameArrayRef(NativeJSObjectCopyPropertyNames(p(context), p(jsObject)));
+    }
+
+    public boolean JSObjectDeleteProperty(JSContextRef context, JSObjectRef jsObject, String propertyName) {
+        return NativeJSObjectDeleteProperty(p(context), p(jsObject), propertyName);
+    }
+
+    public JSValueRef JSObjectGetPropertyAtIndex(JSContextRef context, JSObjectRef jsObject, int propertyIndex) {
+        return new JSValueRef(NativeJSObjectGetPropertyAtIndex(p(context), p(jsObject), propertyIndex));
+    }
+
+    public JSValueRef JSObjectGetPrototype(JSContextRef context, JSObjectRef jsObject) {
+        return new JSValueRef(NativeJSObjectGetPrototype(p(context), p(jsObject)));
+    }
+
+    public boolean JSObjectHasProperty(JSContextRef context, JSObjectRef jsObject, String propertyName) {
+        return NativeJSObjectHasProperty(p(context), p(jsObject), propertyName);
+    }
+
+    public boolean JSObjectIsConstructor(JSContextRef context, JSObjectRef jsObject) {
+        return NativeJSObjectIsConstructor(p(context), p(jsObject));
+    }
+
+    public boolean JSObjectIsFunction(JSContextRef context, JSObjectRef jsObject) {
+        return NativeJSObjectIsFunction(p(context), p(jsObject));
+    }
+
+    public JSObjectRef JSObjectMakeArray(JSContextRef context, JSValueRef argv[]) {
+        long[] pargv = convertToLong(argv);
+        return new JSObjectRef(NativeJSObjectMakeArray(p(context), pargv.length, pargv));
+    }
+
+    public JSObjectRef JSObjectMakeDate(JSContextRef context, JSValueRef argv[]) {
+        long[] pargv = convertToLong(argv);
+        return new JSObjectRef(NativeJSObjectMakeDate(p(context), pargv.length, pargv));
+    }
+    public JSObjectRef JSObjectMakeError(JSContextRef context, JSValueRef argv[]) {
+        long[] pargv = convertToLong(argv);
+        return new JSObjectRef(NativeJSObjectMakeError(p(context), pargv.length, pargv));
+    }
+    public JSObjectRef JSObjectMakeRegExp(JSContextRef context, JSValueRef argv[]) {
+        long[] pargv = convertToLong(argv);
+        return new JSObjectRef(NativeJSObjectMakeRegExp(p(context), pargv.length, pargv));
+    }
+    public JSObjectRef JSObjectMakeFunction(JSContextRef context, String name, int paramCount,
+                                            String paramNames[], String body, String sourceURL,
+                                            int line) {
+        return new JSObjectRef(NativeJSObjectMakeFunction(p(context), name, paramCount,
+                                            paramNames, body, sourceURL, line));
+    }
+
+    public void JSObjectSetPropertyAtIndex(JSContextRef context, JSObjectRef jsObject,
+                                            int propertyIndex, JSValueRef value) {
+        NativeJSObjectSetPropertyAtIndex(p(context), p(jsObject), propertyIndex, p(value));
+    }
+
+    public void JSObjectSetPrototype(JSContextRef context, JSObjectRef jsObject, JSValueRef value) {
+        NativeJSObjectSetPrototype(p(context), p(jsObject), p(value));
+    }
+
+    public void JSPropertyNameAccumulatorAddName(JSPropertyNameAccumulatorRef accumulator, String propertyName) {
+        NativeJSPropertyNameAccumulatorAddName(p(accumulator), propertyName);
+    }
+
+    public int JSPropertyNameArrayGetCount(JSPropertyNameArrayRef names) {
+        return NativeJSPropertyNameArrayGetCount(p(names));
+    }
+
+    public String JSPropertyNameArrayGetNameAtIndex(JSPropertyNameArrayRef names, int index) {
+        return NativeJSPropertyNameArrayGetNameAtIndex(p(names), index);
+    }
+
+    public void JSPropertyNameArrayRelease(JSPropertyNameArrayRef names) {
+        NativeJSPropertyNameArrayRelease(p(names));
+    }
+
+    public JSPropertyNameArrayRef JSPropertyNameArrayRetain(JSPropertyNameArrayRef names) {
+        return new JSPropertyNameArrayRef(NativeJSPropertyNameArrayRetain(p(names)));
+    }
+
     public Object JSObjectGetPrivate(JSObjectRef jsObject) {
         return NativeJSObjectGetPrivate(p(jsObject));
     }
@@ -254,11 +331,40 @@ public class JavaScriptCoreLibrary {
     }
 
     public JSObjectRef JSObjectMake(JSContextRef context, JSClassRef jsClass, Object object) {
-        return new JSObjectRef(NativeJSObjectMake(p(context), p(jsClass), JSClassDefinition.class, jsClass.getDefinition(), object));
+        return new JSObjectRef(NativeJSObjectMake(p(context), p(jsClass), jsClass.getDefinition(), object));
     }
 
-    //public JSObjectRef JSObjectMakeConstructor(JSContextRef context, JSClassRef jsClass, JSObjectCallAsConstructorCallback callback);
-    //public JSObjectRef JSObjectMakeFunctionWithCallback(JSContextRef context, String name, JSObjectCallAsFunctionCallback callback);
+    /**
+     * Convenience method for creating a JavaScript constructor
+     */
+    public JSObjectRef JSObjectMakeConstructor(JSContextRef context, JSClassRef jsClassToCopy,
+                                               JSObjectCallAsConstructorCallback callback) {
+        JSClassDefinition definition;
+        if (jsClassToCopy == null) {
+            definition = new JSClassDefinition();
+        } else {
+            definition = jsClassToCopy.getDefinition().copy();
+        }
+        definition.callAsConstructor = callback;
+        JSClassRef jsClass = JSClassCreate(definition);
+        JSObjectRef object = JSObjectMake(context, jsClass);
+        JSClassRelease(jsClass);
+        return object;
+    }
+
+    /**
+     * Convenience method for creating a JavaScript function with a given callback as its implementation
+     */
+    public JSObjectRef JSObjectMakeFunctionWithCallback(JSContextRef context, String name,
+                                                        JSObjectCallAsFunctionCallback callback) {
+        JSClassDefinition definition = new JSClassDefinition();
+        definition.className = name;
+        definition.callAsFunction = callback;
+        JSClassRef jsClass = JSClassCreate(definition);
+        JSObjectRef object = JSObjectMake(context, jsClass);
+        JSClassRelease(jsClass);
+        return object;
+    }
 
     /*
      * Native methods
@@ -272,12 +378,12 @@ public class JavaScriptCoreLibrary {
     public native long NativeJSGlobalContextCreateInGroup(long jsContextGroupRef, long jsClassRef);
     public native void NativeJSGlobalContextRelease(long jsContextRef);
     public native long NativeJSGlobalContextRetain(long jsContextRef);
-    public native long NativeJSEvaluateScript(long jsContextRef, String script, long jsExceptionRef);
-    public native boolean NativeJSCheckScriptSyntax(long jsContextRef, String script, long jsExceptionRef);
+    public native long NativeJSEvaluateScript(long jsContextRef, String script);
+    public native long NativeJSCheckScriptSyntax(long jsContextRef, String script);
     public native long NativeJSGarbageCollect(long jsContextRef);
     public native void NativeJSValueProtect(long jsContextRef, long jsValueRef);
     public native void NativeJSValueUnprotect(long jsContextRef, long jsValueRef);
-    public native String NativeJSValueCreateJSONString(long jsContextRef, long jsValueRef, int indent, long jsExceptionRef);
+    public native String NativeJSValueCreateJSONString(long jsContextRef, long jsValueRef, int indent);
     public native long NativeJSValueMakeNull(long jsContextRef);
     public native long NativeJSValueMakeUndefined(long jsContextRef);
     public native long NativeJSValueMakeBoolean(long jsContextRef, boolean value);
@@ -285,19 +391,19 @@ public class JavaScriptCoreLibrary {
     public native long NativeJSValueMakeString(long jsContextRef, String string);
     public native long NativeJSValueMakeFromJSONString(long jsContextRef, String string);
     public native boolean NativeJSValueIsObjectOfClass(long jsContextRef, long jsValueRef, long jsClassRef);
-    public native boolean NativeJSValueIsInstanceOfConstructor(long jsContextRef, long jsValueRef, long jsObjectRef, long jsExceptionRef);
+    public native boolean NativeJSValueIsInstanceOfConstructor(long jsContextRef, long jsValueRef, long jsObjectRef);
     public native boolean NativeJSValueIsUndefined(long jsContextRef, long jsValueRef);
     public native boolean NativeJSValueIsNull(long jsContextRef, long jsValueRef);
     public native boolean NativeJSValueIsNumber(long jsContextRef, long jsValueRef);
     public native boolean NativeJSValueIsBoolean(long jsContextRef, long jsValueRef);
     public native boolean NativeJSValueIsString(long jsContextRef, long jsValueRef);
     public native boolean NativeJSValueIsObject(long jsContextRef, long jsValueRef);
-    public native boolean NativeJSValueIsEqual(long jsContextRef, long jsValueRefA, long jsValueRefB, long jsExceptionRef);
+    public native boolean NativeJSValueIsEqual(long jsContextRef, long jsValueRefA, long jsValueRefB);
     public native boolean NativeJSValueIsStrictEqual(long jsContextRef, long jsValueRefA, long jsValueRefB);
     public native boolean NativeJSValueToBoolean(long jsContextRef, long jsValueRef);
-    public native double NativeJSValueToNumber(long jsContextRef, long jsValueRef, long jsExceptionRef);
-    public native long NativeJSValueToObject(long jsContextRef, long jsValueRef, long jsExceptionRef);
-    public native String NativeJSValueToStringCopy(long jsContextRef, long jsValueRef, long jsExceptionRef);
+    public native double NativeJSValueToNumber(long jsContextRef, long jsValueRef);
+    public native long NativeJSValueToObject(long jsContextRef, long jsValueRef);
+    public native String NativeJSValueToStringCopy(long jsContextRef, long jsValueRef);
 
     public native long NativeJSClassCreate(
         int version, int attributes, String className, long parentClass,
@@ -309,31 +415,31 @@ public class JavaScriptCoreLibrary {
 
     public native void NativeJSClassRelease(long jsClassRef);
     public native long NativeJSClassRetain(long jsClassRef);
-    public native long NativeJSObjectCallAsConstructor(long jsContextRef, long jsObjectRef, int argc, long argv[], long jsExceptionRef);
-    public native long NativeJSObjectCallAsFunction(long jsContextRef, long jsObjectRef, long thisObjectRef, int argc, long argv[], long jsExceptionRef);
+    public native long NativeJSObjectCallAsConstructor(long jsContextRef, long jsObjectRef, int argc, long argv[]);
+    public native long NativeJSObjectCallAsFunction(long jsContextRef, long jsObjectRef, long thisObjectRef, int argc, long argv[]);
     public native long NativeJSObjectCopyPropertyNames(long jsContextRef, long jsObjectRef);
-    public native boolean NativeJSObjectDeleteProperty(long jsContextRef, long jsObjectRef, String propertyName, long jsExceptionRef);
+    public native boolean NativeJSObjectDeleteProperty(long jsContextRef, long jsObjectRef, String propertyName);
     public native Object NativeJSObjectGetPrivate(long jsObjectRef);
     public native boolean NativeJSObjectSetPrivate(long jsObjectRef, Object object);
-    public native long NativeJSObjectGetProperty(long jsContextRef, long jsObjectRef, String propertyName, long jsExceptionRef);
-    public native long NativeJSObjectGetPropertyAtIndex(long jsContextRef, long jsObjectRef, int propertyIndex, long jsExceptionRef);
+    public native long NativeJSObjectGetProperty(long jsContextRef, long jsObjectRef, String propertyName);
+    public native long NativeJSObjectGetPropertyAtIndex(long jsContextRef, long jsObjectRef, int propertyIndex);
     public native long NativeJSObjectGetPrototype(long jsContextRef, long jsObjectRef);
     public native boolean NativeJSObjectHasProperty(long jsContextRef, long jsObjectRef, String propertyName);
     public native boolean NativeJSObjectIsConstructor(long jsContextRef, long jsObjectRef);
     public native boolean NativeJSObjectIsFunction(long jsContextRef, long jsObjectRef);
-    public native long NativeJSObjectMake(long jsContextRef, long jsClassRef, Class definitionClass, JSClassDefinition definition, Object object);
-    public native long NativeJSObjectMakeArray(long jsContextRef, int argc, long argv[], long jsExceptionRef);
-    public native long NativeJSObjectMakeDate(long jsContextRef, int argc, long argv[], long jsExceptionRef);
-    public native long NativeJSObjectMakeError(long jsContextRef, int argc, long argv[], long jsExceptionRef);
-    public native long NativeJSObjectMakeFunction(long jsContextRef, String name, int paramCount, String paramNames[], String body, String sourceURL, int line, long jsExceptionRef);
-    public native long NativeJSObjectMakeRegExp(long jsContextRef, int argc, long argv[], long jsExceptionRef);
-    public native void NativeJSObjectSetProperty(long jsContextRef, long jsObjectRef, String propertyName, long jsValueRef, int attributes, long jsExceptionRef);
-    public native void NativeJSObjectSetPropertyAtIndex(long jsContextRef, long jsObjectRef, int propertyIndex, long jsValueRef, long jsExceptionRef);
+    public native long NativeJSObjectMake(long jsContextRef, long jsClassRef, JSClassDefinition definition, Object object);
+    public native long NativeJSObjectMakeArray(long jsContextRef, int argc, long argv[]);
+    public native long NativeJSObjectMakeDate(long jsContextRef, int argc, long argv[]);
+    public native long NativeJSObjectMakeError(long jsContextRef, int argc, long argv[]);
+    public native long NativeJSObjectMakeFunction(long jsContextRef, String name, int paramCount, String paramNames[], String body, String sourceURL, int line);
+    public native long NativeJSObjectMakeRegExp(long jsContextRef, int argc, long argv[]);
+    public native void NativeJSObjectSetProperty(long jsContextRef, long jsObjectRef, String propertyName, long jsValueRef, int attributes);
+    public native void NativeJSObjectSetPropertyAtIndex(long jsContextRef, long jsObjectRef, int propertyIndex, long jsValueRef);
     public native void NativeJSObjectSetPrototype(long jsContextRef, long jsObjectRef, long jsValueRef);
     public native void NativeJSPropertyNameAccumulatorAddName(long accumulator, String propertyName);
     public native int NativeJSPropertyNameArrayGetCount(long jsPropertyNameArrayRef);
     public native String NativeJSPropertyNameArrayGetNameAtIndex(long jsPropertyNameArrayRef, int index);
     public native void NativeJSPropertyNameArrayRelease(long jsPropertyNameArrayRef);
-    public native void NativeJSPropertyNameArrayRetain(long jsPropertyNameArrayRef);
+    public native long NativeJSPropertyNameArrayRetain(long jsPropertyNameArrayRef);
 
 }

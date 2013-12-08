@@ -12,21 +12,11 @@ public class JSContextRef extends PointerType {
     }
 
     public JSValueRef evaluateScript(String script) {
-        JSValueRef exception = jsc.JSValueMakeNull(this);
-        JSValueRef value = jsc.JSEvaluateScript(this, script, exception);
-        if (!exception.isNull()) {
-            throw new JavaScriptException(exception.toString(), exception);
-        }
-        return value;
+        return jsc.JSEvaluateScript(this, script);
     }
 
-    public boolean checkScriptSyntax(String script) {
-        JSValueRef exception = jsc.JSValueMakeNull(this);
-        boolean value = jsc.JSCheckScriptSyntax(this, script, exception);
-        if (!exception.isNull()) {
-            throw new JavaScriptException(exception.toString(), exception);
-        }
-        return value;
+    public JSValueRef checkScriptSyntax(String script) {
+        return jsc.JSCheckScriptSyntax(this, script);
     }
 
     public void garbageCollect() {

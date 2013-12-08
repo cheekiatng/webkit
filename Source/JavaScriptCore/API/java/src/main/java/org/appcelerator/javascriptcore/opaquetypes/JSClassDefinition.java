@@ -293,4 +293,25 @@ public class JSClassDefinition {
         return 0;
     }
 
+    public JSClassDefinition copy() {
+        JSClassDefinition copy = new JSClassDefinition();
+        copy.version = this.version;
+        copy.attributes = this.attributes;
+        copy.className = this.className;
+        copy.parentClass = this.parentClass;
+        copy.staticValues = this.staticValues;
+        copy.staticFunctions = this.staticFunctions;
+        copy.initialize = this.initialize;
+        copy.finalize = this.finalize;
+        copy.hasProperty = this.hasProperty;
+        copy.getProperty = this.getProperty;
+        copy.setProperty = this.setProperty;
+        copy.deleteProperty = this.deleteProperty;
+        copy.getPropertyNames = this.getPropertyNames;
+        copy.callAsFunction = this.callAsFunction;
+        copy.callAsConstructor = this.callAsConstructor;
+        copy.hasInstance = this.hasInstance;
+        copy.convertToType = this.convertToType;
+        return copy;
+    }
 }
