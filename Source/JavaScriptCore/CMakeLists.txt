@@ -636,8 +636,17 @@ set(JavaScriptCore_LUT_FILES
 
 set(JavaScriptCore_LIBRARIES
     WTF
-    ${ICU_I18N_LIBRARIES}
 )
+if (WTF_USE_ICU_UNICODE)
+    list(APPEND JavaScriptCore_INCLUDE_DIRECTORIES
+        ${ICU_INCLUDE_DIRS}
+    )
+    list(APPEND JavaScriptCore_LIBRARIES
+        ${ICU_I18N_LIBRARIES}
+        ${ICU_LIBRARIES}
+        ${ICU_DATA_LIBRARIES}
+    )
+endif ()
 
 if (USE_UDIS86)
     set(UDIS_GEN_DEP
@@ -1206,7 +1215,10 @@ endif ()
 
 if (${JavaScriptCore_LIBRARY_TYPE} STREQUAL "SHARED")
     POPULATE_LIBRARY_VERSION(JAVASCRIPTCORE)
-    set_target_properties(JavaScriptCore PROPERTIES VERSION ${JAVASCRIPTCORE_VERSION} SOVERSION ${JAVASCRIPTCORE_VERSION_MAJOR})
+    # The conventional version numbers on shared library names with symlinks doesn't work on Android with Java's loadLibrary API.
+    if (NOT ANDROID)
+        set_target_properties(JavaScriptCore PROPERTIES VERSION ${JAVASCRIPTCORE_VERSION} SOVERSION ${JAVASCRIPTCORE_VERSION_MAJOR})
+    endif ()
     install(TARGETS JavaScriptCore DESTINATION "${LIB_INSTALL_DIR}")
 endif ()
 
