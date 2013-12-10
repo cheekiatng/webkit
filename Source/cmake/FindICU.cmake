@@ -8,6 +8,10 @@
 #  ICU_LIBRARIES      - Libraries to link against for the common ICU
 #  ICU_I18N_LIBRARIES - Libraries to link against for ICU internationaliation
 #                       (note: in addition to ICU_LIBRARIES)
+#
+
+#  ICU_DATA_LIBRARIES - Needed as far as I know, but only noticed starting with 52.1 and Android.
+
 
 find_package(PkgConfig)
 pkg_check_modules(PC_ICU icu-uc)
@@ -58,11 +62,29 @@ if (ICU_INCLUDE_DIR AND ICU_LIBRARY)
         set(ICU_I18N_FOUND 0)
         set(ICU_I18N_LIBRARIES)
     endif ()
+
+    # Look for the ICU udata libraries. The main icu library seems to depend on this via openCommonData
+	# in source/common/udata.cpp in 52.1. I don't know if this is a new development or just unnoticed
+	# by those dynamically linking everything and already have all the libraries.
+	# But its absence is noticed in static linking scenarios.
+    find_library(
+		ICU_DATA_LIBRARY
+        NAMES icudata cygicudata cygicudata32
+        DOC "Libraries to link against for ICU data")
+    mark_as_advanced(ICU_DATA_LIBRARY)
+    if (ICU_DATA_LIBRARY)
+		set(ICU_DATA_LIBRARY_FOUND 1)
+		set(ICU_DATA_LIBRARIES ${ICU_DATA_LIBRARY})
+    else ()
+		set(ICU_DATA_LIBRARY_FOUND 0)
+        set(ICU_DATA_LIBRARIES)
+    endif ()
 else ()
     set(ICU_FOUND 0)
     set(ICU_I18N_FOUND 0)
     set(ICU_LIBRARIES)
     set(ICU_I18N_LIBRARIES)
+    set(ICU_DATA_LIBRARIES)
     set(ICU_INCLUDE_DIRS)
     set(ICU_VERSION)
     set(ICU_MAJOR_VERSION)

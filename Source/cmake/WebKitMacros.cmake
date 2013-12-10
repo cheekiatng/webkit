@@ -206,7 +206,7 @@ macro(MAKE_HASH_TOOLS _source)
     unset(_hash_tools_h)
 endmacro()
 
-acro(WEBKIT_WRAP_SOURCELIST)
+macro(WEBKIT_WRAP_SOURCELIST)
     foreach (_file ${ARGN})
         get_filename_component(_basename ${_file} NAME_WE)
         get_filename_component(_path ${_file} PATH)

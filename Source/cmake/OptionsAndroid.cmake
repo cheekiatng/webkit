@@ -10,7 +10,6 @@
 
 #add_definitions(-DWEBCORE_NAVIGATOR_VENDOR="Appcelerator Inc.")
 add_definitions(-DBUILDING_ANDROID__=1)
-add_definitions(-DU_DISABLE_RENAMING=1)
 #add_definitions(-DBUILD_WEBKIT)
 
 message("CMAKE_FIND_ROOT_PATH ${CMAKE_FIND_ROOT_PATH}")

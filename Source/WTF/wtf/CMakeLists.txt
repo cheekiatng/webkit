@@ -214,7 +214,6 @@ set(WTF_INCLUDE_DIRECTORIES
     "${WTF_DIR}/wtf/text"
     "${WTF_DIR}/wtf/threads"
     "${WTF_DIR}/wtf/unicode"
-    "${WTF_DIR}/icu"
     "${THIRDPARTY_DIR}"
     "${CMAKE_BINARY_DIR}"
     "${DERIVED_SOURCES_DIR}"
