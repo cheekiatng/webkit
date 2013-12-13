@@ -1,9 +1,12 @@
 package com.appcelerator.javascriptcore;
 
+import java.nio.ByteBuffer;
+
 import com.appcelerator.javascriptcore.opaquetypes.JSContextGroupRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSContextRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSGlobalContextRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
+import com.appcelerator.javascriptcore.opaquetypes.JSValueArrayRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSObjectRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSClassRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSClassDefinition;
@@ -21,6 +24,13 @@ public class JavaScriptCoreLibrary {
     }   
 
     private static final JavaScriptCoreLibrary instance = new JavaScriptCoreLibrary();
+
+    public static final short SizeOfLong = NativeSizeOfLong();
+    public static final short SizeOfInt  = NativeSizeOfInt();
+    public static final short SizeOfUnsigned = NativeSizeOfUnsigned();
+    public static final short SizeOfJSClassDefinition = NativeSizeOfJSClassDefinition();
+    public static final short SizeOfJSStaticValue    = NativeSizeOfJSStaticValue();
+    public static final short SizeOfJSStaticFunction = NativeSizeOfJSStaticFunction();
 
     /*
      * Singleton
@@ -182,42 +192,16 @@ public class JavaScriptCoreLibrary {
     }
 
     public JSClassRef JSClassCreate(JSClassDefinition d) {
-        // Construct names/attributes arrays on ahead to avoid reflection in JNI
-        d.updateCache();
-
-        // Avoid passing objects as much as possible
-        return new JSClassRef(d, NativeJSClassCreate(
-            d.version, d.attributes, d.className, p(d.parentClass),
-            d.getStaticValueNames(), d.getStaticValueAttributes(),
-            d.getStaticFunctionNames(), d.getStaticFunctionAttributes(),
-            d.initialize != null, d.finalize != null, d.hasProperty != null,
-            d.getProperty != null, d.setProperty != null,
-            d.deleteProperty != null, d.getPropertyNames != null,
-            d.callAsFunction != null, d.callAsConstructor != null,
-            d.hasInstance != null, d.convertToType != null
-            ));
+        return new JSClassRef(d, NativeJSClassCreate(d.commit(), d.className, d.getStaticValues(), d.getStaticFunctions()));
     }
 
-    public JSObjectRef JSObjectCallAsConstructor(JSContextRef context, JSObjectRef jsObject, JSValueRef argv[]) {
-        long[] pargv = new long[argv.length];
-        for (int i = 0; i < argv.length; i++) {
-            pargv[i] = p(argv[i]);
-        }
-        return new JSObjectRef(NativeJSObjectCallAsConstructor(p(context), p(jsObject), pargv.length, pargv));
-    }
-
-    private long[] convertToLong(JSValueRef argv[]) {
-        long[] pargv = new long[argv.length];
-        for (int i = 0; i < argv.length; i++) {
-            pargv[i] = p(argv[i]);
-        }
-        return pargv;
+    public JSObjectRef JSObjectCallAsConstructor(JSContextRef context, JSObjectRef jsObject, JSValueArrayRef argv) {
+        return new JSObjectRef(NativeJSObjectCallAsConstructor(p(context), p(jsObject), argv.length(), argv.getByteBuffer()));
     }
 
     public JSValueRef JSObjectCallAsFunction(JSContextRef context, JSObjectRef jsObject,
-                            JSObjectRef thisObject, JSValueRef argv[]) {
-        long[] pargv = convertToLong(argv);
-        return new JSValueRef(context, NativeJSObjectCallAsFunction(p(context), p(jsObject), p(thisObject), pargv.length, pargv));
+                                             JSObjectRef thisObject, JSValueArrayRef argv) {
+        return new JSValueRef(context, NativeJSObjectCallAsFunction(p(context), p(jsObject), p(thisObject), argv.length(), argv.getByteBuffer()));
     }
 
     public void JSObjectSetProperty(JSContextRef context, JSObjectRef jsObject,
@@ -265,22 +249,18 @@ public class JavaScriptCoreLibrary {
         return NativeJSObjectIsFunction(p(context), p(jsObject));
     }
 
-    public JSObjectRef JSObjectMakeArray(JSContextRef context, JSValueRef argv[]) {
-        long[] pargv = convertToLong(argv);
-        return new JSObjectRef(NativeJSObjectMakeArray(p(context), pargv.length, pargv));
+    public JSObjectRef JSObjectMakeArray(JSContextRef context, JSValueArrayRef argv) {
+        return new JSObjectRef(NativeJSObjectMakeArray(p(context), argv.length(), argv.getByteBuffer()));
     }
 
-    public JSObjectRef JSObjectMakeDate(JSContextRef context, JSValueRef argv[]) {
-        long[] pargv = convertToLong(argv);
-        return new JSObjectRef(NativeJSObjectMakeDate(p(context), pargv.length, pargv));
+    public JSObjectRef JSObjectMakeDate(JSContextRef context, JSValueArrayRef argv) {
+        return new JSObjectRef(NativeJSObjectMakeDate(p(context), argv.length(), argv.getByteBuffer()));
     }
-    public JSObjectRef JSObjectMakeError(JSContextRef context, JSValueRef argv[]) {
-        long[] pargv = convertToLong(argv);
-        return new JSObjectRef(NativeJSObjectMakeError(p(context), pargv.length, pargv));
+    public JSObjectRef JSObjectMakeError(JSContextRef context, JSValueArrayRef argv) {
+        return new JSObjectRef(NativeJSObjectMakeError(p(context), argv.length(), argv.getByteBuffer()));
     }
-    public JSObjectRef JSObjectMakeRegExp(JSContextRef context, JSValueRef argv[]) {
-        long[] pargv = convertToLong(argv);
-        return new JSObjectRef(NativeJSObjectMakeRegExp(p(context), pargv.length, pargv));
+    public JSObjectRef JSObjectMakeRegExp(JSContextRef context, JSValueArrayRef argv) {
+        return new JSObjectRef(NativeJSObjectMakeRegExp(p(context), argv.length(), argv.getByteBuffer()));
     }
     public JSObjectRef JSObjectMakeFunction(JSContextRef context, String name, int paramCount,
                                             String paramNames[], String body, String sourceURL,
@@ -331,7 +311,11 @@ public class JavaScriptCoreLibrary {
     }
 
     public JSObjectRef JSObjectMake(JSContextRef context, JSClassRef jsClass, Object object) {
-        return new JSObjectRef(NativeJSObjectMake(p(context), p(jsClass), jsClass.getDefinition(), object));
+        JSClassDefinition definition = jsClass.getDefinition();
+        long[] pointers = NativeJSObjectMake(p(context), p(jsClass),
+                            definition, definition.getStaticFunctions(), definition.getStaticFunctionCount(), object);
+        definition.registerStaticFunctions(pointers);
+        return new JSObjectRef(pointers[0]);
     }
 
     /**
@@ -369,6 +353,15 @@ public class JavaScriptCoreLibrary {
     /*
      * Native methods
      */
+    public static native short NativeSizeOfLong();
+    public static native short NativeSizeOfInt();
+    public static native short NativeSizeOfUnsigned();
+    public static native short NativeSizeOfJSClassDefinition();
+    public static native short NativeSizeOfJSStaticFunction();
+    public static native short NativeSizeOfJSStaticValue();
+    public static native long[] NativeAllocateCharacterBuffer(String[] values);
+    public static native void  NativeReleasePointers(long[] pointers);
+
     public native long NativeJSContextGetGlobalObject(long jsContextRef);
     public native long NativeJSContextGetGroup(long jsContextRef);
     public native long NativeJSContextGroupCreate();
@@ -405,18 +398,12 @@ public class JavaScriptCoreLibrary {
     public native long NativeJSValueToObject(long jsContextRef, long jsValueRef);
     public native String NativeJSValueToStringCopy(long jsContextRef, long jsValueRef);
 
-    public native long NativeJSClassCreate(
-        int version, int attributes, String className, long parentClass,
-        String[] staticValueNames, int[] staticValueAttributes,
-        String[] staticFunctionNames, int[] staticFunctionAttributes,
-        boolean initialize, boolean finalize, boolean hasProperty, boolean getProperty,
-        boolean setProperty, boolean deleteProperty, boolean getPropertyNames, boolean callAsFunction,
-        boolean callAsConstructor, boolean hasInstance, boolean convertToType);
+    public native long NativeJSClassCreate(ByteBuffer definition, String className, ByteBuffer staticValues, ByteBuffer staticFunctions);
 
     public native void NativeJSClassRelease(long jsClassRef);
     public native long NativeJSClassRetain(long jsClassRef);
-    public native long NativeJSObjectCallAsConstructor(long jsContextRef, long jsObjectRef, int argc, long argv[]);
-    public native long NativeJSObjectCallAsFunction(long jsContextRef, long jsObjectRef, long thisObjectRef, int argc, long argv[]);
+    public native long NativeJSObjectCallAsConstructor(long jsContextRef, long jsObjectRef, int argc, ByteBuffer argv);
+    public native long NativeJSObjectCallAsFunction(long jsContextRef, long jsObjectRef, long thisObjectRef, int argc, ByteBuffer argv);
     public native long NativeJSObjectCopyPropertyNames(long jsContextRef, long jsObjectRef);
     public native boolean NativeJSObjectDeleteProperty(long jsContextRef, long jsObjectRef, String propertyName);
     public native Object NativeJSObjectGetPrivate(long jsObjectRef);
@@ -427,12 +414,12 @@ public class JavaScriptCoreLibrary {
     public native boolean NativeJSObjectHasProperty(long jsContextRef, long jsObjectRef, String propertyName);
     public native boolean NativeJSObjectIsConstructor(long jsContextRef, long jsObjectRef);
     public native boolean NativeJSObjectIsFunction(long jsContextRef, long jsObjectRef);
-    public native long NativeJSObjectMake(long jsContextRef, long jsClassRef, JSClassDefinition definition, Object object);
-    public native long NativeJSObjectMakeArray(long jsContextRef, int argc, long argv[]);
-    public native long NativeJSObjectMakeDate(long jsContextRef, int argc, long argv[]);
-    public native long NativeJSObjectMakeError(long jsContextRef, int argc, long argv[]);
+    public native long[] NativeJSObjectMake(long jsContextRef, long jsClassRef, JSClassDefinition definition, ByteBuffer staticFunctions, int staticFunctionCount, Object object);
+    public native long NativeJSObjectMakeArray(long jsContextRef, int argc, ByteBuffer argv);
+    public native long NativeJSObjectMakeDate(long jsContextRef, int argc, ByteBuffer argv);
+    public native long NativeJSObjectMakeError(long jsContextRef, int argc, ByteBuffer argv);
     public native long NativeJSObjectMakeFunction(long jsContextRef, String name, int paramCount, String paramNames[], String body, String sourceURL, int line);
-    public native long NativeJSObjectMakeRegExp(long jsContextRef, int argc, long argv[]);
+    public native long NativeJSObjectMakeRegExp(long jsContextRef, int argc, ByteBuffer argv);
     public native void NativeJSObjectSetProperty(long jsContextRef, long jsObjectRef, String propertyName, long jsValueRef, int attributes);
     public native void NativeJSObjectSetPropertyAtIndex(long jsContextRef, long jsObjectRef, int propertyIndex, long jsValueRef);
     public native void NativeJSObjectSetPrototype(long jsContextRef, long jsObjectRef, long jsValueRef);

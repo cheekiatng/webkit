@@ -3,6 +3,7 @@ package com.appcelerator.javascriptcore.callbacks;
 import com.appcelerator.javascriptcore.opaquetypes.JSContextRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSObjectRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
+import com.appcelerator.javascriptcore.opaquetypes.JSValueArrayRef;
 
 /**
  * The callback invoked when an object is used as a constructor in a 'new'
@@ -30,6 +31,6 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
  */
 public interface JSObjectCallAsConstructorCallback {
     JSObjectRef apply(JSContextRef ctx, JSObjectRef constructor,
-            int argumentCount, JSValueRef[] arguments,
+            int argumentCount, JSValueArrayRef arguments,
             JSValueRef exception);
 }

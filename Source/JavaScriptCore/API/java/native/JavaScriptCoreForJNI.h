@@ -14,9 +14,9 @@
 
 /* Private object for JSObjectRef */
 typedef struct {
-    // JSClassDefinition which holds callbacks
-    jobject definition;
-    jclass  definitionClass;
+    // Java Object for callback
+    jobject callback;
+    jclass  callbackClass;
     // Java Object associated with jsobject
     jobject object;
     // Reserved data

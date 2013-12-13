@@ -1,7 +1,9 @@
 package com.appcelerator.javascriptcore.opaquetypes;
 
-import java.util.HashMap;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
+import com.appcelerator.javascriptcore.JavaScriptCoreLibrary;
 import com.appcelerator.javascriptcore.enums.JSClassAttribute;
 import com.appcelerator.javascriptcore.callbacks.JSObjectCallAsConstructorCallback;
 import com.appcelerator.javascriptcore.callbacks.JSObjectCallAsFunctionCallback;
@@ -17,6 +19,7 @@ import com.appcelerator.javascriptcore.callbacks.JSObjectSetPropertyCallback;
 import com.appcelerator.javascriptcore.callbacks.JSObjectGetPropertyCallback;
 
 public class JSClassDefinition {
+
     /**
      * The version number of this structure. The current version is 0.
      */
@@ -40,7 +43,7 @@ public class JSClassDefinition {
      * properties. Pass NULL to specify no statically declared value properties.
      * The array must be terminated by a JSStaticValue whose name field is NULL.
      */
-    public JSStaticValue[] staticValues;
+    public JSStaticValues staticValues;
 
     /**
      * A JSStaticFunction array containing the class's statically declared
@@ -48,7 +51,7 @@ public class JSClassDefinition {
      * properties. The array must be terminated by a JSStaticFunction whose name
      * field is NULL.
      */
-    public JSStaticFunction[] staticFunctions;
+    public JSStaticFunctions staticFunctions;
 
     /**
      * The callback invoked when an object is first created. Use this callback
@@ -114,62 +117,101 @@ public class JSClassDefinition {
      */
     public JSObjectConvertToTypeCallback convertToType;
 
-    private String[] staticValueNamesCache;
-    private String[] staticFunctionNamesCache;
-    private int[] staticValueAttributesCache;
-    private int[] staticFunctionAttributesCache;
+    private static final short LONG     = JavaScriptCoreLibrary.SizeOfLong;
+    private static final short INT      = JavaScriptCoreLibrary.SizeOfInt;
+    private static final short UNSIGNED = JavaScriptCoreLibrary.SizeOfUnsigned;
 
-    private HashMap<String, JSStaticValue> staticValuesCache;
+    private static long initializeFunction;
+    private static long finalizeFunction;
+    private static long hasPropertyFunction;
+    private static long getPropertyFunction;
+    private static long setPropertyFunction;
+    private static long deletePropertyFunction;
+    private static long getPropertyNamesFunction;
+    private static long callAsFunctionFunction;
+    private static long callAsConstructorFunction;
+    private static long hasInstanceFunction;
+    private static long convertToTypeFunction;
+
+    private static int versionIndex = 0;
+    private static int attributesIndex;
+    private static int classNameIndex; 
+    private static int parentClassIndex;
+    private static int staticValuesIndex;
+    private static int staticFunctionsIndex;
+    private static int initializeIndex;
+    private static int finalizeIndex;
+    private static int hasPropertyIndex;
+    private static int getPropertyIndex;
+    private static int setPropertyIndex;
+    private static int deletePropertyIndex;
+    private static int getPropertyNamesIndex;
+    private static int callAsFunctionIndex;
+    private static int callAsConstructorIndex;
+    private static int hasInstanceIndex;
+    private static int convertToTypeIndex;
+ 
+    private static final ByteOrder nativeOrder = ByteOrder.nativeOrder();
+    private static ByteBuffer bufferTemplate = null;
+
+    private ByteBuffer buffer;
 
     public JSClassDefinition() {
-        super();
+        constructBufferTemplate();
     }
 
-    /* Cache values to avoid reflection from JNI */
-    public void updateCache() {
-        // staticValues
-        if (this.staticValues == null) {
-            staticValueNamesCache = new String[0];
-            staticValueAttributesCache = new int[0];
-            staticValuesCache = new HashMap<String, JSStaticValue>();
+    public ByteBuffer getStaticValues() {
+        if (staticValues == null) {
+            return null;
         } else {
-            staticValueNamesCache = new String[staticValues.length]; 
-            staticValueAttributesCache = new int[staticValues.length];
-            staticValuesCache = new HashMap<String, JSStaticValue>();
-            for (int i = 0; i < staticValues.length; i++) {
-                staticValueNamesCache[i] = staticValues[i].name;
-                staticValueAttributesCache[i] = staticValues[i].attributes;
-                staticValuesCache.put(staticValues[i].name, staticValues[i]);
-            }
-        }
-        // staticFunctions
-        if (this.staticFunctions == null) {
-            staticFunctionNamesCache = new String[0];
-            staticFunctionAttributesCache = new int[0];
-        } else {
-            staticFunctionNamesCache = new String[staticFunctions.length]; 
-            staticFunctionAttributesCache = new int[staticFunctions.length];
-            for (int i = 0; i < staticFunctions.length; i++) {
-                staticFunctionNamesCache[i] = staticFunctions[i].name;
-                staticFunctionAttributesCache[i] = staticFunctions[i].attributes;
-            }
+            return staticValues.commit();
         }
     }
 
-    public String[] getStaticValueNames() {
-        return staticValueNamesCache;
+    public ByteBuffer getStaticFunctions() {
+        if (staticFunctions == null) {
+            return null;
+        } else {
+            return staticFunctions.commit();
+        }
     }
 
-    public int[] getStaticValueAttributes() {
-        return staticValueAttributesCache;
+    public int getStaticFunctionCount() {
+        if (staticFunctions == null) {
+            return 0;
+        } else {
+            return staticFunctions.size();
+        }
     }
 
-    public String[] getStaticFunctionNames() {
-        return staticFunctionNamesCache;
+    public void registerStaticFunctions(long[] pointers) {
+        if (staticFunctions == null || pointers.length <= 1) return;
+        staticFunctions.registerFunctions(pointers);
     }
 
-    public int[] getStaticFunctionAttributes() {
-        return staticFunctionAttributesCache;
+    public ByteBuffer commit() {
+        if (buffer == null) {
+            buffer = ByteBuffer.allocateDirect(JavaScriptCoreLibrary.SizeOfJSClassDefinition).order(nativeOrder);
+
+            buffer.putInt(versionIndex, version);
+            buffer.putInt(attributesIndex, attributes);
+
+            if (parentClass != null) buffer.putLong(parentClassIndex, parentClass.p());
+            if (initialize  != null) buffer.putLong(initializeIndex, initializeFunction);
+            if (finalize    != null) buffer.putLong(finalizeIndex, finalizeFunction);
+            if (hasProperty != null) buffer.putLong(hasPropertyIndex, hasPropertyFunction);
+            if (getProperty != null) buffer.putLong(getPropertyIndex, getPropertyFunction);
+            if (setProperty != null) buffer.putLong(setPropertyIndex, setPropertyFunction);
+            if (deleteProperty    != null) buffer.putLong(deletePropertyIndex, deletePropertyFunction);
+            if (getPropertyNames  != null) buffer.putLong(getPropertyNamesIndex, getPropertyNamesFunction);
+            if (callAsFunction    != null) buffer.putLong(callAsFunctionIndex, callAsFunctionFunction);
+            if (callAsConstructor != null) buffer.putLong(callAsConstructorIndex, callAsConstructorFunction);
+            if (hasInstance   != null) buffer.putLong(hasInstanceIndex, hasInstanceFunction);
+            if (convertToType != null) buffer.putLong(convertToTypeIndex, convertToTypeFunction);
+        }
+
+        return buffer;
+
     }
 
     public void JSObjectInitializeCallback(long ctx, long object) {
@@ -202,26 +244,26 @@ public class JSClassDefinition {
         return 0;
     }
 
-    public long JSObjectCallAsFunctionCallback(long ctx, long func, long thisObject, int argc, long[] argv, long exception) {
-        if (callAsFunction != null) {
+    public long JSObjectCallAsFunctionCallback(long ctx, long func, long thisObject, int argc, ByteBuffer argv, long exception) {
+        if (staticFunctions != null && staticFunctions.contains(func)) {
+            JSObjectCallAsFunctionCallback staticFunction = staticFunctions.getFunction(func);
             JSContextRef context = new JSContextRef(ctx);
-            JSValueRef[] jargv = new JSValueRef[argc];
-            for (int i = 0; i < argc; i++) {
-                jargv[i] = new JSValueRef(context, argv[i]);
-            }
+            JSValueArrayRef jargv = new JSValueArrayRef(argc, argv);
+            return staticFunction.apply(context, new JSObjectRef(func), new JSObjectRef(thisObject),
+                                        argc, jargv, new JSValueRef(context, exception)).pointer();
+        } else if (callAsFunction != null) {
+            JSContextRef context = new JSContextRef(ctx);
+            JSValueArrayRef jargv = new JSValueArrayRef(argc, argv);
             return callAsFunction.apply(context, new JSObjectRef(func), new JSObjectRef(thisObject),
                                         argc, jargv, new JSValueRef(context, exception)).pointer();
         }
         return 0;
     }
 
-    public long JSObjectCallAsConstructorCallback(long ctx, long constructor, int argc, long[] argv, long exception) {
+    public long JSObjectCallAsConstructorCallback(long ctx, long constructor, int argc, ByteBuffer argv, long exception) {
         if (callAsConstructor != null) {
             JSContextRef context = new JSContextRef(ctx);
-            JSValueRef[] jargv = new JSValueRef[argc];
-            for (int i = 0; i < argc; i++) {
-                jargv[i] = new JSValueRef(context, argv[i]);
-            }
+            JSValueArrayRef jargv = new JSValueArrayRef(argc, argv);
             return callAsConstructor.apply(context, new JSObjectRef(constructor),
                                            argc, jargv, new JSValueRef(context, exception)).pointer();
         }
@@ -268,8 +310,8 @@ public class JSClassDefinition {
     }
 
     public boolean JSObjectSetStaticValueCallback(long ctx, long object, String propertyName, long value, long exception) {
-        if (staticValuesCache.containsKey(propertyName)) {
-            JSObjectSetPropertyCallback callback = staticValuesCache.get(propertyName).setProperty;
+        if (staticValues != null && staticValues.containsSetter(propertyName)) {
+            JSObjectSetPropertyCallback callback = staticValues.getSetPropertyCallback(propertyName);
             if (callback == null) {
                 return false;
             }
@@ -281,8 +323,8 @@ public class JSClassDefinition {
     }
 
     public long JSObjectGetStaticValueCallback(long ctx, long object, String propertyName, long exception) {
-        if (staticValuesCache.containsKey(propertyName)) {
-            JSObjectGetPropertyCallback callback = staticValuesCache.get(propertyName).getProperty;
+        if (staticValues != null && staticValues.containsGetter(propertyName)) {
+            JSObjectGetPropertyCallback callback = staticValues.getGetPropertyCallback(propertyName);
             if (callback == null) {
                 return 0;
             }
@@ -314,4 +356,40 @@ public class JSClassDefinition {
         copy.convertToType = this.convertToType;
         return copy;
     }
+
+    private void constructBufferTemplate() {
+        if (bufferTemplate == null) {
+            bufferTemplate = NativeGetClassDefinitionTemplate().order(nativeOrder);
+            attributesIndex   = INT;
+            classNameIndex    = attributesIndex + UNSIGNED;
+            parentClassIndex  = classNameIndex + LONG;
+            staticValuesIndex = parentClassIndex + LONG;
+            staticFunctionsIndex = staticValuesIndex + LONG;
+            initializeIndex    = staticFunctionsIndex + LONG;
+            finalizeIndex      = initializeIndex + LONG;
+            hasPropertyIndex   = finalizeIndex + LONG;
+            getPropertyIndex   = hasPropertyIndex + LONG;
+            setPropertyIndex   = getPropertyIndex + LONG;
+            deletePropertyIndex   = setPropertyIndex + LONG;
+            getPropertyNamesIndex = deletePropertyIndex + LONG;
+            callAsFunctionIndex   = getPropertyNamesIndex + LONG;
+            callAsConstructorIndex = callAsFunctionIndex + LONG;
+            hasInstanceIndex     = callAsConstructorIndex + LONG;
+            convertToTypeIndex   = hasInstanceIndex + LONG;
+
+            initializeFunction  = bufferTemplate.getLong(initializeIndex);
+            finalizeFunction    = bufferTemplate.getLong(finalizeIndex);
+            hasPropertyFunction = bufferTemplate.getLong(hasPropertyIndex);
+            getPropertyFunction = bufferTemplate.getLong(getPropertyIndex);
+            setPropertyFunction = bufferTemplate.getLong(setPropertyIndex);
+            deletePropertyFunction    = bufferTemplate.getLong(deletePropertyIndex);
+            getPropertyNamesFunction  = bufferTemplate.getLong(getPropertyNamesIndex);
+            callAsFunctionFunction    = bufferTemplate.getLong(callAsFunctionIndex);
+            callAsConstructorFunction = bufferTemplate.getLong(callAsConstructorIndex);
+            hasInstanceFunction   = bufferTemplate.getLong(hasInstanceIndex);
+            convertToTypeFunction = bufferTemplate.getLong(convertToTypeIndex);
+        }
+    }
+
+    private static native ByteBuffer NativeGetClassDefinitionTemplate();
 }

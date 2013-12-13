@@ -18,6 +18,9 @@ project.ext.XcodeTmpDir = project.buildDir.absolutePath + "/native-tmp"
 project.ext.XcodeProjectDir = project.projectDir.absolutePath + "/native"
 project.ext.XcodeOutputDir = project.projectDir.absolutePath + "/libs"
 
+jar.baseName = 'JavaScriptCore'
+version = '0.1-SNAPSHOT'
+
 task jnibuild(type:Exec) {
     commandLine 'xcodebuild','-sdk','macosx10.9','-project',project.ext.XcodeProjectDir+'/JavaScriptCoreJNI.xcodeproj','ONLY_ACTIVE_ARCH=NO','-configuration','Debug','-target','JavaScriptCoreJNI','CONFIGURATION_BUILD_DIR='+project.ext.XcodeOutputDir,'PROJECT_TEMP_DIR='+project.ext.XcodeTmpDir,'build'
     standardOutput = new ByteArrayOutputStream()

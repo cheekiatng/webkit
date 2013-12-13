@@ -77,10 +77,9 @@ JSStringRef varout = JSStringCreateWithUTF8CString(aschars##varin);\
  * Call JSObjectMake* function from arguments
  */
 #define JSOBJECTMAKE_FROM_ARGV(callfunc, argc, argv, varout)\
-jlong* p_argv = (*env)->GetLongArrayElements(env, argv, NULL);\
-const JSValueRef* js_argv = (JSValueRef*)p_argv;\
+const JSValueRef* js_argv = NULL;\
+if (argc > 0) js_argv = (*env)->GetDirectBufferAddress(env, argv);\
 JSObjectRef varout = callfunc(ctx, argc, js_argv, &exceptionStore);\
-(*env)->ReleaseLongArrayElements(env, argv, p_argv, 0);
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,6 +88,20 @@ extern "C" {
 static JavaVM* jvm;
 static JSStaticValue JSStaticEmptyValue = {0,0,0,0};
 static JSStaticFunction JSStaticEmptyFunction = {0,0,0};
+
+jmethodID jmethodId_JSObjectInitializeCallback = NULL;
+jmethodID jmethodId_JSObjectFinalizeCallback = NULL;
+jmethodID jmethodId_JSObjectGetStaticValueCallback = NULL;
+jmethodID jmethodId_JSObjectSetStaticValueCallback = NULL;
+jmethodID jmethodId_JSObjectGetPropertyCallback = NULL;
+jmethodID jmethodId_JSObjectSetPropertyCallback = NULL;
+jmethodID jmethodId_JSObjectCallAsConstructorCallback = NULL;
+jmethodID jmethodId_JSObjectCallAsFunctionCallback = NULL;
+jmethodID jmethodId_JSObjectConvertToTypeCallback = NULL;
+jmethodID jmethodId_JSObjectDeletePropertyCallback = NULL;
+jmethodID jmethodId_JSObjectGetPropertyNamesCallback = NULL;
+jmethodID jmethodId_JSObjectHasInstanceCallback = NULL;
+jmethodID jmethodId_JSObjectHasPropertyCallback = NULL;
 
 jint JNI_OnLoad(JavaVM* vm, void* reserved)
 {
@@ -102,10 +115,42 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 static JSObjectPrivateData* NewJSObjectPrivateData()
 {
     JSObjectPrivateData* prv = (JSObjectPrivateData*)malloc(sizeof(JSObjectPrivateData));
-    prv->definition = NULL;
-    prv->definitionClass = NULL;
+    prv->callback = NULL;
+    prv->callbackClass = NULL;
     prv->object     = NULL;
     return prv;
+}
+
+static bool CacheClassDefinitionCallbackMethods(JNIEnv* env, jclass callbackClass) {
+    if (jmethodId_JSObjectInitializeCallback == NULL) {
+        jmethodId_JSObjectInitializeCallback = (*env)->GetMethodID(
+                env, callbackClass, "JSObjectInitializeCallback", "(JJ)V");
+        jmethodId_JSObjectFinalizeCallback = (*env)->GetMethodID(
+                env, callbackClass, "JSObjectFinalizeCallback", "(J)V");
+        jmethodId_JSObjectGetStaticValueCallback = (*env)->GetMethodID(
+                env, callbackClass, "JSObjectGetStaticValueCallback", "(JJLjava/lang/String;J)J");
+        jmethodId_JSObjectSetStaticValueCallback = (*env)->GetMethodID(
+                env, callbackClass, "JSObjectSetStaticValueCallback", "(JJLjava/lang/String;JJ)Z");
+        jmethodId_JSObjectGetPropertyCallback = (*env)->GetMethodID(
+                env, callbackClass, "JSObjectGetPropertyCallback", "(JJLjava/lang/String;J)J");
+        jmethodId_JSObjectSetPropertyCallback = (*env)->GetMethodID(
+                env, callbackClass, "JSObjectSetPropertyCallback", "(JJLjava/lang/String;JJ)Z");
+        jmethodId_JSObjectCallAsConstructorCallback = (*env)->GetMethodID(
+                    env, callbackClass, "JSObjectCallAsConstructorCallback", "(JJILjava/nio/ByteBuffer;J)J");
+        jmethodId_JSObjectCallAsFunctionCallback = (*env)->GetMethodID(
+                env, callbackClass, "JSObjectCallAsFunctionCallback", "(JJJILjava/nio/ByteBuffer;J)J");
+        jmethodId_JSObjectConvertToTypeCallback = (*env)->GetMethodID(
+                env, callbackClass, "JSObjectConvertToTypeCallback", "(JJIJ)J");
+        jmethodId_JSObjectDeletePropertyCallback = (*env)->GetMethodID(
+                env, callbackClass, "JSObjectDeletePropertyCallback", "(JJLjava/lang/String;J)Z");
+        jmethodId_JSObjectGetPropertyNamesCallback = (*env)->GetMethodID(
+                env, callbackClass, "JSObjectGetPropertyNamesCallback", "(JJJ)V");
+        jmethodId_JSObjectHasInstanceCallback = (*env)->GetMethodID(
+                env, callbackClass, "JSObjectHasInstanceCallback", "(JJJJ)Z");
+        jmethodId_JSObjectHasPropertyCallback = (*env)->GetMethodID(
+                env, callbackClass, "JSObjectHasPropertyCallback", "(JJLjava/lang/String;)Z");
+    }
+    return true;
 }
 
 /*
@@ -139,11 +184,9 @@ static void NativeCallback_JSObjectInitializeCallback(JSContextRef ctx, JSObject
 {
     JNI_ENV_ENTER
     JSObjectPrivateData* prv = (JSObjectPrivateData*)JSObjectGetPrivate(object);
-    if (prv && prv->definition)
+    if (prv && prv->callback)
     {
-        jmethodID jmethodId_JSObjectInitializeCallback = (*env)->GetMethodID(
-                env, prv->definitionClass, "JSObjectInitializeCallback", "(JJ)V");
-        (*env)->CallVoidMethod(env, prv->definition,
+        (*env)->CallVoidMethod(env, prv->callback,
                                jmethodId_JSObjectInitializeCallback, (jlong)ctx, (jlong)object);
     }
     JNI_ENV_EXIT
@@ -155,14 +198,12 @@ static void NativeCallback_JSObjectFinalizeCallback(JSObjectRef object)
     JSObjectPrivateData* prv = (JSObjectPrivateData*)JSObjectGetPrivate(object);
     if (prv)
     {
-        if (prv->definition)
+        if (prv->callback)
         {
-            jmethodID jmethodId_JSObjectFinalizeCallback = (*env)->GetMethodID(
-                env, prv->definitionClass, "JSObjectFinalizeCallback", "(J)V");
-            (*env)->CallVoidMethod(env, prv->definition,
+            (*env)->CallVoidMethod(env, prv->callback,
                                    jmethodId_JSObjectFinalizeCallback, (jlong)object);
-            (*env)->DeleteGlobalRef(env, prv->definition);
-            (*env)->DeleteGlobalRef(env, prv->definitionClass);
+            (*env)->DeleteGlobalRef(env, prv->callback);
+            (*env)->DeleteGlobalRef(env, prv->callbackClass);
         }
         if (prv->object)
         {
@@ -182,12 +223,10 @@ static JSValueRef NativeCallback_JSObjectGetStaticValueCallback(
     
     JNI_ENV_ENTER
     JSObjectPrivateData* prv = (JSObjectPrivateData*)JSObjectGetPrivate(object);
-    if (prv && prv->definition)
+    if (prv && prv->callback)
     {
-        jmethodID jmethodId_JSObjectGetStaticValueCallback = (*env)->GetMethodID(
-                env, prv->definitionClass, "JSObjectGetStaticValueCallback", "(JJLjava/lang/String;J)J");
         JSTRING_FROM_JSSTRINGREF(name, cname, jname)
-        value = (JSValueRef)(*env)->CallLongMethod(env, prv->definition,
+        value = (JSValueRef)(*env)->CallLongMethod(env, prv->callback,
                                jmethodId_JSObjectGetStaticValueCallback,
                                (jlong)ctx, (jlong)object, jname, (jlong)*exception);
     }
@@ -203,12 +242,10 @@ static bool NativeCallback_JSObjectSetStaticValueCallback(
     
     JNI_ENV_ENTER
     JSObjectPrivateData* prv = (JSObjectPrivateData*)JSObjectGetPrivate(object);
-    if (prv && prv->definition)
+    if (prv && prv->callback)
     {
-        jmethodID jmethodId_JSObjectSetStaticValueCallback = (*env)->GetMethodID(
-                env, prv->definitionClass, "JSObjectSetStaticValueCallback", "(JJLjava/lang/String;JJ)Z");
         JSTRING_FROM_JSSTRINGREF(name, cname, jname)
-        result = (*env)->CallBooleanMethod(env, prv->definition, jmethodId_JSObjectSetStaticValueCallback,
+        result = (*env)->CallBooleanMethod(env, prv->callback, jmethodId_JSObjectSetStaticValueCallback,
             (jlong)ctx, (jlong)object, jname, (jlong)value, (jlong)*exception) == JNI_TRUE ? true : false;
     }
     JNI_ENV_EXIT
@@ -223,12 +260,10 @@ static JSValueRef NativeCallback_JSObjectGetPropertyCallback(
     
     JNI_ENV_ENTER
     JSObjectPrivateData* prv = (JSObjectPrivateData*)JSObjectGetPrivate(object);
-    if (prv && prv->definition)
+    if (prv && prv->callback)
     {
-        jmethodID jmethodId_JSObjectGetPropertyCallback = (*env)->GetMethodID(
-                env, prv->definitionClass, "JSObjectGetPropertyCallback", "(JJLjava/lang/String;J)J");
         JSTRING_FROM_JSSTRINGREF(name, cname, jname)
-        value = (JSValueRef)(*env)->CallLongMethod(env, prv->definition,
+        value = (JSValueRef)(*env)->CallLongMethod(env, prv->callback,
                                jmethodId_JSObjectGetPropertyCallback,
                                (jlong)ctx, (jlong)object, jname, (jlong)*exception);
     }
@@ -244,12 +279,10 @@ static bool NativeCallback_JSObjectSetPropertyCallback(
     
     JNI_ENV_ENTER
     JSObjectPrivateData* prv = (JSObjectPrivateData*)JSObjectGetPrivate(object);
-    if (prv && prv->definition)
+    if (prv && prv->callback)
     {
-        jmethodID jmethodId_JSObjectSetPropertyCallback = (*env)->GetMethodID(
-                env, prv->definitionClass, "JSObjectSetPropertyCallback", "(JJLjava/lang/String;JJ)Z");
         JSTRING_FROM_JSSTRINGREF(name, cname, jname)
-        result = (*env)->CallBooleanMethod(env, prv->definition, jmethodId_JSObjectSetPropertyCallback,
+        result = (*env)->CallBooleanMethod(env, prv->callback, jmethodId_JSObjectSetPropertyCallback,
             (jlong)ctx, (jlong)object, jname, (jlong)value, (jlong)*exception) == JNI_TRUE ? true : false;
     }
     JNI_ENV_EXIT
@@ -263,20 +296,12 @@ static JSObjectRef NativeCallback_JSObjectCallAsConstructorCallback(
 {
     JNI_ENV_ENTER
     JSObjectPrivateData* prv = (JSObjectPrivateData*)JSObjectGetPrivate(constructor);
-    if (prv && prv->definition)
+    if (prv && prv->callback)
     {
-        jmethodID jmethodId_JSObjectCallAsConstructorCallback = (*env)->GetMethodID(
-                    env, prv->definitionClass, "JSObjectCallAsConstructorCallback", "(JJI[JJ)J");
-        jlongArray j_argv = (*env)->NewLongArray(env, (jsize)argc);
-        jlong* p_argv = (*env)->GetLongArrayElements(env, j_argv, NULL);
-        for (size_t i = 0; i < argc; i++) {
-            p_argv[i] = (jlong)argv[i];
-        }
-        (*env)->ReleaseLongArrayElements(env, j_argv, p_argv, 0);
-        
-        constructor = (JSObjectRef)(*env)->CallLongMethod(env, prv->definition,
+        jobject argvbuffer = argc > 0 ? (*env)->NewDirectByteBuffer(env, (void*)&argv[0], sizeof(long) * argc) : NULL;
+        constructor = (JSObjectRef)(*env)->CallLongMethod(env, prv->callback,
                             jmethodId_JSObjectCallAsConstructorCallback,
-                            (jlong)ctx, (jlong)constructor, (jint)argc, j_argv, (jlong)*exception);
+                            (jlong)ctx, (jlong)constructor, (jint)argc, argvbuffer, (jlong)*exception);
     }
     JNI_ENV_EXIT
 
@@ -289,19 +314,12 @@ static JSValueRef NativeCallback_JSObjectCallAsFunctionCallback(
     JSValueRef value = NULL;
     JNI_ENV_ENTER
     JSObjectPrivateData* prv = (JSObjectPrivateData*)JSObjectGetPrivate(func);
-    if (prv && prv->definition)
+    if (prv == NULL) prv = (JSObjectPrivateData*)JSObjectGetPrivate(thisObject);
+    if (prv && prv->callback)
     {
-        jmethodID jmethodId_JSObjectCallAsFunctionCallback = (*env)->GetMethodID(
-                env, prv->definitionClass, "JSObjectCallAsFunctionCallback", "(JJJI[JJ)J");
-        jlongArray j_argv = (*env)->NewLongArray(env, (jsize)argc);
-        jlong* p_argv = (*env)->GetLongArrayElements(env, j_argv, NULL);
-        for (size_t i = 0; i < argc; i++) {
-            p_argv[i] = (jlong)argv[i];
-        }
-        (*env)->ReleaseLongArrayElements(env, j_argv, p_argv, 0);
-        
-        value = (JSValueRef)(*env)->CallLongMethod(env, prv->definition, jmethodId_JSObjectCallAsFunctionCallback,
-                               (jlong)ctx, (jlong)func, (jlong)thisObject, (jint)argc, j_argv, (jlong)*exception);
+        jobject argvbuffer = argc > 0 ? (*env)->NewDirectByteBuffer(env, (void*)&argv[0], sizeof(long) * argc) : NULL;
+        value = (JSValueRef)(*env)->CallLongMethod(env, prv->callback, jmethodId_JSObjectCallAsFunctionCallback,
+                               (jlong)ctx, (jlong)func, (jlong)thisObject, (jint)argc, argvbuffer, (jlong)*exception);
     }
     JNI_ENV_EXIT
     return value;
@@ -314,11 +332,9 @@ static JSValueRef NativeCallback_JSObjectConvertToTypeCallback(
     JSValueRef value = NULL;
     JNI_ENV_ENTER
     JSObjectPrivateData* prv = (JSObjectPrivateData*)JSObjectGetPrivate(object);
-    if (prv && prv->definition)
+    if (prv && prv->callback)
     {
-        jmethodID jmethodId_JSObjectConvertToTypeCallback = (*env)->GetMethodID(
-                env, prv->definitionClass, "JSObjectConvertToTypeCallback", "(JJIJ)J");
-        value = (JSValueRef)(*env)->CallLongMethod(env, prv->definition, jmethodId_JSObjectConvertToTypeCallback,
+        value = (JSValueRef)(*env)->CallLongMethod(env, prv->callback, jmethodId_JSObjectConvertToTypeCallback,
                                                    (jlong)ctx, (jlong)object, (jint)type, (jlong)*exception);
     }
     JNI_ENV_EXIT
@@ -332,12 +348,10 @@ static bool NativeCallback_JSObjectDeletePropertyCallback(
     bool value = false;
     JNI_ENV_ENTER
     JSObjectPrivateData* prv = (JSObjectPrivateData*)JSObjectGetPrivate(object);
-    if (prv && prv->definition)
+    if (prv && prv->callback)
     {
-        jmethodID jmethodId_JSObjectDeletePropertyCallback = (*env)->GetMethodID(
-                env, prv->definitionClass, "JSObjectDeletePropertyCallback", "(JJLjava/lang/String;J)Z");
         JSTRING_FROM_JSSTRINGREF(name, cname, jname)
-        value = (*env)->CallBooleanMethod(env, prv->definition, jmethodId_JSObjectDeletePropertyCallback,
+        value = (*env)->CallBooleanMethod(env, prv->callback, jmethodId_JSObjectDeletePropertyCallback,
                     (jlong)ctx, (jlong)object, jname, (jlong)*exception) == JNI_TRUE ? true : false;
     }
     JNI_ENV_EXIT
@@ -350,11 +364,9 @@ static void NativeCallback_JSObjectGetPropertyNamesCallback(
 {
     JNI_ENV_ENTER
     JSObjectPrivateData* prv = (JSObjectPrivateData*)JSObjectGetPrivate(object);
-    if (prv && prv->definition)
+    if (prv && prv->callback)
     {
-        jmethodID jmethodId_JSObjectGetPropertyNamesCallback = (*env)->GetMethodID(
-                env, prv->definitionClass, "JSObjectGetPropertyNamesCallback", "(JJJ)V");
-        (*env)->CallVoidMethod(env, prv->definition, jmethodId_JSObjectGetPropertyNamesCallback,
+        (*env)->CallVoidMethod(env, prv->callback, jmethodId_JSObjectGetPropertyNamesCallback,
                                (jlong)ctx, (jlong)object, (jlong)propertyNames);
     }
     JNI_ENV_EXIT
@@ -367,11 +379,9 @@ static bool NativeCallback_JSObjectHasInstanceCallback(
     bool value = false;
     JNI_ENV_ENTER
     JSObjectPrivateData* prv = (JSObjectPrivateData*)JSObjectGetPrivate(constructor);
-    if (prv && prv->definition)
+    if (prv && prv->callback)
     {
-        jmethodID jmethodId_JSObjectHasInstanceCallback = (*env)->GetMethodID(
-                env, prv->definitionClass, "JSObjectHasInstanceCallback", "(JJJJ)Z");
-        value = (*env)->CallBooleanMethod(env, prv->definition, jmethodId_JSObjectHasInstanceCallback,
+        value = (*env)->CallBooleanMethod(env, prv->callback, jmethodId_JSObjectHasInstanceCallback,
                     (jlong)ctx, (jlong)constructor, (jlong)instance, (jlong)*exception) == JNI_TRUE ? true : false;
     }
     JNI_ENV_EXIT
@@ -384,12 +394,10 @@ static bool NativeCallback_JSObjectHasPropertyCallback(
     bool value = false;
     JNI_ENV_ENTER
     JSObjectPrivateData* prv = (JSObjectPrivateData*)JSObjectGetPrivate(object);
-    if (prv && prv->definition)
+    if (prv && prv->callback)
     {
-        jmethodID jmethodId_JSObjectHasPropertyCallback = (*env)->GetMethodID(
-                env, prv->definitionClass, "JSObjectHasPropertyCallback", "(JJLjava/lang/String;)Z");
         JSTRING_FROM_JSSTRINGREF(name, cname, jname)
-        value = (*env)->CallBooleanMethod(env, prv->definition, jmethodId_JSObjectHasPropertyCallback,
+        value = (*env)->CallBooleanMethod(env, prv->callback, jmethodId_JSObjectHasPropertyCallback,
                                 (jlong)ctx, (jlong)object, jname) == JNI_TRUE ? true : false;
     }
     JNI_ENV_EXIT
@@ -399,8 +407,119 @@ static bool NativeCallback_JSObjectHasPropertyCallback(
 /*
  * JNI methods
  */
+static JSClassDefinition jsClassDefinitionTemplate;
+static JSStaticValue     jsStaticValueTemplate;
+static JSStaticFunction  jsStaticFunctionTemplate;
+
+JNIEXPORT jobject JNICALL
+Java_com_appcelerator_javascriptcore_opaquetypes_JSClassDefinition_NativeGetClassDefinitionTemplate
+    (JNIEnv *env, jclass clazz)
+{
+    jsClassDefinitionTemplate = kJSClassDefinitionEmpty;
+    jsClassDefinitionTemplate.version = 0;
+    jsClassDefinitionTemplate.attributes = kJSClassAttributeNone;
+    
+    jsClassDefinitionTemplate.initialize = NativeCallback_JSObjectInitializeCallback;
+    jsClassDefinitionTemplate.finalize   = NativeCallback_JSObjectFinalizeCallback;
+    jsClassDefinitionTemplate.hasProperty = NativeCallback_JSObjectHasPropertyCallback;
+    jsClassDefinitionTemplate.getProperty = NativeCallback_JSObjectGetPropertyCallback;
+    jsClassDefinitionTemplate.setProperty = NativeCallback_JSObjectSetPropertyCallback;
+    jsClassDefinitionTemplate.deleteProperty = NativeCallback_JSObjectDeletePropertyCallback;
+    jsClassDefinitionTemplate.getPropertyNames = NativeCallback_JSObjectGetPropertyNamesCallback;
+    jsClassDefinitionTemplate.callAsFunction   = NativeCallback_JSObjectCallAsFunctionCallback;
+    jsClassDefinitionTemplate.callAsConstructor = NativeCallback_JSObjectCallAsConstructorCallback;
+    jsClassDefinitionTemplate.hasInstance   = NativeCallback_JSObjectHasInstanceCallback;
+    jsClassDefinitionTemplate.convertToType = NativeCallback_JSObjectConvertToTypeCallback;
+    
+    return (*env)->NewDirectByteBuffer(env, &jsClassDefinitionTemplate, sizeof(JSClassDefinition));
+}
+
+JNIEXPORT jobject JNICALL
+Java_com_appcelerator_javascriptcore_opaquetypes_JSStaticValues_NativeGetStaticValueTemplate
+    (JNIEnv *env, jclass clazz)
+{
+    jsStaticValueTemplate.attributes = kJSPropertyAttributeNone;
+    jsStaticValueTemplate.getProperty = NativeCallback_JSObjectGetStaticValueCallback;
+    jsStaticValueTemplate.setProperty = NativeCallback_JSObjectSetStaticValueCallback;
+    
+    return (*env)->NewDirectByteBuffer(env, &jsStaticValueTemplate, sizeof(JSStaticValue));
+}
+
+JNIEXPORT jobject JNICALL
+Java_com_appcelerator_javascriptcore_opaquetypes_JSStaticFunctions_NativeGetStaticFunctionTemplate
+    (JNIEnv *env, jclass clazz)
+{
+    jsStaticFunctionTemplate.attributes = kJSPropertyAttributeNone;
+    jsStaticFunctionTemplate.callAsFunction = NativeCallback_JSObjectCallAsFunctionCallback;
+    
+    return (*env)->NewDirectByteBuffer(env, &jsStaticFunctionTemplate, sizeof(JSStaticFunction));
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeAllocateCharacterBuffer
+    (JNIEnv *env, jclass clazz, jobjectArray invalues)
+{
+    int valueCount = (*env)->GetArrayLength(env, invalues);
+    jlongArray outvalues = (*env)->NewLongArray(env, valueCount);
+    jlong* p_outvalues = (*env)->GetLongArrayElements(env, outvalues, NULL);
+    for (int i = 0; i < valueCount; i++) {
+        jobject invalue = (*env)->GetObjectArrayElement(env, invalues, i);
+        const char* inCvalue = (*env)->GetStringUTFChars(env, invalue, NULL);
+        p_outvalues[i] = (jlong)strdup(inCvalue);
+        (*env)->ReleaseStringUTFChars(env, invalue, inCvalue);
+        (*env)->DeleteLocalRef(env, invalue);
+    }
+    (*env)->ReleaseLongArrayElements(env, outvalues, p_outvalues, 0);
+    
+    return outvalues;
+}
+
+JNIEXPORT void JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeReleasePointers
+    (JNIEnv *env, jclass clazz, jlongArray invalues)
+{
+    int valueCount = (*env)->GetArrayLength(env, invalues);
+    jlong* p_invalues = (*env)->GetLongArrayElements(env, invalues, NULL);
+    for (int i = 0; i < valueCount; i++) {
+        free((void*)p_invalues[i]);
+    }
+    (*env)->ReleaseLongArrayElements(env, invalues, p_invalues, 0);
+}
+
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSClassCreate
+    (JNIEnv *env, jobject thiz, jobject definitionBuffer, jstring className, jobject staticValuesBuffer, jobject staticFunctionsBuffer)
+{
+    JSClassDefinition* definition = (*env)->GetDirectBufferAddress(env, definitionBuffer);
+    
+    JSStaticValue* staticValues = NULL;
+    if (staticValuesBuffer != NULL) staticValues = (*env)->GetDirectBufferAddress(env, staticValuesBuffer);
+    
+    JSStaticFunction* staticFunctions = NULL;
+    if (staticFunctionsBuffer != NULL) staticFunctions = (*env)->GetDirectBufferAddress(env, staticFunctionsBuffer);
+    
+    definition->staticValues    = staticValues;
+    definition->staticFunctions = staticFunctions;
+    
+    const char* classNameAsChars = NULL;
+    if (className != NULL)
+    {
+        const char* classNameAsChars = (*env)->GetStringUTFChars(env, className, NULL);
+        definition->className = classNameAsChars;
+    }
+    
+    JSClassRef jsClass = JSClassCreate(definition);
+    
+    if (classNameAsChars != NULL)
+    {
+        (*env)->ReleaseStringUTFChars(env, className, classNameAsChars);
+    }
+    
+    return (jlong)jsClass;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSClassCreate_
     (JNIEnv *env, jobject thiz,
      jint version, jint attributes, jstring className, jlong parentClass,
      jobjectArray staticValueNames, jintArray staticValueAttributes,
@@ -497,27 +616,58 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSClassCreate
     return (jlong)jsclass;
 }
 
-JNIEXPORT jlong JNICALL
+JNIEXPORT jlongArray JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMake
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsClassRef,
-     jobject definition, jobject object)
+     jobject callback, jobject staticFunctionsBuffer, jint staticFunctionCount, jobject object)
 {
     JSContextRef ctx = (JSContextRef)jsContextRef;
     JSClassRef jsClass = (JSClassRef)jsClassRef;
     
     JSObjectPrivateData* prv = NewJSObjectPrivateData();
     
-    if (definition != NULL)
+    if (callback != NULL)
     {
-        prv->definition = (*env)->NewGlobalRef(env, definition);
-        prv->definitionClass = (*env)->NewGlobalRef(env, (*env)->GetObjectClass(env, definition));
+        prv->callback = (*env)->NewGlobalRef(env, callback);
+        prv->callbackClass = (*env)->NewGlobalRef(env, (*env)->GetObjectClass(env, callback));
     }
     if (object != NULL)
     {
         prv->object = (*env)->NewGlobalRef(env, object);
     }
     
-    return (jlong)JSObjectMake(ctx, jsClass, prv);
+    if (prv->callbackClass != NULL) {
+        CacheClassDefinitionCallbackMethods(env, prv->callbackClass);
+    }
+    
+    JSObjectRef newObject = JSObjectMake(ctx, jsClass, prv);
+    
+    jlongArray outValues = (*env)->NewLongArray(env, staticFunctionCount + 1);
+    jlong* p_outValues = (*env)->GetLongArrayElements(env, outValues, NULL);
+    
+    // First one is the new object pointer, static function pointers to follow
+    p_outValues[0] = (jlong)newObject;
+
+    // Attach callback to function object
+    if (staticFunctionCount > 0) {
+        JSStaticFunction* staticFunctions = (*env)->GetDirectBufferAddress(env, staticFunctionsBuffer);
+        int i = 1;
+        while(staticFunctions->name) {
+            JSStringRef funcname = JSStringCreateWithUTF8CString(staticFunctions->name);
+            JSValueRef  funcval  = JSObjectGetProperty(ctx, newObject, funcname, NULL);
+            if (!JSValueIsUndefined(ctx, funcval)) {
+                JSObjectRef funcObj = JSValueToObject(ctx, funcval, NULL);
+                JSObjectSetPrivate(funcObj, prv);
+                p_outValues[i] = (jlong)funcObj;
+            }
+            JSStringRelease(funcname);
+            ++staticFunctions;
+            ++i;
+        }
+    }
+    (*env)->ReleaseLongArrayElements(env, outValues, p_outValues, 0);
+    
+    return outValues;
 }
 
 JNIEXPORT jobject JNICALL
@@ -950,16 +1100,15 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueMakeStri
 
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectCallAsConstructor
-    (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef, jint argc, jlongArray argv)
+    (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef, jint argc, jobject argv)
 {
     JSGlobalContextRef ctx = (JSGlobalContextRef)jsContextRef;
     JSObjectRef object = (JSObjectRef)jsObjectRef;
     JSValueRef exceptionStore = JSValueMakeNull(ctx);
     
-    jlong* p_argv = (*env)->GetLongArrayElements(env, argv, NULL);
-    const JSValueRef* js_argv = (JSValueRef*)p_argv;
+    const JSValueRef* js_argv = NULL;
+    if (argc > 0) js_argv = (*env)->GetDirectBufferAddress(env, argv);
     JSObjectRef value = JSObjectCallAsConstructor(ctx, object, argc, js_argv, &exceptionStore);
-    (*env)->ReleaseLongArrayElements(env, argv, p_argv, 0);
     
     if (!JSValueIsNull(ctx, exceptionStore)) {
         ThrowJavaScriptCoreException(env, ctx, exceptionStore, thiz);
@@ -971,17 +1120,16 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectCallAsC
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectCallAsFunction
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef, jlong jsThisObjectRef,
-     jint argc, jlongArray argv)
+     jint argc, jobject argv)
 {
     JSGlobalContextRef ctx = (JSGlobalContextRef)jsContextRef;
     JSObjectRef object = (JSObjectRef)jsObjectRef;
     JSObjectRef thisObject = (JSObjectRef)jsThisObjectRef;
     JSValueRef exceptionStore = JSValueMakeNull(ctx);
     
-    jlong* p_argv = (*env)->GetLongArrayElements(env, argv, NULL);
-    const JSValueRef* js_argv = (JSValueRef*)p_argv;
+    const JSValueRef* js_argv = NULL;
+    if (argc > 0) js_argv = (*env)->GetDirectBufferAddress(env, argv);
     JSValueRef value = JSObjectCallAsFunction(ctx, object, thisObject, argc, js_argv, &exceptionStore);
-    (*env)->ReleaseLongArrayElements(env, argv, p_argv, 0);
     
     if (!JSValueIsNull(ctx, exceptionStore)) {
         ThrowJavaScriptCoreException(env, ctx, exceptionStore, thiz);
@@ -1200,7 +1348,7 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectHasProp
     
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeArray
-    (JNIEnv *env, jobject thiz, jlong jsContextRef, jint argc, jlongArray argv)
+    (JNIEnv *env, jobject thiz, jlong jsContextRef, jint argc, jobject argv)
 {
     JSContextRef ctx = (JSContextRef)jsContextRef;
     JSValueRef exceptionStore = JSValueMakeNull(ctx);
@@ -1214,7 +1362,7 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeArr
 
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeDate
-    (JNIEnv *env, jobject thiz, jlong jsContextRef, jint argc, jlongArray argv)
+    (JNIEnv *env, jobject thiz, jlong jsContextRef, jint argc, jobject argv)
 {
     JSContextRef ctx = (JSContextRef)jsContextRef;
     JSValueRef exceptionStore = JSValueMakeNull(ctx);
@@ -1228,7 +1376,7 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeDat
 
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeError
-    (JNIEnv *env, jobject thiz, jlong jsContextRef, jint argc, jlongArray argv)
+    (JNIEnv *env, jobject thiz, jlong jsContextRef, jint argc, jobject argv)
 {
     JSContextRef ctx = (JSContextRef)jsContextRef;
     JSValueRef exceptionStore = JSValueMakeNull(ctx);
@@ -1242,7 +1390,7 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeErr
 
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeRegExp
-    (JNIEnv *env, jobject thiz, jlong jsContextRef, jint argc, jlongArray argv)
+    (JNIEnv *env, jobject thiz, jlong jsContextRef, jint argc, jobject argv)
 {
     JSContextRef ctx = (JSContextRef)jsContextRef;
     JSValueRef exceptionStore = JSValueMakeNull(ctx);
@@ -1252,6 +1400,48 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeReg
         ThrowJavaScriptCoreException(env, ctx, exceptionStore, thiz);
     }
     return (jlong)value;
+}
+
+JNIEXPORT jshort JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeSizeOfLong
+    (JNIEnv* env, jclass clazz)
+{
+    return (jshort)sizeof(long);
+}
+
+JNIEXPORT jshort JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeSizeOfInt
+    (JNIEnv* env, jclass clazz)
+{
+    return (jshort)sizeof(int);
+}
+
+JNIEXPORT jshort JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeSizeOfUnsigned
+    (JNIEnv* env, jclass clazz)
+{
+    return (jshort)sizeof(unsigned);
+}
+
+JNIEXPORT jshort JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeSizeOfJSClassDefinition
+    (JNIEnv* env, jclass clazz)
+{
+    return (jshort)sizeof(JSClassDefinition);
+}
+
+JNIEXPORT jshort JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeSizeOfJSStaticValue
+    (JNIEnv* env, jclass clazz)
+{
+    return (jshort)sizeof(JSStaticValue);
+}
+
+JNIEXPORT jshort JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeSizeOfJSStaticFunction
+    (JNIEnv* env, jclass clazz)
+{
+    return (jshort)sizeof(JSStaticFunction);
 }
 
 JNIEXPORT jlong JNICALL
