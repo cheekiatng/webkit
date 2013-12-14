@@ -6,7 +6,14 @@
 //  Copyright (c) 2013 Appcelerator, Inc. All rights reserved.
 //
 
-#include "JavaScriptCoreForJNI.h"
+#include <stdlib.h>
+#include <string.h>
+#include <JavaScriptCore/JSBase.h>
+#include <JavaScriptCore/JSContextRef.h>
+#include <JavaScriptCore/JSStringRef.h>
+#include <JavaScriptCore/JSObjectRef.h>
+#include <JavaScriptCore/JSValueRef.h>
+#include "JavaScriptCoreJNI.h"
 
 #define JSCORE_LOG_TAG "JavaScriptCore"
 
