@@ -332,7 +332,6 @@ public class JavaScriptCoreLibrary {
         definition.callAsConstructor = callback;
         JSClassRef jsClass = JSClassCreate(definition);
         JSObjectRef object = JSObjectMake(context, jsClass);
-        JSClassRelease(jsClass);
         return object;
     }
 
@@ -346,7 +345,6 @@ public class JavaScriptCoreLibrary {
         definition.callAsFunction = callback;
         JSClassRef jsClass = JSClassCreate(definition);
         JSObjectRef object = JSObjectMake(context, jsClass);
-        JSClassRelease(jsClass);
         return object;
     }
 

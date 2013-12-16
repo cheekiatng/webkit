@@ -7,6 +7,14 @@ JNI implementation for JavaScriptCore API
 - [gradle](http://www.gradle.org/) 
 - MacOS X SDK and XCode
 
+## How to build JavaScriptCore jar
+
+```
+$ gradle clean
+$ gradle jar
+$ ls -l build/libs/*.jar
+```
+
 ## How to build and test for OSX
 
 ```
