@@ -115,6 +115,7 @@ endif ()
 
 # GTK uses the GNU installation directories as defaults.
 if (NOT PORT STREQUAL "GTK")
+    set(PUBLIC_HEADER_INSTALL_DIR ""${CMAKE_INSTALL_PREFIX}/include" CACHE PATH "Absolute path to install headers (include)")
     set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib" CACHE PATH "Absolute path to library installation directory")
     set(EXEC_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin" CACHE PATH "Absolute path to executable installation directory")
     set(LIBEXEC_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/bin" CACHE PATH "Absolute path to install executables executed by the library")
