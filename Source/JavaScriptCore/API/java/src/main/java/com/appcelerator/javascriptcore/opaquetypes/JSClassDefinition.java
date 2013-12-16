@@ -196,18 +196,18 @@ public class JSClassDefinition {
             buffer.putInt(versionIndex, version);
             buffer.putInt(attributesIndex, attributes);
 
-            if (parentClass != null) buffer.putLong(parentClassIndex, parentClass.p());
-            if (initialize  != null) buffer.putLong(initializeIndex, initializeFunction);
-            if (finalize    != null) buffer.putLong(finalizeIndex, finalizeFunction);
-            if (hasProperty != null) buffer.putLong(hasPropertyIndex, hasPropertyFunction);
-            if (getProperty != null) buffer.putLong(getPropertyIndex, getPropertyFunction);
-            if (setProperty != null) buffer.putLong(setPropertyIndex, setPropertyFunction);
-            if (deleteProperty    != null) buffer.putLong(deletePropertyIndex, deletePropertyFunction);
-            if (getPropertyNames  != null) buffer.putLong(getPropertyNamesIndex, getPropertyNamesFunction);
-            if (callAsFunction    != null) buffer.putLong(callAsFunctionIndex, callAsFunctionFunction);
-            if (callAsConstructor != null) buffer.putLong(callAsConstructorIndex, callAsConstructorFunction);
-            if (hasInstance   != null) buffer.putLong(hasInstanceIndex, hasInstanceFunction);
-            if (convertToType != null) buffer.putLong(convertToTypeIndex, convertToTypeFunction);
+            if (parentClass != null) JavaScriptCoreLibrary.putLong(buffer, parentClassIndex, parentClass.p());
+            if (initialize  != null) JavaScriptCoreLibrary.putLong(buffer, initializeIndex, initializeFunction);
+            if (finalize    != null) JavaScriptCoreLibrary.putLong(buffer, finalizeIndex, finalizeFunction);
+            if (hasProperty != null) JavaScriptCoreLibrary.putLong(buffer, hasPropertyIndex, hasPropertyFunction);
+            if (getProperty != null) JavaScriptCoreLibrary.putLong(buffer, getPropertyIndex, getPropertyFunction);
+            if (setProperty != null) JavaScriptCoreLibrary.putLong(buffer, setPropertyIndex, setPropertyFunction);
+            if (deleteProperty    != null) JavaScriptCoreLibrary.putLong(buffer, deletePropertyIndex, deletePropertyFunction);
+            if (getPropertyNames  != null) JavaScriptCoreLibrary.putLong(buffer, getPropertyNamesIndex, getPropertyNamesFunction);
+            if (callAsFunction    != null) JavaScriptCoreLibrary.putLong(buffer, callAsFunctionIndex, callAsFunctionFunction);
+            if (callAsConstructor != null) JavaScriptCoreLibrary.putLong(buffer, callAsConstructorIndex, callAsConstructorFunction);
+            if (hasInstance   != null) JavaScriptCoreLibrary.putLong(buffer, hasInstanceIndex, hasInstanceFunction);
+            if (convertToType != null) JavaScriptCoreLibrary.putLong(buffer, convertToTypeIndex, convertToTypeFunction);
         }
 
         return buffer;
@@ -377,17 +377,17 @@ public class JSClassDefinition {
             hasInstanceIndex     = callAsConstructorIndex + LONG;
             convertToTypeIndex   = hasInstanceIndex + LONG;
 
-            initializeFunction  = bufferTemplate.getLong(initializeIndex);
-            finalizeFunction    = bufferTemplate.getLong(finalizeIndex);
-            hasPropertyFunction = bufferTemplate.getLong(hasPropertyIndex);
-            getPropertyFunction = bufferTemplate.getLong(getPropertyIndex);
-            setPropertyFunction = bufferTemplate.getLong(setPropertyIndex);
-            deletePropertyFunction    = bufferTemplate.getLong(deletePropertyIndex);
-            getPropertyNamesFunction  = bufferTemplate.getLong(getPropertyNamesIndex);
-            callAsFunctionFunction    = bufferTemplate.getLong(callAsFunctionIndex);
-            callAsConstructorFunction = bufferTemplate.getLong(callAsConstructorIndex);
-            hasInstanceFunction   = bufferTemplate.getLong(hasInstanceIndex);
-            convertToTypeFunction = bufferTemplate.getLong(convertToTypeIndex);
+            initializeFunction  = JavaScriptCoreLibrary.getLong(bufferTemplate, initializeIndex);
+            finalizeFunction    = JavaScriptCoreLibrary.getLong(bufferTemplate, finalizeIndex);
+            hasPropertyFunction = JavaScriptCoreLibrary.getLong(bufferTemplate, hasPropertyIndex);
+            getPropertyFunction = JavaScriptCoreLibrary.getLong(bufferTemplate, getPropertyIndex);
+            setPropertyFunction = JavaScriptCoreLibrary.getLong(bufferTemplate, setPropertyIndex);
+            deletePropertyFunction    = JavaScriptCoreLibrary.getLong(bufferTemplate, deletePropertyIndex);
+            getPropertyNamesFunction  = JavaScriptCoreLibrary.getLong(bufferTemplate, getPropertyNamesIndex);
+            callAsFunctionFunction    = JavaScriptCoreLibrary.getLong(bufferTemplate, callAsFunctionIndex);
+            callAsConstructorFunction = JavaScriptCoreLibrary.getLong(bufferTemplate, callAsConstructorIndex);
+            hasInstanceFunction   = JavaScriptCoreLibrary.getLong(bufferTemplate, hasInstanceIndex);
+            convertToTypeFunction = JavaScriptCoreLibrary.getLong(bufferTemplate, convertToTypeIndex);
         }
     }
 

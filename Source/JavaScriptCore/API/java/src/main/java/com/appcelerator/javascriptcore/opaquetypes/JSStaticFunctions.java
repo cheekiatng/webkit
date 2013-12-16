@@ -33,7 +33,7 @@ public class JSStaticFunctions {
     public JSStaticFunctions() {
         if (bufferTemplate == null) {
             bufferTemplate = NativeGetStaticFunctionTemplate().order(nativeOrder);
-            callAsFunction = bufferTemplate.getLong(LONG);
+            callAsFunction = JavaScriptCoreLibrary.getLong(bufferTemplate, LONG);
         }
     }
 
@@ -56,15 +56,15 @@ public class JSStaticFunctions {
     }
 
     private void update(String name, int index, long addressForNames) {
-        buffer.putLong(index, addressForNames);
-        buffer.putLong(index+LONG,  callAsFunction);
+        JavaScriptCoreLibrary.putLong(buffer, index, addressForNames);
+        JavaScriptCoreLibrary.putLong(buffer, index+LONG,  callAsFunction);
         buffer.putInt(index +LONG2, attributes.get(name));
     }
 
     private void updateLast(int last) {
         int index = CHUNK * last;
-        buffer.putLong(index, NULL);
-        buffer.putLong(index+LONG, NULL);
+        JavaScriptCoreLibrary.putLong(buffer, index, NULL);
+        JavaScriptCoreLibrary.putLong(buffer, index+LONG, NULL);
         buffer.putInt(index+LONG2, 0);
     }
 

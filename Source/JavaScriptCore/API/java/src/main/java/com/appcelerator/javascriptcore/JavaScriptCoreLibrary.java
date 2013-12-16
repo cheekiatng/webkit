@@ -40,6 +40,28 @@ public class JavaScriptCoreLibrary {
         return instance;
     }
 
+    /*
+     * Utility functions
+     */
+    public static void putLong(ByteBuffer buffer, int index, long value) {
+        if (SizeOfLong == 8) {
+            // 64 bit
+            buffer.putLong(index, value);
+        } else {
+            // 32 bit
+            buffer.putInt(index, (int)value);
+        }
+    }
+    public static long getLong(ByteBuffer buffer, int index) {
+        if (SizeOfLong == 8) {
+            // 64 bit
+            return buffer.getLong(index);
+        } else {
+            // 32 bit
+            return buffer.getInt(index);
+        }
+    }
+
     private long p(PointerType p) {
         if (p == null) return 0;
         return p.pointer();

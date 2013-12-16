@@ -37,12 +37,12 @@ public class JSValueArrayRef {
 
     public JSValueRef get(JSContextRef context, int index) {
         if (index >= length) throw new IndexOutOfBoundsException(String.format("JSValueArrayRef index=%d count=%d", index, length));
-        return new JSValueRef(context, buffer.getLong(getByteIndex(index)));
+        return new JSValueRef(context, JavaScriptCoreLibrary.getLong(buffer, getByteIndex(index)));
     }
 
     public void set(int index, JSValueRef value) {
         if (index >= length) throw new IndexOutOfBoundsException(String.format("JSValueArrayRef index=%d count=%d", index, length));
-        this.buffer.putLong(getByteIndex(index), value.p());
+        JavaScriptCoreLibrary.putLong(buffer, getByteIndex(index), value.p());
     }
 
     public int length() {
