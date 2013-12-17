@@ -24,8 +24,8 @@
 #include <JavaScriptCore/JSContextRef.h>
 #include <JavaScriptCore/JSStringRef.h>
 
-#define LOGD(...) ((void)__android_log_print(ANDROID_LOG_INFO,  "HelloAndroidJavaScriptCore", __VA_ARGS__))
-#define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR,  "HelloAndroidJavaScriptCore", __VA_ARGS__))
+#define LOGD(...) ((void)__android_log_print(ANDROID_LOG_INFO,  "TestAPI", __VA_ARGS__))
+#define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR,  "TestAPI", __VA_ARGS__))
 
 /* This is a trivial JNI example where we use a native method
  * to return a new VM String. See the corresponding Java source
@@ -44,60 +44,6 @@ jint JNI_OnLoad(JavaVM* java_vm, void* reserved)
 	return JNI_VERSION_1_6;
 }
 
-#if 0
-static void MyNDKPlaybackFinishedCallback(ALint which_channel, ALuint al_source, ALmixer_Data* almixer_data, ALboolean finished_naturally, void* user_data)
-{
-
-	LOGD("MyNDKPlaybackFinishedCallback on channel:%d source:%d finished_naturally:%d", which_channel, al_source, finished_naturally);
-
-    JNIEnv* env;
-	/* For demonstration purposes, call back into Java */
-
-	/* Careful: If ALmixer is compiled with threads, make sure any calls back into Java are thread safe. */
-	/* Unfortunately, JNI is making thread handling even more complicated than usual.
-	 * If ALmixer is compiled with threads, it invokes callbacks on a ALmixer private background thread.
-	 * In this case, we are required to call AttachCurrentThread for Java.
-	 * However, there is a case in ALmixer where the callback doesn't happen on the background thread, but the calling thread.
-	 * Calling ALmixer_HaltChannel() will trigger the callback on immediately on the thread you called the function on.
-	 * (In this program, it is the main thread.)
-	 * But JNI will break and crash if you try calling AttachCurrentThread in this case.
-	 * So we need to know what thread we are on. If we are on the background thread, we must call AttachCurrentThread.
-	 * Otherwise, we need to avoid calling it and use the current "env".
-	 */
-
-	 /* There is a little JNI dance you can do to deal with this situation which is shown here.
-	 */
-    int get_env_stat = (*s_javaVm)->GetEnv(s_javaVm, (void**)&env, JNI_VERSION_1_6);
-    if(get_env_stat == JNI_EDETACHED)
-	{
-		jint attach_status = (*s_javaVm)->AttachCurrentThread(s_javaVm, &env, NULL);
-		if(0 != attach_status)
-		{
-			LOGE("AttachCurrentThread failed"); 
-		}
-    }
-	else if(JNI_OK == get_env_stat)
-	{
-        // don't need to do anything
-    }
-	else if (get_env_stat == JNI_EVERSION)
-	{
-		LOGE("GetEnv: version not supported"); 
-    }
-
-	/* Now that we've done the dance, we can actually call into Java now. */
-    jclass clazz  = (*env)->GetObjectClass(env, s_proxyObject);
-    jmethodID method_id = (*env)->GetMethodID(env, clazz, "HelloAndroidJavaScriptCore_MyJavaPlaybackFinishedCallbackTriggeredFromNDK", "(IIZ)V");
-    (*env)->CallVoidMethod(env, s_proxyObject, method_id, which_channel, al_source, finished_naturally);
-
-
-	/* Clean up: If we Attached the thread, we need to Detach it */
-    if(get_env_stat == JNI_EDETACHED)
-	{
-		(*s_javaVm)->DetachCurrentThread(s_javaVm);
-	}
-}
-#endif
 
 static _Bool RunScript()
 {
@@ -261,9 +207,9 @@ static JSStringRef RunScriptAndReturnJSStringRef(JSStringRef js_script_string)
 	return js_return_string;
 }
 
-jboolean Java_com_appcelerator_hyperloop_helloandroidjavascriptcore_HelloAndroidJavaScriptCore_doInit(JNIEnv* env, jobject thiz, jobject java_asset_manager)
+jboolean Java_org_webkit_javascriptcore_testapi_TestAPI_doInit(JNIEnv* env, jobject thiz, jobject java_asset_manager)
 {
-	LOGD("Java_com_appcelerator_hyperloop_helloandroidjavascriptcore_HelloAndroidJavaScriptCore_doInit");
+	LOGD("Java_org_webkit_javascriptcore_testapi_TestAPI_doInit");
 
 	// I'm not sure if I need to
 	AAssetManager* ndk_asset_manager = AAssetManager_fromJava(env, java_asset_manager);
@@ -278,29 +224,29 @@ jboolean Java_com_appcelerator_hyperloop_helloandroidjavascriptcore_HelloAndroid
 	return JNI_TRUE;
 }
 
-void Java_com_appcelerator_hyperloop_helloandroidjavascriptcore_HelloAndroidJavaScriptCore_doPause(JNIEnv* env, jobject thiz)
+void Java_org_webkit_javascriptcore_testapi_TestAPI_doPause(JNIEnv* env, jobject thiz)
 {
-	LOGD("Java_com_appcelerator_hyperloop_helloandroidjavascriptcore_HelloAndroidJavaScriptCore_doPause");
+	LOGD("Java_org_webkit_javascriptcore_testapi_TestAPI_doPause");
 }
 
-void Java_com_appcelerator_hyperloop_helloandroidjavascriptcore_HelloAndroidJavaScriptCore_doResume(JNIEnv* env, jobject thiz)
+void Java_org_webkit_javascriptcore_testapi_TestAPI_doResume(JNIEnv* env, jobject thiz)
 {
-	LOGD("Java_com_appcelerator_hyperloop_helloandroidjavascriptcore_HelloAndroidJavaScriptCore_doResume");
+	LOGD("Java_org_webkit_javascriptcore_testapi_TestAPI_doResume");
 }
 
-void Java_com_appcelerator_hyperloop_helloandroidjavascriptcore_HelloAndroidJavaScriptCore_doDestroy(JNIEnv* env, jobject thiz)
+void Java_org_webkit_javascriptcore_testapi_TestAPI_doDestroy(JNIEnv* env, jobject thiz)
 {
-	LOGD("Java_com_appcelerator_hyperloop_helloandroidjavascriptcore_HelloAndroidJavaScriptCore_doDestroy");
+	LOGD("Java_org_webkit_javascriptcore_testapi_TestAPI_doDestroy");
 
 	/* Release the proxy object. */
 	(*env)->DeleteGlobalRef(env, s_proxyObject);
 	s_proxyObject = NULL;
 
-	LOGD("Java_com_appcelerator_hyperloop_helloandroidjavascriptcore_HelloAndroidJavaScriptCore_doDestroy end");
+	LOGD("Java_org_webkit_javascriptcore_testapi_TestAPI_doDestroy end");
 
 }
 
-jstring Java_com_appcelerator_hyperloop_helloandroidjavascriptcore_HelloAndroidJavaScriptCore_evaluateScript(JNIEnv* jni_env, jobject thiz, jstring jstring_script)
+jstring Java_org_webkit_javascriptcore_testapi_TestAPI_evaluateScript(JNIEnv* jni_env, jobject thiz, jstring jstring_script)
 {
 	JSStringRef jsstringref_script = jstringToJSStringRef(jni_env, jstring_script);
 
@@ -312,9 +258,9 @@ jstring Java_com_appcelerator_hyperloop_helloandroidjavascriptcore_HelloAndroidJ
 }
 
 #if 1
-void Java_com_appcelerator_hyperloop_helloandroidjavascriptcore_HelloAndroidJavaScriptCore_playSound(JNIEnv* env, jobject thiz, jint sound_id)
+void Java_org_webkit_javascriptcore_testapi_TestAPI_playSound(JNIEnv* env, jobject thiz, jint sound_id)
 {
-	LOGD("Java_com_appcelerator_hyperloop_helloandroidjavascriptcore_HelloAndroidJavaScriptCore_playSound, sound_id:%d", sound_id);
+	LOGD("Java_org_webkit_javascriptcore_testapi_TestAPI_playSound, sound_id:%d", sound_id);
 	int which_channel;
 	// For laziness, I just interpret integer ids to map to particular sounds.
 	switch(sound_id)
@@ -342,7 +288,7 @@ void Java_com_appcelerator_hyperloop_helloandroidjavascriptcore_HelloAndroidJava
 	   {	
 		LOGD("Failed to play: %s", ALmixer_GetError());
 	}
-	LOGD("Java_com_appcelerator_hyperloop_helloandroidjavascriptcore_HelloAndroidJavaScriptCore_playSound ended, which_channel:%d", which_channel);
+	LOGD("Java_org_webkit_javascriptcore_testapi_TestAPI_playSound ended, which_channel:%d", which_channel);
 */	
 }
 #endif
