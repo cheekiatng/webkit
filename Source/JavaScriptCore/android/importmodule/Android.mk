@@ -29,7 +29,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 # This is the name of module the caller will use in LOCAL_SHARED_LIBRARIES
 LOCAL_MODULE := JavaScriptCore_shared
-LOCAL_SRC_FILES := libs/$(TARGET_ARCH_ABI)/libJavaScriptCore.so
+LOCAL_SRC_FILES := lib/$(TARGET_ARCH_ABI)/libJavaScriptCore.so
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/include
 # Use LOCAL_EXPORT_CFLAGS to automatically export the correct flags (as necessary) to the calling module so the caller doesn't need to know the details.
 #LOCAL_EXPORT_CFLAGS := -DALMIXER_COMPILE_WITHOUT_SDL -DENABLE_ALMIXER_THREADS
@@ -56,12 +56,12 @@ include $(PREBUILT_SHARED_LIBRARY)
 # So let's say we put all the above in a directory called JavaScriptCore. The layout looks like this:
 # JavaScriptCore/
 # 	Android.mk (this file)
-# 		libs/armeabi/libJavaScriptCore.a
-# 		libs/armeabi/libJavaScriptCore.a
-# 		libs/armeabi-v7a/libJavaScriptCore.a
-# 		libs/armeabi-v7a/libJavaScriptCore.a
-# 		libs/x86/libJavaScriptCore.a
-# 		libs/x86/libJavaScriptCore.a
+# 		lib/armeabi/libJavaScriptCore.a
+# 		lib/armeabi/libJavaScriptCore.a
+# 		lib/armeabi-v7a/libJavaScriptCore.a
+# 		lib/armeabi-v7a/libJavaScriptCore.a
+# 		lib/x86/libJavaScriptCore.a
+# 		lib/x86/libJavaScriptCore.a
 # 
 # 		include/JavaScriptCore.h
 # 		... (the other header files here)
