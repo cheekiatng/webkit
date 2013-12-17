@@ -25,7 +25,7 @@ public class TestAPI extends Activity
 	public native void doResume();
 	public native void doDestroy();
 	public native void playSound(int sound_id);
-	public native String evaluateScript(String script_string);
+	public native String evaluateScript(String script_file, AssetManager java_asset_manager);
 
 	private EditText inputTextField;
 	
@@ -80,8 +80,9 @@ public class TestAPI extends Activity
 		{
 			case R.id.submit_button:
 			{
-				Log.i("TestAPI", "calling: " + inputTextField.getText());		
-				String result_string = evaluateScript(inputTextField.getText().toString());
+//				Log.i("TestAPI", "calling: " + inputTextField.getText());		
+				//String result_string = evaluateScript(inputTextField.getText().toString());
+				String result_string = evaluateScript("testapi.js", this.getAssets());
 				Log.i("TestAPI", "result: " + result_string);		
 
 				// display a floating message

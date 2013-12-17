@@ -126,6 +126,15 @@ static _Bool RunScript()
 	return is_success;
 }
 
+/* Returns a const char* which must be freed by you when done */
+static const char* jstringToC(JNIEnv* jni_env, jstring original_jstring)
+{
+	const char* c_string = (*jni_env)->GetStringUTFChars(jni_env, original_jstring, 0);
+	const char* duplicated_string = strdup(c_string);
+	(*jni_env)->ReleaseStringUTFChars(jni_env, original_jstring, c_string);
+	return duplicated_string;
+}
+
 /* Returns a JSStringRef which must be released by you when done */
 static JSStringRef jstringToJSStringRef(JNIEnv* jni_env, jstring original_jstring)
 {
@@ -150,6 +159,13 @@ static jstring jstringFromJSStringRef(JNIEnv* jni_env, JSStringRef original_jsst
 
     return_jstring =  (*jni_env)->NewStringUTF(jni_env, c_result_string);
 	free(c_result_string);
+	return return_jstring;
+}
+
+static jstring jstringFromC(JNIEnv* jni_env, const char* original_c_string)
+{
+	jstring return_jstring;
+    return_jstring =  (*jni_env)->NewStringUTF(jni_env, original_c_string);
 	return return_jstring;
 }
 
@@ -246,13 +262,25 @@ void Java_org_webkit_javascriptcore_testapi_TestAPI_doDestroy(JNIEnv* env, jobje
 
 }
 
-jstring Java_org_webkit_javascriptcore_testapi_TestAPI_evaluateScript(JNIEnv* jni_env, jobject thiz, jstring jstring_script)
-{
-	JSStringRef jsstringref_script = jstringToJSStringRef(jni_env, jstring_script);
+extern int main_test(const char* script_file, AAssetManager* ndk_asset_manager);
 
-	JSStringRef jsstringref_result = RunScriptAndReturnJSStringRef(jsstringref_script);
-	jstring jstring_result = jstringFromJSStringRef(jni_env, jsstringref_result);
-	JSStringRelease(jsstringref_script);
+jstring Java_org_webkit_javascriptcore_testapi_TestAPI_evaluateScript(JNIEnv* jni_env, jobject thiz, jstring jstring_script, jobject java_asset_manager)
+{
+	AAssetManager* ndk_asset_manager = AAssetManager_fromJava(jni_env, java_asset_manager);
+	
+	const char* script_file = jstringToC(jni_env, jstring_script);
+	int ret_val = main_test(script_file, ndk_asset_manager);
+	free((void*)script_file);
+
+	jstring jstring_result;
+	if(0 == ret_val)
+	{
+		jstring_result = jstringFromC(jni_env, "PASS: Program exited normally.");
+	}
+	else
+	{
+		jstring_result = jstringFromC(jni_env, "FAIL: Some tests failed.");		
+	}
 	
 	return jstring_result;
 }

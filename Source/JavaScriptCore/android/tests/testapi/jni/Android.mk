@@ -16,8 +16,13 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE    := TestAPI_JNI.c
-LOCAL_SRC_FILES := TestAPI_JNI.c
+LOCAL_MODULE    := TestAPI
+LOCAL_SRC_FILES := TestAPI_JNI.c testapi.c
+
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/../../../../API/ 
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../../WTF/
+
+LOCAL_CFLAGS := -std=c99
 
 #LOCAL_SHARED_LIBRARIES := ALmixer_shared openal_shared
 #LOCAL_SHARED_LIBRARIES := openal_shared

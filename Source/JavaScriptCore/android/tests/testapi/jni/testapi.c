@@ -23,7 +23,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#include "JavaScriptCore.h"
+#define TESTAPI_HAVE_COREFOUNDATION 0
+
+#include <stddef.h> // need size_t on Android for some of the other headers below
+// We don't have CoreFoundation on Android, so we need to work around it.
+// #include "JavaScriptCore.h"
 #include "JSBasePrivate.h"
 #include "JSContextRefPrivate.h"
 #include "JSObjectRefPrivate.h"
@@ -38,6 +42,24 @@
 #include <mach/mach_time.h>
 #include <sys/time.h>
 #endif
+
+// I've only added ANDROID to OS(), not PLATFORM()
+#if OS(ANDROID)
+#include <sys/time.h>
+#include <time.h> // struct tm
+#include <string.h> // memset
+#include <sys/types.h> // need for off_t for asset_manager because it looks like r9b broke something.
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
+
+#undef fprintf
+#undef printf
+#include <android/log.h>
+#define printf(...) ((void)__android_log_print(ANDROID_LOG_INFO,  "TestAPI", __VA_ARGS__))
+#define fprintf(stderr, ...) ((void)__android_log_print(ANDROID_LOG_INFO,  "TestAPI", __VA_ARGS__))
+#endif
+
+
 
 #if OS(WINDOWS)
 #include <windows.h>
@@ -111,6 +133,7 @@ static void assertEqualsAsUTF8String(JSValueRef value, const char* expectedValue
     JSStringRelease(valueAsString);
 }
 
+#if 0
 static void assertEqualsAsCharactersPtr(JSValueRef value, const char* expectedValue)
 {
     JSStringRef valueAsString = JSValueToStringCopy(context, value, NULL);
@@ -139,6 +162,8 @@ static void assertEqualsAsCharactersPtr(JSValueRef value, const char* expectedVa
     free(cfBuffer);
     JSStringRelease(valueAsString);
 }
+#endif
+
 
 static bool timeZoneIsPST()
 {
@@ -970,7 +995,11 @@ static JSStaticFunction globalObject_staticFunctions[] = {
     { 0, 0, 0 }
 };
 
+#if OS(ANDROID)
+static char* createStringWithContentsOfFile(const char* fileName, AAssetManager* ndk_asset_manager);
+#else
 static char* createStringWithContentsOfFile(const char* fileName);
+#endif
 
 static void testInitializeFinalize()
 {
@@ -1112,8 +1141,11 @@ static bool extendTerminateCallback(JSContextRef ctx, void* context)
 }
 #endif /* PLATFORM(MAC) || PLATFORM(IOS) */
 
-
+#if OS(ANDROID)
+int main_test(const char* scriptPath, AAssetManager* ndk_asset_manager)
+#else
 int main(int argc, char* argv[])
+#endif
 {
 #if OS(WINDOWS)
     // Cygwin calls ::SetErrorMode(SEM_FAILCRITICALERRORS), which we will inherit. This is bad for
@@ -1126,11 +1158,13 @@ int main(int argc, char* argv[])
     testObjectiveCAPI();
 #endif
 
+#if !OS(ANDROID)
     const char *scriptPath = "testapi.js";
     if (argc > 1) {
         scriptPath = argv[1];
     }
-    
+#endif
+
     // Test garbage collection with a fresh context
     context = JSGlobalContextCreateInGroup(NULL, NULL);
     TestInitializeFinalize = true;
@@ -1178,6 +1212,7 @@ int main(int argc, char* argv[])
     JSStringRef jsOneIString = JSStringCreateWithUTF8CString("1");
     JSValueRef jsOneString = JSValueMakeString(context, jsOneIString);
 
+#if 0
     UniChar singleUniChar = 65; // Capital A
     CFMutableStringRef cfString = 
         CFStringCreateMutableWithExternalCharactersNoCopy(kCFAllocatorDefault,
@@ -1210,6 +1245,7 @@ int main(int argc, char* argv[])
     JSStringRef constantStringRef = JSStringCreateWithCharactersNoCopy(constantString, sizeof(constantString) / sizeof(constantString[0]));
     ASSERT(JSStringGetCharactersPtr(constantStringRef) == constantString);
     JSStringRelease(constantStringRef);
+#endif
 
     ASSERT(JSValueGetType(context, NULL) == kJSTypeNull);
     ASSERT(JSValueGetType(context, jsUndefined) == kJSTypeUndefined);
@@ -1221,10 +1257,12 @@ int main(int argc, char* argv[])
     ASSERT(JSValueGetType(context, jsOneThird) == kJSTypeNumber);
     ASSERT(JSValueGetType(context, jsEmptyString) == kJSTypeString);
     ASSERT(JSValueGetType(context, jsOneString) == kJSTypeString);
+#if 0
     ASSERT(JSValueGetType(context, jsCFString) == kJSTypeString);
     ASSERT(JSValueGetType(context, jsCFStringWithCharacters) == kJSTypeString);
     ASSERT(JSValueGetType(context, jsCFEmptyString) == kJSTypeString);
     ASSERT(JSValueGetType(context, jsCFEmptyStringWithCharacters) == kJSTypeString);
+#endif
 
     ASSERT(!JSValueIsBoolean(context, NULL));
     ASSERT(!JSValueIsObject(context, NULL));
@@ -1245,7 +1283,12 @@ int main(int argc, char* argv[])
     } else
         printf("PASS: returned null when accessing character pointer of a null String.\n");
 
+
+#if 0
     JSStringRef emptyString = JSStringCreateWithCFString(CFSTR(""));
+#else
+    JSStringRef emptyString = JSStringCreateWithUTF8CString("");	
+#endif
     characters = JSStringGetCharactersPtr(emptyString);
     if (!characters) {
         printf("FAIL: Returned null when accessing character pointer of an empty String.\n");
@@ -1446,11 +1489,13 @@ int main(int argc, char* argv[])
     assertEqualsAsBoolean(jsOneThird, true);
     assertEqualsAsBoolean(jsEmptyString, false);
     assertEqualsAsBoolean(jsOneString, true);
+#if 0
     assertEqualsAsBoolean(jsCFString, true);
     assertEqualsAsBoolean(jsCFStringWithCharacters, true);
     assertEqualsAsBoolean(jsCFEmptyString, false);
     assertEqualsAsBoolean(jsCFEmptyStringWithCharacters, false);
-    
+#endif
+
     assertEqualsAsNumber(jsUndefined, nan(""));
     assertEqualsAsNumber(jsNull, 0);
     assertEqualsAsNumber(jsTrue, 1);
@@ -1460,12 +1505,15 @@ int main(int argc, char* argv[])
     assertEqualsAsNumber(jsOneThird, 1.0 / 3.0);
     assertEqualsAsNumber(jsEmptyString, 0);
     assertEqualsAsNumber(jsOneString, 1);
-    assertEqualsAsNumber(jsCFString, nan(""));
+#if 0
+	assertEqualsAsNumber(jsCFString, nan(""));
     assertEqualsAsNumber(jsCFStringWithCharacters, nan(""));
     assertEqualsAsNumber(jsCFEmptyString, 0);
     assertEqualsAsNumber(jsCFEmptyStringWithCharacters, 0);
     ASSERT(sizeof(JSChar) == sizeof(UniChar));
-    
+#endif
+
+#if 0
     assertEqualsAsCharactersPtr(jsUndefined, "undefined");
     assertEqualsAsCharactersPtr(jsNull, "null");
     assertEqualsAsCharactersPtr(jsTrue, "true");
@@ -1479,7 +1527,8 @@ int main(int argc, char* argv[])
     assertEqualsAsCharactersPtr(jsCFStringWithCharacters, "A");
     assertEqualsAsCharactersPtr(jsCFEmptyString, "");
     assertEqualsAsCharactersPtr(jsCFEmptyStringWithCharacters, "");
-    
+#endif
+
     assertEqualsAsUTF8String(jsUndefined, "undefined");
     assertEqualsAsUTF8String(jsNull, "null");
     assertEqualsAsUTF8String(jsTrue, "true");
@@ -1489,11 +1538,13 @@ int main(int argc, char* argv[])
     assertEqualsAsUTF8String(jsOneThird, "0.3333333333333333");
     assertEqualsAsUTF8String(jsEmptyString, "");
     assertEqualsAsUTF8String(jsOneString, "1");
+#if 0	
     assertEqualsAsUTF8String(jsCFString, "A");
     assertEqualsAsUTF8String(jsCFStringWithCharacters, "A");
     assertEqualsAsUTF8String(jsCFEmptyString, "");
     assertEqualsAsUTF8String(jsCFEmptyStringWithCharacters, "");
-    
+#endif
+
     checkConstnessInJSObjectNames();
     
     ASSERT(JSValueIsStrictEqual(context, jsTrue, jsTrue));
@@ -1502,6 +1553,7 @@ int main(int argc, char* argv[])
     ASSERT(JSValueIsEqual(context, jsOne, jsOneString, NULL));
     ASSERT(!JSValueIsEqual(context, jsTrue, jsFalse, NULL));
     
+#if 0
     CFStringRef cfJSString = JSStringCopyCFString(kCFAllocatorDefault, jsCFIString);
     CFStringRef cfJSEmptyString = JSStringCopyCFString(kCFAllocatorDefault, jsCFEmptyIString);
     ASSERT(CFEqual(cfJSString, cfString));
@@ -1511,7 +1563,8 @@ int main(int argc, char* argv[])
 
     CFRelease(cfString);
     CFRelease(cfEmptyString);
-    
+#endif
+
     jsGlobalValue = JSObjectMake(context, NULL, NULL);
     makeGlobalNumberValue(context);
     JSValueProtect(context, jsGlobalValue);
@@ -1645,6 +1698,7 @@ int main(int argc, char* argv[])
     JSObjectSetProperty(context, globalObject, string, derived2Constructor, kJSPropertyAttributeNone, NULL);
     JSStringRelease(string);
 
+#if 0
     o = JSObjectMake(context, NULL, NULL);
     JSObjectSetProperty(context, o, jsOneIString, JSValueMakeNumber(context, 1), kJSPropertyAttributeNone, NULL);
     JSObjectSetProperty(context, o, jsCFIString,  JSValueMakeNumber(context, 1), kJSPropertyAttributeDontEnum, NULL);
@@ -1655,6 +1709,7 @@ int main(int argc, char* argv[])
         JSPropertyNameArrayGetNameAtIndex(nameArray, count);
     JSPropertyNameArrayRelease(nameArray);
     ASSERT(count == 1); // jsCFString should not be enumerated
+#endif
 
     JSValueRef argumentsArrayValues[] = { JSValueMakeNumber(context, 10), JSValueMakeNumber(context, 20) };
     o = JSObjectMakeArray(context, sizeof(argumentsArrayValues) / sizeof(JSValueRef), argumentsArrayValues, NULL);
@@ -1744,7 +1799,11 @@ int main(int argc, char* argv[])
     JSObjectMakeConstructor(context, nullClass, 0);
     JSClassRelease(nullClass);
 
+#if OS(ANDROID)
+    char* scriptUTF8 = createStringWithContentsOfFile(scriptPath, ndk_asset_manager);
+#else
     char* scriptUTF8 = createStringWithContentsOfFile(scriptPath);
+#endif
     if (!scriptUTF8) {
         printf("FAIL: Test script could not be loaded.\n");
         failed = 1;
@@ -1757,9 +1816,11 @@ int main(int argc, char* argv[])
         ASSERT((!scriptObject) != (!errorMessage));
         if (!scriptObject) {
             printf("FAIL: Test script did not parse\n\t%s:%d\n\t", scriptPath, errorLine);
+#if 0
             CFStringRef errorCF = JSStringCopyCFString(kCFAllocatorDefault, errorMessage);
             CFShow(errorCF);
             CFRelease(errorCF);
+#endif
             JSStringRelease(errorMessage);
             failed = 1;
         }
@@ -1771,9 +1832,11 @@ int main(int argc, char* argv[])
         else {
             printf("FAIL: Test script returned unexpected value:\n");
             JSStringRef exceptionIString = JSValueToStringCopy(context, exception, NULL);
+#if 0
             CFStringRef exceptionCF = JSStringCopyCFString(kCFAllocatorDefault, exceptionIString);
             CFShow(exceptionCF);
             CFRelease(exceptionCF);
+#endif
             JSStringRelease(exceptionIString);
             failed = 1;
         }
@@ -1943,10 +2006,12 @@ int main(int argc, char* argv[])
 
     JSStringRelease(jsEmptyIString);
     JSStringRelease(jsOneIString);
+#if 0
     JSStringRelease(jsCFIString);
     JSStringRelease(jsCFEmptyIString);
     JSStringRelease(jsCFIStringWithCharacters);
     JSStringRelease(jsCFEmptyIStringWithCharacters);
+#endif
     JSStringRelease(goodSyntax);
     JSStringRelease(badSyntax);
 
@@ -1985,6 +2050,40 @@ int main(int argc, char* argv[])
     return 0;
 }
 
+#if OS(ANDROID)
+static char* createStringWithContentsOfFile(const char* fileName, AAssetManager* ndk_asset_manager)
+{
+    char* buffer;
+    
+    size_t buffer_size = 0;
+    size_t buffer_capacity = 1024;
+	size_t bytes_read = 1; // start > 0 as a cheat to get past initial loop condition
+    buffer = (char*)malloc(buffer_capacity);
+    
+    AAsset* f = AAssetManager_open(ndk_asset_manager, fileName, AASSET_MODE_STREAMING);
+    if (!f) {
+        fprintf(stderr, "Could not open file: %s\n", fileName);
+        return 0;
+    }
+    
+    while (bytes_read) {
+        bytes_read = AAsset_read(f, buffer + buffer_size, buffer_capacity - buffer_size);
+		buffer_size += bytes_read;
+
+        if (buffer_size == buffer_capacity) { // guarantees space for trailing '\0'
+            buffer_capacity *= 2;
+            buffer = (char*)realloc(buffer, buffer_capacity);
+            ASSERT(buffer);
+        }
+        
+        ASSERT(buffer_size < buffer_capacity);
+    }
+    AAsset_close(f);
+    buffer[buffer_size] = '\0';
+    
+    return buffer;
+}
+#else
 static char* createStringWithContentsOfFile(const char* fileName)
 {
     char* buffer;
@@ -2014,3 +2113,4 @@ static char* createStringWithContentsOfFile(const char* fileName)
     
     return buffer;
 }
+#endif
