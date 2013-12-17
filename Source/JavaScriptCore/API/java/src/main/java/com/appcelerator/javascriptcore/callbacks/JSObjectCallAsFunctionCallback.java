@@ -31,7 +31,7 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueArrayRef;
  * @return A JSValue that is the function's return value.
  */
 public interface JSObjectCallAsFunctionCallback {
-    JSValueRef apply(JSContextRef ctx, JSObjectRef function,
+    JSValueRef callAsFunction(JSContextRef ctx, JSObjectRef function,
             JSObjectRef thisObject, int argumentCount,
             JSValueArrayRef arguments, JSValueRef exception);
 }

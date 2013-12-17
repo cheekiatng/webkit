@@ -29,6 +29,6 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
  *         converted.
  */
 public interface JSObjectConvertToTypeCallback {
-    JSValueRef apply(JSContextRef ctx, JSObjectRef object, int type,
+    JSValueRef convertToType(JSContextRef ctx, JSObjectRef object, int type,
             JSValueRef exception);
 }

@@ -31,6 +31,6 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
  *         false.
  */
 public interface JSObjectHasInstanceCallback {
-    boolean apply(JSContextRef ctx, JSObjectRef constructor,
+    boolean hasInstance(JSContextRef ctx, JSObjectRef constructor,
             JSValueRef possibleInstance, JSValueRef exception);
 }

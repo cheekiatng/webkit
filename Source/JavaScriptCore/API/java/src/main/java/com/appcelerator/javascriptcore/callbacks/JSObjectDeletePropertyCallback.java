@@ -25,6 +25,6 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
  * @return true if propertyName was successfully deleted, otherwise false.
  */
 public interface JSObjectDeletePropertyCallback  {
-    boolean apply(JSContextRef ctx, JSObjectRef object,
+    boolean deleteProperty(JSContextRef ctx, JSObjectRef object,
             String propertyName, JSValueRef exception);
 }

@@ -19,5 +19,5 @@ import com.appcelerator.javascriptcore.opaquetypes.JSObjectRef;
  *            The JSObject being finalized.
  */
 public interface JSObjectFinalizeCallback {
-    void apply(JSObjectRef object);
+    void finalize(JSObjectRef object);
 }

@@ -25,6 +25,6 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
  * @return The property's value if object has the property, otherwise NULL.
  */
 public interface JSObjectGetPropertyCallback {
-    JSValueRef apply(JSContextRef ctx, JSObjectRef object,
+    JSValueRef getProperty(JSContextRef ctx, JSObjectRef object,
             String propertyName, JSValueRef exception);
 }

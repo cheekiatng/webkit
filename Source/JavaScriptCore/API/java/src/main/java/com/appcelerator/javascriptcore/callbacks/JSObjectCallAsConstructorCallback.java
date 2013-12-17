@@ -30,7 +30,7 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueArrayRef;
  * @return A JSObject that is the constructor's return value.
  */
 public interface JSObjectCallAsConstructorCallback {
-    JSObjectRef apply(JSContextRef ctx, JSObjectRef constructor,
+    JSObjectRef callAsConstructor(JSContextRef ctx, JSObjectRef constructor,
             int argumentCount, JSValueArrayRef arguments,
             JSValueRef exception);
 }

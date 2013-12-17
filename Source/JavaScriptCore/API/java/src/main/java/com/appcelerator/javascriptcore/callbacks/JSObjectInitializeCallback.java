@@ -19,5 +19,5 @@ import com.appcelerator.javascriptcore.opaquetypes.JSObjectRef;
  *            The JSObject being created.
  */
 public interface JSObjectInitializeCallback {
-    void apply(JSContextRef ctx, JSObjectRef object);
+    void initialize(JSContextRef ctx, JSObjectRef object);
 }

@@ -216,20 +216,20 @@ public class JSClassDefinition {
 
     public void JSObjectInitializeCallback(long ctx, long object) {
         if (initialize != null) {
-            initialize.apply(new JSContextRef(ctx), new JSObjectRef(object));
+            initialize.initialize(new JSContextRef(ctx), new JSObjectRef(object));
         }
     }
 
     public void JSObjectFinalizeCallback(long object) {
         if (finalize != null) {
-            finalize.apply(new JSObjectRef(object));
+            finalize.finalize(new JSObjectRef(object));
         }
     }
 
     public boolean JSObjectSetPropertyCallback(long ctx, long object, String propertyName, long value, long exception) {
         if (this.setProperty != null) {
             JSContextRef context = new JSContextRef(ctx);
-            return setProperty.apply(context, new JSObjectRef(object), propertyName,
+            return setProperty.setProperty(context, new JSObjectRef(object), propertyName,
                         new JSValueRef(context, value), new JSValueRef(context, exception));
         }
         return false;
@@ -238,7 +238,7 @@ public class JSClassDefinition {
     public long JSObjectGetPropertyCallback(long ctx, long object, String propertyName, long exception) {
         if (getProperty != null) {
             JSContextRef context = new JSContextRef(ctx);
-            return getProperty.apply(context, new JSObjectRef(object), 
+            return getProperty.getProperty(context, new JSObjectRef(object), 
                     propertyName, new JSValueRef(context, exception)).pointer();
         }
         return 0;
@@ -249,12 +249,12 @@ public class JSClassDefinition {
             JSObjectCallAsFunctionCallback staticFunction = staticFunctions.getFunction(func);
             JSContextRef context = new JSContextRef(ctx);
             JSValueArrayRef jargv = new JSValueArrayRef(argc, argv);
-            return staticFunction.apply(context, new JSObjectRef(func), new JSObjectRef(thisObject),
+            return staticFunction.callAsFunction(context, new JSObjectRef(func), new JSObjectRef(thisObject),
                                         argc, jargv, new JSValueRef(context, exception)).pointer();
         } else if (callAsFunction != null) {
             JSContextRef context = new JSContextRef(ctx);
             JSValueArrayRef jargv = new JSValueArrayRef(argc, argv);
-            return callAsFunction.apply(context, new JSObjectRef(func), new JSObjectRef(thisObject),
+            return callAsFunction.callAsFunction(context, new JSObjectRef(func), new JSObjectRef(thisObject),
                                         argc, jargv, new JSValueRef(context, exception)).pointer();
         }
         return 0;
@@ -264,7 +264,7 @@ public class JSClassDefinition {
         if (callAsConstructor != null) {
             JSContextRef context = new JSContextRef(ctx);
             JSValueArrayRef jargv = new JSValueArrayRef(argc, argv);
-            return callAsConstructor.apply(context, new JSObjectRef(constructor),
+            return callAsConstructor.callAsConstructor(context, new JSObjectRef(constructor),
                                            argc, jargv, new JSValueRef(context, exception)).pointer();
         }
         return 0;
@@ -273,7 +273,7 @@ public class JSClassDefinition {
     public long JSObjectConvertToTypeCallback(long ctx, long object, int type, long exception) {
         if (convertToType != null) {
             JSContextRef context = new JSContextRef(ctx);
-            return convertToType.apply(context, new JSObjectRef(object), type, new JSValueRef(context, exception)).pointer();
+            return convertToType.convertToType(context, new JSObjectRef(object), type, new JSValueRef(context, exception)).pointer();
         }
         return 0;
     }
@@ -281,14 +281,14 @@ public class JSClassDefinition {
     public boolean JSObjectDeletePropertyCallback(long ctx, long object, String name, long exception) {
         if (deleteProperty != null) {
             JSContextRef context = new JSContextRef(ctx);
-            return deleteProperty.apply(context, new JSObjectRef(object), name, new JSValueRef(context, exception));
+            return deleteProperty.deleteProperty(context, new JSObjectRef(object), name, new JSValueRef(context, exception));
         }
         return false;
     }
 
     public void JSObjectGetPropertyNamesCallback(long ctx, long object, long propertyNames) {
         if (getPropertyNames != null) {
-            getPropertyNames.apply(new JSContextRef(ctx), new JSObjectRef(object), 
+            getPropertyNames.getPropertyNames(new JSContextRef(ctx), new JSObjectRef(object), 
                                    new JSPropertyNameAccumulatorRef(propertyNames));
         }
     }
@@ -296,7 +296,7 @@ public class JSClassDefinition {
     public boolean JSObjectHasInstanceCallback(long ctx, long constructor, long possibleInstance, long exception) {
         if (hasInstance != null) {
             JSContextRef context = new JSContextRef(ctx);
-            return hasInstance.apply(context, new JSObjectRef(constructor),
+            return hasInstance.hasInstance(context, new JSObjectRef(constructor),
                                      new JSValueRef(context, possibleInstance), new JSValueRef(context, exception));
         }
         return false;
@@ -304,7 +304,7 @@ public class JSClassDefinition {
 
     public boolean JSObjectHasPropertyCallback(long ctx, long object, String name) {
         if (hasProperty != null) {
-            return hasProperty.apply(new JSContextRef(ctx), new JSObjectRef(object), name);
+            return hasProperty.hasProperty(new JSContextRef(ctx), new JSObjectRef(object), name);
         }
         return false;
     }
@@ -316,7 +316,7 @@ public class JSClassDefinition {
                 return false;
             }
             JSContextRef context = new JSContextRef(ctx);
-            return callback.apply(context, new JSObjectRef(object), propertyName,
+            return callback.setProperty(context, new JSObjectRef(object), propertyName,
                 new JSValueRef(context, value), new JSValueRef(context, exception));
         }
         return false;
@@ -329,7 +329,7 @@ public class JSClassDefinition {
                 return 0;
             }
             JSContextRef context = new JSContextRef(ctx);
-            return callback.apply(context, new JSObjectRef(object),
+            return callback.getProperty(context, new JSObjectRef(object),
                         propertyName, new JSValueRef(context, exception)).pointer();
         }
         return 0;

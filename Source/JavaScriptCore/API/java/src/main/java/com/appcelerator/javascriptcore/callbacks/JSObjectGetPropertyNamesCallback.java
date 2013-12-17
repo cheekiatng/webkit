@@ -29,6 +29,6 @@ import com.appcelerator.javascriptcore.opaquetypes.JSPropertyNameAccumulatorRef;
  *            names of object's properties.
  */
 public interface JSObjectGetPropertyNamesCallback {
-    void apply(JSContextRef ctx, JSObjectRef object,
+    void getPropertyNames(JSContextRef ctx, JSObjectRef object,
             JSPropertyNameAccumulatorRef propertyNames);
 }

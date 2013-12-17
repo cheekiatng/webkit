@@ -27,6 +27,6 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
  * @return true if the property was set, otherwise false.
  */
 public interface JSObjectSetPropertyCallback {
-    boolean apply(JSContextRef ctx, JSObjectRef object,
+    boolean setProperty(JSContextRef ctx, JSObjectRef object,
             String propertyName, JSValueRef value, JSValueRef exception);
 }

@@ -27,5 +27,5 @@ import com.appcelerator.javascriptcore.opaquetypes.JSObjectRef;
  * @return true if object has the property, otherwise false.
  */
 public interface JSObjectHasPropertyCallback {
-    boolean apply(JSContextRef ctx, JSObjectRef object, String propertyName);
+    boolean hasProperty(JSContextRef ctx, JSObjectRef object, String propertyName);
 }
