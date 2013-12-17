@@ -778,7 +778,7 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSGlobalContext
     JSGlobalContextRelease(ctx);
 }
 
-JNIEXPORT long JNICALL
+JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSGlobalContextRetain
     (JNIEnv *env, jobject thiz, jlong jsContextRef)
 {
