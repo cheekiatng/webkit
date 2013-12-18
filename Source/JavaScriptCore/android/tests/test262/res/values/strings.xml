@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Test262 on JavaScriptCore</string>
+    <string name="submit_press">Run Tests</string>
+</resources>
