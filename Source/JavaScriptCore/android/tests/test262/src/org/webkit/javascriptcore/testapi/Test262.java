@@ -6,11 +6,24 @@ import android.content.res.AssetManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Button;
 
 import android.view.KeyEvent;
 import android.view.View.OnKeyListener;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import java.io.IOException;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.io.InputStream;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.Reader;
 
 public class Test262 extends Activity
 {
@@ -38,10 +51,81 @@ public class Test262 extends Activity
 		// get EditText component
 		inputTextField = (EditText)findViewById(R.id.input_text);
 		// addKeyListener();
+		//
+		//
+//		displayFiles(this.getAssets(), "", 0);
+
+		String[] file_list = getFileList();
+		for(int i=0; i < file_list.length; i++)
+		{
+			Log.v("Test262", file_list[i]);
+			
+		}
+
     }
 
+	/* Because AssetManager list() is unusable, this is a workaround.
+	 * We pre-generate a file containing the entire list of files.
+	 * We read the file and put each into an array.
+	 */
+	public final String[] getFileList()
+	{
+		ArrayList<String> list = new ArrayList<String>();
 
-	
+		try {
+
+			//InputStream buildinginfo = getResources().openRawResource(R.raw.testbuilding);
+			InputStreamReader buildinginfo = new InputStreamReader(this.getAssets().open("test262_filelist.txt"));
+			BufferedReader reader = new BufferedReader(buildinginfo);
+
+			String myLine; //declare a variable
+
+			//now loop through and check if we have input, if so append it to list
+
+			while((myLine=reader.readLine())!=null)
+			{
+				list.add(myLine);
+			}
+
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+
+		final String[] myStringArray = list.toArray(new String[list.size()]);
+		return myStringArray;
+	}
+
+/* AssetManager list() is unusable. Just to list (not open or read) a file, it 
+ * takes about 1 second per file. This is apparently a known Android bug that Google doesn't care to fix.
+ * So we need to find another solution.
+ */
+/*
+	public void displayFiles(AssetManager mgr, String path, int level)
+	{
+
+		Log.v("Test262","enter displayFiles("+path+")");
+		try {
+			String list[] = mgr.list(path);
+			Log.v("Test262","L"+level+": list:"+ Arrays.asList(list));
+
+			if (list != null)
+				for (int i=0; i<list.length; ++i)
+				{
+					if(level>=1){
+						displayFiles(mgr, path + "/" + list[i], level+1);
+					}else{
+						displayFiles(mgr, list[i], level+1);
+					}
+				}
+		} catch (IOException e) {
+			Log.v("Test262","List error: can't list" + path);
+		}
+
+	}
+*/
+
 	/** Called when the activity is about to be paused. */
 	@Override
 	protected void onPause()
@@ -82,14 +166,40 @@ public class Test262 extends Activity
 			{
 //				Log.i("Test262", "calling: " + inputTextField.getText());		
 				//String result_string = evaluateScript(inputTextField.getText().toString());
-				String result_string = evaluateScript("test262.js", this.getAssets());
-				Log.i("Test262", "result: " + result_string);		
+				
+				Button submit_button = (Button)Test262.this.findViewById(R.id.submit_button);
+				submit_button.setEnabled(false);
 
-				// display a floating message
-				Toast.makeText(Test262.this, result_string, Toast.LENGTH_LONG).show();
+				Thread thread = new Thread(new Runnable()
+				{
+					@Override
+					public void run()
+					{
 
-				TextView result_text_view = (TextView)this.findViewById(R.id.result_text);
-				result_text_view.setText(result_string);
+						final String resultString = evaluateScript("testapi.js", Test262.this.getAssets());
+						runOnUiThread(new Runnable()
+						{
+							@Override
+							public void run()
+							{
+								Log.i("Test262", "result: " + resultString);		
+
+								// display a floating message
+								Toast.makeText(Test262.this, resultString, Toast.LENGTH_LONG).show();
+
+								TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
+								result_text_view.setText(resultString);
+
+								Button submit_button = (Button)Test262.this.findViewById(R.id.submit_button);
+								submit_button.setEnabled(true);
+								
+
+							}
+						});
+					}
+					
+				});
+				thread.start();
 				
 				break;
 			}
