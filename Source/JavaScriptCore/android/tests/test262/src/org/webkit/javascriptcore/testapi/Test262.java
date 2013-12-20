@@ -33,12 +33,16 @@ public class Test262 extends Activity
 		System.loadLibrary("Test262");
 	}
     
+
+	String testHarnessString;
+	String[] testFileList;
+
 	public native boolean doInit(AssetManager java_asset_manager);
 	public native void doPause();
 	public native void doResume();
 	public native void doDestroy();
 	public native void playSound(int sound_id);
-	public native String evaluateScript(String script_file, AssetManager java_asset_manager);
+	public native boolean evaluateScript(String script_string, String file_name, ReturnDataObject return_data_object);
 
 	private EditText inputTextField;
 	
@@ -61,6 +65,8 @@ public class Test262 extends Activity
 			Log.v("Test262", file_list[i]);
 			
 		}
+		testFileList = file_list;
+		testHarnessString = loadTestHarnessScripts();
 
     }
 
@@ -70,21 +76,18 @@ public class Test262 extends Activity
 	 */
 	public final String[] getFileList()
 	{
-		ArrayList<String> list = new ArrayList<String>();
+		ArrayList<String> string_list = new ArrayList<String>();
 
-		try {
+		try
+		{
+			InputStreamReader input_stream_reader = new InputStreamReader(this.getAssets().open("test262_filelist.txt"));
+			BufferedReader buffered_reader = new BufferedReader(input_stream_reader);
 
-			//InputStream buildinginfo = getResources().openRawResource(R.raw.testbuilding);
-			InputStreamReader buildinginfo = new InputStreamReader(this.getAssets().open("test262_filelist.txt"));
-			BufferedReader reader = new BufferedReader(buildinginfo);
-
-			String myLine; //declare a variable
-
+			String current_line;
 			//now loop through and check if we have input, if so append it to list
-
-			while((myLine=reader.readLine())!=null)
+			while((current_line=buffered_reader.readLine()) != null)
 			{
-				list.add(myLine);
+				string_list.add(current_line);
 			}
 
 		}
@@ -93,8 +96,8 @@ public class Test262 extends Activity
 			e.printStackTrace();
 		}
 
-		final String[] myStringArray = list.toArray(new String[list.size()]);
-		return myStringArray;
+		final String[] ret_array = string_list.toArray(new String[string_list.size()]);
+		return ret_array;
 	}
 
 /* AssetManager list() is unusable. Just to list (not open or read) a file, it 
@@ -125,6 +128,44 @@ public class Test262 extends Activity
 
 	}
 */
+
+	static public final String loadFileIntoString(AssetManager asset_manager, String file_name)
+	{
+		ArrayList<String> string_list = new ArrayList<String>();
+		StringBuilder concat_string = new StringBuilder();
+
+		try
+		{
+			InputStreamReader input_stream_reader = new InputStreamReader(asset_manager.open(file_name));
+			BufferedReader buffered_reader = new BufferedReader(input_stream_reader);
+
+			String current_line;
+			//now loop through and check if we have input, if so append it to list
+			while((current_line=buffered_reader.readLine()) != null)
+			{
+				concat_string.append(current_line);
+			}
+
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+
+		return concat_string.toString();
+	}
+
+	// Returns a concatonated string of all the test harness scripts
+	public final String loadTestHarnessScripts()
+	{
+		StringBuilder concat_string = new StringBuilder();		
+		concat_string.append(loadFileIntoString(this.getAssets(), "harness/cth.js"));
+		concat_string.append(loadFileIntoString(this.getAssets(), "harness/sta.js"));
+		concat_string.append(loadFileIntoString(this.getAssets(), "harness/ed.js"));
+		concat_string.append(loadFileIntoString(this.getAssets(), "harness/testBuiltInObject.js"));
+		concat_string.append(loadFileIntoString(this.getAssets(), "harness/testIntl.js"));
+		return concat_string.toString();
+	}
 
 	/** Called when the activity is about to be paused. */
 	@Override
@@ -169,7 +210,7 @@ public class Test262 extends Activity
 				
 				Button submit_button = (Button)Test262.this.findViewById(R.id.submit_button);
 				submit_button.setEnabled(false);
-
+/*
 				Thread thread = new Thread(new Runnable()
 				{
 					@Override
@@ -200,7 +241,8 @@ public class Test262 extends Activity
 					
 				});
 				thread.start();
-				
+				*/
+				startTests();
 				break;
 			}
 			default:
@@ -209,6 +251,114 @@ public class Test262 extends Activity
 			}
 		}
 	} 
+
+	static final String determineStrictModeStringFromScript(String raw_script)
+	{
+		if(raw_script.contains("@onlyStrict"))
+		{
+			return "\"use strict\";\nvar strict_mode = true;\n";			
+		}
+		else
+		{
+			return "var strict_mode = false; \n";			
+		}
+	}
+
+	static final boolean determineIfPositiveTestFromScript(String raw_script)
+	{
+		if(raw_script.contains("@negative"))
+		{
+			return false;
+		}
+		else
+		{
+			return true;
+		}
+	}
+
+
+
+	public void startTests()
+	{
+		Thread thread = new Thread(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				final String[] file_list = testFileList;
+//				for(int i=0; i < file_list.length; i++)
+				for(int i=0; i < 100; i++)
+				{
+					Log.v("Test262", file_list[i]);
+
+					final String current_file_name = file_list[i];
+					String raw_test_script = loadFileIntoString(Test262.this.getAssets(), file_list[i]);
+					final boolean is_positive_test = determineIfPositiveTestFromScript(raw_test_script);
+					final String full_script = determineStrictModeStringFromScript(raw_test_script) + testHarnessString + raw_test_script;
+
+					final ReturnDataObject return_data_object = new ReturnDataObject();
+
+					final boolean is_success = evaluateScript(full_script, current_file_name, return_data_object);
+					
+final String resultString = "no-op";
+					runOnUiThread(new Runnable()
+					{
+						@Override
+						public void run()
+						{
+
+
+							// FIXME: This likely deserves a better check.
+							if(is_positive_test != is_success)
+							{
+//                    			this.failedTests.Add(result);
+								Log.i("Test262", "Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString());		
+							}
+							else
+							{
+								Log.i("Test262", "Test passed: " + current_file_name);		
+							}
+
+							// display a floating message
+//							Toast.makeText(Test262.this, resultString, Toast.LENGTH_LONG).show();
+
+//							TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
+//							result_text_view.setText(resultString);
+
+//							Button submit_button = (Button)Test262.this.findViewById(R.id.submit_button);
+//							submit_button.setEnabled(true);
+							
+
+						}
+					});
+				}
+
+				runOnUiThread(new Runnable()
+					{
+						@Override
+						public void run()
+						{
+							Log.i("Test262", "finished ");		
+
+							// display a floating message
+//							Toast.makeText(Test262.this, resultString, Toast.LENGTH_LONG).show();
+
+//							TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
+//							result_text_view.setText(resultString);
+
+							Button submit_button = (Button)Test262.this.findViewById(R.id.submit_button);
+							submit_button.setEnabled(true);
+							
+
+						}
+					});
+
+			}
+				
+		});
+		thread.start();
+	}
+
 	
 		/*
 	public void addKeyListener()

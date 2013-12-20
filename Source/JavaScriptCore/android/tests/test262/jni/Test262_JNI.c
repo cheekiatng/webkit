@@ -170,13 +170,13 @@ static jstring jstringFromC(JNIEnv* jni_env, const char* original_c_string)
 }
 
 /* Returns a JSStringRef which must be released by you when done */
-static JSStringRef RunScriptAndReturnJSStringRef(JSStringRef js_script_string)
+static _Bool Test262_EvaluateStringScript(JSStringRef js_script_string, JSStringRef js_file_name, JSStringRef* out_error_string, JSStringRef* out_stack_string)
 {
 	JSGlobalContextRef js_context = JSGlobalContextCreate(NULL);
 //	JSStringRef js_script_string = JSStringCreateWithUTF8CString("2+2;");
-    JSStringRef js_file_name = JSStringCreateWithUTF8CString("fakefile.js");
+//    JSStringRef js_file_name = JSStringCreateWithUTF8CString("fakefile.js");
     JSValueRef js_exception = NULL;
-	JSStringRef js_return_string = NULL;
+//	JSStringRef js_return_string = NULL;
 			LOGD("js_context is %x", js_context);
 
 			LOGD("js_script_string is %x", js_script_string);
@@ -189,38 +189,57 @@ static JSStringRef RunScriptAndReturnJSStringRef(JSStringRef js_script_string)
 
 
 
-	if(is_success)
-	{
-		js_return_string = JSValueToStringCopy(js_context, js_result, NULL);
-		size_t bytes_needed = JSStringGetMaximumUTF8CStringSize(js_return_string);
-		LOGD("result bytes_needed: %d\n", bytes_needed);
-
-		char* c_result_string = (char*)calloc(bytes_needed, sizeof(char));
-		JSStringGetUTF8CString(js_return_string, c_result_string, bytes_needed);
-
-		LOGD("c_result_string: %s\n", c_result_string);
-		free(c_result_string);
-//		JSStringRelease(js_result_string);
-	}
-	else
+	if(!is_success)
 	{
 		if(js_exception)
 		{
-			js_return_string = JSValueToStringCopy(js_context, js_exception, NULL);
+
+			if(NULL != out_stack_string)
+			{
+
+				/* Create a string with the contents "stack" which will be used as a property name to retrieve the value from an object. */
+				JSStringRef js_literal_stack_string = JSStringCreateWithUTF8CString("stack");
+				/* Convert the JSValueRef to JSObjectRef. I don't think any memory gets retained or copied so we don't need to release. */
+				JSObjectRef js_exception_object = JSValueToObject(js_context, js_exception, NULL);
+				/* Get exception_object.stack */
+				JSValueRef stack_object = JSObjectGetProperty(js_context, js_exception_object, js_literal_stack_string, NULL);
+				/* Don't need the "stack" string any more */
+				JSStringRelease(js_literal_stack_string);
+
+				*out_stack_string = JSValueToStringCopy(js_context, stack_object, NULL);
+
+				/* Release the stack_object */
+				JSValueUnprotect(js_context, stack_object);
+			}
+
+
+			if(NULL != out_error_string)
+			{
+				*out_error_string = JSValueToStringCopy(js_context, js_exception, NULL);
+			}
+
+			JSValueUnprotect(js_context, js_exception);
 		}
 		else
 		{
+			*out_error_string = JSStringCreateWithUTF8CString("JSEvaluateScript() failed, but didn't get an exception???");
 			LOGD("JSEvaluateScript() failed, but didn't get an exception???\n");
 		}
 	}
 
-	JSStringRelease(js_file_name);
+	/* clean up result because we don't actually need it */
+	if(js_result)
+	{
+		JSValueUnprotect(js_context, js_result);
+	}
+
+//	JSStringRelease(js_file_name);
 //	JSStringRelease(js_script_string);
 
 	JSGarbageCollect(js_context);
 	JSGlobalContextRelease(js_context);
 
-	return js_return_string;
+	return is_success;
 }
 
 jboolean Java_org_webkit_javascriptcore_test262_Test262_doInit(JNIEnv* env, jobject thiz, jobject java_asset_manager)
@@ -264,25 +283,59 @@ void Java_org_webkit_javascriptcore_test262_Test262_doDestroy(JNIEnv* env, jobje
 
 extern int main_test(const char* script_file, AAssetManager* ndk_asset_manager);
 
-jstring Java_org_webkit_javascriptcore_test262_Test262_evaluateScript(JNIEnv* jni_env, jobject thiz, jstring jstring_script, jobject java_asset_manager)
+jboolean Java_org_webkit_javascriptcore_test262_Test262_evaluateScript(JNIEnv* jni_env, jobject thiz, jstring java_string_script, jstring java_file_name, jobject java_return_data_object)
 {
-	AAssetManager* ndk_asset_manager = AAssetManager_fromJava(jni_env, java_asset_manager);
+//	AAssetManager* ndk_asset_manager = AAssetManager_fromJava(jni_env, java_asset_manager);
 	
-	const char* script_file = jstringToC(jni_env, jstring_script);
-	int ret_val = main_test(script_file, ndk_asset_manager);
-	free((void*)script_file);
+	JSStringRef js_string_script = jstringToJSStringRef(jni_env, java_string_script);
+	JSStringRef js_file_name = jstringToJSStringRef(jni_env, java_file_name);
+	JSStringRef js_exception_string = NULL;
+	JSStringRef js_stack_string = NULL;
+	_Bool is_success;
 
-	jstring jstring_result;
-	if(0 == ret_val)
+	is_success = Test262_EvaluateStringScript(js_string_script, js_file_name, &js_exception_string, &js_stack_string);
+
+	if(!is_success)
 	{
-		jstring_result = jstringFromC(jni_env, "PASS: Program exited normally.");
-	}
-	else
-	{
-		jstring_result = jstringFromC(jni_env, "FAIL: Some tests failed.");		
+		// javap -classpath bin/classes -s -p org.webkit.javascriptcore.test262.ReturnDataObject
+	    jclass return_data_object_class = (*jni_env)->GetObjectClass(jni_env, java_return_data_object);
+		
+		if(NULL != js_exception_string)
+		{
+			// Because we don't have multiple return values for JNI,
+			// we will save any additional information in the ReturnDataObject instance 
+			// by calling back into Java to set values which can be read after this function returns.
+			jmethodID method_id = (*jni_env)->GetMethodID(jni_env, return_data_object_class, "setExceptionString", "(Ljava/lang/String;)V");
+			jstring java_exception_string = jstringFromJSStringRef(jni_env, js_exception_string);
+			(*jni_env)->CallVoidMethod(jni_env, java_return_data_object, method_id, java_exception_string);
+		}
+
+		if(NULL != js_stack_string)
+		{
+			// Because we don't have multiple return values for JNI,
+			// we will save any additional information in the ReturnDataObject instance 
+			// by calling back into Java to set values which can be read after this function returns.
+			jmethodID method_id = (*jni_env)->GetMethodID(jni_env, return_data_object_class, "setStackString", "(Ljava/lang/String;)V");
+			jstring java_stack_string = jstringFromJSStringRef(jni_env, js_stack_string);
+			(*jni_env)->CallVoidMethod(jni_env, java_return_data_object, method_id, java_stack_string);
+		}
 	}
 	
-	return jstring_result;
+	if(NULL != js_stack_string)
+	{
+		JSStringRelease(js_stack_string);
+	}
+	if(NULL != js_exception_string)
+	{
+		JSStringRelease(js_exception_string);
+	}
+	JSStringRelease(js_file_name);
+	JSStringRelease(js_string_script);
+	
+
+
+
+	return (jboolean)is_success;
 }
 
 #if 1
