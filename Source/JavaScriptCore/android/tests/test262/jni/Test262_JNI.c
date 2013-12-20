@@ -34,8 +34,11 @@
  *   apps/samples/hello-jni/project/src/com/example/hellojni/HelloJni.java
  */
 
+// Declare here from test262.c because I didn't make a header file.
+extern _Bool Test262_EvaluateStringScript(JSStringRef js_script_string, JSStringRef js_file_name, JSStringRef* out_error_string, JSStringRef* out_stack_string);
 
-static jobject s_proxyObject;
+
+//static jobject s_proxyObject;
 static JavaVM* s_javaVm;
 
 jint JNI_OnLoad(JavaVM* java_vm, void* reserved)
@@ -44,87 +47,6 @@ jint JNI_OnLoad(JavaVM* java_vm, void* reserved)
 	return JNI_VERSION_1_6;
 }
 
-
-static _Bool RunScript()
-{
-	JSGlobalContextRef js_context = JSGlobalContextCreate(NULL);
-	JSStringRef js_script_string = JSStringCreateWithUTF8CString("2+2;");
-    JSStringRef js_file_name = JSStringCreateWithUTF8CString("fakefile.js");
-    JSValueRef js_exception = NULL;
-	double test_result = 0;
-
-			LOGD("js_context is %x", js_context);
-
-			LOGD("js_script_string is %x", js_script_string);
-
-			
-    //JSValueRef js_result = JSEvaluateScript(js_context, js_script_string, NULL, js_file_name, 0, &js_exception);
-    JSValueRef js_result = JSEvaluateScript(js_context, js_script_string, NULL, NULL, 0, NULL);
- //   _Bool is_success = js_result && !js_exception;
-    _Bool is_success = (js_result != NULL);
-			LOGD("js_result is %x", js_result);
-
-//	if(1)
-	if(js_result)
-	{
-		if(JSValueIsNumber(js_context, js_result))
-		{
-			js_exception = NULL;
-			test_result = JSValueToNumber(js_context, js_result, &js_exception);
-			LOGD("test result is %lf", test_result);
-		}
-		else
-		{
-			LOGE("Assertion error: Did not get a number");
-		}
-		/*
-		
-		        JSStringRef js_result_string = JSValueToStringCopy(js_context, js_result, NULL);
- 
-				size_t bytes_needed = JSStringGetMaximumUTF8CStringSize(js_result_string);
-				LOGD("result bytes_needed: %d\n", bytes_needed);
-				
-				char* c_result_string = (char*)calloc(bytes_needed, sizeof(char));
-				JSStringGetUTF8CString(js_result_string, c_result_string, bytes_needed);
-				
-				LOGD("c_result_string: %s\n", c_result_string);
-				free(c_result_string);
-				JSStringRelease(js_result_string);
-				*/
-	}
-	else
-	{
-			LOGE("Evaluate Script failed");
-			if(js_exception)
-			{
-//				JSStringRef js_stack_string = JSStringCreateWithUTF8CString("stack");
-//				JSValueRef js_stack = JSObjectGetProperty(js_context, JSValueToObject(js_context, js_exception, NULL), js_stack_string, NULL);
-//				JSStringRelease(js_stack_string);
-
-				JSStringRef js_exception_string = JSValueToStringCopy(js_context, js_exception, NULL);
-
-				size_t bytes_needed = JSStringGetMaximumUTF8CStringSize(js_exception_string);
-				LOGD("bytes_needed: %d\n", bytes_needed);
-				
-				char* c_exception_string = (char*)calloc(bytes_needed, sizeof(char));
-				JSStringGetUTF8CString(js_exception_string, c_exception_string, bytes_needed);
-				
-				LOGD("c_exception_string: %s\n", c_exception_string);
-				free(c_exception_string);
-				JSStringRelease(js_exception_string);
-
-			}		
-	}
-
-
-	JSStringRelease(js_file_name);
-	JSStringRelease(js_script_string);
-
-	JSGarbageCollect(js_context);
-	JSGlobalContextRelease(js_context);
-
-	return is_success;
-}
 
 /* Returns a const char* which must be freed by you when done */
 static const char* jstringToC(JNIEnv* jni_env, jstring original_jstring)
@@ -150,12 +72,12 @@ static jstring jstringFromJSStringRef(JNIEnv* jni_env, JSStringRef original_jsst
 	jstring return_jstring;
 	size_t bytes_needed = JSStringGetMaximumUTF8CStringSize(original_jsstringref);
 
-	LOGD("result bytes_needed: %d\n", bytes_needed);
+//	LOGD("result bytes_needed: %d\n", bytes_needed);
 
 	char* c_result_string = (char*)calloc(bytes_needed, sizeof(char));
 	JSStringGetUTF8CString(original_jsstringref, c_result_string, bytes_needed);
 
-	LOGD("c_result_string: %s\n", c_result_string);
+//	LOGD("c_result_string: %s\n", c_result_string);
 
     return_jstring =  (*jni_env)->NewStringUTF(jni_env, c_result_string);
 	free(c_result_string);
@@ -169,79 +91,6 @@ static jstring jstringFromC(JNIEnv* jni_env, const char* original_c_string)
 	return return_jstring;
 }
 
-/* Returns a JSStringRef which must be released by you when done */
-static _Bool Test262_EvaluateStringScript(JSStringRef js_script_string, JSStringRef js_file_name, JSStringRef* out_error_string, JSStringRef* out_stack_string)
-{
-	JSGlobalContextRef js_context = JSGlobalContextCreate(NULL);
-//	JSStringRef js_script_string = JSStringCreateWithUTF8CString("2+2;");
-//    JSStringRef js_file_name = JSStringCreateWithUTF8CString("fakefile.js");
-    JSValueRef js_exception = NULL;
-//	JSStringRef js_return_string = NULL;
-			LOGD("js_context is %x", js_context);
-
-			LOGD("js_script_string is %x", js_script_string);
-
-			
-    JSValueRef js_result = JSEvaluateScript(js_context, js_script_string, NULL, js_file_name, 0, &js_exception);
- //   JSValueRef js_result = JSEvaluateScript(js_context, js_script_string, NULL, NULL, 0, NULL);
-	_Bool is_success = js_result && !js_exception;
-	LOGD("js_result is %x", js_result);
-
-
-
-	if(!is_success)
-	{
-		if(js_exception)
-		{
-
-			if(NULL != out_stack_string)
-			{
-
-				/* Create a string with the contents "stack" which will be used as a property name to retrieve the value from an object. */
-				JSStringRef js_literal_stack_string = JSStringCreateWithUTF8CString("stack");
-				/* Convert the JSValueRef to JSObjectRef. I don't think any memory gets retained or copied so we don't need to release. */
-				JSObjectRef js_exception_object = JSValueToObject(js_context, js_exception, NULL);
-				/* Get exception_object.stack */
-				JSValueRef stack_object = JSObjectGetProperty(js_context, js_exception_object, js_literal_stack_string, NULL);
-				/* Don't need the "stack" string any more */
-				JSStringRelease(js_literal_stack_string);
-
-				*out_stack_string = JSValueToStringCopy(js_context, stack_object, NULL);
-
-				/* Release the stack_object */
-				JSValueUnprotect(js_context, stack_object);
-			}
-
-
-			if(NULL != out_error_string)
-			{
-				*out_error_string = JSValueToStringCopy(js_context, js_exception, NULL);
-			}
-
-			JSValueUnprotect(js_context, js_exception);
-		}
-		else
-		{
-			*out_error_string = JSStringCreateWithUTF8CString("JSEvaluateScript() failed, but didn't get an exception???");
-			LOGD("JSEvaluateScript() failed, but didn't get an exception???\n");
-		}
-	}
-
-	/* clean up result because we don't actually need it */
-	if(js_result)
-	{
-		JSValueUnprotect(js_context, js_result);
-	}
-
-//	JSStringRelease(js_file_name);
-//	JSStringRelease(js_script_string);
-
-	JSGarbageCollect(js_context);
-	JSGlobalContextRelease(js_context);
-
-	return is_success;
-}
-
 jboolean Java_org_webkit_javascriptcore_test262_Test262_doInit(JNIEnv* env, jobject thiz, jobject java_asset_manager)
 {
 	LOGD("Java_org_webkit_javascriptcore_test262_Test262_doInit");
@@ -253,7 +102,7 @@ jboolean Java_org_webkit_javascriptcore_test262_Test262_doInit(JNIEnv* env, jobj
 	 * otherwise I get the error: 
 	 * JNI ERROR (app bug): accessed stale local reference
 	 */
-	s_proxyObject = (*env)->NewGlobalRef(env, thiz);
+//	s_proxyObject = (*env)->NewGlobalRef(env, thiz);
 
 
 	return JNI_TRUE;
@@ -274,19 +123,26 @@ void Java_org_webkit_javascriptcore_test262_Test262_doDestroy(JNIEnv* env, jobje
 	LOGD("Java_org_webkit_javascriptcore_test262_Test262_doDestroy");
 
 	/* Release the proxy object. */
-	(*env)->DeleteGlobalRef(env, s_proxyObject);
-	s_proxyObject = NULL;
+//	(*env)->DeleteGlobalRef(env, s_proxyObject);
+//	s_proxyObject = NULL;
 
 	LOGD("Java_org_webkit_javascriptcore_test262_Test262_doDestroy end");
 
 }
 
-extern int main_test(const char* script_file, AAssetManager* ndk_asset_manager);
 
 jboolean Java_org_webkit_javascriptcore_test262_Test262_evaluateScript(JNIEnv* jni_env, jobject thiz, jstring java_string_script, jstring java_file_name, jobject java_return_data_object)
 {
-//	AAssetManager* ndk_asset_manager = AAssetManager_fromJava(jni_env, java_asset_manager);
-	
+	/*
+const char* c_str = jstringToC(jni_env, java_string_script);
+LOGD("going to run script:\n%s\n<end>\n", c_str);
+free((void*)c_str);
+c_str = NULL;
+*/
+
+//	JSStringRef override_script = JSStringCreateWithUTF8CString("function(){ do{ function __func(){}; }while(0);};");
+
+
 	JSStringRef js_string_script = jstringToJSStringRef(jni_env, java_string_script);
 	JSStringRef js_file_name = jstringToJSStringRef(jni_env, java_file_name);
 	JSStringRef js_exception_string = NULL;
@@ -294,6 +150,7 @@ jboolean Java_org_webkit_javascriptcore_test262_Test262_evaluateScript(JNIEnv* j
 	_Bool is_success;
 
 	is_success = Test262_EvaluateStringScript(js_string_script, js_file_name, &js_exception_string, &js_stack_string);
+//	is_success = Test262_EvaluateStringScript(override_script, js_file_name, &js_exception_string, &js_stack_string);
 
 	if(!is_success)
 	{
@@ -332,45 +189,6 @@ jboolean Java_org_webkit_javascriptcore_test262_Test262_evaluateScript(JNIEnv* j
 	JSStringRelease(js_file_name);
 	JSStringRelease(js_string_script);
 	
-
-
-
 	return (jboolean)is_success;
 }
-
-#if 1
-void Java_org_webkit_javascriptcore_test262_Test262_playSound(JNIEnv* env, jobject thiz, jint sound_id)
-{
-	LOGD("Java_org_webkit_javascriptcore_test262_Test262_playSound, sound_id:%d", sound_id);
-	int which_channel;
-	// For laziness, I just interpret integer ids to map to particular sounds.
-	switch(sound_id)
-	{
-		case 1:
-			{
-				//			which_channel = ALmixer_PlayChannel(-1, s_alertSoundHandle, 0);
-				RunScript();
-				break;
-			}
-		case 2:
-			{
-				//			which_channel = ALmixer_PlayChannel(-1, s_beepSoundHandle, 0);
-				break;
-			}
-		default:
-			{
-				// Shouldn't hit this case, but the alert sound seems appropriate.
-				//			which_channel = ALmixer_PlayChannel(-1, s_alertSoundHandle, 0);
-				break;
-			}
-	}
-	/*
-	   if(which_channel < 0)
-	   {	
-		LOGD("Failed to play: %s", ALmixer_GetError());
-	}
-	LOGD("Java_org_webkit_javascriptcore_test262_Test262_playSound ended, which_channel:%d", which_channel);
-*/	
-}
-#endif
 

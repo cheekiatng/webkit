@@ -41,7 +41,6 @@ public class Test262 extends Activity
 	public native void doPause();
 	public native void doResume();
 	public native void doDestroy();
-	public native void playSound(int sound_id);
 	public native boolean evaluateScript(String script_string, String file_name, ReturnDataObject return_data_object);
 
 	private EditText inputTextField;
@@ -100,35 +99,6 @@ public class Test262 extends Activity
 		return ret_array;
 	}
 
-/* AssetManager list() is unusable. Just to list (not open or read) a file, it 
- * takes about 1 second per file. This is apparently a known Android bug that Google doesn't care to fix.
- * So we need to find another solution.
- */
-/*
-	public void displayFiles(AssetManager mgr, String path, int level)
-	{
-
-		Log.v("Test262","enter displayFiles("+path+")");
-		try {
-			String list[] = mgr.list(path);
-			Log.v("Test262","L"+level+": list:"+ Arrays.asList(list));
-
-			if (list != null)
-				for (int i=0; i<list.length; ++i)
-				{
-					if(level>=1){
-						displayFiles(mgr, path + "/" + list[i], level+1);
-					}else{
-						displayFiles(mgr, list[i], level+1);
-					}
-				}
-		} catch (IOException e) {
-			Log.v("Test262","List error: can't list" + path);
-		}
-
-	}
-*/
-
 	static public final String loadFileIntoString(AssetManager asset_manager, String file_name)
 	{
 		ArrayList<String> string_list = new ArrayList<String>();
@@ -144,6 +114,9 @@ public class Test262 extends Activity
 			while((current_line=buffered_reader.readLine()) != null)
 			{
 				concat_string.append(current_line);
+				// readLine stripped the newline. 
+				// We need to keep it, otherwise a precedeing line that was a // comment causes the following line(s) to continue to be a comment.
+				concat_string.append("\n");
 			}
 
 		}
@@ -205,43 +178,9 @@ public class Test262 extends Activity
 		{
 			case R.id.submit_button:
 			{
-//				Log.i("Test262", "calling: " + inputTextField.getText());		
-				//String result_string = evaluateScript(inputTextField.getText().toString());
-				
 				Button submit_button = (Button)Test262.this.findViewById(R.id.submit_button);
 				submit_button.setEnabled(false);
-/*
-				Thread thread = new Thread(new Runnable()
-				{
-					@Override
-					public void run()
-					{
 
-						final String resultString = evaluateScript("testapi.js", Test262.this.getAssets());
-						runOnUiThread(new Runnable()
-						{
-							@Override
-							public void run()
-							{
-								Log.i("Test262", "result: " + resultString);		
-
-								// display a floating message
-								Toast.makeText(Test262.this, resultString, Toast.LENGTH_LONG).show();
-
-								TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
-								result_text_view.setText(resultString);
-
-								Button submit_button = (Button)Test262.this.findViewById(R.id.submit_button);
-								submit_button.setEnabled(true);
-								
-
-							}
-						});
-					}
-					
-				});
-				thread.start();
-				*/
 				startTests();
 				break;
 			}
@@ -287,32 +226,61 @@ public class Test262 extends Activity
 			{
 				final String[] file_list = testFileList;
 //				for(int i=0; i < file_list.length; i++)
-				for(int i=0; i < 100; i++)
+				for(int i=0; i < 1; i++)
 				{
 					Log.v("Test262", file_list[i]);
 
 					final String current_file_name = file_list[i];
-					String raw_test_script = loadFileIntoString(Test262.this.getAssets(), file_list[i]);
+//		Log.i("Test262", "current_file_name: " + current_file_name + ".");
+					String raw_test_script = loadFileIntoString(Test262.this.getAssets(), current_file_name);
+//		Log.i("Test262", "raw_test_script: " + raw_test_script);
+					
 					final boolean is_positive_test = determineIfPositiveTestFromScript(raw_test_script);
-					final String full_script = determineStrictModeStringFromScript(raw_test_script) + testHarnessString + raw_test_script;
+//		Log.i("Test262", "testHarnessString: " + testHarnessString + ".");
+
+					StringBuilder concat_string = new StringBuilder();
+					concat_string.append(determineStrictModeStringFromScript(raw_test_script));
+					concat_string.append("\n");
+					concat_string.append(testHarnessString);
+					concat_string.append("\n");
+					concat_string.append(raw_test_script);
+
+					//final String full_script = determineStrictModeStringFromScript(raw_test_script) + testHarnessString + raw_test_script;
+					final String full_script = concat_string.toString();
+//		Log.i("Test262", "full_script: " + full_script + ".");
 
 					final ReturnDataObject return_data_object = new ReturnDataObject();
+//		Log.i("Test262", "calling into C");
 
 					final boolean is_success = evaluateScript(full_script, current_file_name, return_data_object);
 					
-final String resultString = "no-op";
 					runOnUiThread(new Runnable()
 					{
 						@Override
 						public void run()
 						{
 
+							/*
+								TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
+							result_text_view.setText(full_script);
+		EditText edit_text = (EditText)findViewById(R.id.input_text);
+							edit_text.setText(full_script);
+*/
 
 							// FIXME: This likely deserves a better check.
 							if(is_positive_test != is_success)
 							{
+
+//
 //                    			this.failedTests.Add(result);
-								Log.i("Test262", "Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString());		
+								if(is_success && !is_positive_test)
+								{
+									Log.i("Test262", "Test failed (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString());		
+								}
+								else
+								{
+									Log.i("Test262", "Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString());		
+								}
 							}
 							else
 							{
@@ -359,36 +327,5 @@ final String resultString = "no-op";
 		thread.start();
 	}
 
-	
-		/*
-	public void addKeyListener()
-	{
-		// add a keylistener to keep track user input
-		inputTextField.setOnKeyListener(
-			new OnKeyListener()
-			{
-				public boolean onKey(View the_view, int key_code, KeyEvent key_event)
-				{
-					// if keydown and "enter" is pressed
-					if((key_event.getAction() == key_event.ACTION_DOWN)
-						&& (key_code == key_event.KEYCODE_ENTER))
-					{
-						// display a floating message
-						Toast.makeText(Test262.this,
-							inputTextField.getText(), Toast.LENGTH_LONG).show();
 
-						Log.i("Test262", "calling: " + inputTextField.getText());		
-						String result_string = evaluateScript(inputTextField.getText().toString());
-
-						TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
-						result_text_view.setText(result_string);
-
-						return true;
-					}
-					return false;
-				}
-			}
-		);
-	}
-	*/
 }
