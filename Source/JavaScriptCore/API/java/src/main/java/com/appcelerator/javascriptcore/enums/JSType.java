@@ -1,5 +1,6 @@
 package com.appcelerator.javascriptcore.enums;
 
+import com.appcelerator.javascriptcore.JavaScriptException;
 /**
  * A constant identifying the type of a JSValue.
  * 
@@ -46,5 +47,17 @@ public enum JSType {
 
     public int getValue() {
         return value;
+    }
+
+    public static JSType request(int value) {
+        switch(value) {
+            case 0: return Undefined;
+            case 1: return Null;
+            case 2: return Boolean;
+            case 3: return Number;
+            case 4: return String;
+            case 5: return Object;
+            default: throw new JavaScriptException(java.lang.String.format("Unsupported JSType: %d", value));
+        }
     }
 }

@@ -4,10 +4,6 @@ public class JSClassRef extends PointerType {
     
     private JSClassDefinition definition;
 
-    public JSClassRef(long pointer) {
-        super(pointer);
-    }
-
     public JSClassRef(JSClassDefinition definition, long pointer) {
         super(pointer);
         this.definition = definition;

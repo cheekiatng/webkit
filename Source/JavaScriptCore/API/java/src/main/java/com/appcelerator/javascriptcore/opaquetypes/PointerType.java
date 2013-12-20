@@ -35,6 +35,10 @@ public abstract class PointerType {
         return pointer();
     }
 
+    public boolean isNullPointer(){
+        return pointer() == 0;
+    }
+
     /** The hash code for a <code>PointerType</code> is the same as that for
      * its pointer.
      */

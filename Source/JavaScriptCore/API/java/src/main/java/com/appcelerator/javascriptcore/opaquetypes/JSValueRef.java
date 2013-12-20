@@ -1,6 +1,7 @@
 package com.appcelerator.javascriptcore.opaquetypes;
 
 import com.appcelerator.javascriptcore.JavaScriptCoreLibrary;
+import com.appcelerator.javascriptcore.JavaScriptException;
 
 public class JSValueRef extends PointerType {
 
@@ -17,7 +18,12 @@ public class JSValueRef extends PointerType {
     }
 
     public double toDouble() {
-        return jsc.JSValueToNumber(context, this);
+        JSValueRef exception = new JSValueRef(0);
+        double value = jsc.JSValueToNumber(context, this, exception);
+        if (!jsc.JSValueIsNull(context, exception)) {
+            throw new JavaScriptException("Unable to convert to double");
+        }
+        return value;
     }
     
     public double toNumber() {
@@ -41,15 +47,34 @@ public class JSValueRef extends PointerType {
     }
 
     public JSObjectRef toObject() {
-        return jsc.JSValueToObject(context, this);
+        JSValueRef exception = new JSValueRef(0);
+        JSObjectRef value = jsc.JSValueToObject(context, this, exception);
+        if (!jsc.JSValueIsNull(context, exception)) {
+            throw new JavaScriptException("Unable to convert to object");
+        }
+        return value;
     }
 
     public String toString() {
-        return jsc.JSValueToStringCopy(context, this);
+        JSValueRef exception = new JSValueRef(0);
+        String value = jsc.JSValueToStringCopy(context, this, exception);
+        if (!jsc.JSValueIsNull(context, exception)) {
+            throw new JavaScriptException("Unable to convert to string");
+        }
+        return value;
+    }
+
+    public String toJSON() {
+        return toJSON(0);
     }
 
     public String toJSON(int indent) {
-        return jsc.JSValueCreateJSONString(context, this, indent);
+        JSValueRef exception = new JSValueRef(0);
+        String value = jsc.JSValueCreateJSONString(context, this, indent, exception);
+        if (!jsc.JSValueIsNull(context, exception)) {
+            throw new JavaScriptException("Unable to convert to JSON");
+        }
+        return value;
     }
 
     public boolean isUndefined() {
@@ -77,7 +102,12 @@ public class JSValueRef extends PointerType {
     }
 
     public boolean isEqual(JSValueRef other) {
-        return jsc.JSValueIsEqual(context, this, other);
+        JSValueRef exception = new JSValueRef(0);
+        boolean value = jsc.JSValueIsEqual(context, this, other, exception);
+        if (!jsc.JSValueIsNull(context, exception)) {
+            throw new JavaScriptException("Exception while isEqual");
+        }
+        return value;
     }
 
     public boolean isStrictEqual(JSValueRef other) {
@@ -89,7 +119,12 @@ public class JSValueRef extends PointerType {
     }
 
     public boolean isInstanceOfConstructor(JSObjectRef object) {
-        return jsc.JSValueIsInstanceOfConstructor(context, this, object);
+        JSValueRef exception = new JSValueRef(0);
+        boolean value = jsc.JSValueIsInstanceOfConstructor(context, this, object, exception);
+        if (!jsc.JSValueIsNull(context, exception)) {
+            throw new JavaScriptException("Exception while isInstanceOfConstructor");
+        }
+        return value;
     }
 
     public void protect() {
@@ -98,5 +133,10 @@ public class JSValueRef extends PointerType {
 
     public void unprotect() {
         jsc.JSValueUnprotect(context, this);
+    }
+
+    public void UpdateJSValueRef(long jsContextRef, long jsValueRef) {
+        this.context = new JSContextRef(jsContextRef);
+        this.pointer = new Pointer(jsValueRef);
     }
 }

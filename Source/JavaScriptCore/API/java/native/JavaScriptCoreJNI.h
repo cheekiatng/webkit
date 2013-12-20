@@ -16,6 +16,8 @@ typedef struct {
     // Java Object for callback
     jobject callback;
     jclass  callbackClass;
+    // Used for Java initializer callback
+    bool initialized;
     // Java Object associated with jsobject
     jobject object;
     // Reserved data
