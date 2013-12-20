@@ -34,8 +34,14 @@ public class Test262 extends Activity
 	}
     
 
-	String testHarnessString;
-	String[] testFileList;
+	private String testHarnessString;
+	private String[] testFileList;
+	private int numberOfTests = 0;
+	private int numberOfFailedTests = 0;
+	
+	private long millisecondsStartBenchmark;
+	private EditText inputTextField;
+
 
 	public native boolean doInit(AssetManager java_asset_manager);
 	public native void doPause();
@@ -43,7 +49,6 @@ public class Test262 extends Activity
 	public native void doDestroy();
 	public native boolean evaluateScript(String script_string, String file_name, ReturnDataObject return_data_object);
 
-	private EditText inputTextField;
 	
 	/** Called when the activity is first created. */
 	@Override
@@ -59,14 +64,20 @@ public class Test262 extends Activity
 //		displayFiles(this.getAssets(), "", 0);
 
 		String[] file_list = getFileList();
+		/*
 		for(int i=0; i < file_list.length; i++)
 		{
 			Log.v("Test262", file_list[i]);
 			
 		}
+		*/
 		testFileList = file_list;
 		testHarnessString = loadTestHarnessScripts();
 
+
+		numberOfTests = file_list.length;
+		TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
+		result_text_view.setText("Total number of tests: " + file_list.length);
     }
 
 	/* Because AssetManager list() is unusable, this is a workaround.
@@ -219,6 +230,10 @@ public class Test262 extends Activity
 
 	public void startTests()
 	{
+		millisecondsStartBenchmark = System.currentTimeMillis();
+
+		numberOfFailedTests = 0;
+
 		Thread thread = new Thread(new Runnable()
 		{
 			@Override
@@ -226,13 +241,13 @@ public class Test262 extends Activity
 			{
 				final String[] file_list = testFileList;
 //				for(int i=0; i < file_list.length; i++)
-				for(int i=0; i < 1; i++)
+				for(int i=0; i < numberOfTests; i++)
 				{
-					Log.v("Test262", file_list[i]);
+//					Log.v("Test262", file_list[i]);
 
 					final String current_file_name = file_list[i];
 //		Log.i("Test262", "current_file_name: " + current_file_name + ".");
-					String raw_test_script = loadFileIntoString(Test262.this.getAssets(), current_file_name);
+					final String raw_test_script = loadFileIntoString(Test262.this.getAssets(), current_file_name);
 //		Log.i("Test262", "raw_test_script: " + raw_test_script);
 					
 					final boolean is_positive_test = determineIfPositiveTestFromScript(raw_test_script);
@@ -253,7 +268,8 @@ public class Test262 extends Activity
 //		Log.i("Test262", "calling into C");
 
 					final boolean is_success = evaluateScript(full_script, current_file_name, return_data_object);
-					
+					final int current_test_index = i;
+
 					runOnUiThread(new Runnable()
 					{
 						@Override
@@ -270,28 +286,29 @@ public class Test262 extends Activity
 							// FIXME: This likely deserves a better check.
 							if(is_positive_test != is_success)
 							{
+								numberOfFailedTests = numberOfFailedTests + 1;
 
 //
 //                    			this.failedTests.Add(result);
 								if(is_success && !is_positive_test)
 								{
-									Log.i("Test262", "Test failed (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString());		
+									Log.i("Test262", "Test failed (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);		
 								}
 								else
 								{
-									Log.i("Test262", "Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString());		
+									Log.i("Test262", "Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);		
 								}
 							}
 							else
 							{
-								Log.i("Test262", "Test passed: " + current_file_name);		
+//								Log.i("Test262", "Test passed: " + current_file_name);		
 							}
 
 							// display a floating message
 //							Toast.makeText(Test262.this, resultString, Toast.LENGTH_LONG).show();
 
-//							TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
-//							result_text_view.setText(resultString);
+							TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
+							result_text_view.setText("Running test " + current_test_index + " of " + numberOfTests + "\nTotal failed: " + numberOfFailedTests);
 
 //							Button submit_button = (Button)Test262.this.findViewById(R.id.submit_button);
 //							submit_button.setEnabled(true);
@@ -314,9 +331,17 @@ public class Test262 extends Activity
 //							TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
 //							result_text_view.setText(resultString);
 
+							
+							long total_execution_time_in_milliseconds = System.currentTimeMillis() - millisecondsStartBenchmark;
+							double total_execution_time_in_seconds = total_execution_time_in_milliseconds / 1000.0;
+							TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
+							result_text_view.setText(numberOfTests + "complete.\nTotal failed: " + numberOfFailedTests + "\nTotal execution time: " + total_execution_time_in_seconds + "seconds");
+
+
+
+
 							Button submit_button = (Button)Test262.this.findViewById(R.id.submit_button);
 							submit_button.setEnabled(true);
-							
 
 						}
 					});
