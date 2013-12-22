@@ -64,4 +64,7 @@ public class JSValueArrayRef {
         this.length  = 0;
     }
 
+    public static JSValueArrayRef noArg() {
+        return new JSValueArrayRef(0);
+    }
 }

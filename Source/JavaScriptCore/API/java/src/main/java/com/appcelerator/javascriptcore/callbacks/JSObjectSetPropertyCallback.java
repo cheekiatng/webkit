@@ -3,6 +3,7 @@ package com.appcelerator.javascriptcore.callbacks;
 import com.appcelerator.javascriptcore.opaquetypes.JSContextRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSObjectRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
+import com.appcelerator.javascriptcore.opaquetypes.Pointer;
 
 /**
  * The callback invoked when setting a property's value. If you named your
@@ -28,5 +29,5 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
  */
 public interface JSObjectSetPropertyCallback {
     boolean setProperty(JSContextRef ctx, JSObjectRef object,
-            String propertyName, JSValueRef value, JSValueRef exception);
+            String propertyName, JSValueRef value, Pointer exception);
 }

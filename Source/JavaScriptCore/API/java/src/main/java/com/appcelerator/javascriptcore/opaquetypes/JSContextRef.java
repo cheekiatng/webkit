@@ -12,11 +12,11 @@ public class JSContextRef extends PointerType {
     }
 
     public JSValueRef evaluateScript(String script) {
-        return evaluateScript(script, null);
+        return evaluateScript(script, null, null);
     }
 
-    public JSValueRef evaluateScript(String script, JSValueRef exception) {
-        return jsc.JSEvaluateScript(this, script, exception);
+    public JSValueRef evaluateScript(String script, JSObjectRef thisObject, JSValueRef exception) {
+        return jsc.JSEvaluateScript(this, script, thisObject, null, 1, exception);
     }
 
     public boolean checkScriptSyntax(String script) {

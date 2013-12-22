@@ -3,6 +3,7 @@ package com.appcelerator.javascriptcore.callbacks;
 import com.appcelerator.javascriptcore.opaquetypes.JSContextRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSObjectRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
+import com.appcelerator.javascriptcore.opaquetypes.Pointer;
 
 /**
  * The callback invoked when deleting a property. If you named your function
@@ -26,5 +27,5 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
  */
 public interface JSObjectDeletePropertyCallback  {
     boolean deleteProperty(JSContextRef ctx, JSObjectRef object,
-            String propertyName, JSValueRef exception);
+            String propertyName, Pointer exception);
 }

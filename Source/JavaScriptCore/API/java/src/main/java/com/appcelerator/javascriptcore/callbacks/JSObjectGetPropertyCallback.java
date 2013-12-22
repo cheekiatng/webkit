@@ -3,6 +3,8 @@ package com.appcelerator.javascriptcore.callbacks;
 import com.appcelerator.javascriptcore.opaquetypes.JSContextRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSObjectRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
+import com.appcelerator.javascriptcore.opaquetypes.Pointer;
+import com.appcelerator.javascriptcore.opaquetypes.Pointer;
 
 /**
  * The callback invoked when getting a property's value. If you named your
@@ -26,5 +28,5 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
  */
 public interface JSObjectGetPropertyCallback {
     JSValueRef getProperty(JSContextRef ctx, JSObjectRef object,
-            String propertyName, JSValueRef exception);
+            String propertyName, Pointer exception);
 }

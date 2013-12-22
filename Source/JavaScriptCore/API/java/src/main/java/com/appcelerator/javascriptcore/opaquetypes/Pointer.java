@@ -16,6 +16,10 @@ public class Pointer {
         return this.peer;
     }
 
+    public void update(PointerType p) {
+        NativeUpdatePointer(this.peer, p.pointer());
+    }
+
     public boolean equals(Object o) {
         if (o == this) return true;
         if (o == null) return false;
@@ -29,4 +33,6 @@ public class Pointer {
     public String toString() {
         return "native@0x" + Long.toHexString(peer);
     }
+
+    public native void NativeUpdatePointer(long toPointer, long fromPointer);
 }

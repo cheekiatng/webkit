@@ -3,6 +3,7 @@ package com.appcelerator.javascriptcore.opaquetypes;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.ArrayList;
 
@@ -17,8 +18,7 @@ public class JSStaticFunctions {
     private static final short LONG2 = (short)(LONG * 2);
     private static final short CHUNK = JavaScriptCoreLibrary.SizeOfJSStaticFunction;
 
-    private ArrayList<String> names = new ArrayList<String>();
-    private ArrayList<Long> functionPointers = new ArrayList<Long>();
+    private List<String> names = new ArrayList<String>();
     private HashMap<String, JSObjectCallAsFunctionCallback> functions = new HashMap<String, JSObjectCallAsFunctionCallback>();
     private HashMap<String, Integer> attributes = new HashMap<String, Integer>();
 
@@ -57,7 +57,11 @@ public class JSStaticFunctions {
 
     private void update(String name, int index, long addressForNames) {
         JavaScriptCoreLibrary.putLong(buffer, index, addressForNames);
-        JavaScriptCoreLibrary.putLong(buffer, index+LONG,  callAsFunction);
+        if (functions.get(name) == null) {
+            JavaScriptCoreLibrary.putLong(buffer, index+LONG, 0);
+        } else {
+            JavaScriptCoreLibrary.putLong(buffer, index+LONG, callAsFunction);
+        }
         buffer.putInt(index +LONG2, attributes.get(name));
     }
 
@@ -69,6 +73,7 @@ public class JSStaticFunctions {
     }
 
     public void dispose() {
+        functionPointers.clear();
         bufferTemplate.clear();
         bufferTemplate = null;
         buffer.clear();
@@ -82,28 +87,32 @@ public class JSStaticFunctions {
     public int size() {
         return names.size();
     }
-
-    public boolean contains(long func) {
-        return functionPointers.contains(func);
-    }
-
-    public void registerFunctions(long[] pointers) {
-        functionPointers.clear();
-        if (pointers.length <= 1) return;
-        for (int i = 1; i < pointers.length; i++) {
-            functionPointers.add(pointers[i]);
-        }
-    }
-
-    public JSObjectCallAsFunctionCallback getFunction(long func) {
-        return functions.get(names.get(functionPointers.indexOf(func)));
-    }
-
+    
     public void add(String name, JSObjectCallAsFunctionCallback callback, int attrs) {
         if (frozen) throw new JavaScriptException("No changes can be done after commit()");
         if (callback != null) functions.put(name, callback);
         attributes.put(name, attrs);
         names.add(name);
+    }
+
+    private HashMap<Long, ArrayList<Long>> functionPointers = new HashMap<Long, ArrayList<Long>>();
+    public void registerFunctions(long object, long[] pointers) {
+        removeObject(object);
+        ArrayList<Long> funcs = new ArrayList<Long>();
+        for (int i = 0; i < pointers.length; i++) {
+            funcs.add(pointers[i]);
+        }
+        functionPointers.put(object, funcs);       
+    }
+    public void removeObject(long object) {
+        functionPointers.remove(object);
+    }
+
+    public JSObjectCallAsFunctionCallback getFunction(long object, long pointer) {
+        if (!functionPointers.containsKey(object)) return null;
+        int index = functionPointers.get(object).indexOf(pointer);
+        if (index < 0) return null;
+        return functions.get(names.get(index));
     }
 
     private static native ByteBuffer NativeGetStaticFunctionTemplate();

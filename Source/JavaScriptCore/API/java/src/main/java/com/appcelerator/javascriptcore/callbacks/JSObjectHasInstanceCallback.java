@@ -3,6 +3,7 @@ package com.appcelerator.javascriptcore.callbacks;
 import com.appcelerator.javascriptcore.opaquetypes.JSContextRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSObjectRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
+import com.appcelerator.javascriptcore.opaquetypes.Pointer;
 
 /**
  * The callback invoked when an object is used as the target of an 'instanceof'
@@ -32,5 +33,5 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
  */
 public interface JSObjectHasInstanceCallback {
     boolean hasInstance(JSContextRef ctx, JSObjectRef constructor,
-            JSValueRef possibleInstance, JSValueRef exception);
+            JSValueRef possibleInstance, Pointer exception);
 }

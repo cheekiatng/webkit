@@ -4,6 +4,7 @@ import com.appcelerator.javascriptcore.enums.JSType;
 import com.appcelerator.javascriptcore.opaquetypes.JSContextRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSObjectRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
+import com.appcelerator.javascriptcore.opaquetypes.Pointer;
 
 /**
  * The callback invoked when converting an object to a particular JavaScript
@@ -30,5 +31,5 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
  */
 public interface JSObjectConvertToTypeCallback {
     JSValueRef convertToType(JSContextRef ctx, JSObjectRef object, JSType type,
-            JSValueRef exception);
+            Pointer exception);
 }

@@ -6,11 +6,7 @@ import com.appcelerator.javascriptcore.JavaScriptException;
 public class JSValueRef extends PointerType {
 
     private JavaScriptCoreLibrary jsc = JavaScriptCoreLibrary.getInstance();
-    private JSContextRef context;
-
-    public JSValueRef(long pointer) {
-        super(pointer);
-    }
+    private JSContextRef context = null;
 
     public JSValueRef(JSContextRef context, long pointer) {
         super(pointer);
@@ -18,12 +14,8 @@ public class JSValueRef extends PointerType {
     }
 
     public double toDouble() {
-        JSValueRef exception = new JSValueRef(0);
-        double value = jsc.JSValueToNumber(context, this, exception);
-        if (!jsc.JSValueIsNull(context, exception)) {
-            throw new JavaScriptException("Unable to convert to double");
-        }
-        return value;
+        checkContext();
+        return jsc.JSValueToNumber(context, this, null);
     }
     
     public double toNumber() {
@@ -43,25 +35,18 @@ public class JSValueRef extends PointerType {
     }
 
     public boolean toBoolean() {
+        checkContext();
         return jsc.JSValueToBoolean(context, this);
     }
 
     public JSObjectRef toObject() {
-        JSValueRef exception = new JSValueRef(0);
-        JSObjectRef value = jsc.JSValueToObject(context, this, exception);
-        if (!jsc.JSValueIsNull(context, exception)) {
-            throw new JavaScriptException("Unable to convert to object");
-        }
-        return value;
+        checkContext();
+        return jsc.JSValueToObject(context, this, null);
     }
 
     public String toString() {
-        JSValueRef exception = new JSValueRef(0);
-        String value = jsc.JSValueToStringCopy(context, this, exception);
-        if (!jsc.JSValueIsNull(context, exception)) {
-            throw new JavaScriptException("Unable to convert to string");
-        }
-        return value;
+        checkContext();
+        return jsc.JSValueToStringCopy(context, this, null);
     }
 
     public String toJSON() {
@@ -69,74 +54,82 @@ public class JSValueRef extends PointerType {
     }
 
     public String toJSON(int indent) {
-        JSValueRef exception = new JSValueRef(0);
-        String value = jsc.JSValueCreateJSONString(context, this, indent, exception);
-        if (!jsc.JSValueIsNull(context, exception)) {
-            throw new JavaScriptException("Unable to convert to JSON");
-        }
-        return value;
+        checkContext();
+        return jsc.JSValueCreateJSONString(context, this, indent, null);
     }
 
     public boolean isUndefined() {
+        checkContext();
         return jsc.JSValueIsUndefined(context, this);
     }
 
     public boolean isNull() {
+        checkContext();
         return jsc.JSValueIsNull(context, this);
     }
 
     public boolean isNumber() {
+        checkContext();
         return jsc.JSValueIsNumber(context, this);
     }
     
     public boolean isBoolean() {
+        checkContext();
         return jsc.JSValueIsBoolean(context, this);
     }
 
     public boolean isString() {
+        checkContext();
         return jsc.JSValueIsString(context, this);
     }
 
     public boolean isObject() {
+        checkContext();
         return jsc.JSValueIsObject(context, this);
     }
 
     public boolean isEqual(JSValueRef other) {
-        JSValueRef exception = new JSValueRef(0);
-        boolean value = jsc.JSValueIsEqual(context, this, other, exception);
-        if (!jsc.JSValueIsNull(context, exception)) {
-            throw new JavaScriptException("Exception while isEqual");
-        }
-        return value;
+        checkContext();
+        return jsc.JSValueIsEqual(context, this, other, null);
     }
 
     public boolean isStrictEqual(JSValueRef other) {
+        checkContext();
         return jsc.JSValueIsStrictEqual(context, this, other);
     }
 
     public boolean isObjectOfClass(JSClassRef jsClass) {
+        checkContext();
         return jsc.JSValueIsObjectOfClass(context, this, jsClass);
     }
 
     public boolean isInstanceOfConstructor(JSObjectRef object) {
-        JSValueRef exception = new JSValueRef(0);
-        boolean value = jsc.JSValueIsInstanceOfConstructor(context, this, object, exception);
-        if (!jsc.JSValueIsNull(context, exception)) {
-            throw new JavaScriptException("Exception while isInstanceOfConstructor");
-        }
-        return value;
+        checkContext();
+        return jsc.JSValueIsInstanceOfConstructor(context, this, object, null);
     }
 
     public void protect() {
+        checkContext();
         jsc.JSValueProtect(context, this);
     }
 
     public void unprotect() {
+        checkContext();
         jsc.JSValueUnprotect(context, this);
     }
 
     public void UpdateJSValueRef(long jsContextRef, long jsValueRef) {
         this.context = new JSContextRef(jsContextRef);
         this.pointer = new Pointer(jsValueRef);
+    }
+
+    private void checkContext() {
+        if (context == null) {
+            throw new JavaScriptException(String.format("No context found at %d", p()));
+        }
+    }
+
+    public static JSValueRef Null() {
+        return new JSValueRef(null, 0);
     }
 }

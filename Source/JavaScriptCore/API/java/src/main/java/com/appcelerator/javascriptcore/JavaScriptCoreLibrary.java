@@ -11,6 +11,7 @@ import com.appcelerator.javascriptcore.opaquetypes.JSObjectRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSClassRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSClassDefinition;
 import com.appcelerator.javascriptcore.opaquetypes.PointerType;
+import com.appcelerator.javascriptcore.opaquetypes.Pointer;
 import com.appcelerator.javascriptcore.opaquetypes.JSPropertyNameArrayRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSPropertyNameAccumulatorRef;
 
@@ -73,7 +74,7 @@ public class JavaScriptCoreLibrary {
      * Native method wrappers
      */
     public JSObjectRef JSContextGetGlobalObject(JSContextRef context) {
-        return new JSObjectRef(NativeJSContextGetGlobalObject(p(context)));
+        return new JSObjectRef(context, NativeJSContextGetGlobalObject(p(context)));
     }
 
     public JSContextGroupRef JSContextGetGroup(JSContextRef context) {
@@ -93,11 +94,13 @@ public class JavaScriptCoreLibrary {
     }
 
     public JSGlobalContextRef JSGlobalContextCreate(JSClassRef jsClass) {
-        return new JSGlobalContextRef(NativeJSGlobalContextCreate(p(jsClass)));
+        return new JSGlobalContextRef(NativeJSGlobalContextCreate(p(jsClass),
+                                        jsClass == null ? null : jsClass.getDefinition()));
     }
 
     public JSGlobalContextRef JSGlobalContextCreateInGroup(JSContextGroupRef group, JSClassRef jsClass) {
-        return new JSGlobalContextRef(NativeJSGlobalContextCreateInGroup(p(group), p(jsClass)));
+        return new JSGlobalContextRef(NativeJSGlobalContextCreateInGroup(p(group), p(jsClass),
+                                        jsClass == null ? null : jsClass.getDefinition()));
     }
 
     public void JSGlobalContextRelease(JSGlobalContextRef context) {
@@ -213,7 +216,7 @@ public class JavaScriptCoreLibrary {
     }
 
     public JSObjectRef JSValueToObject(JSContextRef context, JSValueRef value, JSValueRef exception) {
-        return new JSObjectRef(NativeJSValueToObject(p(context), p(value), exception));
+        return new JSObjectRef(context, NativeJSValueToObject(p(context), p(value), exception));
     }
 
     public JSType JSValueGetType(JSContextRef context, JSValueRef value) {
@@ -226,9 +229,9 @@ public class JavaScriptCoreLibrary {
 
     public JSObjectRef JSObjectCallAsConstructor(JSContextRef context, JSObjectRef jsObject, JSValueArrayRef argv, JSValueRef exception) {
         if (argv == null) {
-            return new JSObjectRef(NativeJSObjectCallAsConstructor(p(context), p(jsObject), 0, null, exception));
+            return new JSObjectRef(context, NativeJSObjectCallAsConstructor(p(context), p(jsObject), 0, null, exception));
         } else {
-            return new JSObjectRef(NativeJSObjectCallAsConstructor(p(context), p(jsObject), argv.length(), argv.getByteBuffer(), exception));
+            return new JSObjectRef(context, NativeJSObjectCallAsConstructor(p(context), p(jsObject), argv.length(), argv.getByteBuffer(), exception));
         }
     }
 
@@ -267,11 +270,11 @@ public class JavaScriptCoreLibrary {
     }
 
     public JSValueRef JSObjectGetPropertyAtIndex(JSContextRef context, JSObjectRef jsObject, int propertyIndex, JSValueRef exception) {
-        return new JSValueRef(NativeJSObjectGetPropertyAtIndex(p(context), p(jsObject), propertyIndex, exception));
+        return new JSValueRef(context, NativeJSObjectGetPropertyAtIndex(p(context), p(jsObject), propertyIndex, exception));
     }
 
     public JSValueRef JSObjectGetPrototype(JSContextRef context, JSObjectRef jsObject) {
-        return new JSValueRef(NativeJSObjectGetPrototype(p(context), p(jsObject)));
+        return new JSValueRef(context, NativeJSObjectGetPrototype(p(context), p(jsObject)));
     }
 
     public boolean JSObjectHasProperty(JSContextRef context, JSObjectRef jsObject, String propertyName) {
@@ -288,37 +291,37 @@ public class JavaScriptCoreLibrary {
 
     public JSObjectRef JSObjectMakeArray(JSContextRef context, JSValueArrayRef argv, JSValueRef exception) {
         if (argv == null) {
-            return new JSObjectRef(NativeJSObjectMakeArray(p(context), 0, null, exception));
+            return new JSObjectRef(context, NativeJSObjectMakeArray(p(context), 0, null, exception));
         } else {
-            return new JSObjectRef(NativeJSObjectMakeArray(p(context), argv.length(), argv.getByteBuffer(), exception));
+            return new JSObjectRef(context, NativeJSObjectMakeArray(p(context), argv.length(), argv.getByteBuffer(), exception));
         }
     }
 
     public JSObjectRef JSObjectMakeDate(JSContextRef context, JSValueArrayRef argv, JSValueRef exception) {
         if (argv == null) {
-            return new JSObjectRef(NativeJSObjectMakeDate(p(context), 0, null, exception));
+            return new JSObjectRef(context, NativeJSObjectMakeDate(p(context), 0, null, exception));
         } else {
-            return new JSObjectRef(NativeJSObjectMakeDate(p(context), argv.length(), argv.getByteBuffer(), exception));
+            return new JSObjectRef(context, NativeJSObjectMakeDate(p(context), argv.length(), argv.getByteBuffer(), exception));
         }
     }
     public JSObjectRef JSObjectMakeError(JSContextRef context, JSValueArrayRef argv, JSValueRef exception) {
         if (argv == null) {
-            return new JSObjectRef(NativeJSObjectMakeError(p(context), 0, null, exception));
+            return new JSObjectRef(context, NativeJSObjectMakeError(p(context), 0, null, exception));
         } else {
-            return new JSObjectRef(NativeJSObjectMakeError(p(context), argv.length(), argv.getByteBuffer(), exception));
+            return new JSObjectRef(context, NativeJSObjectMakeError(p(context), argv.length(), argv.getByteBuffer(), exception));
         }
     }
     public JSObjectRef JSObjectMakeRegExp(JSContextRef context, JSValueArrayRef argv, JSValueRef exception) {
         if (argv == null) {
-            return new JSObjectRef(NativeJSObjectMakeRegExp(p(context), 0, null, exception));
+            return new JSObjectRef(context, NativeJSObjectMakeRegExp(p(context), 0, null, exception));
         } else {
-            return new JSObjectRef(NativeJSObjectMakeRegExp(p(context), argv.length(), argv.getByteBuffer(), exception));
+            return new JSObjectRef(context, NativeJSObjectMakeRegExp(p(context), argv.length(), argv.getByteBuffer(), exception));
         }
     }
     public JSObjectRef JSObjectMakeFunction(JSContextRef context, String name, int paramCount,
                                             String paramNames[], String body, String sourceURL,
                                             int line, JSValueRef exception) {
-        return new JSObjectRef(NativeJSObjectMakeFunction(p(context), name, paramCount,
+        return new JSObjectRef(context, NativeJSObjectMakeFunction(p(context), name, paramCount,
                                             paramNames, body, sourceURL, line, exception));
     }
 
@@ -364,16 +367,15 @@ public class JavaScriptCoreLibrary {
     }
 
     public JSObjectRef JSObjectMake(JSContextRef context, JSClassRef jsClass, Object object) {
-        long[] pointers;
         if (jsClass == null) {
-            pointers = NativeJSObjectMake(p(context), 0, null, null, 0, object);
+            return new JSObjectRef(context, NativeJSObjectMake(p(context), 0, null, null, 0, object));
         } else {
             JSClassDefinition definition = jsClass.getDefinition();
-            pointers = NativeJSObjectMake(p(context), p(jsClass),
-                            definition, definition.getStaticFunctions(), definition.getStaticFunctionCount(), object);
-            definition.registerStaticFunctions(pointers);
+            JSObjectRef newObject = new JSObjectRef(context, NativeJSObjectMake(p(context), p(jsClass),
+                            definition, definition.getStaticFunctions(), definition.getStaticFunctionCount(), object));
+            definition.afterInitializedCallback(p(context), p(newObject));
+            return newObject;
         }
-        return new JSObjectRef(pointers[0]);
     }
 
     /**
@@ -387,8 +389,17 @@ public class JavaScriptCoreLibrary {
         } else {
             definition = jsClassToCopy.getDefinition().copy();
         }
+        definition.enableConstructor();
+        final JSClassRef jsClass = JSClassCreate(definition);
+        if (callback == null) {
+            callback = new JSObjectCallAsConstructorCallback() {
+                public JSObjectRef callAsConstructor(JSContextRef ctx, JSObjectRef constructor,
+                    int argumentCount, JSValueArrayRef arguments, Pointer exception) {
+                    return JSObjectMake(ctx, jsClass);
+                }
+            };
+        }
         definition.callAsConstructor = callback;
-        JSClassRef jsClass = JSClassCreate(definition);
         JSObjectRef object = JSObjectMake(context, jsClass);
         return object;
     }
@@ -404,10 +415,6 @@ public class JavaScriptCoreLibrary {
         JSClassRef jsClass = JSClassCreate(definition);
         JSObjectRef object = JSObjectMake(context, jsClass);
         return object;
-    }
-
-    public void UpdateExceptionPointer(JSValueRef dst, JSValueRef value) {
-        NativeUpdateExceptionPointer(p(dst), p(value));
     }
 
     /*
@@ -427,8 +434,8 @@ public class JavaScriptCoreLibrary {
     public native long NativeJSContextGroupCreate();
     public native void NativeJSContextGroupRelease(long jsContextGroupRef);
     public native long NativeJSContextGroupRetain(long jsContextGroupRef);
-    public native long NativeJSGlobalContextCreate(long jsClassRef);
-    public native long NativeJSGlobalContextCreateInGroup(long jsContextGroupRef, long jsClassRef);
+    public native long NativeJSGlobalContextCreate(long jsClassRef, JSClassDefinition callabck);
+    public native long NativeJSGlobalContextCreateInGroup(long jsContextGroupRef, long jsClassRef, JSClassDefinition callback);
     public native void NativeJSGlobalContextRelease(long jsContextRef);
     public native long NativeJSGlobalContextRetain(long jsContextRef);
     public native long NativeJSEvaluateScriptShort(long jsContextRef, String script, JSValueRef exception);
@@ -476,7 +483,7 @@ public class JavaScriptCoreLibrary {
     public native boolean NativeJSObjectHasProperty(long jsContextRef, long jsObjectRef, String propertyName);
     public native boolean NativeJSObjectIsConstructor(long jsContextRef, long jsObjectRef);
     public native boolean NativeJSObjectIsFunction(long jsContextRef, long jsObjectRef);
-    public native long[] NativeJSObjectMake(long jsContextRef, long jsClassRef, JSClassDefinition definition, ByteBuffer staticFunctions, int staticFunctionCount, Object object);
+    public native long NativeJSObjectMake(long jsContextRef, long jsClassRef, JSClassDefinition definition, ByteBuffer staticFunctions, int staticFunctionCount, Object object);
     public native long NativeJSObjectMakeArray(long jsContextRef, int argc, ByteBuffer argv, JSValueRef exception);
     public native long NativeJSObjectMakeDate(long jsContextRef, int argc, ByteBuffer argv, JSValueRef exception);
     public native long NativeJSObjectMakeError(long jsContextRef, int argc, ByteBuffer argv, JSValueRef exception);
@@ -490,6 +497,5 @@ public class JavaScriptCoreLibrary {
     public native String NativeJSPropertyNameArrayGetNameAtIndex(long jsPropertyNameArrayRef, int index);
     public native void NativeJSPropertyNameArrayRelease(long jsPropertyNameArrayRef);
     public native long NativeJSPropertyNameArrayRetain(long jsPropertyNameArrayRef);
-    public native void NativeUpdateExceptionPointer(long dst, long value);
 
 }

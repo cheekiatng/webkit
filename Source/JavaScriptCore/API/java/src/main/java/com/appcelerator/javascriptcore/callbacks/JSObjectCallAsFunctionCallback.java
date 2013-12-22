@@ -4,6 +4,7 @@ import com.appcelerator.javascriptcore.opaquetypes.JSContextRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSObjectRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSValueArrayRef;
+import com.appcelerator.javascriptcore.opaquetypes.Pointer;
 
 /**
  * The callback invoked when an object is called as a function. If you named
@@ -33,5 +34,5 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueArrayRef;
 public interface JSObjectCallAsFunctionCallback {
     JSValueRef callAsFunction(JSContextRef ctx, JSObjectRef function,
             JSObjectRef thisObject, int argumentCount,
-            JSValueArrayRef arguments, JSValueRef exception);
+            JSValueArrayRef arguments, Pointer exception);
 }

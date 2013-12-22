@@ -2,11 +2,10 @@ package com.appcelerator.javascriptcore.opaquetypes;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.List;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.appcelerator.javascriptcore.JavaScriptCoreLibrary;
+import com.appcelerator.javascriptcore.JavaScriptException;
 import com.appcelerator.javascriptcore.enums.JSClassAttribute;
 import com.appcelerator.javascriptcore.enums.JSType;
 import com.appcelerator.javascriptcore.callbacks.JSObjectCallAsConstructorCallback;
@@ -160,6 +159,7 @@ public class JSClassDefinition {
 
     private ByteBuffer buffer;
     private boolean hasParent = false;
+    private boolean forceCallAsConstructor = false;
 
     public JSClassDefinition() {
         constructBufferTemplate();
@@ -189,11 +189,6 @@ public class JSClassDefinition {
         }
     }
 
-    public void registerStaticFunctions(long[] pointers) {
-        if (staticFunctions == null || pointers.length <= 1) return;
-        staticFunctions.registerFunctions(pointers);
-    }
-
     public ByteBuffer commit() {
         if (buffer == null) {
             buffer = ByteBuffer.allocateDirect(JavaScriptCoreLibrary.SizeOfJSClassDefinition).order(nativeOrder);
@@ -203,16 +198,18 @@ public class JSClassDefinition {
 
             if (parentClass != null) JavaScriptCoreLibrary.putLong(buffer, parentClassIndex, parentClass.p());
             if (initialize  != null) JavaScriptCoreLibrary.putLong(buffer, initializeIndex, initializeFunction);
-            if (finalize    != null) JavaScriptCoreLibrary.putLong(buffer, finalizeIndex, finalizeFunction);
             if (hasProperty != null) JavaScriptCoreLibrary.putLong(buffer, hasPropertyIndex, hasPropertyFunction);
             if (getProperty != null) JavaScriptCoreLibrary.putLong(buffer, getPropertyIndex, getPropertyFunction);
             if (setProperty != null) JavaScriptCoreLibrary.putLong(buffer, setPropertyIndex, setPropertyFunction);
             if (deleteProperty    != null) JavaScriptCoreLibrary.putLong(buffer, deletePropertyIndex, deletePropertyFunction);
             if (getPropertyNames  != null) JavaScriptCoreLibrary.putLong(buffer, getPropertyNamesIndex, getPropertyNamesFunction);
             if (callAsFunction    != null) JavaScriptCoreLibrary.putLong(buffer, callAsFunctionIndex, callAsFunctionFunction);
-            if (callAsConstructor != null) JavaScriptCoreLibrary.putLong(buffer, callAsConstructorIndex, callAsConstructorFunction);
+            if (forceCallAsConstructor || callAsConstructor != null) JavaScriptCoreLibrary.putLong(buffer, callAsConstructorIndex, callAsConstructorFunction);
             if (hasInstance   != null) JavaScriptCoreLibrary.putLong(buffer, hasInstanceIndex, hasInstanceFunction);
             if (convertToType != null) JavaScriptCoreLibrary.putLong(buffer, convertToTypeIndex, convertToTypeFunction);
+
+            // finalize callback should be fired on every objects to release all associated Java object
+            JavaScriptCoreLibrary.putLong(buffer, finalizeIndex, finalizeFunction);
 
             hasParent = (parentClass != null && parentClass.getDefinition() != null);
         }
@@ -221,14 +218,34 @@ public class JSClassDefinition {
 
     }
 
+    /*
+     * afterInitializedCallback: Called just after JSObject is created by JSObjectMake.
+     * This is needed to search object properties because
+     * object properties are not actually initialized while 'initialize' callback
+     */
+    public void afterInitializedCallback(long ctx, long object) {
+        if (staticFunctions != null) {
+            staticFunctions.registerFunctions(object, NativeGetStaticFunctions(ctx, object, staticFunctions.size(), staticFunctions.commit()));
+        }
+        if (hasParent) {
+            parentClass.getDefinition().afterInitializedCallback(ctx, object);
+        }
+        clearPrototypeChain(object);
+    }
+    private void clearStaticFunctions(long object) {
+        if (staticFunctions != null) {
+            staticFunctions.removeObject(object);
+        }
+    }
+
     public void JSObjectInitializeCallback(long ctx, long object) {
         if (hasParent) {
             parentClass.getDefinition().JSObjectInitializeCallback(ctx, object);
         }
         if (initialize != null) {
-            initialize.initialize(new JSContextRef(ctx), new JSObjectRef(object));
+            JSContextRef context = new JSContextRef(ctx);
+            initialize.initialize(context, new JSObjectRef(context, object));
         }
-        clearPrototypeChain(object);
     }
 
     public void JSObjectFinalizeCallback(long object) {
@@ -239,6 +256,7 @@ public class JSClassDefinition {
             }
         }
         clearPrototypeChain(object);
+        clearStaticFunctions(object);
     }
 
     private static HashMap<Long, JSClassDefinition> setPropertyChain = new HashMap<Long, JSClassDefinition>();
@@ -247,8 +265,8 @@ public class JSClassDefinition {
             return setPropertyChain.get(object).JSObjectSetPropertyCallback(ctx, object, propertyName, value, exception);
         }
         JSContextRef context = new JSContextRef(ctx);
-        if (setProperty != null && setProperty.setProperty(context, new JSObjectRef(object), propertyName,
-                                        new JSValueRef(context, value), new JSValueRef(context, exception))) {
+        if (setProperty != null && setProperty.setProperty(context, new JSObjectRef(context, object), propertyName,
+                                        new JSValueRef(context, value), new Pointer(exception))) {
             setPropertyChain.remove(object);
             return true;
         }
@@ -270,7 +288,7 @@ public class JSClassDefinition {
         }
         if (getProperty != null) {
             JSContextRef context = new JSContextRef(ctx);
-            JSValueRef prop = getProperty.getProperty(context, new JSObjectRef(object), propertyName, new JSValueRef(context, exception));
+            JSValueRef prop = getProperty.getProperty(context, new JSObjectRef(context, object), propertyName, new Pointer(exception));
             if (p(prop) != 0) {
                 getPropertyChain.remove(object);
                 return p(prop);
@@ -288,29 +306,53 @@ public class JSClassDefinition {
     }
 
     public long JSObjectCallAsFunctionCallback(long ctx, long func, long thisObject, int argc, ByteBuffer argv, long exception) {
-        if (staticFunctions != null && staticFunctions.contains(func)) {
-            JSObjectCallAsFunctionCallback staticFunction = staticFunctions.getFunction(func);
-            if (staticFunction != null) {
-                JSContextRef context = new JSContextRef(ctx);
-                JSValueArrayRef jargv = new JSValueArrayRef(argc, argv);
-                return p(staticFunction.callAsFunction(context, new JSObjectRef(func), new JSObjectRef(thisObject),
-                                        argc, jargv, new JSValueRef(context, exception)));
-            }
-        } else if (callAsFunction != null) {
+        if (callAsFunction != null) {
             JSContextRef context = new JSContextRef(ctx);
             JSValueArrayRef jargv = new JSValueArrayRef(argc, argv);
-            return p(callAsFunction.callAsFunction(context, new JSObjectRef(func), new JSObjectRef(thisObject),
-                                        argc, jargv, new JSValueRef(context, exception)));
+            return p(callAsFunction.callAsFunction(context, new JSObjectRef(context, func), new JSObjectRef(context, thisObject),
+                                        argc, jargv, new Pointer(exception)));
+        }
+        if (hasParent) {
+            return parentClass.getDefinition().JSObjectCallAsFunctionCallback(ctx, func, thisObject, argc, argv, exception);
         }
         return 0;
     }
 
+    public long JSObjectStaticFunctionCallback(long ctx, long func, long thisObject, int argc, ByteBuffer argv, long exception) {
+        if (staticFunctions != null) {
+            JSContextRef context = new JSContextRef(ctx);
+            JSValueArrayRef jargv = new JSValueArrayRef(argc, argv);
+            JSObjectCallAsFunctionCallback callback = staticFunctions.getFunction(thisObject, func);
+            if (callback != null) return p(callback.callAsFunction(context, new JSObjectRef(context, func),
+                                     new JSObjectRef(context, thisObject), argc, jargv, new Pointer(exception)));
+        }
+        if (hasParent) {
+            return parentClass.getDefinition().JSObjectStaticFunctionCallback(ctx, func, thisObject, argc, argv, exception);
+        }
+        return 0;
+    }
+
+    private static HashMap<Long, JSClassDefinition> callAsConstructorChain = new HashMap<Long, JSClassDefinition>();
     public long JSObjectCallAsConstructorCallback(long ctx, long constructor, int argc, ByteBuffer argv, long exception) {
+        if (callAsConstructorChain.containsKey(constructor) && !this.equals(callAsConstructorChain.get(constructor))) {
+            return callAsConstructorChain.get(constructor).JSObjectCallAsConstructorCallback(ctx, constructor, argc, argv, exception);
+        }
         if (callAsConstructor != null) {
             JSContextRef context = new JSContextRef(ctx);
             JSValueArrayRef jargv = new JSValueArrayRef(argc, argv);
-            return p(callAsConstructor.callAsConstructor(context, new JSObjectRef(constructor),
-                                           argc, jargv, new JSValueRef(context, exception)));
+            JSValueRef object = callAsConstructor.callAsConstructor(context, 
+                                            new JSObjectRef(context, constructor),
+                                             argc, jargv, new Pointer(exception));
+            callAsConstructorChain.remove(constructor);
+            return p(object);
+        }
+        if (hasParent) {
+            callAsConstructorChain.put(constructor, parentClass.getDefinition());
+            if (callAsConstructor == null) {
+                return JSObjectCallAsConstructorCallback(ctx, constructor, argc, argv, exception);
+            }
+        } else {
+            callAsConstructorChain.remove(constructor);
         }
         return 0;
     }
@@ -322,7 +364,7 @@ public class JSClassDefinition {
         }
         if (convertToType != null) {
             JSContextRef context = new JSContextRef(ctx);
-            JSValueRef prop = convertToType.convertToType(context, new JSObjectRef(object), JSType.request(type), new JSValueRef(context, exception));
+            JSValueRef prop = convertToType.convertToType(context, new JSObjectRef(context, object), JSType.request(type), new Pointer(exception));
             if (p(prop) != 0) {
                 convertToTypeChain.remove(object);
                 return p(prop);
@@ -345,7 +387,7 @@ public class JSClassDefinition {
             return deletePropertyChain.get(object).JSObjectDeletePropertyCallback(ctx, object, name, exception);
         }
         JSContextRef context = new JSContextRef(ctx);
-        if (deleteProperty != null && deleteProperty.deleteProperty(new JSContextRef(ctx), new JSObjectRef(object), name, new JSValueRef(context, exception))) {
+        if (deleteProperty != null && deleteProperty.deleteProperty(context, new JSObjectRef(context, object), name, new Pointer(exception))) {
             deletePropertyChain.remove(object);
             return true;
         }
@@ -367,7 +409,8 @@ public class JSClassDefinition {
             return;
         }
         if (getPropertyNames != null) {
-            getPropertyNames.getPropertyNames(new JSContextRef(ctx), new JSObjectRef(object),
+            JSContextRef context = new JSContextRef(ctx);
+            getPropertyNames.getPropertyNames(context, new JSObjectRef(context, object),
                                               new JSPropertyNameAccumulatorRef(propertyNames));
         }
         if (hasParent) {
@@ -382,11 +425,24 @@ public class JSClassDefinition {
         return;
     }
 
+    private static HashMap<Long, JSClassDefinition> hasInstanceChain = new HashMap<Long, JSClassDefinition>();
     public boolean JSObjectHasInstanceCallback(long ctx, long constructor, long possibleInstance, long exception) {
-        if (hasInstance != null) {
-            JSContextRef context = new JSContextRef(ctx);
-            return hasInstance.hasInstance(context, new JSObjectRef(constructor),
-                                     new JSValueRef(context, possibleInstance), new JSValueRef(context, exception));
+        if (hasInstanceChain.containsKey(constructor) && !this.equals(hasInstanceChain.get(constructor))) {
+            return hasInstanceChain.get(constructor).JSObjectHasInstanceCallback(ctx, constructor, possibleInstance, exception);
+        }
+        JSContextRef context = new JSContextRef(ctx);
+        if (hasInstance != null && hasInstance.hasInstance(context, new JSObjectRef(context, constructor),
+                                            new JSValueRef(context, possibleInstance), new Pointer(exception))) {
+            hasInstanceChain.remove(constructor);
+            return true;
+        }
+        if (hasParent) {
+            hasInstanceChain.put(constructor, parentClass.getDefinition());
+            if (hasInstance == null) {
+                return JSObjectHasInstanceCallback(ctx, constructor, possibleInstance, exception);
+            }
+        } else {
+            hasInstanceChain.remove(constructor);
         }
         return false;
     }
@@ -396,7 +452,8 @@ public class JSClassDefinition {
         if (hasPropertyChain.containsKey(object) && !this.equals(hasPropertyChain.get(object))) {
             return hasPropertyChain.get(object).JSObjectHasPropertyCallback(ctx, object, name);
         }
-        if (hasProperty != null && hasProperty.hasProperty(new JSContextRef(ctx), new JSObjectRef(object), name)) {
+        JSContextRef context = new JSContextRef(ctx);
+        if (hasProperty != null && hasProperty.hasProperty(context, new JSObjectRef(context, object), name)) {
             hasPropertyChain.remove(object);
             return true;
         }
@@ -418,8 +475,8 @@ public class JSClassDefinition {
                 return false;
             }
             JSContextRef context = new JSContextRef(ctx);
-            return callback.setProperty(context, new JSObjectRef(object), propertyName,
-                new JSValueRef(context, value), new JSValueRef(context, exception));
+            return callback.setProperty(context, new JSObjectRef(context, object), propertyName,
+                new JSValueRef(context, value), new Pointer(exception));
         }
         return false;
     }
@@ -431,8 +488,8 @@ public class JSClassDefinition {
                 return 0;
             }
             JSContextRef context = new JSContextRef(ctx);
-            return p(callback.getProperty(context, new JSObjectRef(object),
-                        propertyName, new JSValueRef(context, exception)));
+            return p(callback.getProperty(context, new JSObjectRef(context, object),
+                        propertyName, new Pointer(exception)));
         }
         return 0;
     }
@@ -457,6 +514,10 @@ public class JSClassDefinition {
         copy.hasInstance = this.hasInstance;
         copy.convertToType = this.convertToType;
         return copy;
+    }
+
+    public void enableConstructor() {
+        this.forceCallAsConstructor = true;
     }
 
     private void constructBufferTemplate() {
@@ -511,4 +572,5 @@ public class JSClassDefinition {
     }
 
     private static native ByteBuffer NativeGetClassDefinitionTemplate();
+    private native long[] NativeGetStaticFunctions(long context, long object, int size, ByteBuffer functions);
 }
