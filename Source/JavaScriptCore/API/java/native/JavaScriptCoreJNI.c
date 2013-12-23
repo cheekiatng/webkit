@@ -108,6 +108,7 @@ jmethodID jmethodId_JSObjectSetStaticValueCallback = NULL;
 jmethodID jmethodId_JSObjectGetPropertyCallback = NULL;
 jmethodID jmethodId_JSObjectSetPropertyCallback = NULL;
 jmethodID jmethodId_JSObjectCallAsConstructorCallback = NULL;
+jmethodID jmethodId_JSObjectMakeConstructorCallback = NULL;
 jmethodID jmethodId_JSObjectCallAsFunctionCallback = NULL;
 jmethodID jmethodId_JSObjectConvertToTypeCallback = NULL;
 jmethodID jmethodId_JSObjectDeletePropertyCallback = NULL;
@@ -166,6 +167,9 @@ static bool CacheClassDefinitionCallbackMethods(JNIEnv* env, jclass callbackClas
                 env, callbackClass, "JSObjectHasInstanceCallback", "(JJJJ)Z");
         jmethodId_JSObjectHasPropertyCallback = (*env)->GetMethodID(
                 env, callbackClass, "JSObjectHasPropertyCallback", "(JJLjava/lang/String;)Z");
+        jmethodId_JSObjectMakeConstructorCallback = (*env)->GetStaticMethodID(
+                    env, callbackClass, "JSObjectMakeConstructorCallback", "(JJILjava/nio/ByteBuffer;J)J");
+
     }
     return true;
 }
@@ -333,9 +337,26 @@ static JSObjectRef NativeCallback_JSObjectCallAsConstructorCallback(
         object = (JSObjectRef)(*env)->CallLongMethod(env, prv->callback,
                             jmethodId_JSObjectCallAsConstructorCallback,
                             (jlong)ctx, (jlong)constructor, (jint)argc, argvbuffer, (jlong)exception);
+    } else {
+        LOGD("Constructor callback does not found for %lu", (long)constructor);
     }
     JNI_ENV_EXIT
 
+    return object;
+}
+static JSObjectRef NativeCallback_JSObjectMakeConstructorCallback(
+    JSContextRef ctx, JSObjectRef constructor,
+    size_t argc, const JSValueRef argv[], JSValueRef *exception)
+{
+    LOGD("JSObjectMakeConstructorCallback");
+    JSObjectRef object = NULL;
+    JNI_ENV_ENTER
+    jclass clazz = (*env)->FindClass(env, "com/appcelerator/javascriptcore/opaquetypes/JSClassDefinition");
+    jobject argvbuffer = argc > 0 ? (*env)->NewDirectByteBuffer(env, (void*)&argv[0], sizeof(long) * argc) : NULL;
+    object = (JSObjectRef)(*env)->CallStaticLongMethod(env, clazz,
+                                        jmethodId_JSObjectMakeConstructorCallback,
+                                        (jlong)ctx, (jlong)constructor, (jint)argc, argvbuffer, (jlong)exception);
+    JNI_ENV_EXIT
     return object;
 }
 
@@ -1536,6 +1557,15 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeFun
     }
 
     return (jlong)value;
+}
+
+JNIEXPORT jlong JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeConstructor
+    (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsClassRef, jobject callback, jboolean useCallback)
+{
+    LOGD("JSObjectMakeConstructor");
+    return (jlong)JSObjectMakeConstructor((JSContextRef)jsContextRef, (JSClassRef)jsClassRef,
+                                          NativeCallback_JSObjectMakeConstructorCallback);
 }
 
 JNIEXPORT jlongArray JNICALL

@@ -370,38 +370,37 @@ public class JavaScriptCoreLibrary {
         if (jsClass == null) {
             return new JSObjectRef(context, NativeJSObjectMake(p(context), 0, null, null, 0, object));
         } else {
-            JSClassDefinition definition = jsClass.getDefinition();
-            JSObjectRef newObject = new JSObjectRef(context, NativeJSObjectMake(p(context), p(jsClass),
-                            definition, definition.getStaticFunctions(), definition.getStaticFunctionCount(), object));
-            definition.afterInitializedCallback(p(context), p(newObject));
-            return newObject;
+            return JSObjectMakeWithDefinition(context, jsClass, jsClass.getDefinition(), object);
         }
+    }
+
+    private JSObjectRef JSObjectMakeWithDefinition(JSContextRef context, JSClassRef jsClass,
+                                                  JSClassDefinition definition, Object object) {
+        return new JSObjectRef(context, NativeJSObjectMake(p(context), p(jsClass),
+                        definition, definition.getStaticFunctions(), definition.getStaticFunctionCount(), object));
     }
 
     /**
      * Convenience method for creating a JavaScript constructor
      */
-    public JSObjectRef JSObjectMakeConstructor(JSContextRef context, JSClassRef jsClassToCopy,
+    public JSObjectRef JSObjectMakeConstructor(final JSContextRef context, final JSClassRef jsClass,
                                                JSObjectCallAsConstructorCallback callback) {
-        JSClassDefinition definition;
-        if (jsClassToCopy == null) {
-            definition = new JSClassDefinition();
-        } else {
-            definition = jsClassToCopy.getDefinition().copy();
-        }
-        definition.enableConstructor();
-        final JSClassRef jsClass = JSClassCreate(definition);
-        if (callback == null) {
+        final JSClassDefinition jsClassDefinition = jsClass == null ? null : jsClass.getDefinition().copy();
+        if (jsClass != null) {
+            jsClassDefinition.enableConstructor();
+            jsClassDefinition.commit();
             callback = new JSObjectCallAsConstructorCallback() {
                 public JSObjectRef callAsConstructor(JSContextRef ctx, JSObjectRef constructor,
-                    int argumentCount, JSValueArrayRef arguments, Pointer exception) {
-                    return JSObjectMake(ctx, jsClass);
+                                                     int argumentCount, JSValueArrayRef arguments,
+                                                     Pointer exception) {
+                    return JSObjectMakeWithDefinition(context, jsClass, jsClassDefinition, null);
                 }
             };
+            jsClassDefinition.callAsConstructor = callback;
         }
-        definition.callAsConstructor = callback;
-        JSObjectRef object = JSObjectMake(context, jsClass);
-        return object;
+        long constructor = NativeJSObjectMakeConstructor(p(context), p(jsClass), jsClassDefinition);
+        JSClassDefinition.registerMakeConstructorCallback(constructor, callback);
+        return new JSObjectRef(context, constructor);
     }
 
     /**
@@ -497,5 +496,5 @@ public class JavaScriptCoreLibrary {
     public native String NativeJSPropertyNameArrayGetNameAtIndex(long jsPropertyNameArrayRef, int index);
     public native void NativeJSPropertyNameArrayRelease(long jsPropertyNameArrayRef);
     public native long NativeJSPropertyNameArrayRetain(long jsPropertyNameArrayRef);
-
+    public native long NativeJSObjectMakeConstructor(long jsContextRef, long jsClassRef, JSClassDefinition definition);
 }

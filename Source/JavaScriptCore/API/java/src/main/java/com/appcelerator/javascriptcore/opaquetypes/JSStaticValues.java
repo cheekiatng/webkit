@@ -74,8 +74,16 @@ public class JSStaticValues {
 
     private void update(String name, int index, long addressForNames) {
         JavaScriptCoreLibrary.putLong(buffer, index, addressForNames);
-        JavaScriptCoreLibrary.putLong(buffer, index+LONG,  getterFunction);
-        JavaScriptCoreLibrary.putLong(buffer, index+LONG2, setterFunction);
+        if (getters.get(name) == null) {
+            JavaScriptCoreLibrary.putLong(buffer, index+LONG, 0);
+        } else {
+            JavaScriptCoreLibrary.putLong(buffer, index+LONG, getterFunction);
+        }
+        if (setters.get(name) == null) {
+            JavaScriptCoreLibrary.putLong(buffer, index+LONG2, 0);
+        } else {
+            JavaScriptCoreLibrary.putLong(buffer, index+LONG2, setterFunction);
+        }
         buffer.putInt(index +LONG3, attributes.get(name));
     }
 

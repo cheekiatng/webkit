@@ -104,8 +104,13 @@ public class JSStaticFunctions {
         }
         functionPointers.put(object, funcs);       
     }
+    
     public void removeObject(long object) {
         functionPointers.remove(object);
+    }
+
+    public boolean requestFunctions(long object) {
+        return !functionPointers.containsKey(object);
     }
 
     public JSObjectCallAsFunctionCallback getFunction(long object, long pointer) {

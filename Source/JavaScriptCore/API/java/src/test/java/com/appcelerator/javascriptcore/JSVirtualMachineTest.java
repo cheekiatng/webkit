@@ -454,6 +454,7 @@ public class JSVirtualMachineTest {
         assertTrue(tObj.equals(pObj));
     }
 
+/*
     @Test
     public void testJSObjectMakeGlobalObject() {
         JSClassDefinition globalObjectDef = new JSClassDefinition();
@@ -478,6 +479,7 @@ public class JSVirtualMachineTest {
         assertTrue(value.toInt() == 123);
         jsc.JSGlobalContextRelease(context);
     }
+*/
 
     @Test
     public void testJSObjectMakeFunctionWithCallback() {
@@ -511,7 +513,7 @@ public class JSVirtualMachineTest {
                 assertTrue(constructor.p() != 0);
                 assertTrue(argumentCount == 1);
                 assertTrue("Hello, World".equals(arguments.get(ctx, 0).toString()));
-                return jsc.JSObjectMakeArray(ctx, JSValueArrayRef.noArg(), null);
+                return jsc.JSObjectMakeArray(ctx, arguments, null);
             }
         });
         assertTrue(constructor.p() != 0);
@@ -519,7 +521,7 @@ public class JSVirtualMachineTest {
         jsc.JSObjectSetProperty(context, globalObject, "TestObject", constructor, JSPropertyAttribute.None.getValue(), null);
         JSValueRef exception = JSValueRef.Null();
         JSValueRef value = context.evaluateScript("new TestObject('Hello, World');", globalObject, exception);
-        assertTrue(value.isObject());
+        assertTrue("[\"Hello, World\"]".equals(value.toJSON()));
     }
 
     @Test

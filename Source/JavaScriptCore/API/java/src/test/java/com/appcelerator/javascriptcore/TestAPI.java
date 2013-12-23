@@ -425,8 +425,8 @@ public class  TestAPI {
         JSObjectRef myBadConstructor = jsc.JSObjectMakeConstructor(context, null, myBadConstructor_callAsConstructor);
         jsc.JSObjectSetProperty(context, globalObject, "MyBadConstructor", myBadConstructor, JSPropertyAttribute.None.getValue(), null);
         
-        assertTrue(jsc.JSObjectSetPrivate(myConstructor, 1));
-        assertTrue(jsc.JSObjectGetPrivate(myConstructor) != null);
+        assertTrue(!jsc.JSObjectSetPrivate(myConstructor, 1));
+        assertTrue(jsc.JSObjectGetPrivate(myConstructor) == null);
         
         string = "Base";
         JSObjectRef baseConstructor = jsc.JSObjectMakeConstructor(context, Base_class(context), null);

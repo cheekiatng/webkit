@@ -218,19 +218,13 @@ public class JSClassDefinition {
 
     }
 
-    /*
-     * afterInitializedCallback: Called just after JSObject is created by JSObjectMake.
-     * This is needed to search object properties because
-     * object properties are not actually initialized while 'initialize' callback
-     */
-    public void afterInitializedCallback(long ctx, long object) {
+    public void registerStaticFunctionCallback(long ctx, long object) {
         if (staticFunctions != null) {
             staticFunctions.registerFunctions(object, NativeGetStaticFunctions(ctx, object, staticFunctions.size(), staticFunctions.commit()));
         }
         if (hasParent) {
-            parentClass.getDefinition().afterInitializedCallback(ctx, object);
+            parentClass.getDefinition().registerStaticFunctionCallback(ctx, object);
         }
-        clearPrototypeChain(object);
     }
     private void clearStaticFunctions(long object) {
         if (staticFunctions != null) {
@@ -315,11 +309,14 @@ public class JSClassDefinition {
         if (hasParent) {
             return parentClass.getDefinition().JSObjectCallAsFunctionCallback(ctx, func, thisObject, argc, argv, exception);
         }
-        return 0;
+        throw new JavaScriptException(String.format("CallAsFunction callback does not found for %d", thisObject));
     }
 
     public long JSObjectStaticFunctionCallback(long ctx, long func, long thisObject, int argc, ByteBuffer argv, long exception) {
         if (staticFunctions != null) {
+            if (staticFunctions.requestFunctions(thisObject)) {
+                registerStaticFunctionCallback(ctx, thisObject);
+            }
             JSContextRef context = new JSContextRef(ctx);
             JSValueArrayRef jargv = new JSValueArrayRef(argc, argv);
             JSObjectCallAsFunctionCallback callback = staticFunctions.getFunction(thisObject, func);
@@ -329,7 +326,7 @@ public class JSClassDefinition {
         if (hasParent) {
             return parentClass.getDefinition().JSObjectStaticFunctionCallback(ctx, func, thisObject, argc, argv, exception);
         }
-        return 0;
+        throw new JavaScriptException(String.format("Static function callback does not found for %d", thisObject));
     }
 
     private static HashMap<Long, JSClassDefinition> callAsConstructorChain = new HashMap<Long, JSClassDefinition>();
@@ -354,7 +351,22 @@ public class JSClassDefinition {
         } else {
             callAsConstructorChain.remove(constructor);
         }
-        return 0;
+        throw new JavaScriptException(String.format("CallAsConstructor callback does not found for %d", constructor));
+    }
+
+    private static HashMap<Long, JSObjectCallAsConstructorCallback> constructorCallbacks = new HashMap<Long, JSObjectCallAsConstructorCallback>();
+    public static void registerMakeConstructorCallback(long constructor, JSObjectCallAsConstructorCallback callback) {
+        constructorCallbacks.put(constructor, callback);
+    }
+    public static long JSObjectMakeConstructorCallback(long ctx, long constructor, int argc, ByteBuffer argv, long exception) {
+        if (constructorCallbacks.containsKey(constructor)) {
+            JSContextRef context = new JSContextRef(ctx);
+            JSValueArrayRef jargv = new JSValueArrayRef(argc, argv);
+            return p(constructorCallbacks.get(constructor).callAsConstructor(
+                                            context, new JSObjectRef(context, constructor),
+                                            argc, jargv, new Pointer(exception)));
+        }
+        throw new JavaScriptException(String.format("CallAsConstructor callback does not found for %d", constructor));
     }
 
     private static HashMap<Long, JSClassDefinition> convertToTypeChain = new HashMap<Long, JSClassDefinition>();
@@ -478,6 +490,9 @@ public class JSClassDefinition {
             return callback.setProperty(context, new JSObjectRef(context, object), propertyName,
                 new JSValueRef(context, value), new Pointer(exception));
         }
+        if (hasParent) {
+            return parentClass.getDefinition().JSObjectSetStaticValueCallback(ctx, object, propertyName, value, exception);
+        }
         return false;
     }
 
@@ -491,7 +506,10 @@ public class JSClassDefinition {
             return p(callback.getProperty(context, new JSObjectRef(context, object),
                         propertyName, new Pointer(exception)));
         }
-        return 0;
+        if (hasParent) {
+            return parentClass.getDefinition().JSObjectGetStaticValueCallback(ctx, object, propertyName, exception);
+        }
+        throw new JavaScriptException(String.format("Static value '%s' callback does not found for %d", propertyName, object));
     }
 
     public JSClassDefinition copy() {
@@ -554,7 +572,7 @@ public class JSClassDefinition {
         }
     }
 
-    private long p(PointerType p) {
+    private static long p(PointerType p) {
         if (p == null) return 0;
         return p.pointer();
     }
