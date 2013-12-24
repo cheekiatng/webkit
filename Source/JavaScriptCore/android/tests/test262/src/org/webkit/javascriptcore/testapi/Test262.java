@@ -71,8 +71,8 @@ public class Test262 extends Activity
 	private boolean javaScriptThreadShouldContinueRunning;
 
 	private org.webkit.javascriptcore.test262.MemoryInfo myMemoryInfo;
-	private boolean isAdbEchoingEnabled = false;
-	private boolean isMemoryInfoLoggingEnabled = false;
+	private boolean isAdbEchoingEnabled = true;
+	private boolean isMemoryInfoLoggingEnabled = true;
 
 
 	public native boolean doInit(AssetManager java_asset_manager);
