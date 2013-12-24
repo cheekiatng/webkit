@@ -1,6 +1,9 @@
 package org.webkit.javascriptcore.test262;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+
 import android.os.Bundle;
 import android.os.Environment;
 import android.content.res.AssetManager;
@@ -8,6 +11,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Button;
+
 
 import android.view.KeyEvent;
 import android.view.View.OnKeyListener;
@@ -21,17 +25,17 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.io.InputStream;
-import java.io.BufferedInputStream;
+//import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.OutputStreamWriter;
-import java.io.FileOutputStream;
+//import java.io.Reader;
+//import java.io.OutputStreamWriter;
+//import java.io.FileOutputStream;
 import java.io.File;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 
-import java.text.DateFormat;
+//import java.text.DateFormat;
 import java.util.Date;
 import java.text.SimpleDateFormat;
 
@@ -72,6 +76,10 @@ public class Test262 extends Activity
 //	private OutputStreamWriter outputStreamWriter;
 	private File logFile;
 	private FileWriter logFileWriter;
+
+	private Thread javaScriptThread;
+	private boolean javaScriptThreadIsRunning;
+	private boolean javaScriptThreadShouldContinueRunning;
 
 	public native boolean doInit(AssetManager java_asset_manager);
 	public native void doPause();
@@ -338,12 +346,69 @@ for(int key : keys)
 		
 		Log.i("Test262", "calling onDestroy");
 		doDestroy();
+		javaScriptThreadShouldContinueRunning = false;
+		if(null != javaScriptThread && javaScriptThreadIsRunning)
+		{
+			// Note: A few of the tests can take a few minutes to run.
+			// There isn't a good way to interrupt the Javascript engine, so this will block.
+			// This will be noticable on relaunch.
+			// thread.stop() will crash the app.
+			// I'm a little tempted to call exit().
+			try
+			{
+				javaScriptThread.join();
+			}
+			catch(InterruptedException e)
+			{
+				Log.i("Test262", "Failed to join javaScriptThread");
+			}
+			
+			javaScriptThread = null;
+		}
 		
 		closeLogFile();
 		super.onDestroy();
 		Log.i("Test262", "finished calling onDestroy");		
 	}
 
+
+	@Override
+	public void onBackPressed()
+	{
+		if(javaScriptThreadIsRunning)
+		{
+			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			builder.setTitle("Exit Test262");
+			builder.setMessage("This will abort the current running test. Are you sure you want to exit?");
+
+			builder.setPositiveButton("Exit", new DialogInterface.OnClickListener()
+				{
+					@Override
+					public void onClick(DialogInterface dialog, int which)
+					{
+						dialog.dismiss();
+						finish();
+					}
+				}
+			);
+
+			builder.setNegativeButton("Stay", new DialogInterface.OnClickListener()
+				{
+					@Override
+					public void onClick(DialogInterface dialog, int which)
+					{
+						dialog.dismiss();
+					}
+				}
+			);
+			AlertDialog alert = builder.create();
+			alert.show();
+		}
+		else
+		{
+			finish();
+		}
+	}
 
 
     public void myClickHandler(View the_view)
@@ -392,7 +457,7 @@ for(int key : keys)
 
 	public String generateTimeStamp()
 	{
-		// docs say SimpleDataFormat is not thread safe.
+		// Docs say SimpleDataFormat is not thread safe. So I'm not caching this for reuse right now.
 		SimpleDateFormat simple_date_format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 		return simple_date_format.format(new Date());
 	}
@@ -417,10 +482,22 @@ for(int key : keys)
 			@Override
 			public void run()
 			{
+				javaScriptThreadIsRunning = true;
 				final String[] file_list = testFileList;
 //				for(int i=0; i < file_list.length; i++)
-				for(int i=0; i < numberOfTests; i++)
+				for(int i=0; i < 150; i++)
+				//for(int i=0; i < numberOfTests; i++)
 				{
+
+					if(!javaScriptThreadShouldContinueRunning)
+					{
+						break;
+					}
+					if(Thread.this.isInterrupted())
+					{
+						break;
+					}
+
 //					Log.v("Test262", file_list[i]);
 
 					final String current_file_name = file_list[i];
@@ -525,6 +602,9 @@ for(int key : keys)
 							Button submit_button = (Button)Test262.this.findViewById(R.id.submit_button);
 							submit_button.setEnabled(true);
 							closeLogFile();
+
+							javaScriptThreadIsRunning = false;
+							javaScriptThread = null;
 							
 
 						}
@@ -533,6 +613,8 @@ for(int key : keys)
 			}
 				
 		});
+		javaScriptThreadShouldContinueRunning = true;
+		javaScriptThread = thread;
 		thread.start();
 	}
 
