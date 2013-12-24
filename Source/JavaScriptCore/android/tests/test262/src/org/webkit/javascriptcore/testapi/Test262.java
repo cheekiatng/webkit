@@ -162,6 +162,8 @@ logFile = out_file;
 			return;
 		}
 
+		String memory_info_string = myMemoryInfo.createMemoryInfoStringForAll();
+
 		if(outputStreamWriter != null)
 		{
 			try
@@ -172,12 +174,17 @@ logFile = out_file;
 				outputStreamWriter.write(log_string);
 				outputStreamWriter.write("\n");
 
-				outputStreamWriter.write(myMemoryInfo.createMemoryInfoStringForAll());
+				outputStreamWriter.write(memory_info_string);
 			}
 			catch(IOException e)
 			{
 				e.printStackTrace(); 
 			}
+		}
+
+		if(isAdbEchoingEnabled)
+		{
+			Log.v("Test262", log_string + "\n" + memory_info_string);
 		}
 	}
 
