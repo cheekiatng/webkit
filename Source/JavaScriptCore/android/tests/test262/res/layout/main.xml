@@ -13,14 +13,14 @@
         android:onClick="myClickHandler">
 	</Button>
 
-	<EditText
-        android:id="@+id/input_text"
-		android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-		android:hint="Enter a script to evaluate such as: 2+2;"
-		android:inputType="textNoSuggestions|textMultiLine" 
-	>
-	</EditText>
+	<ProgressBar android:id="@+id/test_progress_bar"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+	android:text="Running tests..."
+	android:progress="1"
+	style="@android:style/Widget.Holo.ProgressBar.Horizontal"
+	android:indeterminate="false"
+    />
 
 	<TextView android:id="@+id/result_text"
     android:layout_width="fill_parent"

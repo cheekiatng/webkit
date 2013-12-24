@@ -13,12 +13,11 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Button;
+import android.widget.ProgressBar;
 
 
 import android.view.KeyEvent;
 import android.view.View.OnKeyListener;
-import android.widget.EditText;
-import android.widget.Toast;
 
 import java.io.IOException;
 import java.io.FileNotFoundException;
@@ -50,6 +49,10 @@ public class Test262 extends Activity
 		System.loadLibrary("Test262");
 	}
     
+	private TextView resultStatusLabel;
+	private Button runTestButton;
+	private ProgressBar testProgressBar;
+
 
 	private String testHarnessString;
 	private String[] testFileList;
@@ -57,7 +60,6 @@ public class Test262 extends Activity
 	private int numberOfFailedTests = 0;
 	
 	private long millisecondsStartBenchmark;
-	private EditText inputTextField;
 
 	private BufferedWriter outputStreamWriter;
 //	private OutputStreamWriter outputStreamWriter;
@@ -69,8 +71,8 @@ public class Test262 extends Activity
 	private boolean javaScriptThreadShouldContinueRunning;
 
 	private org.webkit.javascriptcore.test262.MemoryInfo myMemoryInfo;
-	private boolean isAdbEchoingEnabled = true;
-	private boolean isMemoryInfoLoggingEnabled = true;
+	private boolean isAdbEchoingEnabled = false;
+	private boolean isMemoryInfoLoggingEnabled = false;
 
 
 	public native boolean doInit(AssetManager java_asset_manager);
@@ -199,8 +201,12 @@ logFile = out_file;
 		myMemoryInfo = new org.webkit.javascriptcore.test262.MemoryInfo(activity_manager);
 
 			
-		// get EditText component
-		inputTextField = (EditText)findViewById(R.id.input_text);
+		// get the Progress Bar component from the XML layout
+		runTestButton = (Button)findViewById(R.id.submit_button);
+		testProgressBar = (ProgressBar)findViewById(R.id.test_progress_bar);
+		resultStatusLabel = (TextView)findViewById(R.id.result_text);
+		testProgressBar.setEnabled(false);
+
 		// addKeyListener();
 		//
 		//
@@ -222,11 +228,12 @@ logFile = out_file;
 
 		numberOfTests = file_list.length;
 		
-		TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
-//		result_text_view.setText("Total number of tests: " + file_list.length);
-		result_text_view.setText("Total number of tests: " + file_list.length + "\nExternal Storage Path " + external_path);
+		resultStatusLabel.setText("Total number of tests: " + file_list.length + "\nExternal Storage Path " + external_path);
 
 		writeMemoryInfoToLogFile("Memory at the end of onCreate");
+
+		testProgressBar.setMax(numberOfTests);
+
     }
 
 	/* Because AssetManager list() is unusable, this is a workaround.
@@ -326,27 +333,9 @@ logFile = out_file;
 		
 		Log.i("Test262", "calling onDestroy");
 		doDestroy();
-		javaScriptThreadShouldContinueRunning = false;
-		if(null != javaScriptThread && javaScriptThreadIsRunning)
-		{
-			// Note: A few of the tests can take a few minutes to run.
-			// There isn't a good way to interrupt the Javascript engine, so this will block.
-			// This will be noticable on relaunch.
-			// thread.stop() will crash the app.
-			// I'm a little tempted to call exit().
-			try
-			{
-				javaScriptThread.join();
-			}
-			catch(InterruptedException e)
-			{
-				Log.i("Test262", "Failed to join javaScriptThread");
-			}
-			
-			javaScriptThread = null;
-		}
-		
-		closeLogFile();
+
+		abortTests();
+
 		super.onDestroy();
 		Log.i("Test262", "finished calling onDestroy");		
 	}
@@ -359,7 +348,7 @@ logFile = out_file;
 		{
 			AlertDialog.Builder builder = new AlertDialog.Builder(this);
 			builder.setTitle("Exit Test262");
-			builder.setMessage("This will abort the current running test. Are you sure you want to exit?");
+			builder.setMessage("This will abort the current running tests. Are you sure you want to exit?");
 
 			builder.setPositiveButton("Exit", new DialogInterface.OnClickListener()
 				{
@@ -390,6 +379,30 @@ logFile = out_file;
 		}
 	}
 
+	public void abortTests()
+	{
+		javaScriptThreadShouldContinueRunning = false;
+		if(null != javaScriptThread && javaScriptThreadIsRunning)
+		{
+			// Note: A few of the tests can take a few minutes to run.
+			// There isn't a good way to interrupt the Javascript engine, so this will block.
+			// This will be noticable on relaunch.
+			// thread.stop() will crash the app.
+			// I'm a little tempted to call exit().
+			try
+			{
+				javaScriptThread.join();
+			}
+			catch(InterruptedException e)
+			{
+				Log.i("Test262", "Failed to join javaScriptThread");
+			}
+			
+			javaScriptThread = null;
+		}
+		
+		closeLogFile();
+	}
 
     public void myClickHandler(View the_view)
 	{
@@ -397,10 +410,47 @@ logFile = out_file;
 		{
 			case R.id.submit_button:
 			{
-				Button submit_button = (Button)Test262.this.findViewById(R.id.submit_button);
-				submit_button.setEnabled(false);
+				if(javaScriptThreadIsRunning)
+				{
+					AlertDialog.Builder builder = new AlertDialog.Builder(this);
+					builder.setTitle("Abort running tests?");
+					builder.setMessage("This will abort the current running tests. Are you sure you want to abort?");
 
-				startTests();
+					builder.setPositiveButton("Abort Tests", new DialogInterface.OnClickListener()
+						{
+							@Override
+							public void onClick(DialogInterface dialog, int which)
+							{
+								dialog.dismiss();
+								runTestButton.setEnabled(false);
+								abortTests();
+								runTestButton.setText(getApplicationContext().getString(R.string.submit_press));
+								runTestButton.setEnabled(true);
+								testProgressBar.setEnabled(false);
+								
+							}
+						}
+					);
+
+					builder.setNegativeButton("Continue Running", new DialogInterface.OnClickListener()
+						{
+							@Override
+							public void onClick(DialogInterface dialog, int which)
+							{
+								dialog.dismiss();
+							}
+						}
+					);
+					AlertDialog alert = builder.create();
+					alert.show();
+				}
+				else
+				{
+					// runTestButton.setEnabled(false);
+						
+					runTestButton.setText("Abort tests");
+					startTests();
+				}
 				break;
 			}
 			default:
@@ -454,6 +504,7 @@ logFile = out_file;
 			Log.i("Test262", "Log file could not be opened");
 		}
 		writeToLogFile("Starting tests");
+		testProgressBar.setEnabled(true);
 
 
 
@@ -465,6 +516,7 @@ logFile = out_file;
 				writeMemoryInfoToLogFile("Memory at the start of tests");
 				javaScriptThreadIsRunning = true;
 				final String[] file_list = testFileList;
+				int number_of_tests_run = 0;
 //				for(int i=0; i < file_list.length; i++)
 				for(int i=0; i < 150; i++)
 				//for(int i=0; i < numberOfTests; i++)
@@ -476,11 +528,22 @@ logFile = out_file;
 					}
 
 //					Log.v("Test262", file_list[i]);
-
+					final int current_test_index = i;
 					final String current_file_name = file_list[i];
 
 					writeMemoryInfoToLogFile("Memory at the beginning of loop[" + i + "] :" + current_file_name);
 					
+					runOnUiThread(new Runnable()
+					{
+						@Override
+						public void run()
+						{
+
+							testProgressBar.setProgress(current_test_index);
+							resultStatusLabel.setText("Running test " + current_test_index + " of " + numberOfTests + "\n" + current_file_name + "\nTotal failed: " + numberOfFailedTests);
+
+						}
+					});
 
 //		Log.i("Test262", "current_file_name: " + current_file_name + ".");
 					final String raw_test_script = loadFileIntoString(Test262.this.getAssets(), current_file_name);
@@ -507,7 +570,7 @@ logFile = out_file;
 
 					final boolean is_success = evaluateScript(full_script, current_file_name, return_data_object);
 					writeMemoryInfoToLogFile("Memory right after (JNI) execution of script " + current_file_name);
-					final int current_test_index = i;
+					number_of_tests_run = number_of_tests_run + 1;
 
 					// FIXME: This likely deserves a better check.
 					if(is_positive_test != is_success)
@@ -533,38 +596,25 @@ logFile = out_file;
 						writeToLogFile("Test passed: " + current_file_name);
 					}
 
+					/* // this will be updated soon enough in the next loop
 					runOnUiThread(new Runnable()
 					{
 						@Override
 						public void run()
 						{
 
-							/*
-								TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
-							result_text_view.setText(full_script);
-		EditText edit_text = (EditText)findViewById(R.id.input_text);
-							edit_text.setText(full_script);
-*/
-
-
-
-							// display a floating message
-//							Toast.makeText(Test262.this, resultString, Toast.LENGTH_LONG).show();
-
-							TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
-							result_text_view.setText("Running test " + current_test_index + " of " + numberOfTests + "\nTotal failed: " + numberOfFailedTests);
-
-//							Button submit_button = (Button)Test262.this.findViewById(R.id.submit_button);
-//							submit_button.setEnabled(true);
-							
-
+							testProgressBar.setProgress(current_test_index + 1);
+							resultStatusLabel.setText("Running test " + current_test_index + " of " + numberOfTests + "\n" + current_file_name + "\nTotal failed: " + numberOfFailedTests);
 						}
 					});
+					*/
 				}
 
 				final long total_execution_time_in_milliseconds = System.currentTimeMillis() - millisecondsStartBenchmark;
 				final double total_execution_time_in_seconds = total_execution_time_in_milliseconds / 1000.0;
-				final String completed_string = numberOfTests + " complete.\nTotal failed: " + numberOfFailedTests + "\nTotal execution time: " + total_execution_time_in_seconds + "seconds";
+				final String completed_string = "Tests completed: " + number_of_tests_run + " of " + numberOfTests + " run.\nTotal failed: " + numberOfFailedTests + "\nTotal execution time: " + total_execution_time_in_seconds + "seconds\n" 
+					+ Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "test262_runlog.txt";
+				final int final_number_of_tests_run = number_of_tests_run;
 				writeToLogFile(completed_string);
 
 				runOnUiThread(new Runnable()
@@ -574,20 +624,13 @@ logFile = out_file;
 						{
 							Log.i("Test262", "finished ");		
 
-							// display a floating message
-//							Toast.makeText(Test262.this, resultString, Toast.LENGTH_LONG).show();
-
-//							TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
-//							result_text_view.setText(resultString);
-
+							testProgressBar.setProgress(final_number_of_tests_run);
 							
-							TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
-							result_text_view.setText(completed_string);
+							resultStatusLabel.setText(completed_string);
 
 
-							Button submit_button = (Button)Test262.this.findViewById(R.id.submit_button);
-							submit_button.setEnabled(true);
-
+//							runTestButton.setEnabled(true);
+							runTestButton.setText(getApplicationContext().getString(R.string.submit_press));
 							
 
 						}
