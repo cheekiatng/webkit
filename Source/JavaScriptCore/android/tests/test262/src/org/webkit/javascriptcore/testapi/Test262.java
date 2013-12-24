@@ -1,6 +1,8 @@
 package org.webkit.javascriptcore.test262;
 
 import android.app.Activity;
+import android.app.ActivityManager;
+
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 
@@ -39,21 +41,6 @@ import java.io.FileWriter;
 import java.util.Date;
 import java.text.SimpleDateFormat;
 
-//import android.media.MediaScannerConnection;
-import android.app.ActivityManager;
-//import android.app.ActivityManager.MemoryInfo;
-//import android.os.Debug.MemoryInfo;
-import android.os.Debug;
-
-import java.util.List; 
-import java.util.TreeMap;
-import java.util.Map;
-import java.util.Collection;
-
-import android.app.ActivityManager.RunningAppProcessInfo;
-import android.os.Process;
-
-
 
 public class Test262 extends Activity
 {
@@ -80,6 +67,11 @@ public class Test262 extends Activity
 	private Thread javaScriptThread;
 	private boolean javaScriptThreadIsRunning;
 	private boolean javaScriptThreadShouldContinueRunning;
+
+	private org.webkit.javascriptcore.test262.MemoryInfo myMemoryInfo;
+	private boolean isAdbEchoingEnabled = true;
+	private boolean isMemoryInfoLoggingEnabled = true;
+
 
 	public native boolean doInit(AssetManager java_asset_manager);
 	public native void doPause();
@@ -141,14 +133,13 @@ logFile = out_file;
 	
 	private void writeToLogFile(String log_string)
 	{
-//		Log.i("Test262", "entered writeToLogFile " + log_string);
-		
 		if(outputStreamWriter != null)
 		{
 			try
 			{
-//		Log.i("Test262", "try writeToLogFile " + log_string);
-				
+				outputStreamWriter.write(generateTimeStamp());
+				outputStreamWriter.write(" Test262: ");
+
 				outputStreamWriter.write(log_string);
 				outputStreamWriter.write("\n");
 			}
@@ -156,7 +147,37 @@ logFile = out_file;
 			{
 				e.printStackTrace(); 
 			}
+		}
 
+		if(isAdbEchoingEnabled)
+		{
+			Log.v("Test262", log_string);
+		}
+	}
+
+	private void writeMemoryInfoToLogFile(String log_string)
+	{
+		if(!isMemoryInfoLoggingEnabled)
+		{
+			return;
+		}
+
+		if(outputStreamWriter != null)
+		{
+			try
+			{
+				outputStreamWriter.write(generateTimeStamp());
+				outputStreamWriter.write(" Test262: ");
+
+				outputStreamWriter.write(log_string);
+				outputStreamWriter.write("\n");
+
+				outputStreamWriter.write(myMemoryInfo.createMemoryInfoStringForAll());
+			}
+			catch(IOException e)
+			{
+				e.printStackTrace(); 
+			}
 		}
 	}
 
@@ -166,6 +187,11 @@ logFile = out_file;
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
+
+		ActivityManager activity_manager = (ActivityManager)this.getSystemService(ACTIVITY_SERVICE);
+		myMemoryInfo = new org.webkit.javascriptcore.test262.MemoryInfo(activity_manager);
+
+			
 		// get EditText component
 		inputTextField = (EditText)findViewById(R.id.input_text);
 		// addKeyListener();
@@ -193,60 +219,7 @@ logFile = out_file;
 //		result_text_view.setText("Total number of tests: " + file_list.length);
 		result_text_view.setText("Total number of tests: " + file_list.length + "\nExternal Storage Path " + external_path);
 
-		openLogFile();
-		writeToLogFile("Message1");
-		writeToLogFile("Message2");
-		closeLogFile();
-
-
-		Runtime rt = Runtime.getRuntime();
-Log.d("Test262", 
-	String.format("maxMemory:%d, freeMemory:%d,totalMemory:%d, allocatedMemory:%d, nativeHeapAllocated:%d, nativeHeap:%d,", 
-		rt.maxMemory(),
-		rt.freeMemory(),
-		rt.totalMemory(),
-		rt.totalMemory() - rt.freeMemory(),
-		android.os.Debug.getNativeHeapAllocatedSize(),
-		android.os.Debug.getNativeHeapSize()
-	)
-);
-
-ActivityManager activityManager = (ActivityManager)this.getSystemService(ACTIVITY_SERVICE);
-ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
-activityManager.getMemoryInfo(memoryInfo);
-
-
-Log.i("Test262", " memoryInfo.availMem " + memoryInfo.availMem + "\n" );
-Log.i("Test262", " memoryInfo.lowMemory " + memoryInfo.lowMemory + "\n" );
-Log.i("Test262", " memoryInfo.threshold " + memoryInfo.threshold + "\n" );
-
-int my_pid = android.os.Process.myPid();
-
-
-List<RunningAppProcessInfo> runningAppProcesses = activityManager.getRunningAppProcesses();
-
-Map<Integer, String> pidMap = new TreeMap<Integer, String>();
-for (RunningAppProcessInfo runningAppProcessInfo : runningAppProcesses)
-{
-    pidMap.put(runningAppProcessInfo.pid, runningAppProcessInfo.processName);
-}
-Collection<Integer> keys = pidMap.keySet();
-
-for(int key : keys)
-{
-    int pids[] = new int[1];
-    pids[0] = key;
-    android.os.Debug.MemoryInfo[] memoryInfoArray = activityManager.getProcessMemoryInfo(pids);
-    for(android.os.Debug.MemoryInfo pidMemoryInfo: memoryInfoArray)
-    {
-        Log.i("Test262", String.format("** MEMINFO in pid %d [%s] **\n",pids[0],pidMap.get(pids[0])));
-        Log.i("Test262", " pidMemoryInfo.getTotalPrivateDirty(): " + pidMemoryInfo.getTotalPrivateDirty() + "\n");
-        Log.i("Test262", " pidMemoryInfo.getTotalPss(): " + pidMemoryInfo.getTotalPss() + "\n");
-        Log.i("Test262", " pidMemoryInfo.getTotalSharedDirty(): " + pidMemoryInfo.getTotalSharedDirty() + "\n");
-    }
-}
-        Log.i("Test262", "my pid: " + my_pid);
-
+		writeMemoryInfoToLogFile("Memory at the end of onCreate");
     }
 
 	/* Because AssetManager list() is unusable, this is a workaround.
@@ -473,7 +446,7 @@ for(int key : keys)
 		{
 			Log.i("Test262", "Log file could not be opened");
 		}
-		writeToLogFile(generateTimeStamp() + " Test262: Starting tests");
+		writeToLogFile("Starting tests");
 
 
 
@@ -482,6 +455,7 @@ for(int key : keys)
 			@Override
 			public void run()
 			{
+				writeMemoryInfoToLogFile("Memory at the start of tests");
 				javaScriptThreadIsRunning = true;
 				final String[] file_list = testFileList;
 //				for(int i=0; i < file_list.length; i++)
@@ -493,14 +467,14 @@ for(int key : keys)
 					{
 						break;
 					}
-					if(Thread.this.isInterrupted())
-					{
-						break;
-					}
 
 //					Log.v("Test262", file_list[i]);
 
 					final String current_file_name = file_list[i];
+
+					writeMemoryInfoToLogFile("Memory at the beginning of loop[" + i + "] :" + current_file_name);
+					
+
 //		Log.i("Test262", "current_file_name: " + current_file_name + ".");
 					final String raw_test_script = loadFileIntoString(Test262.this.getAssets(), current_file_name);
 //		Log.i("Test262", "raw_test_script: " + raw_test_script);
@@ -521,10 +495,36 @@ for(int key : keys)
 
 					final ReturnDataObject return_data_object = new ReturnDataObject();
 //		Log.i("Test262", "calling into C");
-					writeToLogFile(generateTimeStamp() + " Test262: Evaluating Script: " + current_file_name);
+					writeToLogFile("Evaluating Script: " + current_file_name);
+					writeMemoryInfoToLogFile("Memory right before (JNI) execution of script " + current_file_name);
 
 					final boolean is_success = evaluateScript(full_script, current_file_name, return_data_object);
+					writeMemoryInfoToLogFile("Memory right after (JNI) execution of script " + current_file_name);
 					final int current_test_index = i;
+
+					// FIXME: This likely deserves a better check.
+					if(is_positive_test != is_success)
+					{
+						numberOfFailedTests = numberOfFailedTests + 1;
+
+//
+//                    			this.failedTests.Add(result);
+						if(is_success && !is_positive_test)
+						{
+//									Log.i("Test262", "Test failed: (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);		
+							writeToLogFile("Test failed: (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
+						}
+						else
+						{
+//									Log.i("Test262", "Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
+							writeToLogFile("Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
+						}
+					}
+					else
+					{
+//								Log.i("Test262", "Test passed: " + current_file_name);
+						writeToLogFile("Test passed: " + current_file_name);
+					}
 
 					runOnUiThread(new Runnable()
 					{
@@ -539,29 +539,7 @@ for(int key : keys)
 							edit_text.setText(full_script);
 */
 
-							// FIXME: This likely deserves a better check.
-							if(is_positive_test != is_success)
-							{
-								numberOfFailedTests = numberOfFailedTests + 1;
 
-//
-//                    			this.failedTests.Add(result);
-								if(is_success && !is_positive_test)
-								{
-									Log.i("Test262", "Test failed: (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);		
-									writeToLogFile(generateTimeStamp() + " Test262: Test failed: (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
-								}
-								else
-								{
-									Log.i("Test262", "Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
-									writeToLogFile(generateTimeStamp() + " Test262: Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
-								}
-							}
-							else
-							{
-//								Log.i("Test262", "Test passed: " + current_file_name);
-								writeToLogFile(generateTimeStamp() + " Test262: Test passed: " + current_file_name);
-							}
 
 							// display a floating message
 //							Toast.makeText(Test262.this, resultString, Toast.LENGTH_LONG).show();
@@ -577,6 +555,11 @@ for(int key : keys)
 					});
 				}
 
+				final long total_execution_time_in_milliseconds = System.currentTimeMillis() - millisecondsStartBenchmark;
+				final double total_execution_time_in_seconds = total_execution_time_in_milliseconds / 1000.0;
+				final String completed_string = numberOfTests + " complete.\nTotal failed: " + numberOfFailedTests + "\nTotal execution time: " + total_execution_time_in_seconds + "seconds";
+				writeToLogFile(completed_string);
+
 				runOnUiThread(new Runnable()
 					{
 						@Override
@@ -591,24 +574,25 @@ for(int key : keys)
 //							result_text_view.setText(resultString);
 
 							
-							long total_execution_time_in_milliseconds = System.currentTimeMillis() - millisecondsStartBenchmark;
-							double total_execution_time_in_seconds = total_execution_time_in_milliseconds / 1000.0;
 							TextView result_text_view = (TextView)Test262.this.findViewById(R.id.result_text);
-							result_text_view.setText(numberOfTests + "complete.\nTotal failed: " + numberOfFailedTests + "\nTotal execution time: " + total_execution_time_in_seconds + "seconds\nadb pull " + Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "test262_runlog.txt");
-
-
+							result_text_view.setText(completed_string);
 
 
 							Button submit_button = (Button)Test262.this.findViewById(R.id.submit_button);
 							submit_button.setEnabled(true);
-							closeLogFile();
 
-							javaScriptThreadIsRunning = false;
-							javaScriptThread = null;
 							
 
 						}
-					});
+					}
+				);
+
+				writeMemoryInfoToLogFile("Memory at the end of tests");
+
+				closeLogFile();
+
+				javaScriptThreadIsRunning = false;	
+				javaScriptThread = null;
 
 			}
 				
