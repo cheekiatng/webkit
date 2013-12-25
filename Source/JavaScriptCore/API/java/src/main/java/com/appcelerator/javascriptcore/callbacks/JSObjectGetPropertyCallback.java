@@ -7,10 +7,7 @@ import com.appcelerator.javascriptcore.opaquetypes.Pointer;
 import com.appcelerator.javascriptcore.opaquetypes.Pointer;
 
 /**
- * The callback invoked when getting a property's value. If you named your
- * function GetProperty, you would declare it like this:
- * 
- * {@code JSValueRef GetProperty(JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception);}
+ * The callback invoked when getting a property's value.
  * 
  * If this function returns NULL, the get request forwards to object's
  * statically declared properties, then its parent class chain (which includes

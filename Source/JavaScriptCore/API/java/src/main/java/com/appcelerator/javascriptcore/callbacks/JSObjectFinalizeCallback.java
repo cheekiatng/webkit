@@ -4,10 +4,7 @@ import com.appcelerator.javascriptcore.opaquetypes.JSObjectRef;
 
 /**
  * The callback invoked when an object is finalized (prepared for garbage
- * collection). An object may be finalized on any thread. If you named your
- * function Finalize, you would declare it like this:
- * 
- * {@code void Finalize(JSObjectRef object);}
+ * collection). An object may be finalized on any thread.
  * 
  * The finalize callback is called on the most derived class first, and the
  * least derived class (the parent class) last. You must not call any function

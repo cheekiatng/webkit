@@ -18,9 +18,8 @@ public class JSStaticFunctions {
     private static final short LONG2 = (short)(LONG * 2);
     private static final short CHUNK = JavaScriptCoreLibrary.SizeOfJSStaticFunction;
 
-    private List<String> names = new ArrayList<String>();
-    private HashMap<String, JSObjectCallAsFunctionCallback> functions = new HashMap<String, JSObjectCallAsFunctionCallback>();
-    private HashMap<String, Integer> attributes = new HashMap<String, Integer>();
+    private List<String> namesCache = new ArrayList<String>();
+    private HashMap<String, JSStaticFunction> functions = new HashMap<String, JSStaticFunction>();
 
     private static final ByteOrder nativeOrder = ByteOrder.nativeOrder();
     private static ByteBuffer bufferTemplate = null;
@@ -43,11 +42,11 @@ public class JSStaticFunctions {
      */
     public ByteBuffer commit() {
         if (!frozen) {
-            int size = attributes.size();
+            int size = namesCache.size();
             buffer = ByteBuffer.allocateDirect(CHUNK * (size + 1)).order(nativeOrder);
-            addressForNames = JavaScriptCoreLibrary.NativeAllocateCharacterBuffer(names.toArray(new String[size]));
+            addressForNames = JavaScriptCoreLibrary.NativeAllocateCharacterBuffer(namesCache.toArray(new String[size]));
             for (int i = 0; i < size; i++) {
-                update(names.get(i), i * CHUNK, addressForNames[i]);
+                update(namesCache.get(i), i * CHUNK, addressForNames[i]);
             }
             updateLast(size);
             frozen = true;
@@ -57,12 +56,13 @@ public class JSStaticFunctions {
 
     private void update(String name, int index, long addressForNames) {
         JavaScriptCoreLibrary.putLong(buffer, index, addressForNames);
-        if (functions.get(name) == null) {
+        JSStaticFunction function = functions.get(name);
+        if (function.callback == null) {
             JavaScriptCoreLibrary.putLong(buffer, index+LONG, 0);
         } else {
             JavaScriptCoreLibrary.putLong(buffer, index+LONG, callAsFunction);
         }
-        buffer.putInt(index +LONG2, attributes.get(name));
+        buffer.putInt(index +LONG2, function.attributes);
     }
 
     private void updateLast(int last) {
@@ -74,25 +74,24 @@ public class JSStaticFunctions {
 
     public void dispose() {
         functionPointers.clear();
+        functionPointers = null;
         bufferTemplate.clear();
         bufferTemplate = null;
-        buffer.clear();
+        if (buffer != null) buffer.clear();
         buffer = null;
-        names  = null;
+        namesCache  = null;
         functions = null;
-        attributes = null;
-        JavaScriptCoreLibrary.NativeReleasePointers(addressForNames);
+        if (addressForNames != null) JavaScriptCoreLibrary.NativeReleasePointers(addressForNames);
     }
 
     public int size() {
-        return names.size();
+        return functions.size();
     }
     
     public void add(String name, JSObjectCallAsFunctionCallback callback, int attrs) {
         if (frozen) throw new JavaScriptException("No changes can be done after commit()");
-        if (callback != null) functions.put(name, callback);
-        attributes.put(name, attrs);
-        names.add(name);
+        functions.put(name, new JSStaticFunction(callback, attrs));
+        namesCache.add(name);
     }
 
     private HashMap<Long, ArrayList<Long>> functionPointers = new HashMap<Long, ArrayList<Long>>();
@@ -117,7 +116,16 @@ public class JSStaticFunctions {
         if (!functionPointers.containsKey(object)) return null;
         int index = functionPointers.get(object).indexOf(pointer);
         if (index < 0) return null;
-        return functions.get(names.get(index));
+        return functions.get(namesCache.get(index)).callback;
+    }
+
+    private class JSStaticFunction {
+        public JSObjectCallAsFunctionCallback callback;
+        public int attributes;
+        public JSStaticFunction(JSObjectCallAsFunctionCallback callback, int attributes) {
+            this.callback = callback;
+            this.attributes = attributes;
+        }        
     }
 
     private static native ByteBuffer NativeGetStaticFunctionTemplate();

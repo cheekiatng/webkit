@@ -8,10 +8,7 @@ import com.appcelerator.javascriptcore.opaquetypes.Pointer;
 
 /**
  * The callback invoked when an object is used as a constructor in a 'new'
- * expression. If you named your function CallAsConstructor, you would declare
- * it like this:
- * 
- * {@code JSObjectRef CallAsConstructor(JSContextRef ctx, JSObjectRef constructor, size_t argumentCount, const JSValueRef arguments[], JSValueRef exception);}
+ * expression.
  * 
  * If your callback were invoked by the JavaScript expression 'new
  * myConstructor()', constructor would be set to myConstructor. If this callback

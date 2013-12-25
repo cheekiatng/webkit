@@ -4,10 +4,7 @@ import com.appcelerator.javascriptcore.opaquetypes.JSContextRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSObjectRef;
 
 /**
- * The callback invoked when determining whether an object has a property. If
- * you named your function HasProperty, you would declare it like this:
- * 
- * {@code boolean HasProperty(JSContextRef ctx, JSObjectRef object, JSStringRef propertyName);}
+ * The callback invoked when determining whether an object has a property.
  * 
  * If this function returns false, the hasProperty request forwards to object's
  * statically declared properties, then its parent class chain (which includes

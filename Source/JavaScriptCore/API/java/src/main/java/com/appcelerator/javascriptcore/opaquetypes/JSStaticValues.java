@@ -26,13 +26,9 @@ public class JSStaticValues {
 
     private ByteBuffer buffer = null;
     private long[] addressForNames;
-
-    private ArrayList<String> names = new ArrayList<String>();
-    private HashMap<String, JSObjectGetPropertyCallback> getters = new HashMap<String, JSObjectGetPropertyCallback>();
-    private HashMap<String, JSObjectSetPropertyCallback> setters = new HashMap<String, JSObjectSetPropertyCallback>();
-    private HashMap<String, Integer> attributes = new HashMap<String, Integer>();
-
     private boolean frozen = false;
+    private HashMap<String, JSStaticValue> values = new HashMap<String, JSStaticValue>();
+    private ArrayList<String> namesCache = new ArrayList<String>();
 
     public JSStaticValues() {
         if (bufferTemplate == null) {
@@ -48,14 +44,15 @@ public class JSStaticValues {
      */
     public ByteBuffer commit() {
         if (!frozen) {
-            int size = attributes.size();
+            int size = namesCache.size();
             buffer = ByteBuffer.allocateDirect(CHUNK * (size + 1)).order(nativeOrder);
-            addressForNames = JavaScriptCoreLibrary.NativeAllocateCharacterBuffer(names.toArray(new String[size]));
+            addressForNames = JavaScriptCoreLibrary.NativeAllocateCharacterBuffer(namesCache.toArray(new String[size]));
             for (int i = 0; i < size; i++) {
-                update(names.get(i), i * CHUNK, addressForNames[i]);
+                update(namesCache.get(i), i * CHUNK, addressForNames[i]);
             }
             updateLast(size);
             frozen = true;
+            namesCache.clear(); // won't use this after commit
         }
         return buffer;
     }
@@ -63,28 +60,26 @@ public class JSStaticValues {
     public void dispose() {
         bufferTemplate.clear();
         bufferTemplate = null;
-        buffer.clear();
+        if (buffer != null) buffer.clear();
         buffer = null;
-        names = null;
-        getters = null;
-        setters = null;
-        attributes = null;
-        JavaScriptCoreLibrary.NativeReleasePointers(addressForNames);
+        namesCache = null;
+        values = null;
+        if (addressForNames != null) JavaScriptCoreLibrary.NativeReleasePointers(addressForNames);
     }
 
     private void update(String name, int index, long addressForNames) {
         JavaScriptCoreLibrary.putLong(buffer, index, addressForNames);
-        if (getters.get(name) == null) {
+        if (values.get(name).getter == null) {
             JavaScriptCoreLibrary.putLong(buffer, index+LONG, 0);
         } else {
             JavaScriptCoreLibrary.putLong(buffer, index+LONG, getterFunction);
         }
-        if (setters.get(name) == null) {
+        if (values.get(name).setter == null) {
             JavaScriptCoreLibrary.putLong(buffer, index+LONG2, 0);
         } else {
             JavaScriptCoreLibrary.putLong(buffer, index+LONG2, setterFunction);
         }
-        buffer.putInt(index +LONG3, attributes.get(name));
+        buffer.putInt(index +LONG3, values.get(name).attributes);
     }
 
     private void updateLast(int last) {
@@ -96,28 +91,41 @@ public class JSStaticValues {
     }
 
     public boolean containsGetter(String name) {
-        return getters.containsKey(name);
+        return values.containsKey(name);
     }
 
     public boolean containsSetter(String name) {
-        return setters.containsKey(name);
+        return values.containsKey(name);
     }
 
     public void add(String name, JSObjectGetPropertyCallback getter, JSObjectSetPropertyCallback setter, int attrs) {
-        if (frozen) throw new JavaScriptException("No changes can be done after commit()");
-        if (getter != null) getters.put(name, getter);
-        if (setter != null) setters.put(name, setter);
-        attributes.put(name, attrs);
-        names.add(name);
+        if (frozen) {
+            throw new JavaScriptException("No changes can be done after commit()");
+        }
+        values.put(name, new JSStaticValue(getter, setter, attrs));
+        namesCache.add(name);
     }
 
     public JSObjectGetPropertyCallback getGetPropertyCallback(String name) {
-        return getters.get(name);
+        return values.get(name).getter;
 
     }
 
     public JSObjectSetPropertyCallback getSetPropertyCallback(String name) {
-        return setters.get(name);
+        return values.get(name).setter;
+    }
+
+
+    private class JSStaticValue {
+        public JSObjectGetPropertyCallback getter;
+        public JSObjectSetPropertyCallback setter;
+        public int attributes;
+        public JSStaticValue(JSObjectGetPropertyCallback getter,
+                             JSObjectSetPropertyCallback setter, int attributes) {
+            this.getter = getter;
+            this.setter = setter;
+            this.attributes = attributes;
+        }
     }
 
     private static native ByteBuffer NativeGetStaticValueTemplate();

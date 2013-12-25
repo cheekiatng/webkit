@@ -5,10 +5,7 @@ import com.appcelerator.javascriptcore.opaquetypes.JSObjectRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSPropertyNameAccumulatorRef;
 
 /**
- * The callback invoked when collecting the names of an object's properties. If
- * you named your function GetPropertyNames, you would declare it like this:
- * 
- * {@code void GetPropertyNames(JSContextRef ctx, JSObjectRef object, JSPropertyNameAccumulatorRef propertyNames);}
+ * The callback invoked when collecting the names of an object's properties.
  * 
  * Property name accumulators are used by JSObjectCopyPropertyNames and
  * JavaScript for...in loops.

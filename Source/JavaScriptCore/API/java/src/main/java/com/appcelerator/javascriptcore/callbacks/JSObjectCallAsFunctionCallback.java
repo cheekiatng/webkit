@@ -7,10 +7,7 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueArrayRef;
 import com.appcelerator.javascriptcore.opaquetypes.Pointer;
 
 /**
- * The callback invoked when an object is called as a function. If you named
- * your function CallAsFunction, you would declare it like this:
- * 
- * {@code JSValueRef CallAsFunction(JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception);}
+ * The callback invoked when an object is called as a function.
  * 
  * If your callback were invoked by the JavaScript expression
  * 'myObject.myFunction()', function would be set to myFunction, and thisObject

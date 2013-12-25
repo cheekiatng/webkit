@@ -6,10 +6,7 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
 import com.appcelerator.javascriptcore.opaquetypes.Pointer;
 
 /**
- * The callback invoked when setting a property's value. If you named your
- * function SetProperty, you would declare it like this:
- * 
- * {@code boolean SetProperty(JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef value, JSValueRef* exception);}
+ * The callback invoked when setting a property's value.
  * 
  * If this function returns false, the set request forwards to object's
  * statically declared properties, then its parent class chain (which includes

@@ -115,6 +115,30 @@ public class JavaScriptCoreLibrary {
         return new JSValueRef(context, NativeJSEvaluateScriptShort(p(context), script, exception));
     }
 
+    /**
+     * Evaluates a string of JavaScript.
+     * 
+     * @param ctx
+     *            The execution context to use.
+     * @param script
+     *            A JSString containing the script to evaluate.
+     * @param thisObject
+     *            The object to use as "this," or NULL to use the global object
+     *            as "this."
+     * @param sourceURL
+     *            A JSString containing a URL for the script's source file. This
+     *            is only used when reporting exceptions. Pass NULL if you do
+     *            not care to include source file information in exceptions.
+     * @param startingLineNumber
+     *            An integer value specifying the script's starting line number
+     *            in the file located at sourceURL. This is only used when
+     *            reporting exceptions.
+     * @param exception
+     *            A pointer to a JSValueRef in which to store an exception, if
+     *            any. Pass NULL if you do not care to store an exception.
+     * @return The JSValue that results from evaluating script, or NULL if an
+     *         exception is thrown.
+     */
     public JSValueRef JSEvaluateScript(JSContextRef context, String script, JSObjectRef object, String sourceURL, int line, JSValueRef exception) {
         return new JSValueRef(context, NativeJSEvaluateScriptFull(p(context), script, p(object), sourceURL, line, exception));
     }
@@ -123,6 +147,19 @@ public class JavaScriptCoreLibrary {
         return NativeJSCheckScriptSyntax(p(context), script, exception);
     }
 
+    /**
+     * Performs a JavaScript garbage collection. JavaScript values that are on
+     * the machine stack, in a register, protected by JSValueProtect, set as the
+     * global object of an execution context, or reachable from any such value
+     * will not be collected. During JavaScript execution, you are not required
+     * to call this function; the JavaScript engine will garbage collect as
+     * needed. JavaScript values created within a context group are
+     * automatically destroyed when the last reference to the context group is
+     * released.
+     * 
+     * @param ctx
+     *            The execution context to use.
+     */
     public void JSGarbageCollect(JSContextRef context) {
         NativeJSGarbageCollect(p(context));
     }
@@ -223,6 +260,14 @@ public class JavaScriptCoreLibrary {
         return JSType.request(NativeJSValueGetType(p(context), p(value)));
     }
 
+    /*
+     * Special function to create global object class
+     */
+    public JSClassRef JSGlobalClassCreate(JSClassDefinition d) {
+        d.enableFinalize(false);
+        return new JSClassRef(d, NativeJSClassCreate(d.commit(), d.className, d.getStaticValues(), d.getStaticFunctions()));
+    }
+
     public JSClassRef JSClassCreate(JSClassDefinition d) {
         return new JSClassRef(d, NativeJSClassCreate(d.commit(), d.className, d.getStaticValues(), d.getStaticFunctions()));
     }
@@ -261,6 +306,16 @@ public class JavaScriptCoreLibrary {
         return new JSClassRef(jsClass.getDefinition(), NativeJSClassRetain(p(jsClass)));
     }
 
+    /**
+     * Gets the names of an object's enumerable properties.
+     * 
+     * @param ctx
+     *            The execution context to use.
+     * @param object
+     *            The object whose property names you want to get.
+     * @return A JSPropertyNameArray containing the names object's enumerable
+     *         properties. Ownership follows the Create Rule.
+     */
     public JSPropertyNameArrayRef JSObjectCopyPropertyNames(JSContextRef context, JSObjectRef jsObject) {
         return new JSPropertyNameArrayRef(NativeJSObjectCopyPropertyNames(p(context), p(jsObject)));
     }
@@ -387,15 +442,16 @@ public class JavaScriptCoreLibrary {
                                                JSObjectCallAsConstructorCallback callback) {
         final JSClassDefinition jsClassDefinition = jsClass == null ? null : jsClass.getDefinition().copy();
         if (jsClass != null) {
-            jsClassDefinition.enableConstructor();
+            jsClassDefinition.enableConstructor(true);
             jsClassDefinition.commit();
-            callback = new JSObjectCallAsConstructorCallback() {
-                public JSObjectRef callAsConstructor(JSContextRef ctx, JSObjectRef constructor,
-                                                     int argumentCount, JSValueArrayRef arguments,
-                                                     Pointer exception) {
-                    return JSObjectMakeWithDefinition(context, jsClass, jsClassDefinition, null);
-                }
-            };
+            if (callback == null) {
+                callback = new JSObjectCallAsConstructorCallback() {
+                    public JSObjectRef callAsConstructor(JSContextRef ctx, JSObjectRef constructor,
+                                   int argumentCount, JSValueArrayRef arguments, Pointer exception) {
+                        return JSObjectMakeWithDefinition(context, jsClass, jsClassDefinition, null);
+                    }
+                };
+            }
             jsClassDefinition.callAsConstructor = callback;
         }
         long constructor = NativeJSObjectMakeConstructor(p(context), p(jsClass), jsClassDefinition);
@@ -408,13 +464,11 @@ public class JavaScriptCoreLibrary {
      */
     public JSObjectRef JSObjectMakeFunctionWithCallback(JSContextRef context, String name,
                                                         JSObjectCallAsFunctionCallback callback) {
-        JSClassDefinition definition = new JSClassDefinition();
-        definition.className = name;
-        definition.callAsFunction = callback;
-        JSClassRef jsClass = JSClassCreate(definition);
-        JSObjectRef object = JSObjectMake(context, jsClass);
-        return object;
+        long function = NativeJSObjectMakeFunctionWithCallback(p(context), name);
+        JSClassDefinition.registerMakeFunctionCallback(function, callback);
+        return new JSObjectRef(context, function);
     }
+
 
     /*
      * Native methods
@@ -497,4 +551,5 @@ public class JavaScriptCoreLibrary {
     public native void NativeJSPropertyNameArrayRelease(long jsPropertyNameArrayRef);
     public native long NativeJSPropertyNameArrayRetain(long jsPropertyNameArrayRef);
     public native long NativeJSObjectMakeConstructor(long jsContextRef, long jsClassRef, JSClassDefinition definition);
+    public native long NativeJSObjectMakeFunctionWithCallback(long jsContextRef, String name);
 }

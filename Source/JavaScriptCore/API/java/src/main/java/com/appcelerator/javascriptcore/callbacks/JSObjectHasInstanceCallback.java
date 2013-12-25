@@ -7,10 +7,7 @@ import com.appcelerator.javascriptcore.opaquetypes.Pointer;
 
 /**
  * The callback invoked when an object is used as the target of an 'instanceof'
- * expression. If you named your function HasInstance, you would declare it like
- * this:
- * 
- * {@code boolean HasInstance(JSContextRef ctx, JSObjectRef constructor, JSValueRef possibleInstance, JSValueRef* exception);}
+ * expression.
  * 
  * If your callback were invoked by the JavaScript expression 'someValue
  * instanceof myObject', constructor would be set to myObject and

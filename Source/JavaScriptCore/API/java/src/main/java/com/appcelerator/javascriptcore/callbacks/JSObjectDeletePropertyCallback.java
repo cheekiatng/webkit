@@ -6,11 +6,8 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
 import com.appcelerator.javascriptcore.opaquetypes.Pointer;
 
 /**
- * The callback invoked when deleting a property. If you named your function
- * DeleteProperty, you would declare it like this:
- * 
- * {@code boolean DeleteProperty(JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception);}
- * 
+ * The callback invoked when deleting a property.
+ *
  * If this function returns false, the delete request forwards to object's
  * statically declared properties, then its parent class chain (which includes
  * the default object class).

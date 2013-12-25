@@ -8,10 +8,7 @@ import com.appcelerator.javascriptcore.opaquetypes.Pointer;
 
 /**
  * The callback invoked when converting an object to a particular JavaScript
- * type. If you named your function ConvertToType, you would declare it like
- * this:
- * 
- * {@code JSValueRef ConvertToType(JSContextRef ctx, JSObjectRef object, JSType type, JSValueRef* exception);}
+ * type.
  * 
  * If this function returns false, the conversion request forwards to object's
  * parent class chain (which includes the default object class). This function

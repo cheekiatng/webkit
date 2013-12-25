@@ -21,6 +21,11 @@ import com.appcelerator.javascriptcore.callbacks.JSObjectInitializeCallback;
 import com.appcelerator.javascriptcore.callbacks.JSObjectSetPropertyCallback;
 import com.appcelerator.javascriptcore.callbacks.JSObjectGetPropertyCallback;
 
+/**
+ * This structure contains properties and callbacks that define a type of
+ * object. All fields other than the version field are optional. Any pointer may
+ * be NULL.
+ */
 public class JSClassDefinition {
 
     /**
@@ -160,6 +165,7 @@ public class JSClassDefinition {
     private ByteBuffer buffer;
     private boolean hasParent = false;
     private boolean forceCallAsConstructor = false;
+    private boolean forceFinaizeCall       = true;
 
     public JSClassDefinition() {
         constructBufferTemplate();
@@ -208,8 +214,12 @@ public class JSClassDefinition {
             if (hasInstance   != null) JavaScriptCoreLibrary.putLong(buffer, hasInstanceIndex, hasInstanceFunction);
             if (convertToType != null) JavaScriptCoreLibrary.putLong(buffer, convertToTypeIndex, convertToTypeFunction);
 
-            // finalize callback should be fired on every objects to release all associated Java object
-            JavaScriptCoreLibrary.putLong(buffer, finalizeIndex, finalizeFunction);
+            // finalize callback should be fired on every objects (other than global object)
+            // to release all associated Java object. Note that firing finalize callback 
+            // onto global object causes crash at JSGlobalContextRelease. 
+            if (forceFinaizeCall) {
+                JavaScriptCoreLibrary.putLong(buffer, finalizeIndex, finalizeFunction);
+            }
 
             hasParent = (parentClass != null && parentClass.getDefinition() != null);
         }
@@ -354,6 +364,28 @@ public class JSClassDefinition {
         throw new JavaScriptException(String.format("CallAsConstructor callback does not found for %d", constructor));
     }
 
+    /*
+     * Static CallAsFunction callbacks for JSObjectMakeFunctionWithCallback
+     */
+    private static HashMap<Long, JSObjectCallAsFunctionCallback> functionCallbacks = new HashMap<Long, JSObjectCallAsFunctionCallback>();
+    public static void registerMakeFunctionCallback(long function, JSObjectCallAsFunctionCallback callback) {
+        functionCallbacks.put(function, callback);
+    }
+    public static long JSObjectMakeFunctionCallback(long ctx, long function, long thisObject, int argc, ByteBuffer argv, long exception) {
+        if (functionCallbacks.containsKey(function)) {
+            JSContextRef context = new JSContextRef(ctx);
+            JSValueArrayRef jargv = new JSValueArrayRef(argc, argv);
+            return p(functionCallbacks.get(function).callAsFunction(
+                                            context, new JSObjectRef(context, function),
+                                            new JSObjectRef(context, thisObject),
+                                            argc, jargv, new Pointer(exception)));
+        }
+        throw new JavaScriptException(String.format("JSObjectMakeFunctionWithCallback callback does not found for %d", thisObject));
+    }
+
+    /* 
+     * Static CallAsConstructor callbacks for JSObjectMakeConstructor
+     */
     private static HashMap<Long, JSObjectCallAsConstructorCallback> constructorCallbacks = new HashMap<Long, JSObjectCallAsConstructorCallback>();
     public static void registerMakeConstructorCallback(long constructor, JSObjectCallAsConstructorCallback callback) {
         constructorCallbacks.put(constructor, callback);
@@ -366,7 +398,7 @@ public class JSClassDefinition {
                                             context, new JSObjectRef(context, constructor),
                                             argc, jargv, new Pointer(exception)));
         }
-        throw new JavaScriptException(String.format("CallAsConstructor callback does not found for %d", constructor));
+        throw new JavaScriptException(String.format("JSObjectMakeConstructor callback does not found for %d", constructor));
     }
 
     private static HashMap<Long, JSClassDefinition> convertToTypeChain = new HashMap<Long, JSClassDefinition>();
@@ -534,8 +566,52 @@ public class JSClassDefinition {
         return copy;
     }
 
-    public void enableConstructor() {
-        this.forceCallAsConstructor = true;
+    public void enableConstructor(boolean enabled) {
+        this.forceCallAsConstructor = enabled;
+    }
+
+    public void enableFinalize(boolean enabled) {
+        this.forceFinaizeCall = enabled;
+    }
+
+    public void dispose() {
+        if (buffer != null) {
+            buffer.clear();
+            buffer = null;
+        }
+        if (staticFunctions != null) {
+            staticFunctions.dispose();
+            staticFunctions = null;
+        }
+        if (staticValues != null) {
+            staticValues.dispose();
+            staticValues = null;
+        }
+        
+        setPropertyChain = null;
+        getPropertyChain = null;
+        convertToTypeChain = null;
+        deletePropertyChain = null;
+        getPropertyNamesChain = null;
+        hasPropertyChain = null;
+        functionCallbacks = null;
+        hasInstanceChain = null;
+        constructorCallbacks = null;
+        functionCallbacks = null;
+        callAsConstructorChain = null;
+
+        parentClass = null;
+        initialize  = null;
+        finalize    = null;
+        hasProperty = null;
+        getProperty = null;
+        setProperty = null;
+        deleteProperty = null;
+        getPropertyNames = null;
+        callAsFunction = null;
+        callAsConstructor = null;
+        hasInstance = null;
+        convertToType = null;
     }
 
     private void constructBufferTemplate() {
