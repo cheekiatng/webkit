@@ -52,18 +52,18 @@ public class  TestAPI {
     public void setUp() throws Exception {
         /* Static values */
         JSStaticValues evilStaticValues = new JSStaticValues();
-        evilStaticValues.add("nullGetSet", null, null, JSPropertyAttribute.None.getValue());        
+        evilStaticValues.add("nullGetSet", null, null, JSPropertyAttribute.None);        
         evilStaticValues.add("nullGetForwardSet", null, new JSObjectSetPropertyCallback() {
             @Override
             public boolean setProperty(JSContextRef context, JSObjectRef object,
                     String propertyName, JSValueRef value, Pointer exception) {
                 return false; // Forward to parent class.
             }
-        }, JSPropertyAttribute.None.getValue());
+        }, JSPropertyAttribute.None);
         
         /* Static functions */
         JSStaticFunctions evilStaticFunctions = new JSStaticFunctions();
-        evilStaticFunctions.add("nullCall", null, JSPropertyAttribute.None.getValue());
+        evilStaticFunctions.add("nullCall", null, JSPropertyAttribute.None);
         
         /* Class definitions */
         MyObject_definition = new MyObjectDefinition();
@@ -74,7 +74,7 @@ public class  TestAPI {
         
         MyObject_nullWrapperDefinition = new JSClassDefinition();
         MyObject_nullWrapperDefinition.version = 0;
-        MyObject_nullWrapperDefinition.attributes = JSClassAttribute.None.getValue();
+        MyObject_nullWrapperDefinition.attributes = JSClassAttribute.None;
         MyObject_nullWrapperDefinition.className = "MyObject";
         
         PropertyCatchalls_definition   = new PropertyCatchallsDefinition();
@@ -99,7 +99,7 @@ public class  TestAPI {
                     Pointer exception) {
                 JSObjectRef result = jsc.JSObjectMake(context, null);
                 if (argumentCount > 0) {
-                    jsc.JSObjectSetProperty(context, result, "value", arguments.get(context, 0), JSPropertyAttribute.None.getValue(), null);
+                    jsc.JSObjectSetProperty(context, result, "value", arguments.get(context, 0), JSPropertyAttribute.None, null);
                 }
                 
                 return result;
@@ -147,7 +147,7 @@ public class  TestAPI {
                     exception.update(jsc.JSValueMakeNumber(context, 3));
                     return true;
                 }
-            }, JSPropertyAttribute.None.getValue());
+            }, JSPropertyAttribute.None);
 
         globalObject_staticFunctions.add("globalStaticFunction", 
             new JSObjectCallAsFunctionCallback() {
@@ -156,7 +156,7 @@ public class  TestAPI {
                                                  JSValueArrayRef arguments, Pointer exception) {
                     return jsc.JSValueMakeNumber(context, 3);
                 }
-            }, JSPropertyAttribute.None.getValue()) ;
+            }, JSPropertyAttribute.None) ;
         globalObject_staticFunctions.add("gc", 
             new JSObjectCallAsFunctionCallback() {
                 public JSValueRef callAsFunction(JSContextRef context, JSObjectRef function,
@@ -165,10 +165,10 @@ public class  TestAPI {
                     jsc.JSGarbageCollect(context);
                     return jsc.JSValueMakeUndefined(context);
                 }
-            }, JSPropertyAttribute.None.getValue()) ;
+            }, JSPropertyAttribute.None) ;
         globalObjectClassDefinition.staticValues = globalObject_staticValues;
         globalObjectClassDefinition.staticFunctions = globalObject_staticFunctions;
-        globalObjectClassDefinition.attributes = JSClassAttribute.NoAutomaticPrototype.getValue();
+        globalObjectClassDefinition.attributes = JSClassAttribute.NoAutomaticPrototype;
     }
 
     @After
@@ -237,20 +237,20 @@ public class  TestAPI {
         assertTrue(!jsc.JSObjectIsFunction(context, null));        
 
         JSObjectRef propertyCatchalls = jsc.JSObjectMake(context, PropertyCatchalls_class(context));
-        jsc.JSObjectSetProperty(context, globalObject, "PropertyCatchalls", propertyCatchalls, JSPropertyAttribute.None.getValue(), null);
+        jsc.JSObjectSetProperty(context, globalObject, "PropertyCatchalls", propertyCatchalls, JSPropertyAttribute.None, null);
 
         JSObjectRef myObject = jsc.JSObjectMake(context, MyObject_class(context));
-        jsc.JSObjectSetProperty(context, globalObject, "MyObject", myObject, JSPropertyAttribute.None.getValue(), null);
+        jsc.JSObjectSetProperty(context, globalObject, "MyObject", myObject, JSPropertyAttribute.None, null);
 
         JSObjectRef EvilExceptionObject = jsc.JSObjectMake(context, EvilExceptionObject_class(context));
-        jsc.JSObjectSetProperty(context, globalObject, "EvilExceptionObject", EvilExceptionObject, JSPropertyAttribute.None.getValue(), null);
+        jsc.JSObjectSetProperty(context, globalObject, "EvilExceptionObject", EvilExceptionObject, JSPropertyAttribute.None, null);
 
         JSObjectRef EmptyObject = jsc.JSObjectMake(context, EmptyObject_class(context));
-        jsc.JSObjectSetProperty(context, globalObject, "EmptyObject", EmptyObject, JSPropertyAttribute.None.getValue(), null);
+        jsc.JSObjectSetProperty(context, globalObject, "EmptyObject", EmptyObject, JSPropertyAttribute.None, null);
 
         JSObjectRef aStackRef = jsc.JSObjectMakeArray(context, null, null);
         aHeapRef = aStackRef;
-        jsc.JSObjectSetProperty(context, aHeapRef, "length", jsc.JSValueMakeNumber(context, 10), JSPropertyAttribute.None.getValue(), null);
+        jsc.JSObjectSetProperty(context, aHeapRef, "length", jsc.JSValueMakeNumber(context, 10), JSPropertyAttribute.None, null);
         jsc.JSGarbageCollect(context);
 
         JSValueRef nullJSONObject = jsc.JSValueMakeFromJSONString(context, null);
@@ -417,35 +417,35 @@ public class  TestAPI {
         assertTrue(jsc.JSValueMakeString(context, string).toString().equals("function foo(foo) { return foo;\n}"));
 
         JSObjectRef printFunction = jsc.JSObjectMakeFunctionWithCallback(context, "print", print_callAsFunction);
-        jsc.JSObjectSetProperty(context, globalObject, "print", printFunction, JSPropertyAttribute.None.getValue(), null); 
+        jsc.JSObjectSetProperty(context, globalObject, "print", printFunction, JSPropertyAttribute.None, null); 
         
         assertTrue(!jsc.JSObjectSetPrivate(printFunction, 1));
         assertTrue(jsc.JSObjectGetPrivate(printFunction) == null);
 
         JSObjectRef myConstructor = jsc.JSObjectMakeConstructor(context, null, myConstructor_callAsConstructor);
-        jsc.JSObjectSetProperty(context, globalObject, "MyConstructor", myConstructor, JSPropertyAttribute.None.getValue(), null);
+        jsc.JSObjectSetProperty(context, globalObject, "MyConstructor", myConstructor, JSPropertyAttribute.None, null);
         
         JSObjectRef myBadConstructor = jsc.JSObjectMakeConstructor(context, null, myBadConstructor_callAsConstructor);
-        jsc.JSObjectSetProperty(context, globalObject, "MyBadConstructor", myBadConstructor, JSPropertyAttribute.None.getValue(), null);
+        jsc.JSObjectSetProperty(context, globalObject, "MyBadConstructor", myBadConstructor, JSPropertyAttribute.None, null);
         
         assertTrue(!jsc.JSObjectSetPrivate(myConstructor, 1));
         assertTrue(jsc.JSObjectGetPrivate(myConstructor) == null);
         
         string = "Base";
         JSObjectRef baseConstructor = jsc.JSObjectMakeConstructor(context, Base_class(context), null);
-        jsc.JSObjectSetProperty(context, globalObject, string, baseConstructor, JSPropertyAttribute.None.getValue(), null);
+        jsc.JSObjectSetProperty(context, globalObject, string, baseConstructor, JSPropertyAttribute.None, null);
         
         string = "Derived";
         JSObjectRef derivedConstructor = jsc.JSObjectMakeConstructor(context, Derived_class(context), null);
-        jsc.JSObjectSetProperty(context, globalObject, string, derivedConstructor, JSPropertyAttribute.None.getValue(), null);
+        jsc.JSObjectSetProperty(context, globalObject, string, derivedConstructor, JSPropertyAttribute.None, null);
         
         string = "Derived2";
         JSObjectRef derived2Constructor = jsc.JSObjectMakeConstructor(context, Derived2_class(context), null);
-        jsc.JSObjectSetProperty(context, globalObject, string, derived2Constructor, JSPropertyAttribute.None.getValue(), null);
+        jsc.JSObjectSetProperty(context, globalObject, string, derived2Constructor, JSPropertyAttribute.None, null);
 
         o = jsc.JSObjectMake(context, null, null);
-        jsc.JSObjectSetProperty(context, o, "1", jsc.JSValueMakeNumber(context, 1), JSPropertyAttribute.None.getValue(), null);
-        jsc.JSObjectSetProperty(context, o, "A", jsc.JSValueMakeNumber(context, 1), JSPropertyAttribute.DontEnum.getValue(), null);
+        jsc.JSObjectSetProperty(context, o, "1", jsc.JSValueMakeNumber(context, 1), JSPropertyAttribute.None, null);
+        jsc.JSObjectSetProperty(context, o, "A", jsc.JSValueMakeNumber(context, 1), JSPropertyAttribute.DontEnum, null);
         JSPropertyNameArrayRef nameArray = jsc.JSObjectCopyPropertyNames(context, o);
         int expectedCount = jsc.JSPropertyNameArrayGetCount(nameArray);
         int count;
@@ -490,7 +490,7 @@ public class  TestAPI {
         assertTrue(o.toString().equals("/foo/gi"));
 
         JSClassDefinition nullDefinition = new JSClassDefinition();
-        nullDefinition.attributes = JSClassAttribute.NoAutomaticPrototype.getValue();
+        nullDefinition.attributes = JSClassAttribute.NoAutomaticPrototype;
         JSClassRef nullClass = jsc.JSClassCreate(nullDefinition);
         jsc.JSClassRelease(nullClass);
         
@@ -662,7 +662,7 @@ public class  TestAPI {
     private JSClassRef Base_class(JSContextRef context) {
         if (jsBaseObjectClassRef == null) {
             JSStaticFunctions Base_staticFunctions = new JSStaticFunctions();
-            Base_staticFunctions.add("baseProtoDup", null, JSPropertyAttribute.None.getValue());
+            Base_staticFunctions.add("baseProtoDup", null, JSPropertyAttribute.None);
             Base_staticFunctions.add("baseProto", new JSObjectCallAsFunctionCallback() {
                 @Override
                 public JSValueRef callAsFunction(JSContextRef context,
@@ -670,7 +670,7 @@ public class  TestAPI {
                         JSValueArrayRef arguments, Pointer exception) {
                     return jsc.JSValueMakeNumber(context, 1); // distinguish base call from derived call
                 }
-            }, JSPropertyAttribute.None.getValue());
+            }, JSPropertyAttribute.None);
             Base_staticFunctions.add("baseHardNull", new JSObjectCallAsFunctionCallback() {
                 @Override
                 public JSValueRef callAsFunction(JSContextRef context,
@@ -678,7 +678,7 @@ public class  TestAPI {
                         JSValueArrayRef arguments, Pointer exception) {
                     return null; // should convert to undefined!
                 }
-            }, JSPropertyAttribute.None.getValue());
+            }, JSPropertyAttribute.None);
             
             JSObjectGetPropertyCallback Base_get = new JSObjectGetPropertyCallback() {
                 @Override
@@ -697,8 +697,8 @@ public class  TestAPI {
                 }
             };
             JSStaticValues Base_staticValues = new JSStaticValues();
-            Base_staticValues.add("baseDup",  Base_get, Base_set, JSPropertyAttribute.None.getValue());
-            Base_staticValues.add("baseOnly", Base_get, Base_set, JSPropertyAttribute.None.getValue());
+            Base_staticValues.add("baseDup",  Base_get, Base_set, JSPropertyAttribute.None);
+            Base_staticValues.add("baseOnly", Base_get, Base_set, JSPropertyAttribute.None);
             
             JSClassDefinition definition = new JSClassDefinition();
             definition.staticValues = Base_staticValues;
@@ -764,14 +764,14 @@ public class  TestAPI {
                 }
             };
             JSStaticFunctions Derived_staticFunctions = new JSStaticFunctions();
-            Derived_staticFunctions.add("protoOnly", Derived_callAsFunction, JSPropertyAttribute.None.getValue());
-            Derived_staticFunctions.add("protoDup", null, JSPropertyAttribute.None.getValue());
-            Derived_staticFunctions.add("baseProtoDup", Derived_callAsFunction, JSPropertyAttribute.None.getValue());
+            Derived_staticFunctions.add("protoOnly", Derived_callAsFunction, JSPropertyAttribute.None);
+            Derived_staticFunctions.add("protoDup", null, JSPropertyAttribute.None);
+            Derived_staticFunctions.add("baseProtoDup", Derived_callAsFunction, JSPropertyAttribute.None);
             
             JSStaticValues Derived_staticValues = new JSStaticValues();
-            Derived_staticValues.add("derivedOnly",  Derived_get, Derived_set, JSPropertyAttribute.None.getValue());
-            Derived_staticValues.add("protoDup", Derived_get, Derived_set, JSPropertyAttribute.None.getValue());
-            Derived_staticValues.add("baseDup", Derived_get, Derived_set, JSPropertyAttribute.None.getValue());
+            Derived_staticValues.add("derivedOnly",  Derived_get, Derived_set, JSPropertyAttribute.None);
+            Derived_staticValues.add("protoDup", Derived_get, Derived_set, JSPropertyAttribute.None);
+            Derived_staticValues.add("baseDup", Derived_get, Derived_set, JSPropertyAttribute.None);
             
             JSClassDefinition definition = new JSClassDefinition();
             definition.parentClass = Base_class(context);
@@ -812,7 +812,7 @@ class EvilExceptionObjectDefinition extends JSClassDefinition implements JSObjec
     private JavaScriptCoreLibrary jsc = JavaScriptCoreLibrary.getInstance();
     public EvilExceptionObjectDefinition() {
         this.version = 0;
-        this.attributes = JSClassAttribute.None.getValue();
+        this.attributes = JSClassAttribute.None;
         this.className = "EvilExceptionObject";
         this.hasInstance = this;
         this.convertToType = this;
@@ -871,7 +871,7 @@ class PropertyCatchallsDefinition extends JSClassDefinition implements JSObjectG
     
     public PropertyCatchallsDefinition() {
         this.version = 0;
-        this.attributes = JSClassAttribute.None.getValue();
+        this.attributes = JSClassAttribute.None;
         this.className = "PropertyCatchalls";
         this.getProperty = this;
         this.setProperty = this;
@@ -949,7 +949,7 @@ class MyObjectDefinition extends JSClassDefinition implements JSObjectHasPropert
     
     public MyObjectDefinition() {
         this.version = 0;
-        this.attributes = JSClassAttribute.None.getValue();
+        this.attributes = JSClassAttribute.None;
         this.className = "MyObject";
         this.hasProperty = this;
         this.getProperty = this;
@@ -1114,7 +1114,7 @@ class MyObject_convertToTypeWrapperDefinition extends JSClassDefinition implemen
     public MyObject_convertToTypeWrapperDefinition() {
         super();
         this.version = 0;
-        this.attributes = JSClassAttribute.None.getValue();
+        this.attributes = JSClassAttribute.None;
         this.className = "MyObject";
         this.convertToType = this;
     }

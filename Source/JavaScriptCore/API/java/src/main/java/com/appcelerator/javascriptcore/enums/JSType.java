@@ -45,10 +45,6 @@ public enum JSType {
         this.value = value;
     }
 
-    public int getValue() {
-        return value;
-    }
-
     public static JSType request(int value) {
         switch(value) {
             case 0: return Undefined;

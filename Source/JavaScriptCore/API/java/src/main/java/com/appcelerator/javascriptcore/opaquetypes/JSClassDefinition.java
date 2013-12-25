@@ -35,7 +35,7 @@ public class JSClassDefinition {
     /**
      * A logically ORed set of JSClassAttributes to give to the class.
      */
-    public int attributes;
+    public JSClassAttribute attributes  = JSClassAttribute.None;
     /**
      * A null-terminated UTF8 string containing the class's name.
      */
@@ -200,7 +200,7 @@ public class JSClassDefinition {
             buffer = ByteBuffer.allocateDirect(JavaScriptCoreLibrary.SizeOfJSClassDefinition).order(nativeOrder);
 
             buffer.putInt(versionIndex, version);
-            buffer.putInt(attributesIndex, attributes);
+            buffer.putInt(attributesIndex, attributes.getValue());
 
             if (parentClass != null) JavaScriptCoreLibrary.putLong(buffer, parentClassIndex, parentClass.p());
             if (initialize  != null) JavaScriptCoreLibrary.putLong(buffer, initializeIndex, initializeFunction);

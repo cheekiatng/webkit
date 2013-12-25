@@ -10,6 +10,7 @@ import com.appcelerator.javascriptcore.JavaScriptCoreLibrary;
 import com.appcelerator.javascriptcore.JavaScriptException;
 import com.appcelerator.javascriptcore.callbacks.JSObjectGetPropertyCallback;
 import com.appcelerator.javascriptcore.callbacks.JSObjectSetPropertyCallback;
+import com.appcelerator.javascriptcore.enums.JSPropertyAttribute;
 
 public class JSStaticValues {
     
@@ -98,11 +99,11 @@ public class JSStaticValues {
         return values.containsKey(name);
     }
 
-    public void add(String name, JSObjectGetPropertyCallback getter, JSObjectSetPropertyCallback setter, int attrs) {
+    public void add(String name, JSObjectGetPropertyCallback getter, JSObjectSetPropertyCallback setter, JSPropertyAttribute attrs) {
         if (frozen) {
             throw new JavaScriptException("No changes can be done after commit()");
         }
-        values.put(name, new JSStaticValue(getter, setter, attrs));
+        values.put(name, new JSStaticValue(getter, setter, attrs.getValue()));
         namesCache.add(name);
     }
 

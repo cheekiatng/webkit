@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import com.appcelerator.javascriptcore.JavaScriptCoreLibrary;
 import com.appcelerator.javascriptcore.JavaScriptException;
 import com.appcelerator.javascriptcore.callbacks.JSObjectCallAsFunctionCallback;
+import com.appcelerator.javascriptcore.enums.JSPropertyAttribute;
 
 public class JSStaticFunctions {
 
@@ -88,9 +89,9 @@ public class JSStaticFunctions {
         return functions.size();
     }
     
-    public void add(String name, JSObjectCallAsFunctionCallback callback, int attrs) {
+    public void add(String name, JSObjectCallAsFunctionCallback callback, JSPropertyAttribute attrs) {
         if (frozen) throw new JavaScriptException("No changes can be done after commit()");
-        functions.put(name, new JSStaticFunction(callback, attrs));
+        functions.put(name, new JSStaticFunction(callback, attrs.getValue()));
         namesCache.add(name);
     }
 

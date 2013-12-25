@@ -26,13 +26,18 @@ public enum JSPropertyAttribute {
      */
     DontDelete(1 << 3);
 
-    private final int value;
+    private int value;
 
     private JSPropertyAttribute(int value) {
         this.value = value;
     }
 
     public int getValue() {
-        return value;
+        return this.value;
+    }
+
+    public JSPropertyAttribute add(JSPropertyAttribute attr) {
+        this.value |= attr.getValue();
+        return this;
     }
 }

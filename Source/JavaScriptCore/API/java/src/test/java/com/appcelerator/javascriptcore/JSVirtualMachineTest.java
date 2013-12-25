@@ -262,6 +262,13 @@ public class JSVirtualMachineTest {
     }
 
     @Test
+    public void testJSPropertyAttributeBitwise() {
+        assertTrue(JSPropertyAttribute.None.add(JSPropertyAttribute.DontDelete).getValue()
+               == (JSPropertyAttribute.None.getValue() | JSPropertyAttribute.DontDelete.getValue()));
+    }
+
+
+    @Test
     public void testJSClassCreate() {
         JSGlobalContextRef context = vm.getDefaultContext();
         JSClassDefinition definition = new JSClassDefinition();
@@ -380,7 +387,7 @@ public class JSVirtualMachineTest {
                 assertTrue("property1".equals(propertyName));
                 return jsc.JSValueMakeNumber(ctx, 123);
             }
-        }, null, JSPropertyAttribute.None.getValue());
+        }, null, JSPropertyAttribute.None);
         definition.staticValues = staticValues;
 
         JSClassRef jsClass = jsc.JSClassCreate(definition);
@@ -404,14 +411,14 @@ public class JSVirtualMachineTest {
                 assertTrue(value.toInt() == 100);
                 return true;
             }
-        }, JSPropertyAttribute.None.getValue());
+        }, JSPropertyAttribute.None);
         definition.staticValues = staticValues;
 
         JSClassRef jsClass = jsc.JSClassCreate(definition);
         JSObjectRef jsObj = jsc.JSObjectMake(context, jsClass);
         jsc.JSObjectSetProperty(context, jsObj, "property1",
                         jsc.JSValueMakeNumber(context, 100),
-                        JSPropertyAttribute.None.getValue() | JSPropertyAttribute.DontDelete.getValue(), null);
+                        JSPropertyAttribute.None.add(JSPropertyAttribute.DontDelete), null);
     }
 
     @Test
@@ -469,7 +476,7 @@ public class JSVirtualMachineTest {
                 assertTrue("globalStaticValue".equals(propertyName));
                 return jsc.JSValueMakeNumber(ctx, 123);
             }
-        }, null, JSPropertyAttribute.None.getValue());
+        }, null, JSPropertyAttribute.None);
         globalObjectDef.staticValues = staticValues;
         JSClassRef globalObjectClass = jsc.JSGlobalClassCreate(globalObjectDef);
         JSGlobalContextRef context = jsc.JSGlobalContextCreate(globalObjectClass); 
@@ -495,7 +502,7 @@ public class JSVirtualMachineTest {
             }
         });
         assertTrue(println.p() != 0);
-        jsc.JSObjectSetProperty(context, globalObject, "println", println, JSPropertyAttribute.None.getValue(), null);
+        jsc.JSObjectSetProperty(context, globalObject, "println", println, JSPropertyAttribute.None, null);
         JSValueRef value = context.evaluateScript("println('Hello, World');");
         assertTrue(value.p() != 0);
         assertTrue(value.toInt() == 1234);
@@ -516,7 +523,7 @@ public class JSVirtualMachineTest {
         });
         assertTrue(constructor.p() != 0);
         assertTrue(jsc.JSObjectIsConstructor(context, constructor));
-        jsc.JSObjectSetProperty(context, globalObject, "TestObject", constructor, JSPropertyAttribute.None.getValue(), null);
+        jsc.JSObjectSetProperty(context, globalObject, "TestObject", constructor, JSPropertyAttribute.None, null);
         JSValueRef exception = JSValueRef.Null();
         JSValueRef value = context.evaluateScript("new TestObject('Hello, World');", globalObject, exception);
         assertTrue("[\"Hello, World\"]".equals(value.toJSON()));
@@ -578,7 +585,7 @@ public class JSVirtualMachineTest {
                 assertTrue(argumentCount == 0);
                 return jsc.JSValueMakeNumber(ctx, 8765);
             }
-        }, JSPropertyAttribute.None.getValue());
+        }, JSPropertyAttribute.None);
         definition.staticFunctions = staticFunctions;
 
         JSClassRef jsClass = jsc.JSClassCreate(definition);
@@ -608,7 +615,7 @@ public class JSVirtualMachineTest {
                 assertTrue("Hello, World".equals(arguments.get(ctx, 0).toString()));
                 return jsc.JSValueMakeNumber(ctx, 1234);
             }
-        }, JSPropertyAttribute.None.getValue());
+        }, JSPropertyAttribute.None);
         definition.staticFunctions = staticFunctions;
 
         JSClassRef jsClass = jsc.JSClassCreate(definition);

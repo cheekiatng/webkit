@@ -19,6 +19,7 @@ import com.appcelerator.javascriptcore.callbacks.JSObjectCallAsConstructorCallba
 import com.appcelerator.javascriptcore.callbacks.JSObjectCallAsFunctionCallback;
 
 import com.appcelerator.javascriptcore.enums.JSType;
+import com.appcelerator.javascriptcore.enums.JSPropertyAttribute;
 
 public class JavaScriptCoreLibrary {
 
@@ -290,8 +291,8 @@ public class JavaScriptCoreLibrary {
     }
 
     public void JSObjectSetProperty(JSContextRef context, JSObjectRef jsObject,
-                                    String propertyName, JSValueRef value, int attributes, JSValueRef exception) {
-        NativeJSObjectSetProperty(p(context), p(jsObject), propertyName, p(value), attributes, exception);
+                                    String propertyName, JSValueRef value, JSPropertyAttribute attributes, JSValueRef exception) {
+        NativeJSObjectSetProperty(p(context), p(jsObject), propertyName, p(value), attributes.getValue(), exception);
     }
 
     public JSValueRef JSObjectGetProperty(JSContextRef context, JSObjectRef jsObject,
