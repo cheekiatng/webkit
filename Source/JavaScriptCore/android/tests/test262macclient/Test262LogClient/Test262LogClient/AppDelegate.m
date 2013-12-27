@@ -18,7 +18,7 @@
 
 static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
-@interface AppDelegate () <NSNetServiceBrowserDelegate, NSStreamDelegate, NSURLSessionDataDelegate, NSNetServiceDelegate>
+@interface AppDelegate () <NSNetServiceBrowserDelegate, NSStreamDelegate, NSURLSessionDataDelegate, NSNetServiceDelegate, NSUserNotificationCenterDelegate>
 {
     HTTPServer* httpServer;
 }
@@ -31,6 +31,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 @property (nonatomic, strong, readonly ) NSArray *              sortDescriptors;
 @property (nonatomic, copy,   readwrite) NSString *             longStatus;
 @property (weak) IBOutlet NSTableView* tableView;
+@property (weak) IBOutlet NSButton* downloadButton;
 
 @property (strong, nonatomic) NSURLSessionDownloadTask* backgroundDownloadTask;
 
@@ -60,12 +61,18 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
-    // Insert code here to initialize your application
-    
+    [[NSUserNotificationCenter defaultUserNotificationCenter] setDelegate:self];
+
     [[self tableView] setDoubleAction:@selector(tableViewDoubleClicked:)];
     
     [self startBrowsing];
     [self startHttpServer];
+}
+
+// Overrides to always send notifications, even when in the foreground.
+- (BOOL) userNotificationCenter:(NSUserNotificationCenter*)center shouldPresentNotification:(NSUserNotification *)notification
+{
+	return YES;
 }
 
 - (void) startHttpServer
@@ -122,9 +129,9 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
     self.browser = [[NSNetServiceBrowser alloc] init];
     [self.browser setDelegate:self];
     // Passing in "" for the domain causes us to browse in the default browse domain
-//    [self.browser searchForServicesOfType:@"_test262logging._tcp." inDomain:@""];
+    [self.browser searchForServicesOfType:@"_test262logging._tcp." inDomain:@""];
 //    [self.browser searchForServicesOfType:@"_wwdcpic2._tcp." inDomain:@""];
-    [self.browser searchForServicesOfType:@"_http._tcp." inDomain:@""];
+//    [self.browser searchForServicesOfType:@"_http._tcp." inDomain:@""];
 }
 
 - (void)stopBrowsingWithStatus:(NSString *)status
@@ -240,11 +247,24 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
     }
 }
 
+- (IBAction) downloadButtonClicked:(id)the_sender
+{
+    NSInteger selected_row = [[self tableView] selectedRow];
+    [self resolveForSelectedRow:selected_row];
+}
+
 - (void) tableViewDoubleClicked:(id)the_sender
+{
+    NSInteger clicked_row = [the_sender clickedRow];
+    [self resolveForSelectedRow:clicked_row];
+}
+
+- (void) resolveForSelectedRow:(NSInteger)selected_row
 {
 //    NSInteger clicked_row = [[self tableView] clickedRow];
     // We test for a positive clickedRow to eliminate clicks in the column headers.
-    if ( ([the_sender clickedRow] >= 0) && [[self.servicesArray selectedObjects] count] != 0) {
+    if ( (selected_row >= 0) && [[self.servicesArray selectedObjects] count] != 0)
+    {
         NSNetService *  service;
         
         service = [[self.servicesArray selectedObjects] objectAtIndex:0];
@@ -326,7 +346,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 //#include <netinet/in.h>
 #include <arpa/inet.h>
 
-NSArray* ipv4Addresses(NSNetService* net_service)
+static NSArray* ipv4Addresses(NSNetService* net_service)
 {
     NSMutableArray* ipv4_addresses = [NSMutableArray array];
     NSArray* addresses = [net_service addresses];
@@ -351,7 +371,7 @@ NSArray* ipv4Addresses(NSNetService* net_service)
     return ipv4_addresses;
 }
 
-NSURL* URLFromNetService(NSNetService* net_service, NSString* url_path)
+static NSURL* URLFromNetService(NSNetService* net_service, NSString* url_path)
 {
     // build URL from host, port, and path
 	NSString* url_string = [NSString
@@ -366,7 +386,7 @@ NSURL* URLFromNetService(NSNetService* net_service, NSString* url_path)
 //	NSURLRequest *request = [[NSURLRequest alloc] initWithURL:url];
 }
 
-int ConnectToServer(NSNetService* net_service)
+static int ConnectToServer(NSNetService* net_service)
 {
     int sock_fd;
     _Bool did_connect = 0;
@@ -485,129 +505,6 @@ NSLog(@"host port is %d", port);
 
     NSLog(@"sent port info: host:%d, network:%d", http_server_port, http_server_port_networkorder);
 
-}
-
-- (void) startBackgroundDownloadWithNetService:(NSNetService*)net_service
-{
-    // Image CreativeCommons courtesy of flickr.com/charliematters
-//    NSString *url = @"http://farm3.staticflickr.com/2831/9823890176_82b4165653_b_d.jpg";
-    NSString* path_suffix = @"zebra.jpg";
-    NSURL* the_url = URLFromNetService(net_service, path_suffix);
-//    NSURL* the_url = URLFromNetService(net_service, @"");
-    NSLog(@"server url: %@", the_url);
-    NSURLRequest* url_request = [NSURLRequest requestWithURL:the_url];
-    self.backgroundDownloadTask = [[self backgroundSession] downloadTaskWithRequest:url_request];
-//    [self setDownloadButtonsAsEnabled:NO];
-//    self.imageView.hidden = YES;
-    // Start the download
-    // Delay execution of my block for 10 seconds.
- //   dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        NSLog(@"starting download");
-        [[self backgroundDownloadTask] resume];
-  //  });
-    
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        NSLog(@"starting download2");
-        NSString* host = [net_service hostName];
-        NSInteger port = 55555;
-//        NSInteger port = [net_service port];
-        NSString* url_string = [NSString
-                                stringWithFormat: @"http://%@:%ld/%@",
-                                host,
-                                port,
-                                path_suffix
-                                ];
-        NSURL* the_url = [NSURL URLWithString:url_string];
-        
-        NSLog(@"server url: %@", the_url);
-        NSURLRequest* url_request = [NSURLRequest requestWithURL:the_url];
-        self.backgroundDownloadTask = [[self backgroundSession] downloadTaskWithRequest:url_request];
-        [[self backgroundDownloadTask] resume];
-    });
-    
-}
-
-
-- (NSURLSession *)backgroundSession
-{
-    static NSURLSession *backgroundSession = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        NSURLSessionConfiguration *config = [NSURLSessionConfiguration backgroundSessionConfiguration:@"org.webkit.javascriptcore.test262.backgrounddownloadsession"];
-        backgroundSession = [NSURLSession sessionWithConfiguration:config delegate:self delegateQueue:nil];
-    });
-    return backgroundSession;
-}
-
-- (void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite
-{
-    NSLog(@"%@", NSStringFromSelector(_cmd));
-    double currentProgress = totalBytesWritten / (double)totalBytesExpectedToWrite;
-    dispatch_async(dispatch_get_main_queue(), ^{
-//        self.progressIndicator.hidden = NO;
-//        self.progressIndicator.progress = currentProgress;
-    });
-}
-
-
-- (void)URLSession:(NSURLSession*)url_session downloadTask:(NSURLSessionDownloadTask *)download_task didFinishDownloadingToURL:(NSURL*)download_location
-{
-    NSLog(@"%@", NSStringFromSelector(_cmd));
-   // We've successfully finished the download. Let's save the file
-    NSFileManager* file_manager = [NSFileManager defaultManager];
-    
-    NSArray* url_array = [file_manager URLsForDirectory:NSDownloadsDirectory inDomains:NSUserDomainMask];
-    NSURL *download_directory = url_array[0];
-    
-    NSURL* destination_path = [download_directory URLByAppendingPathComponent:[download_location lastPathComponent]];
-    NSError* the_error;
-    
-    // Make sure we overwrite anything that's already there
-    [file_manager removeItemAtURL:destination_path error:NULL];
-    BOOL is_success = [file_manager copyItemAtURL:download_location toURL:destination_path error:&the_error];
-    
-    if(is_success)
-    {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            /*
-            UIImage *image = [UIImage imageWithContentsOfFile:[destinationPath path]];
-            self.imageView.image = image;
-            self.imageView.contentMode = UIViewContentModeScaleAspectFill;
-            self.imageView.hidden = NO;
-             */
-        });
-    }
-    else
-    {
-        NSLog(@"Couldn't copy the downloaded file");
-    }
-    
-    if([self backgroundSession] == url_session)
-    {
-        [self setBackgroundDownloadTask:nil];
-        
-        // Get hold of the app delegate
-        /*
-        SCAppDelegate *appDelegate = (SCAppDelegate *)[[UIApplication sharedApplication] delegate];
-        if(appDelegate.backgroundURLSessionCompletionHandler) {
-            // Need to copy the completion handler
-            void (^handler)() = appDelegate.backgroundURLSessionCompletionHandler;
-            appDelegate.backgroundURLSessionCompletionHandler = nil;
-            handler();
-        }
-         */
-    }
-    
-}
-
-- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error
-{
-    NSLog(@"%@", NSStringFromSelector(_cmd));
-    NSLog(@"error %@", [error localizedDescription]);
-    dispatch_async(dispatch_get_main_queue(), ^{
-//        self.progressIndicator.hidden = YES;
-    //[self setDownloadButtonsAsEnabled:YES];
-    });
 }
 
 

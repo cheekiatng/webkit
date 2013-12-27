@@ -8,14 +8,20 @@
 #import "HTTPDynamicFileResponse.h"
 #import "HTTPFileResponse.h"
 
+#import "AppDelegate.h"
+
 // Log levels : off, error, warn, info, verbose
 // Other flags: trace
 //static const int httpLogLevel = HTTP_LOG_LEVEL_VERBOSE; // | HTTP_LOG_FLAG_TRACE;
 
 @interface MyHTTPConnection ()
-
+{
+    NSUInteger runningByteCount;
+    NSUInteger totalByteCount;
+}
 
 @property(nonatomic, copy) NSString* filePath;
+@property(nonatomic, copy) NSString* fullPathAndFile;
 @property(nonatomic, retain) NSFileHandle* storeFile;
 
 @end
@@ -34,6 +40,8 @@
 	
 	if ([method isEqualToString:@"POST"])
 	{
+		[self setFilePath:path];
+
 //		if ([path isEqualToString:@"/upload.html"])
 		{
 			return YES;
@@ -58,7 +66,7 @@
     }
     return [super expectsRequestBodyFromMethod:method atPath:path];
 }
-
+/*
 - (NSObject<HTTPResponse> *)httpResponseForMethod:(NSString*)method URI:(NSString*)path
 {
 //	HTTPLogTrace();
@@ -90,6 +98,7 @@
 #endif
 	return [super httpResponseForMethod:method URI:path];
 }
+*/
 
 - (void)prepareForBodyWithSize:(UInt64)contentLength
 {
@@ -113,6 +122,40 @@
 		return;
 	}
 */
+//	NSTemporaryDirectory()
+	NSArray* directory_paths = NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask, YES);
+	NSString* downloads_directory = [directory_paths objectAtIndex:0];
+	NSString* file_name_base = [[self filePath] stringByDeletingPathExtension];
+	NSString* file_name_extension = [[self filePath] pathExtension];
+	NSString* full_path_and_file = [downloads_directory stringByAppendingPathComponent:[self filePath]];
+
+	NSUInteger collision_counter = 2;
+	do
+	{
+		if(YES == [[NSFileManager defaultManager] fileExistsAtPath:full_path_and_file])
+		{
+			full_path_and_file = [downloads_directory stringByAppendingPathComponent:[NSString stringWithFormat:@"%@-%lu.%@", file_name_base, (unsigned long)collision_counter, file_name_extension]];
+			collision_counter++;
+		}
+		else
+		{
+			break;
+		}
+	} while(1);
+
+	if(![[NSFileManager defaultManager] createFileAtPath:full_path_and_file contents:nil attributes:nil])
+	{
+		[self setStoreFile:nil];
+		NSLog(@"Could not create file at path: %@", full_path_and_file);
+
+	}
+	[self setStoreFile:[NSFileHandle fileHandleForWritingAtPath:full_path_and_file]];
+
+	NSLog(@"Saving file to %@", full_path_and_file);
+	[self setFullPathAndFile:full_path_and_file];
+
+/*
+
     NSString* upload_dir_path = [[config documentRoot] stringByAppendingPathComponent:@"upload"];
 	
 	BOOL is_dir = YES;
@@ -143,7 +186,38 @@
 		[self setStoreFile:[NSFileHandle fileHandleForWritingAtPath:file_path]];
 //		[uploadedFiles addObject: [NSString stringWithFormat:@"/upload/%@", filename]];
     }
-	
+*/
+
+	//	totalByteCount = contentLength;
+	// contentLength is NSIntegerMax if chunked mode is set and throws away Content-Length.
+	// I want the content length for the progress meter so get the value manually.
+	NSString* content_length = [request headerField:@"Content-Length"];
+	totalByteCount = [content_length longLongValue];
+	if(totalByteCount == 0)
+	{
+		totalByteCount = NSIntegerMax;
+	}
+	runningByteCount = 0;
+	dispatch_async(dispatch_get_main_queue(),
+		^{
+			// FIXME: This is a hack and won't handle multiple simultaneous downloads.
+			AppDelegate* app_delegate = (AppDelegate*)[[NSApplication sharedApplication] delegate];
+			NSProgressIndicator* progress_indicator = [app_delegate progressIndicator];
+			if(totalByteCount == NSIntegerMax)
+			{
+				[progress_indicator setIndeterminate:YES];
+			}
+			else
+			{
+				[progress_indicator setIndeterminate:NO];
+				[progress_indicator setMaxValue:totalByteCount];
+				[progress_indicator setMinValue:0];
+			}
+			[progress_indicator setDoubleValue:0];
+			[progress_indicator setUsesThreadedAnimation:YES];
+			[progress_indicator startAnimation:nil];
+		}
+    );
 #endif
 	
 }
@@ -159,6 +233,16 @@
 	if([self storeFile] != nil)
     {
 		[[self storeFile] writeData:post_data_chunk];
+
+		runningByteCount = runningByteCount + [post_data_chunk length];
+		dispatch_async(dispatch_get_main_queue(),
+			^{
+				// FIXME: This is a hack and won't handle multiple simultaneous downloads.
+				AppDelegate* app_delegate = (AppDelegate*)[[NSApplication sharedApplication] delegate];
+				NSProgressIndicator* progress_indicator = [app_delegate progressIndicator];
+				[progress_indicator setDoubleValue:(double)runningByteCount];
+			}
+	    );
 //        NSLog(@"processBodyData length: %lu", (unsigned long)[post_data_chunk length]);
 	}
 }
@@ -173,6 +257,29 @@
 	[[self storeFile] closeFile];
 	[self setStoreFile:nil];
 	NSLog(@"finishBody");
+	dispatch_async(dispatch_get_main_queue(),
+		^{
+			// FIXME: This is a hack and won't handle multiple simultaneous downloads.
+			AppDelegate* app_delegate = (AppDelegate*)[[NSApplication sharedApplication] delegate];
+			NSProgressIndicator* progress_indicator = [app_delegate progressIndicator];
+			[progress_indicator stopAnimation:nil];
+
+			// Bounce the downloads stack
+			[[NSDistributedNotificationCenter defaultCenter] postNotificationName:@"com.apple.DownloadFileFinished" object:[self fullPathAndFile]];
+			
+			// Bounce the dock icon
+//			[[NSApplication sharedApplication] requestUserAttention:NSInformationalRequest];
+
+			// Post a notification
+			NSUserNotification* user_notification = [[NSUserNotification alloc] init];
+			[user_notification setTitle:@"Test262 Log Extraction Complete"];
+			NSString* info_text = [NSString stringWithFormat:@"File saved to %@", [self fullPathAndFile]];
+			[user_notification setInformativeText:info_text];
+			[user_notification setSoundName:NSUserNotificationDefaultSoundName];
+			[[NSUserNotificationCenter defaultUserNotificationCenter] scheduleNotification:user_notification];
+
+		}
+	);
 }
 
 

@@ -6,11 +6,13 @@ package org.webkit.javascriptcore.test262;
 
 
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.io.FileNotFoundException;
 import java.net.URL;
 import android.util.Log;
 	
@@ -21,6 +23,7 @@ public class HttpFileUpload implements Runnable{
 //        String Description;
 //        byte[ ] dataToServer;
         FileInputStream fileInputStream = null;
+		File fileHandle = null;
 
 /*
         HttpFileUpload(String urlString, String vTitle, String vDesc){
@@ -42,12 +45,27 @@ public class HttpFileUpload implements Runnable{
                     Log.i("HttpFileUpload","URL Malformatted");
                 }
         }
-		
+        void Send_Now(File file)
+		{
+			try
+			{
+				fileHandle = file;
+				fileInputStream = new FileInputStream(fileHandle);
+				Sending();
+			}
+			catch(FileNotFoundException e) 
+			{
+				// Error: File not found
+			}
+
+        }		
+
+/*
         void Send_Now(FileInputStream fStream){
                 fileInputStream = fStream;
                 Sending();
-        }
-	
+       }
+*/	
         void Sending(){
 //                String iFileName = "test262_runlog.txt";
 //                String lineEnd = "\r\n";
@@ -70,7 +88,11 @@ public class HttpFileUpload implements Runnable{
                         // Don't use a cached copy.
                         conn.setUseCaches(false);
 	
-						conn.setChunkedStreamingMode(1024);
+						// This must be set or the program will run out of memory trying to buffer everything at once.
+						// Alternatively, setChunkedStreamingMode can be set to avoid the out of memory problem, but I don't know how to transmit an EOF equivalent.
+						// FixedLengthStreamingMode is more efficient anyway so I can side-step the chunked EOF problem.
+						conn.setFixedLengthStreamingMode(fileHandle.length());
+//						conn.setChunkedStreamingMode(1024);
 						
                         // Use a post method.
                         conn.setRequestMethod("POST");
@@ -79,6 +101,9 @@ public class HttpFileUpload implements Runnable{
 	
                         //conn.setRequestProperty("Content-Type", "multipart/form-data;boundary="+boundary);
                         conn.setRequestProperty("Content-Type", "application/octet-stream");
+                        Log.e(Tag,"file length (Content-Length) " + Long.toString(fileHandle.length()));
+						
+                        conn.setRequestProperty("Content-Length", "" + Long.toString(fileHandle.length()));
 	
                         DataOutputStream dos = new DataOutputStream(conn.getOutputStream());
 	

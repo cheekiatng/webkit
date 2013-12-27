@@ -259,6 +259,7 @@ logFile = out_file;
         zeroconfHelper.initializeNsd();
         // Register service
 		zeroconfHelper.registerService(loggingConnection.getLocalPort());
+		loggingConnection.setZeroconfHelper(zeroconfHelper);
     }
 
 	/* Because AssetManager list() is unusable, this is a workaround.

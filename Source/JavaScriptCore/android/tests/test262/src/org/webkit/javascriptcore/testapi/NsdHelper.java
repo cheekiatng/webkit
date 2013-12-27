@@ -31,11 +31,11 @@ public class NsdHelper {
     NsdManager.DiscoveryListener mDiscoveryListener;
     NsdManager.RegistrationListener mRegistrationListener;
 
-    //public static final String SERVICE_TYPE = "_test262logging._tcp.";
-    public static final String SERVICE_TYPE = "_http._tcp.";
+    public static final String SERVICE_TYPE = "_test262logging._tcp.";
+//    public static final String SERVICE_TYPE = "_http._tcp.";
 
     public static final String TAG = "NsdHelper";
-    public String mServiceName = "Test262Logging";
+    public String mServiceName = "Test262Logging_Android";
 	private boolean isRegistered = false;
 
     NsdServiceInfo mService;
@@ -127,7 +127,10 @@ public class NsdHelper {
 
             @Override
             public void onServiceRegistered(NsdServiceInfo NsdServiceInfo) {
+				
                 mServiceName = NsdServiceInfo.getServiceName();
+                    Log.d(TAG, "onServiceRegistered " + mServiceName);
+				
             }
             
             @Override
@@ -170,6 +173,13 @@ public class NsdHelper {
         return mService;
     }
     
+	public String getServiceName()
+	{
+                    Log.d(TAG, "getServiceName " + mServiceName);
+		
+		return mServiceName;
+	}
+
     public void tearDown() {
 		if(isRegistered)
 		{

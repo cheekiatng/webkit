@@ -57,6 +57,9 @@ public class LoggingConnection {
     private Socket mSocket;
     private int mPort = -1;
 
+	// This is only used to get the service name
+	private NsdHelper zeroconfHelper;
+
     public LoggingConnection(Handler handler) {
         mUpdateHandler = handler;
         mLoggingServer = new LoggingServer(handler);
@@ -94,6 +97,10 @@ public class LoggingConnection {
         mPort = port;
     }
     
+	public void setZeroconfHelper(NsdHelper zeroconf_helper)
+	{
+		zeroconfHelper = zeroconf_helper;
+	}
 
 /*
     public synchronized void updateMessages(String msg, boolean local) {
@@ -166,9 +173,13 @@ public class LoggingConnection {
 		{
 			String host_address_string = http_server_address.getHostAddress();
 			URL url_to_connect_to;
+            	    Log.e(TAG, "zeroconfHelper "+ zeroconfHelper);
+			String service_name = zeroconfHelper.getServiceName();
+            	    Log.e(TAG, "service_name "+ service_name);
+			
 			try
 			{
-				url_to_connect_to = new URL("http", host_address_string, http_server_port, "test262_runlog.txt");
+				url_to_connect_to = new URL("http", host_address_string, http_server_port, service_name + "-test262_runlog.txt");
 
 			}
 			catch(MalformedURLException ex)
@@ -177,26 +188,19 @@ public class LoggingConnection {
 					return;
 			}
 
-			try
-			{
 
-
-				File log_file = new File(Environment.getExternalStorageDirectory(), "test262_runlog.txt");
+			File log_file = new File(Environment.getExternalStorageDirectory(), "test262_runlog.txt");
 				
 				// Set your file path here
-				FileInputStream fstrm = new FileInputStream(log_file);
+				//FileInputStream fstrm = new FileInputStream(log_file);
 
 				// Set your server page url (and the file title/description)
 				//HttpFileUpload hfu = new HttpFileUpload("http://www.myurl.com/fileup.aspx", "my file title","my file description");
-				HttpFileUpload hfu = new HttpFileUpload(url_to_connect_to);
+			HttpFileUpload hfu = new HttpFileUpload(url_to_connect_to);
 
-				hfu.Send_Now(fstrm);
+			//	hfu.Send_Now(fstrm);
+			hfu.Send_Now(log_file);
 
-			}
-			catch (FileNotFoundException e) 
-			{
-				// Error: File not found
-			}
 		}
 
         class ServerThread implements Runnable {
@@ -222,6 +226,8 @@ public class LoggingConnection {
 
 						UploadFile(mSocket.getInetAddress(), int_port_value);
 
+						// seems like I could do something useful still with this socket, but I'll close it.
+						mSocket.close();
 
 						/*
                         if (mLoggingClient == null) {
