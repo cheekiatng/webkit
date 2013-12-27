@@ -8,6 +8,9 @@ import android.content.DialogInterface;
 
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
+
 import android.content.res.AssetManager;
 import android.util.Log;
 import android.view.View;
@@ -19,7 +22,6 @@ import android.widget.ProgressBar;
 import android.view.KeyEvent;
 import android.view.View.OnKeyListener;
 
-import java.io.IOException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
@@ -39,6 +41,7 @@ import java.io.FileWriter;
 //import java.text.DateFormat;
 import java.util.Date;
 import java.text.SimpleDateFormat;
+
 
 
 public class Test262 extends Activity
@@ -74,6 +77,10 @@ public class Test262 extends Activity
 	private boolean isAdbEchoingEnabled = true;
 	private boolean isMemoryInfoLoggingEnabled = true;
 
+
+	private Handler networkLoggingHandler;
+	private NsdHelper zeroconfHelper;
+	private LoggingConnection loggingConnection;
 
 	public native boolean doInit(AssetManager java_asset_manager);
 	public native void doPause();
@@ -233,7 +240,25 @@ logFile = out_file;
 		writeMemoryInfoToLogFile("Memory at the end of onCreate");
 
 		testProgressBar.setMax(numberOfTests);
+		
+		// Zeroconf
+        networkLoggingHandler = new Handler()
+		{
+			@Override
+			public void handleMessage(Message msg)
+			{
+				Log.v("Test262", "In handleMessage: " + msg);
+				
+//				String chatLine = msg.getData().getString("msg");
+//				addChatLine(chatLine);
+			}
+		};
 
+		loggingConnection = new LoggingConnection(networkLoggingHandler);
+		zeroconfHelper = new NsdHelper(this);
+        zeroconfHelper.initializeNsd();
+        // Register service
+		zeroconfHelper.registerService(loggingConnection.getLocalPort());
     }
 
 	/* Because AssetManager list() is unusable, this is a workaround.
@@ -330,11 +355,15 @@ logFile = out_file;
 	@Override
 	protected void onDestroy()
 	{
+        zeroconfHelper.tearDown();
 		
 		Log.i("Test262", "calling onDestroy");
 		doDestroy();
 
 		abortTests();
+
+		// Try not to tear this down until after the log writing is finished
+		loggingConnection.tearDown();
 
 		super.onDestroy();
 		Log.i("Test262", "finished calling onDestroy");		
@@ -518,8 +547,8 @@ logFile = out_file;
 				final String[] file_list = testFileList;
 				int number_of_tests_run = 0;
 //				for(int i=0; i < file_list.length; i++)
-				for(int i=0; i < 150; i++)
-				//for(int i=0; i < numberOfTests; i++)
+//				for(int i=0; i < 150; i++)
+				for(int i=0; i < numberOfTests; i++)
 				{
 
 					if(!javaScriptThreadShouldContinueRunning)
