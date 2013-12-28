@@ -9,6 +9,8 @@
 #import <Cocoa/Cocoa.h>
 
 @interface LogStreamWindowController : NSWindowController
+@property (weak) IBOutlet NSProgressIndicator* progressIndicator;
+@property (weak) NSNetService* netService;
 
 - (void) setWindowDidCloseCompletionBlock:(void (^)(void))the_block;
 

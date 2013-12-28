@@ -7,6 +7,8 @@
 //
 
 #import "LogStreamWindowController.h"
+#import "AppDelegate.h"
+#import "ResolveForDownloadDelegate.h"
 
 @interface LogStreamWindowController ()
 {
@@ -71,5 +73,55 @@
         [[self logStreamTextView] scrollRangeToVisible: NSMakeRange([[[self logStreamTextView] string] length], 0)];
 	}
 }
+
+
+- (IBAction) downloadButtonClicked:(id)the_sender
+{
+	NSNetService* net_service = [self netService];
+	// The service may have gone away, and since we have a weak reference, it may be nil
+	if(nil == net_service)
+	{
+		NSLog(@"This netService is no more");
+
+
+		// Handle error here
+		NSAlert* alert = [[NSAlert alloc] init];
+		[alert addButtonWithTitle:@"Dismiss"];
+		//	[alert addButtonWithTitle:@"Cancel"];
+		NSString* message_text = [NSString stringWithFormat:@"Service %@ is no longer available", [[self window] title]];
+		[alert setMessageText:message_text];
+		NSString* info_text = [NSString stringWithFormat:@"Try again or try restarting the app on the device."];
+
+		[alert setInformativeText:info_text];
+		[alert setAlertStyle:NSInformationalAlertStyle];
+
+		[alert beginSheetModalForWindow:[self window]
+			modalDelegate:self
+			didEndSelector:@selector(alertDidEnd:returnCode:contextInfo:)
+			contextInfo:nil
+		];
+
+		return;
+		
+	}
+
+	AppDelegate* app_delegate = (AppDelegate*)[[NSApplication sharedApplication] delegate];
+
+	[net_service setDelegate:[app_delegate resolveForDownloadDelegate]];
+	[net_service resolveWithTimeout:5.0];
+	NSProgressIndicator* progress_indicator = [self progressIndicator];
+	[progress_indicator setIndeterminate:YES];
+	[progress_indicator startAnimation:nil];
+
+	progress_indicator = [app_delegate progressIndicator];
+	[progress_indicator setIndeterminate:YES];
+	[progress_indicator startAnimation:nil];
+}
+
+- (void)alertDidEnd:(NSAlert*)alert returnCode:(int)return_code contextInfo:(void*)context_info
+{
+	//    [alert release];
+}
+
 
 @end

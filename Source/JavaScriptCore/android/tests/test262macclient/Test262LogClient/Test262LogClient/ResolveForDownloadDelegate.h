@@ -11,6 +11,6 @@
 
 @interface ResolveForDownloadDelegate : ResolveDelegate
 
-@property(nonatomic, retain) HTTPServer* httpServer;
+@property(nonatomic, strong) HTTPServer* httpServer;
 
 @end

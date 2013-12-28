@@ -117,6 +117,20 @@ int Test262Helper_ConnectToServer(NSNetService* net_service)
 
 @implementation ResolveDelegate
 
+- (void)netServiceDidResolveAddress:(NSNetService *)net_service
+{
+	dispatch_async(dispatch_get_main_queue(),
+		^{
+			// FIXME: This is a hack and won't handle multiple simultaneous downloads.
+			AppDelegate* app_delegate = (AppDelegate*)[[NSApplication sharedApplication] delegate];
+			NSProgressIndicator* progress_indicator = [app_delegate progressIndicator];
+			[progress_indicator setIndeterminate:YES];
+			[progress_indicator stopAnimation:nil];
+		}
+	);
+
+}
+
 // Sent if resolution fails
 - (void)netService:(NSNetService *)net_service
      didNotResolve:(NSDictionary *)error_dict
@@ -128,6 +142,10 @@ int Test262Helper_ConnectToServer(NSNetService* net_service)
 		^{
 			// FIXME: This is a hack and won't handle multiple simultaneous downloads.
 			AppDelegate* app_delegate = (AppDelegate*)[[NSApplication sharedApplication] delegate];
+
+
+			NSProgressIndicator* progress_indicator = [app_delegate progressIndicator];
+			[progress_indicator stopAnimation:nil];
 
 
 			// Handle error here

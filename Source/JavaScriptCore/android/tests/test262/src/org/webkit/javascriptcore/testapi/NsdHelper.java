@@ -36,7 +36,8 @@ public class NsdHelper {
 //    public static final String SERVICE_TYPE = "_http._tcp.";
 
     public static final String TAG = "NsdHelper";
-    public String mServiceName = "Test262Logging_Android";
+    public String mServiceName = android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL;
+	//"Test262Logging_Android";
 	private boolean isRegistered = false;
 
     NsdServiceInfo mService;

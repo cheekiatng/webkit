@@ -8,7 +8,8 @@
 #import "HTTPDynamicFileResponse.h"
 #import "HTTPFileResponse.h"
 
-#import "AppDelegate.h"
+//#import "AppDelegate.h"
+#import "LogStreamWindowController.h"
 
 // Log levels : off, error, warn, info, verbose
 // Other flags: trace
@@ -201,8 +202,10 @@
 	dispatch_async(dispatch_get_main_queue(),
 		^{
 			// FIXME: This is a hack and won't handle multiple simultaneous downloads.
-			AppDelegate* app_delegate = (AppDelegate*)[[NSApplication sharedApplication] delegate];
-			NSProgressIndicator* progress_indicator = [app_delegate progressIndicator];
+//			AppDelegate* app_delegate = (AppDelegate*)[[NSApplication sharedApplication] delegate];
+//			NSProgressIndicator* progress_indicator = [app_delegate progressIndicator];
+			NSProgressIndicator* progress_indicator = [[self logStreamWindowController]  progressIndicator];
+
 			if(totalByteCount == NSIntegerMax)
 			{
 				[progress_indicator setIndeterminate:YES];
@@ -238,8 +241,8 @@
 		dispatch_async(dispatch_get_main_queue(),
 			^{
 				// FIXME: This is a hack and won't handle multiple simultaneous downloads.
-				AppDelegate* app_delegate = (AppDelegate*)[[NSApplication sharedApplication] delegate];
-				NSProgressIndicator* progress_indicator = [app_delegate progressIndicator];
+//				AppDelegate* app_delegate = (AppDelegate*)[[NSApplication sharedApplication] delegate];
+				NSProgressIndicator* progress_indicator = [[self logStreamWindowController]  progressIndicator];
 				[progress_indicator setDoubleValue:(double)runningByteCount];
 			}
 	    );
@@ -260,8 +263,10 @@
 	dispatch_async(dispatch_get_main_queue(),
 		^{
 			// FIXME: This is a hack and won't handle multiple simultaneous downloads.
-			AppDelegate* app_delegate = (AppDelegate*)[[NSApplication sharedApplication] delegate];
-			NSProgressIndicator* progress_indicator = [app_delegate progressIndicator];
+//			AppDelegate* app_delegate = (AppDelegate*)[[NSApplication sharedApplication] delegate];
+//			NSProgressIndicator* progress_indicator = [app_delegate progressIndicator];
+			NSProgressIndicator* progress_indicator = [[self logStreamWindowController]  progressIndicator];
+
 			[progress_indicator stopAnimation:nil];
 
 			// Bounce the downloads stack

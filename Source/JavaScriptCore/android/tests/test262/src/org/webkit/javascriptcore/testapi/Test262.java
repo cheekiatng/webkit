@@ -75,7 +75,7 @@ public class Test262 extends Activity
 
 	private org.webkit.javascriptcore.test262.MemoryInfo myMemoryInfo;
 	private boolean isAdbEchoingEnabled = true;
-	private boolean isMemoryInfoLoggingEnabled = false;
+	private boolean isMemoryInfoLoggingEnabled = true;
 
 
 	private Handler networkLoggingHandler;
@@ -176,6 +176,7 @@ logFile = out_file;
 		{
 			return;
 		}
+		String time_stamp = generateTimeStamp();
 
 		String memory_info_string = myMemoryInfo.createMemoryInfoStringForAll();
 
@@ -183,7 +184,7 @@ logFile = out_file;
 		{
 			try
 			{
-				outputStreamWriter.write(generateTimeStamp());
+				outputStreamWriter.write(time_stamp);
 				outputStreamWriter.write(" Test262: ");
 
 				outputStreamWriter.write(log_string);
@@ -201,6 +202,10 @@ logFile = out_file;
 		{
 			Log.v("Test262", log_string + "\n" + memory_info_string);
 		}
+		loggingConnection.writeToSocketDataOutputStream(time_stamp);
+		loggingConnection.writeToSocketDataOutputStream(" Test262: ");
+		loggingConnection.writeToSocketDataOutputStream(log_string);
+		loggingConnection.writeToSocketDataOutputStream("\n");
 	}
 
 	/** Called when the activity is first created. */

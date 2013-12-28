@@ -39,9 +39,6 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 @property (weak) IBOutlet NSTableView* tableView;
 @property (weak) IBOutlet NSButton* downloadButton;
 
-// I need to root these delegate instances somewhere or ARC will release my temporary instances
-@property (nonatomic, strong, readonly ) ResolveForDownloadDelegate*              resolveForDownloadDelegate;
-@property (nonatomic, strong, readonly ) ResolveForLogStreamDelegate*              resolveForLogStreamDelegate;
 
 @property (nonatomic, strong, readonly ) NSMutableArray* listOfActiveLogStreamWindowControllers;
 
@@ -81,6 +78,10 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
     
     [self startBrowsing];
     [self startHttpServer];
+
+	NSProgressIndicator* progress_indicator = [self progressIndicator];
+	[progress_indicator setUsesThreadedAnimation:YES];
+
 }
 
 // Overrides to always send notifications, even when in the foreground.
@@ -98,6 +99,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// Initalize our http server
 	httpServer = [[HTTPServer alloc] init];
 
+	[_resolveForDownloadDelegate setHttpServer:httpServer];
 
     /* This may seem a little indirect.
     The device will publish itself via Bonjour/Zeroconf, not this client.
@@ -284,7 +286,27 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
 - (void) tableViewDoubleClicked:(id)the_sender
 {
-    NSInteger clicked_row = [the_sender clickedRow];
+	NSInteger clicked_row = [the_sender clickedRow];
+
+	// Don't resolve if already open
+    if ( (clicked_row >= 0) && [[self.servicesArray selectedObjects] count] != 0)
+    {
+        NSNetService*  net_service;
+		NSString* identifier_name = [net_service name];
+		LogStreamWindowController* window_controller = nil;
+
+        net_service = [[self.servicesArray selectedObjects] objectAtIndex:0];
+        assert([net_service isKindOfClass:[NSNetService class]]);
+
+		window_controller = [self logStreamWindowControllerExistsForName:identifier_name];
+		if(nil != window_controller)
+		{
+			[window_controller showWindow:nil];
+			return;
+		}
+	}
+
+
     [self resolveForLogStreamForSelectedRow:clicked_row];
 }
 
@@ -301,6 +323,10 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 #if 1
         [service setDelegate:[self resolveForDownloadDelegate]];
         [service resolveWithTimeout:5.0];
+		NSProgressIndicator* progress_indicator = [self progressIndicator];
+		[progress_indicator setIndeterminate:YES];
+		[progress_indicator startAnimation:nil];
+
 #else
         NSInputStream *istream = nil;
         NSOutputStream *ostream = nil;
@@ -336,6 +362,9 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
         [service setDelegate:[self resolveForLogStreamDelegate]];
         [service resolveWithTimeout:5.0];
+		NSProgressIndicator* progress_indicator = [self progressIndicator];
+		[progress_indicator setIndeterminate:YES];
+		[progress_indicator startAnimation:nil];
 
     }
 }

@@ -19,6 +19,7 @@
 {
     // Make sure [netService addresses] contains the
     // necessary connection information
+	[super netServiceDidResolveAddress:net_service];
 
 	[self connectToServerAndSendHttpServerInfomation:net_service];
 }
@@ -27,20 +28,6 @@
 
 - (void) connectToServerAndSendHttpServerInfomation:(NSNetService*)net_service
 {
-	// dispatch_async
-    // Remember to pull out shared ivar values if possible to avoid the need for syncing
-    int sock_fd = Test262Helper_ConnectToServer(net_service);
-    if(sock_fd == -1)
-    {
-        NSLog(@"Failed to connect, not sending server info");
-		[self handleConnectError:net_service withErrno:errno];
-		return;
-	}
-
-	uint16_t command_directive = 0;
-	// server knows to treat 0 as a special command
-    send(sock_fd, &command_directive, sizeof(uint16_t), 0);
-
 
 	dispatch_async(dispatch_get_main_queue(),
 		^{
@@ -58,9 +45,10 @@
 			{
 
 
-				LogStreamWindowController* window_controller = [[LogStreamWindowController alloc] initWithWindowNibName:@"LogStreamWindowController"];
+				window_controller = [[LogStreamWindowController alloc] initWithWindowNibName:@"LogStreamWindowController"];
 				NSWindow* the_window = [window_controller window];
 				[the_window setTitle:[net_service name]];
+				[window_controller setNetService:net_service];
 
 				[app_delegate addWindowControllerToActiveList:window_controller];
 
@@ -79,41 +67,58 @@
 
 
 
-		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
-			^{
-				int keep_going = 1;
-				const size_t MAX_RECV_BUFFER_SIZE = 65536+1;
-				char* recv_buffer = malloc(MAX_RECV_BUFFER_SIZE * sizeof(char));
+				dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
+					^{
 
-				while(keep_going)
-				{
-					ssize_t num_bytes = recv(sock_fd, recv_buffer, MAX_RECV_BUFFER_SIZE-1, 0);
-					if(0 == num_bytes)
-					{
-						keep_going = 0;
-						break;
-					}
-					else if(num_bytes < 0)
-					{
-						NSLog(@"error with recv, errno:(%d) %s", errno, strerror(errno));
-						continue;
-					}
-
-//					recv_buffer[num_bytes] = '\0';
-//					NSLog(@"recv from socket: %s", recv_buffer);
-					// I need to copy the message now before the dispatch_async because the buffer could be modified before the following is run.
-					NSString* log_message = [[NSString alloc] initWithBytes:recv_buffer length:num_bytes encoding:NSUTF8StringEncoding];
-					dispatch_async(dispatch_get_main_queue(),
-						^{
-							// I can't use this version because the buffer could change before this gets run
-//							[weak_window_controller postLogEvent:recv_buffer length:num_bytes];
-							[weak_window_controller postLogEvent:log_message];
+						// dispatch_async
+						// Remember to pull out shared ivar values if possible to avoid the need for syncing
+						int sock_fd = Test262Helper_ConnectToServer(net_service);
+						if(sock_fd == -1)
+						{
+							NSLog(@"Failed to connect, not sending server info");
+							[self handleConnectError:net_service withErrno:errno];
+							return;
 						}
-					);
-				}
-				free(recv_buffer);
-			}
-		);
+
+						uint16_t command_directive = 0;
+						// server knows to treat 0 as a special command
+						send(sock_fd, &command_directive, sizeof(uint16_t), 0);
+						
+
+
+						int keep_going = 1;
+						const size_t MAX_RECV_BUFFER_SIZE = 65536+1;
+						char* recv_buffer = malloc(MAX_RECV_BUFFER_SIZE * sizeof(char));
+
+						while(keep_going)
+						{
+							ssize_t num_bytes = recv(sock_fd, recv_buffer, MAX_RECV_BUFFER_SIZE-1, 0);
+							if(0 == num_bytes)
+							{
+								keep_going = 0;
+								break;
+							}
+							else if(num_bytes < 0)
+							{
+								NSLog(@"error with recv, errno:(%d) %s", errno, strerror(errno));
+								continue;
+							}
+
+		//					recv_buffer[num_bytes] = '\0';
+		//					NSLog(@"recv from socket: %s", recv_buffer);
+							// I need to copy the message now before the dispatch_async because the buffer could be modified before the following is run.
+							NSString* log_message = [[NSString alloc] initWithBytes:recv_buffer length:num_bytes encoding:NSUTF8StringEncoding];
+							dispatch_async(dispatch_get_main_queue(),
+								^{
+									// I can't use this version because the buffer could change before this gets run
+		//							[weak_window_controller postLogEvent:recv_buffer length:num_bytes];
+									[weak_window_controller postLogEvent:log_message];
+								}
+							);
+						}
+						free(recv_buffer);
+					}
+				);
 
 
 			}
