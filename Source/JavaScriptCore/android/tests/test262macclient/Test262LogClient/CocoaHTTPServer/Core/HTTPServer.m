@@ -551,7 +551,20 @@ static const int httpLogLevel = HTTP_LOG_LEVEL_INFO; // | HTTP_LOG_FLAG_TRACE;
 	[connectionsLock lock];
 	[connections addObject:newConnection];
 	[connectionsLock unlock];
-	
+
+
+	/**
+	 * EW: New Hack API to workaround problem that the connection class is created behind the scenes and you can't get access to it.
+	 * This is a problem because there is no clean way to access outside GUI.
+	 * http://stackoverflow.com/questions/8492002/add-run-time-information-to-cocoahttpserver-using-custom-response-class
+	 * https://github.com/robbiehanson/CocoaHTTPServer/issues/5
+	 */
+	if(nil != connectionClassInstantiationCallback)
+	{
+		connectionClassInstantiationCallback(newConnection);
+	}
+
+
 	[newConnection start];
 }
 
@@ -768,5 +781,18 @@ static NSThread *bonjourThread;
 	           withObject:block
 	        waitUntilDone:YES];
 }
+
+
+/**
+ * EW: New Hack API to workaround problem that the connection class is created behind the scenes and you can't get access to it.
+ * This is a problem because there is no clean way to access outside GUI.
+ * http://stackoverflow.com/questions/8492002/add-run-time-information-to-cocoahttpserver-using-custom-response-class
+ * https://github.com/robbiehanson/CocoaHTTPServer/issues/5
+ */
+- (void) setConnectionClassInstantiationCallback:(void (^)(HTTPConnection*))the_block
+{
+	connectionClassInstantiationCallback = [the_block copy];
+}
+
 
 @end

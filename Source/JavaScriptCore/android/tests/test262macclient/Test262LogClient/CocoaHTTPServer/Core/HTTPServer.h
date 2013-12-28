@@ -2,6 +2,7 @@
 
 @class GCDAsyncSocket;
 @class WebSocket;
+@class HTTPConnection;
 
 #if TARGET_OS_IPHONE
   #if __IPHONE_OS_VERSION_MIN_REQUIRED >= 40000 // iPhone 4.0
@@ -50,6 +51,9 @@
 	NSLock *webSocketsLock;
 	
 	BOOL isRunning;
+
+	// EW: API Hack
+	void (^connectionClassInstantiationCallback)(HTTPConnection*);
 }
 
 /**
@@ -77,6 +81,13 @@
 **/
 - (Class)connectionClass;
 - (void)setConnectionClass:(Class)value;
+/**
+ * EW: New Hack API to workaround problem that the connection class is created behind the scenes and you can't get access to it.
+ * This is a problem because there is no clean way to access outside GUI.
+ * http://stackoverflow.com/questions/8492002/add-run-time-information-to-cocoahttpserver-using-custom-response-class
+ * https://github.com/robbiehanson/CocoaHTTPServer/issues/5
+ */
+- (void) setConnectionClassInstantiationCallback:(void (^)(HTTPConnection*))the_block;
 
 /**
  * Set what interface you'd like the server to listen on.
