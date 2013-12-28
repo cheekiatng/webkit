@@ -49,6 +49,11 @@
 		00F3AEC1186BE9B300822845 /* README.txt in Resources */ = {isa = PBXBuildFile; fileRef = 00F3AEB6186BE9B300822845 /* README.txt */; };
 		00F3AEC3186BE9D500822845 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00F3AEC2186BE9D500822845 /* Security.framework */; };
 		00F3AECB186D019B00822845 /* web in Resources */ = {isa = PBXBuildFile; fileRef = 00F3AECA186D019B00822845 /* web */; };
+		00F3AECE186E91F500822845 /* ResolveDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 00F3AECD186E91F500822845 /* ResolveDelegate.m */; };
+		00F3AED1186E980300822845 /* ResolveForDownloadDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 00F3AED0186E980300822845 /* ResolveForDownloadDelegate.m */; };
+		00F3AED4186E981C00822845 /* ResolveForLogStreamDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 00F3AED3186E981C00822845 /* ResolveForLogStreamDelegate.m */; };
+		00F3AED8186EC36B00822845 /* LogStreamWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 00F3AED6186EC36A00822845 /* LogStreamWindowController.m */; };
+		00F3AED9186EC36B00822845 /* LogStreamWindowController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 00F3AED7186EC36B00822845 /* LogStreamWindowController.xib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -140,6 +145,15 @@
 		00F3AEB6186BE9B300822845 /* README.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README.txt; sourceTree = "<group>"; };
 		00F3AEC2186BE9D500822845 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		00F3AECA186D019B00822845 /* web */ = {isa = PBXFileReference; lastKnownFileType = folder; path = web; sourceTree = "<group>"; };
+		00F3AECC186E91F500822845 /* ResolveDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ResolveDelegate.h; sourceTree = "<group>"; };
+		00F3AECD186E91F500822845 /* ResolveDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ResolveDelegate.m; sourceTree = "<group>"; };
+		00F3AECF186E980300822845 /* ResolveForDownloadDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ResolveForDownloadDelegate.h; sourceTree = "<group>"; };
+		00F3AED0186E980300822845 /* ResolveForDownloadDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ResolveForDownloadDelegate.m; sourceTree = "<group>"; };
+		00F3AED2186E981C00822845 /* ResolveForLogStreamDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ResolveForLogStreamDelegate.h; sourceTree = "<group>"; };
+		00F3AED3186E981C00822845 /* ResolveForLogStreamDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ResolveForLogStreamDelegate.m; sourceTree = "<group>"; };
+		00F3AED5186EC36A00822845 /* LogStreamWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LogStreamWindowController.h; sourceTree = "<group>"; };
+		00F3AED6186EC36A00822845 /* LogStreamWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LogStreamWindowController.m; sourceTree = "<group>"; };
+		00F3AED7186EC36B00822845 /* LogStreamWindowController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = LogStreamWindowController.xib; path = Test262LogClient/LogStreamWindowController.xib; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -215,6 +229,14 @@
 				00F3AE9D186BE42300822845 /* MyHTTPConnection.h */,
 				00F3AE9E186BE42300822845 /* MyHTTPConnection.m */,
 				00F3AE37186A45E500822845 /* Supporting Files */,
+				00F3AECC186E91F500822845 /* ResolveDelegate.h */,
+				00F3AECD186E91F500822845 /* ResolveDelegate.m */,
+				00F3AECF186E980300822845 /* ResolveForDownloadDelegate.h */,
+				00F3AED0186E980300822845 /* ResolveForDownloadDelegate.m */,
+				00F3AED2186E981C00822845 /* ResolveForLogStreamDelegate.h */,
+				00F3AED3186E981C00822845 /* ResolveForLogStreamDelegate.m */,
+				00F3AED5186EC36A00822845 /* LogStreamWindowController.h */,
+				00F3AED6186EC36A00822845 /* LogStreamWindowController.m */,
 			);
 			path = Test262LogClient;
 			sourceTree = "<group>";
@@ -374,6 +396,7 @@
 				00F3AE48186A45E500822845 /* Images.xcassets */,
 				00F3AE38186A45E500822845 /* Test262LogClient-Info.plist */,
 				00F3AE39186A45E500822845 /* InfoPlist.strings */,
+				00F3AED7186EC36B00822845 /* LogStreamWindowController.xib */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -459,6 +482,7 @@
 				00F3AE3B186A45E500822845 /* InfoPlist.strings in Resources */,
 				00F3AE49186A45E500822845 /* Images.xcassets in Resources */,
 				00F3AE41186A45E500822845 /* Credits.rtf in Resources */,
+				00F3AED9186EC36B00822845 /* LogStreamWindowController.xib in Resources */,
 				00F3AE47186A45E500822845 /* MainMenu.xib in Resources */,
 				00F3AEC1186BE9B300822845 /* README.txt in Resources */,
 				00F3AEB7186BE9B300822845 /* About.txt in Resources */,
@@ -480,8 +504,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				00F3AED8186EC36B00822845 /* LogStreamWindowController.m in Sources */,
 				00F3AE92186BDF7200822845 /* HTTPServer.m in Sources */,
 				00F3AEBC186BE9B300822845 /* DDFileLogger.m in Sources */,
+				00F3AED4186E981C00822845 /* ResolveForLogStreamDelegate.m in Sources */,
 				00F3AE90186BDF7200822845 /* HTTPConnection.m in Sources */,
 				00F3AE98186BDF7200822845 /* HTTPDynamicFileResponse.m in Sources */,
 				00F3AE8E186BDF7200822845 /* DDRange.m in Sources */,
@@ -498,8 +524,10 @@
 				00F3AEB8186BE9B300822845 /* GCDAsyncSocket.m in Sources */,
 				00F3AE9C186BDF7200822845 /* WebSocket.m in Sources */,
 				00F3AEBA186BE9B300822845 /* DDAbstractDatabaseLogger.m in Sources */,
+				00F3AECE186E91F500822845 /* ResolveDelegate.m in Sources */,
 				00F3AE8D186BDF7200822845 /* DDNumber.m in Sources */,
 				00F3AEBE186BE9B300822845 /* DDTTYLogger.m in Sources */,
+				00F3AED1186E980300822845 /* ResolveForDownloadDelegate.m in Sources */,
 				00F3AE3D186A45E500822845 /* main.m in Sources */,
 				00F3AE94186BDF7200822845 /* MultipartMessageHeader.m in Sources */,
 				00F3AE9A186BDF7200822845 /* HTTPFileResponse.m in Sources */,

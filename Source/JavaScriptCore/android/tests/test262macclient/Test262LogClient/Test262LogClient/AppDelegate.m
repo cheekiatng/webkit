@@ -16,9 +16,15 @@
 #import "DDLog.h"
 #import "DDTTYLogger.h"
 
+#import "ResolveDelegate.h"
+#import "ResolveForDownloadDelegate.h"
+#import "ResolveForLogStreamDelegate.h"
+
+#import "LogStreamWindowController.h"
+
 static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
-@interface AppDelegate () <NSNetServiceBrowserDelegate, NSStreamDelegate, NSURLSessionDataDelegate, NSNetServiceDelegate, NSUserNotificationCenterDelegate>
+@interface AppDelegate () <NSNetServiceBrowserDelegate, NSUserNotificationCenterDelegate>
 {
     HTTPServer* httpServer;
 }
@@ -33,9 +39,11 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 @property (weak) IBOutlet NSTableView* tableView;
 @property (weak) IBOutlet NSButton* downloadButton;
 
-@property (strong, nonatomic) NSURLSessionDownloadTask* backgroundDownloadTask;
+// I need to root these delegate instances somewhere or ARC will release my temporary instances
+@property (nonatomic, strong, readonly ) ResolveForDownloadDelegate*              resolveForDownloadDelegate;
+@property (nonatomic, strong, readonly ) ResolveForLogStreamDelegate*              resolveForLogStreamDelegate;
 
-
+@property (nonatomic, strong, readonly ) NSMutableArray* listOfActiveLogStreamWindowControllers;
 
 @end
 @implementation AppDelegate
@@ -54,7 +62,13 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
                                    [[NSSortDescriptor alloc] initWithKey:@"name"   ascending:YES selector:@selector(localizedStandardCompare:)],
                                    [[NSSortDescriptor alloc] initWithKey:@"domain" ascending:YES selector:@selector(localizedStandardCompare:)]
                                    ];
-        
+
+		_resolveForDownloadDelegate = [[ResolveForDownloadDelegate alloc] init];
+		_resolveForLogStreamDelegate = [[ResolveForLogStreamDelegate alloc] init];
+
+		_listOfActiveLogStreamWindowControllers = [[NSMutableArray alloc] init];
+
+
     }
     return self;
 }
@@ -130,6 +144,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
     [self.browser setDelegate:self];
     // Passing in "" for the domain causes us to browse in the default browse domain
     [self.browser searchForServicesOfType:@"_test262logging._tcp." inDomain:@""];
+//    [self.browser searchForServicesOfType:@"_test262logging._tcp." inDomain:@""];
 //    [self.browser searchForServicesOfType:@"_wwdcpic2._tcp." inDomain:@""];
 //    [self.browser searchForServicesOfType:@"_http._tcp." inDomain:@""];
 }
@@ -174,8 +189,13 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
         [self willChangeValueForKey:@"services" withSetMutation:NSKeyValueUnionSetMutation usingObjects:setToAdd];
         [self.services unionSet:setToAdd];
-        [self  didChangeValueForKey:@"services" withSetMutation:NSKeyValueUnionSetMutation usingObjects:setToAdd];
+        [self didChangeValueForKey:@"services" withSetMutation:NSKeyValueUnionSetMutation usingObjects:setToAdd];
 
+		// Trigger a change notification for the hostName field which only gets set in the NSNetService object after a resolve.
+        [self willChangeValueForKey:@"services.arrangedObjects.hostName" withSetMutation:NSKeyValueUnionSetMutation usingObjects:setToAdd];
+        [self didChangeValueForKey:@"services.arrangedObjects.hostName" withSetMutation:NSKeyValueUnionSetMutation usingObjects:setToAdd];
+
+		// I think we use ChangeValueForKey:withSetMutation instead of ArrayController addObject because we don't want to blindly add objects to the array in case there are duplicates.
 //        [self.servicesArray addObject:aNetService];
     }
 }
@@ -225,12 +245,13 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
     [self stopBrowsingWithStatus:@"Service browsing failed."];
 }
 
-
+/*
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context
 {
     [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
 
 }
+*/
 - (IBAction)tableRowClickedAction:(id)sender
 // Called when user clicks a row in the services table.  If we're not already receiving,
 // we kick off a receive.
@@ -250,16 +271,24 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 - (IBAction) downloadButtonClicked:(id)the_sender
 {
     NSInteger selected_row = [[self tableView] selectedRow];
-    [self resolveForSelectedRow:selected_row];
+    [self resolveForDownloadForSelectedRow:selected_row];
 }
+
+
+- (IBAction) streamLogButtonClicked:(id)the_sender
+{
+    NSInteger selected_row = [[self tableView] selectedRow];
+    [self resolveForLogStreamForSelectedRow:selected_row];
+}
+
 
 - (void) tableViewDoubleClicked:(id)the_sender
 {
     NSInteger clicked_row = [the_sender clickedRow];
-    [self resolveForSelectedRow:clicked_row];
+    [self resolveForLogStreamForSelectedRow:clicked_row];
 }
 
-- (void) resolveForSelectedRow:(NSInteger)selected_row
+- (void) resolveForDownloadForSelectedRow:(NSInteger)selected_row
 {
 //    NSInteger clicked_row = [[self tableView] clickedRow];
     // We test for a positive clickedRow to eliminate clicks in the column headers.
@@ -270,7 +299,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
         service = [[self.servicesArray selectedObjects] objectAtIndex:0];
         assert([service isKindOfClass:[NSNetService class]]);
 #if 1
-        [service setDelegate:self];
+        [service setDelegate:[self resolveForDownloadDelegate]];
         [service resolveWithTimeout:5.0];
 #else
         NSInputStream *istream = nil;
@@ -294,52 +323,59 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
     }
 }
 
-// Sent when addresses are resolved
-- (void)netServiceDidResolveAddress:(NSNetService *)net_service
+- (void) resolveForLogStreamForSelectedRow:(NSInteger)selected_row
 {
-    // Make sure [netService addresses] contains the
-    // necessary connection information
-
-    if ([self addressesComplete:[net_service addresses]
-                 forServiceType:[net_service type]])
+	//    NSInteger clicked_row = [[self tableView] clickedRow];
+    // We test for a positive clickedRow to eliminate clicks in the column headers.
+    if ( (selected_row >= 0) && [[self.servicesArray selectedObjects] count] != 0)
     {
+        NSNetService *  service;
 
-//        [self startBackgroundDownloadWithNetService:service];
+        service = [[self.servicesArray selectedObjects] objectAtIndex:0];
+        assert([service isKindOfClass:[NSNetService class]]);
 
-        [self connectToServerAndSendHttpServerInfomation:net_service];
+        [service setDelegate:[self resolveForLogStreamDelegate]];
+        [service resolveWithTimeout:5.0];
 
     }
-
-
-
 }
 
-// Sent if resolution fails
-- (void)netService:(NSNetService *)netService
-     didNotResolve:(NSDictionary *)errorDict
+//////////////////
+
+
+- (LogStreamWindowController*) logStreamWindowControllerExistsForName:(NSString*)window_name
 {
-    [self handleError:[errorDict objectForKey:NSNetServicesErrorCode] withService:netService];
- //   [services removeObject:netService];
+	for(LogStreamWindowController* window_controller in _listOfActiveLogStreamWindowControllers)
+	{
+		NSWindow* the_window = [window_controller window];
+		if([window_name isEqualToString:[the_window title]])
+		{
+			return window_controller;
+		}
+	}
+	return nil;
 }
 
-// Verifies [netService addresses]
-- (BOOL)addressesComplete:(NSArray *)addresses
-           forServiceType:(NSString *)serviceType
+- (void) addWindowControllerToActiveList:(LogStreamWindowController*)new_window_controller
 {
-    // Perform appropriate logic to ensure that [netService addresses]
-    // contains the appropriate information to connect to the service
-    return YES;
+	for(LogStreamWindowController* window_controller in _listOfActiveLogStreamWindowControllers)
+	{
+		if([window_controller isEqualTo:new_window_controller])
+		{
+			return;
+		}
+	}
+	[_listOfActiveLogStreamWindowControllers addObject:new_window_controller];
+
 }
 
-// Error handling code
-- (void)handleError:(NSNumber *)error withService:(NSNetService *)service
+- (void) removeWindowControllerFromActiveList:(LogStreamWindowController*)window_controller
 {
-    NSLog(@"An error occurred with service %@.%@.%@, error code = %d",
-          [service name], [service type], [service domain], [error intValue]);
-    // Handle error here
+	[_listOfActiveLogStreamWindowControllers removeObject:window_controller];
 }
 
 
+//////////////////
 
 //#include <sys/types.h>
 //#include <sys/socket.h>
@@ -385,128 +421,5 @@ static NSURL* URLFromNetService(NSNetService* net_service, NSString* url_path)
     
 //	NSURLRequest *request = [[NSURLRequest alloc] initWithURL:url];
 }
-
-static int ConnectToServer(NSNetService* net_service)
-{
-    int sock_fd;
-    _Bool did_connect = 0;
-
- //   struct addrinfo hints, *servinfo, *p;
-//    int rv;
-//    char s[INET6_ADDRSTRLEN];
-    char addr[INET6_ADDRSTRLEN];
-
-/*
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-
-    if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
-    }
-*/
-
-//    NSMutableArray* ipv4_addresses = [NSMutableArray array];
-    NSArray* addresses = [net_service addresses];
-    NSUInteger number_of_addresses = [addresses count];
-
-    // loop through all the results and connect to the first we can
-    for(NSUInteger i = 0; i < number_of_addresses; i++)
-    {
-        struct sockaddr* socket_address = (struct sockaddr *)[[addresses objectAtIndex:i] bytes];
-
-        if(socket_address && socket_address->sa_family == AF_INET)
-        {
-            if (inet_ntop(AF_INET, &((struct sockaddr_in *)socket_address)-> sin_addr, addr, sizeof(addr)))
-            {
-                uint16_t port = ntohs(((struct sockaddr_in *)socket_address)-> sin_port);
-                NSLog(@"host port is %d", port);
-
- //               [ipv4_addresses addObject:[NSString stringWithFormat:@"%s:%d", addr, port]];
-
-                if((sock_fd = socket(socket_address->sa_family, SOCK_STREAM, 0)) == -1)
-                {
-                    perror("client: socket");
-                    NSLog(@"can't create socket");
-                    continue;
-                }
-
-                if(connect(sock_fd, socket_address, INET_ADDRSTRLEN) == -1)
-                {
-                    close(sock_fd);
-                    perror("client: connect");
-                    NSLog(@"can't connect");
-                    continue;
-                }
-                NSLog(@"connected on ipv4");
-                did_connect = 1;
-                break;
-            }
-        }
-        else if(socket_address && socket_address->sa_family == AF_INET6)
-        {
-            if (inet_ntop(AF_INET6, &((struct sockaddr_in6*)socket_address)-> sin6_addr, addr, sizeof(addr)))
-            {
-                uint16_t port = ntohs(((struct sockaddr_in6 *)socket_address)-> sin6_port);
-NSLog(@"host port is %d", port);
-                //               [ipv4_addresses addObject:[NSString stringWithFormat:@"%s:%d", addr, port]];
-                //INET6_ADDRSTRLEN
-                if((sock_fd = socket(socket_address->sa_family, SOCK_STREAM, 0)) == -1)
-                {
-                    perror("client: socket");
-                    NSLog(@"can't create socket");
-                    continue;
-                }
-
-                if(connect(sock_fd, socket_address, INET6_ADDRSTRLEN) == -1)
-                {
-                    close(sock_fd);
-                    perror("client: connect");
-                    NSLog(@"can't connect");
-                    continue;
-                }
-                NSLog(@"connected on ipv6");
-                did_connect = 1;
-                break;
-            }
-        }
-        else
-        {
-            continue;
-        }
-    }
-
-
-    if(0 == did_connect)
-    {
-        NSLog(@"connect failed");
-
-    }
-
-    return sock_fd;
-}
-
-- (void) connectToServerAndSendHttpServerInfomation:(NSNetService*)net_service
-{
-    uint16_t http_server_port = [httpServer listeningPort];
-    
-    uint16_t http_server_port_networkorder = htons([httpServer listeningPort]);
-
-// dispatch_async
-    // Remember to pull out shared ivar values if possible to avoid the need for syncing
-    int sock_fd = ConnectToServer(net_service);
-    if(sock_fd == -1)
-    {
-        NSLog(@"Failed to connect, not sending server info");
-    }
-
-    send(sock_fd, &http_server_port_networkorder, sizeof(http_server_port_networkorder), 0);
-
-    NSLog(@"sent port info: host:%d, network:%d", http_server_port, http_server_port_networkorder);
-
-}
-
-
 
 @end

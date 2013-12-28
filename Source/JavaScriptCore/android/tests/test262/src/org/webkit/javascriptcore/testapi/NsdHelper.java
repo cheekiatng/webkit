@@ -31,7 +31,8 @@ public class NsdHelper {
     NsdManager.DiscoveryListener mDiscoveryListener;
     NsdManager.RegistrationListener mRegistrationListener;
 
-    public static final String SERVICE_TYPE = "_test262logging._tcp.";
+    //public static final String SERVICE_TYPE = "_test262logging._tcp.";
+    private String SERVICE_TYPE = "_test262logging._tcp.";
 //    public static final String SERVICE_TYPE = "_http._tcp.";
 
     public static final String TAG = "NsdHelper";
@@ -40,7 +41,9 @@ public class NsdHelper {
 
     NsdServiceInfo mService;
 
-    public NsdHelper(Context context) {
+    public NsdHelper(Context context, String service_type)
+	{
+		SERVICE_TYPE = service_type;
         mContext = context;
         mNsdManager = (NsdManager) context.getSystemService(Context.NSD_SERVICE);
     }

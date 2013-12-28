@@ -75,7 +75,7 @@ public class Test262 extends Activity
 
 	private org.webkit.javascriptcore.test262.MemoryInfo myMemoryInfo;
 	private boolean isAdbEchoingEnabled = true;
-	private boolean isMemoryInfoLoggingEnabled = true;
+	private boolean isMemoryInfoLoggingEnabled = false;
 
 
 	private Handler networkLoggingHandler;
@@ -142,11 +142,13 @@ logFile = out_file;
 	
 	private void writeToLogFile(String log_string)
 	{
+		String time_stamp = generateTimeStamp();
 		if(outputStreamWriter != null)
 		{
+
 			try
 			{
-				outputStreamWriter.write(generateTimeStamp());
+				outputStreamWriter.write(time_stamp);
 				outputStreamWriter.write(" Test262: ");
 
 				outputStreamWriter.write(log_string);
@@ -162,6 +164,10 @@ logFile = out_file;
 		{
 			Log.v("Test262", log_string);
 		}
+		loggingConnection.writeToSocketDataOutputStream(time_stamp);
+		loggingConnection.writeToSocketDataOutputStream(" Test262: ");
+		loggingConnection.writeToSocketDataOutputStream(log_string);
+		loggingConnection.writeToSocketDataOutputStream("\n");
 	}
 
 	private void writeMemoryInfoToLogFile(String log_string)
@@ -255,12 +261,13 @@ logFile = out_file;
 		};
 
 		loggingConnection = new LoggingConnection(networkLoggingHandler);
-		zeroconfHelper = new NsdHelper(this);
+		zeroconfHelper = new NsdHelper(this, "_test262logging._tcp.");
         zeroconfHelper.initializeNsd();
         // Register service
 		zeroconfHelper.registerService(loggingConnection.getLocalPort());
 		loggingConnection.setZeroconfHelper(zeroconfHelper);
-    }
+
+	}
 
 	/* Because AssetManager list() is unusable, this is a workaround.
 	 * We pre-generate a file containing the entire list of files.

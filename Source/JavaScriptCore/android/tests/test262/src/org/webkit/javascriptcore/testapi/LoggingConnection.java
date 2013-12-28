@@ -30,6 +30,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.InputStream;
 import java.io.DataInputStream;
+import java.io.OutputStream;
+import java.io.DataOutputStream;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -55,6 +57,7 @@ public class LoggingConnection {
     private static final String TAG = "LoggingConnection";
 
     private Socket mSocket;
+	private DataOutputStream socketDataOutputStream;
     private int mPort = -1;
 
 	// This is only used to get the service name
@@ -130,6 +133,12 @@ public class LoggingConnection {
             if (mSocket.isConnected()) {
                 try {
                     mSocket.close();
+
+					socketDataOutputStream.flush();
+					socketDataOutputStream.close();
+					socketDataOutputStream = null;
+
+
                 } catch (IOException e) {
                     // TODO(alexlucas): Auto-generated catch block
                     e.printStackTrace();
@@ -137,11 +146,43 @@ public class LoggingConnection {
             }
         }
         mSocket = socket;
+		if(mSocket != null)
+		{
+			try
+			{
+				OutputStream os = mSocket.getOutputStream();
+				socketDataOutputStream = new DataOutputStream(os);
+			}
+			catch (IOException ioe)
+			{
+				Log.e("LoggingConnection", "IO error: " + ioe.getMessage(), ioe);
+			}
+
+		}
+
+
+
     }
 
     private Socket getSocket() {
         return mSocket;
     }
+
+	public void writeToSocketDataOutputStream(String message)
+	{
+		if(socketDataOutputStream != null)
+		{
+			try
+			{
+				socketDataOutputStream.writeBytes(message);
+				socketDataOutputStream.flush();
+			}
+			catch (IOException ioe)
+			{
+				Log.e("LoggingConnection", "IO error: " + ioe.getMessage(), ioe);
+			}
+		}
+	}
 
     private class LoggingServer {
         ServerSocket mServerSocket = null;
@@ -216,18 +257,30 @@ public class LoggingConnection {
                     
                     while (!Thread.currentThread().isInterrupted()) {
                         Log.d(TAG, "ServerSocket Created, awaiting connection");
-                        setSocket(mServerSocket.accept());
+						Socket accepted_socket = mServerSocket.accept();
                         Log.d(TAG, "Connected.");
-						InputStream is = mSocket.getInputStream();
+						InputStream is = accepted_socket.getInputStream();
 						DataInputStream dis = new DataInputStream(is);
 						char port_value = dis.readChar();
 						int int_port_value = (int)port_value;
                         Log.d(TAG, "Read port value is: " + int_port_value);
 
-						UploadFile(mSocket.getInetAddress(), int_port_value);
+						if(port_value > 0)
+						{
+                        Log.d(TAG, "Uploading file");
+							
+							UploadFile(mSocket.getInetAddress(), int_port_value);
 
-						// seems like I could do something useful still with this socket, but I'll close it.
-						mSocket.close();
+							// seems like I could do something useful still with this socket, but I'll close it.
+							accepted_socket.close();
+						}
+						else
+						{
+                        Log.d(TAG, "Detected LogStream mode");
+							setSocket(accepted_socket);
+
+						}
+
 
 						/*
                         if (mLoggingClient == null) {

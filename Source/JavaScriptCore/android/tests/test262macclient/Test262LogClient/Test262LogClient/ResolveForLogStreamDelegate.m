@@ -1,0 +1,125 @@
+//
+//  ResolveForLogStream.m
+//  Test262LogClient
+//
+//  Created by Eric Wing on 12/27/13.
+//  Copyright (c) 2013 JavaScriptCore. All rights reserved.
+//
+
+#import "ResolveForLogStreamDelegate.h"
+
+#include <arpa/inet.h>
+#import "LogStreamWindowController.h"
+#import "AppDelegate.h"
+
+@implementation ResolveForLogStreamDelegate
+
+// Sent when addresses are resolved
+- (void)netServiceDidResolveAddress:(NSNetService *)net_service
+{
+    // Make sure [netService addresses] contains the
+    // necessary connection information
+
+	[self connectToServerAndSendHttpServerInfomation:net_service];
+}
+
+
+
+- (void) connectToServerAndSendHttpServerInfomation:(NSNetService*)net_service
+{
+	// dispatch_async
+    // Remember to pull out shared ivar values if possible to avoid the need for syncing
+    int sock_fd = Test262Helper_ConnectToServer(net_service);
+    if(sock_fd == -1)
+    {
+        NSLog(@"Failed to connect, not sending server info");
+		[self handleConnectError:net_service withErrno:errno];
+		return;
+	}
+
+	uint16_t command_directive = 0;
+	// server knows to treat 0 as a special command
+    send(sock_fd, &command_directive, sizeof(uint16_t), 0);
+
+
+	dispatch_async(dispatch_get_main_queue(),
+		^{
+			AppDelegate* app_delegate = (AppDelegate*)[[NSApplication sharedApplication] delegate];
+			NSString* identifier_name = [net_service name];
+			LogStreamWindowController* window_controller = nil;
+
+			window_controller = [app_delegate logStreamWindowControllerExistsForName:identifier_name];
+			if(nil != window_controller)
+			{
+				[window_controller showWindow:nil];
+				return;
+			}
+			else
+			{
+
+
+				LogStreamWindowController* window_controller = [[LogStreamWindowController alloc] initWithWindowNibName:@"LogStreamWindowController"];
+				NSWindow* the_window = [window_controller window];
+				[the_window setTitle:[net_service name]];
+
+				[app_delegate addWindowControllerToActiveList:window_controller];
+
+				// capturing window_controller strongly in this block is likely to lead to a retain cycle
+				typeof(window_controller) __weak weak_window_controller = window_controller;
+
+				[window_controller setWindowDidCloseCompletionBlock:
+					^{
+						AppDelegate* app_delegate = (AppDelegate*)[[NSApplication sharedApplication] delegate];
+						[app_delegate removeWindowControllerFromActiveList:weak_window_controller];
+
+						}
+				];
+
+				[window_controller showWindow:nil];
+
+
+
+		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
+			^{
+				int keep_going = 1;
+				const size_t MAX_RECV_BUFFER_SIZE = 65536+1;
+				char* recv_buffer = malloc(MAX_RECV_BUFFER_SIZE * sizeof(char));
+
+				while(keep_going)
+				{
+					ssize_t num_bytes = recv(sock_fd, recv_buffer, MAX_RECV_BUFFER_SIZE-1, 0);
+					if(0 == num_bytes)
+					{
+						keep_going = 0;
+						break;
+					}
+					else if(num_bytes < 0)
+					{
+						NSLog(@"error with recv, errno:(%d) %s", errno, strerror(errno));
+						continue;
+					}
+
+//					recv_buffer[num_bytes] = '\0';
+//					NSLog(@"recv from socket: %s", recv_buffer);
+					// I need to copy the message now before the dispatch_async because the buffer could be modified before the following is run.
+					NSString* log_message = [[NSString alloc] initWithBytes:recv_buffer length:num_bytes encoding:NSUTF8StringEncoding];
+					dispatch_async(dispatch_get_main_queue(),
+						^{
+							// I can't use this version because the buffer could change before this gets run
+//							[weak_window_controller postLogEvent:recv_buffer length:num_bytes];
+							[weak_window_controller postLogEvent:log_message];
+						}
+					);
+				}
+				free(recv_buffer);
+			}
+		);
+
+
+			}
+		}
+	);
+
+}
+
+@end

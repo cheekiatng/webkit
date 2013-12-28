@@ -8,9 +8,15 @@
 
 #import <Cocoa/Cocoa.h>
 
+@class LogStreamWindowController;
+
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 
 @property (assign) IBOutlet NSWindow *window;
 @property (weak) IBOutlet NSProgressIndicator* progressIndicator;
+
+- (LogStreamWindowController*) logStreamWindowControllerExistsForName:(NSString*)window_name;
+- (void) addWindowControllerToActiveList:(LogStreamWindowController*)window_controller;
+- (void) removeWindowControllerFromActiveList:(LogStreamWindowController*)window_controller;
 
 @end
