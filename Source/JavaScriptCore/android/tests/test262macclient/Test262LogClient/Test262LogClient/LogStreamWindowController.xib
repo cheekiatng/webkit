@@ -30,21 +30,21 @@
                             <rect key="frame" x="1" y="1" width="640" height="451"/>
                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                             <subviews>
-                                <textView editable="NO" importsGraphics="NO" richText="NO" findStyle="panel" usesRuler="YES" usesFontPanel="YES" verticallyResizable="YES" id="NgB-E8-2jW">
+                                <textView editable="NO" importsGraphics="NO" richText="NO" findStyle="panel" verticallyResizable="YES" id="NgB-E8-2jW">
                                     <rect key="frame" x="0.0" y="0.0" width="640" height="451"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                     <size key="minSize" width="640" height="451"/>
-                                    <size key="maxSize" width="752" height="10000000"/>
+                                    <size key="maxSize" width="10000000" height="10000000"/>
                                     <color key="insertionPointColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
                                     <size key="minSize" width="640" height="451"/>
-                                    <size key="maxSize" width="752" height="10000000"/>
+                                    <size key="maxSize" width="10000000" height="10000000"/>
                                 </textView>
                             </subviews>
                             <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                         </clipView>
                         <scroller key="horizontalScroller" hidden="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="YES" id="IDx-VY-VfY">
-                            <rect key="frame" x="-100" y="-100" width="87" height="18"/>
+                            <rect key="frame" x="-100" y="-100" width="640" height="16"/>
                             <autoresizingMask key="autoresizingMask"/>
                         </scroller>
                         <scroller key="verticalScroller" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="ApY-R7-jXw">

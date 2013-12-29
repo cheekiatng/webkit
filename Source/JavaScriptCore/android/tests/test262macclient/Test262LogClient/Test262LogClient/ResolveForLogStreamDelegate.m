@@ -152,6 +152,13 @@
 	//					NSLog(@"recv from socket: %s", recv_buffer);
 						// I need to copy the message now before the dispatch_async because the buffer could be modified before the following is run.
 						NSString* log_message = [[NSString alloc] initWithBytes:recv_buffer length:num_bytes encoding:NSUTF8StringEncoding];
+						if(nil == log_message)
+						{
+							NSLog(@"Unexpected nil string, num_bytes=%zd", num_bytes);
+							recv_buffer[num_bytes] = '\0';
+							NSLog(@"recv from socket: %s", recv_buffer);
+							continue;
+						}
 						dispatch_async(dispatch_get_main_queue(),
 							^{
 								// I can't use this version because the buffer could change before this gets run
