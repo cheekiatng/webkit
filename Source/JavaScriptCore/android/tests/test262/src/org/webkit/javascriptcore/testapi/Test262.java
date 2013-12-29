@@ -206,6 +206,7 @@ logFile = out_file;
 		loggingConnection.writeToSocketDataOutputStream(" Test262: ");
 		loggingConnection.writeToSocketDataOutputStream(log_string);
 		loggingConnection.writeToSocketDataOutputStream("\n");
+		loggingConnection.writeToSocketDataOutputStream(memory_info_string);
 	}
 
 	/** Called when the activity is first created. */
@@ -248,7 +249,6 @@ logFile = out_file;
 		
 		resultStatusLabel.setText("Total number of tests: " + file_list.length + "\nExternal Storage Path " + external_path);
 
-		writeMemoryInfoToLogFile("Memory at the end of onCreate");
 
 		testProgressBar.setMax(numberOfTests);
 		
@@ -272,6 +272,8 @@ logFile = out_file;
 		zeroconfHelper.registerService(loggingConnection.getLocalPort());
 		loggingConnection.setZeroconfHelper(zeroconfHelper);
 
+
+		writeMemoryInfoToLogFile("Memory at the end of onCreate");		
 	}
 
 	/* Because AssetManager list() is unusable, this is a workaround.

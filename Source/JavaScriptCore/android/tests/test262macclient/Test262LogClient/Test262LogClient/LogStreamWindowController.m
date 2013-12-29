@@ -67,13 +67,19 @@
 
 	[[[[self logStreamTextView] textStorage] mutableString] appendString:log_message];
 
-
+/*
     if (scroll) // Scroll to end of the textview contents
 	{
         [[self logStreamTextView] scrollRangeToVisible: NSMakeRange([[[self logStreamTextView] string] length], 0)];
 	}
+	
+	*/
 }
 
+- (IBAction) clearDisplayClicked:(id)the_sender
+{
+	[[[[self logStreamTextView] textStorage] mutableString] setString:@""];
+}
 
 - (IBAction) downloadButtonClicked:(id)the_sender
 {
@@ -109,10 +115,14 @@
 
 	[net_service setDelegate:[app_delegate resolveForDownloadDelegate]];
 	[net_service resolveWithTimeout:5.0];
-	NSProgressIndicator* progress_indicator = [self progressIndicator];
+	NSProgressIndicator* progress_indicator = nil;
+	/*
+	// Too many edge cases depending on how the download was started.
+	// Better use of bindings would help here.
+	progress_indicator = [self progressIndicator];
 	[progress_indicator setIndeterminate:YES];
 	[progress_indicator startAnimation:nil];
-
+*/
 	progress_indicator = [app_delegate progressIndicator];
 	[progress_indicator setIndeterminate:YES];
 	[progress_indicator startAnimation:nil];

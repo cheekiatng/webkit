@@ -175,11 +175,12 @@ public class LoggingConnection {
 			try
 			{
 				socketDataOutputStream.writeBytes(message);
-				socketDataOutputStream.flush();
+//				socketDataOutputStream.flush();
 			}
 			catch (IOException ioe)
 			{
 				Log.e("LoggingConnection", "IO error: " + ioe.getMessage(), ioe);
+				setSocket(null);
 			}
 		}
 	}
@@ -208,6 +209,7 @@ public class LoggingConnection {
             	    Log.e(TAG, "Error when closing server socket.");
             	}
 			}
+			setSocket(null);
         }
 
 		public void UploadFile(InetAddress http_server_address, int http_server_port)
@@ -269,7 +271,7 @@ public class LoggingConnection {
 						{
                         Log.d(TAG, "Uploading file");
 							
-							UploadFile(mSocket.getInetAddress(), int_port_value);
+							UploadFile(accepted_socket.getInetAddress(), int_port_value);
 
 							// seems like I could do something useful still with this socket, but I'll close it.
 							accepted_socket.close();

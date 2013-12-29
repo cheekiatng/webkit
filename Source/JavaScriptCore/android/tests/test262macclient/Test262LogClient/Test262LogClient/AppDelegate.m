@@ -81,6 +81,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
 	NSProgressIndicator* progress_indicator = [self progressIndicator];
 	[progress_indicator setUsesThreadedAnimation:YES];
+	[progress_indicator setDisplayedWhenStopped:NO];
 
 }
 
@@ -289,6 +290,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	NSInteger clicked_row = [the_sender clickedRow];
 
 	// Don't resolve if already open
+	/*
     if ( (clicked_row >= 0) && [[self.servicesArray selectedObjects] count] != 0)
     {
         NSNetService*  net_service;
@@ -305,6 +307,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 			return;
 		}
 	}
+	*/
 
 
     [self resolveForLogStreamForSelectedRow:clicked_row];

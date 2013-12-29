@@ -769,9 +769,9 @@
                         </tableHeaderView>
                     </scrollView>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8YH-mV-7pI">
-                        <rect key="frame" x="470" y="12" width="103" height="32"/>
+                        <rect key="frame" x="443" y="12" width="130" height="32"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                        <buttonCell key="cell" type="push" title="Download" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="h2g-XA-Yhm">
+                        <buttonCell key="cell" type="push" title="Download Log" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="h2g-XA-Yhm">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
                         </buttonCell>
@@ -780,22 +780,36 @@
                             <binding destination="IM6-VU-nSX" name="enabled" keyPath="selectedObjects.@count" id="eZF-6e-vom"/>
                         </connections>
                     </button>
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="vna-b9-Npb">
+                        <rect key="frame" x="14" y="12" width="145" height="32"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                        <buttonCell key="cell" type="push" title="View Log Stream" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="gmL-Jr-yls">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="streamLogButtonClicked:" target="494" id="VUB-Mk-XUM"/>
+                            <binding destination="IM6-VU-nSX" name="enabled" keyPath="selectedObjects.@count" id="lj7-Wp-z66"/>
+                        </connections>
+                    </button>
                     <progressIndicator maxValue="100" style="bar" translatesAutoresizingMaskIntoConstraints="NO" id="YA8-oJ-NyS">
-                        <rect key="frame" x="20" y="19" width="448" height="20"/>
+                        <rect key="frame" x="161" y="19" width="280" height="20"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     </progressIndicator>
                 </subviews>
                 <constraints>
                     <constraint firstItem="SMN-DV-Z3H" firstAttribute="leading" secondItem="372" secondAttribute="leading" constant="20" id="0oJ-Pj-6ap"/>
                     <constraint firstItem="8YH-mV-7pI" firstAttribute="top" secondItem="SMN-DV-Z3H" secondAttribute="bottom" constant="20" id="38s-7O-JWU"/>
-                    <constraint firstItem="YA8-oJ-NyS" firstAttribute="leading" secondItem="372" secondAttribute="leading" constant="20" id="3oK-cC-3x8"/>
                     <constraint firstItem="SMN-DV-Z3H" firstAttribute="top" secondItem="372" secondAttribute="top" constant="20" id="4n5-NM-oJH"/>
+                    <constraint firstItem="vna-b9-Npb" firstAttribute="top" secondItem="SMN-DV-Z3H" secondAttribute="bottom" constant="20" id="CSy-tO-BPx"/>
                     <constraint firstAttribute="centerX" secondItem="SMN-DV-Z3H" secondAttribute="centerX" id="Gta-b7-Ufg"/>
+                    <constraint firstItem="YA8-oJ-NyS" firstAttribute="leading" secondItem="vna-b9-Npb" secondAttribute="trailing" constant="8" id="V82-28-o1Y"/>
+                    <constraint firstItem="vna-b9-Npb" firstAttribute="leading" secondItem="372" secondAttribute="leading" constant="20" id="XQr-MN-uM1"/>
                     <constraint firstAttribute="trailing" secondItem="SMN-DV-Z3H" secondAttribute="trailing" constant="20" id="bLw-cz-huc"/>
                     <constraint firstAttribute="trailing" secondItem="8YH-mV-7pI" secondAttribute="trailing" constant="20" id="dmU-hy-aLC"/>
-                    <constraint firstItem="8YH-mV-7pI" firstAttribute="leading" secondItem="YA8-oJ-NyS" secondAttribute="trailing" constant="8" id="hu0-he-OXN"/>
                     <constraint firstAttribute="bottom" secondItem="8YH-mV-7pI" secondAttribute="bottom" constant="19" id="mu4-wb-47b"/>
-                    <constraint firstAttribute="bottom" secondItem="YA8-oJ-NyS" secondAttribute="bottom" constant="20" id="wQk-8o-mxc"/>
+                    <constraint firstItem="8YH-mV-7pI" firstAttribute="leading" secondItem="YA8-oJ-NyS" secondAttribute="trailing" constant="8" id="qqj-1m-Aw5"/>
+                    <constraint firstItem="YA8-oJ-NyS" firstAttribute="top" secondItem="SMN-DV-Z3H" secondAttribute="bottom" constant="22" id="zVa-dh-6if"/>
                 </constraints>
             </view>
         </window>
