@@ -8,17 +8,11 @@
 
 #import "AppDelegate.h"
 
-#import "Test262Helper.h"
 
 @implementation AppDelegate
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
-		^{
-			Test262Helper_RunTests();
-		}
-	);
     return YES;
 }
 							

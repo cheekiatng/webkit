@@ -140,7 +140,7 @@ _Bool Test262Helper_DetermineIfPositiveTestFromScript(NSString* raw_script)
 }
 
 
-void Test262Helper_RunTests()
+void Test262Helper_RunTests(NSProgress* ns_progress)
 {
 	NSString* test_harness_script_string = Test262Helper_LoadTestHarnessScripts();
 	NSMutableString* concat_string = [[NSMutableString alloc] init];
@@ -154,22 +154,38 @@ void Test262Helper_RunTests()
 //	NSString* file_path = nil;
 
 	NSUInteger number_of_failed_tests = 0;
+	NSUInteger current_index_count = 0;
 
 	/* I originally was going to dynamically traverse the directories, but on Android,
 		there was a serious performance problem with this (took 3 hours just to get a full directory listing in an APK).
 		So instead, I used a pre-created text file which contained the list of files.
-		While we don't have the performance problems on Android, I discovered I liked having the text file because
+		While we don't have the performance problems of Android, I discovered I liked having the text file because
 		I could modify the text file to run specific tests for debugging.
 		So I've decided to use the text file here too.
 	 */
 	NSString* test_manifiest_file_string = [NSString stringWithContentsOfFile:[[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"test262_filelist.txt"] encoding:NSUTF8StringEncoding error:&the_error];
 	NSArray* file_list = [test_manifiest_file_string componentsSeparatedByString:@"\n"];
 
+	// componentsSeparatedByString is leaving me a blank line at the end
+	// I want to get rid of it
+	if([[file_list lastObject] length] == 0)
+	{
+		NSRange sub_range;
+		sub_range.location = 0;
+		sub_range.length = [file_list count] - 1;
+		file_list = [file_list subarrayWithRange:sub_range];
+	}
+
+	// We might want to further sanitize the list if we support commented out lines and so forth
+	[ns_progress setTotalUnitCount:[file_list count]];
 
 	for(NSString* a_file in file_list)
 	{
+		// just in case there is a blank line
 		if([a_file length] == 0)
 		{
+			current_index_count = current_index_count + 1;
+			[ns_progress setCompletedUnitCount:current_index_count];
 			continue;
 		}
 		NSString* file_path = [resource_path stringByAppendingPathComponent:a_file];
@@ -182,6 +198,8 @@ void Test262Helper_RunTests()
 				NSLog(@"NSError is: %@", [the_error localizedDescription]);
 				the_error = nil;
 			}
+			current_index_count = current_index_count + 1;
+			[ns_progress setCompletedUnitCount:current_index_count];
 			continue;
 		}
 		_Bool is_positive_test = Test262Helper_DetermineIfPositiveTestFromScript(raw_test_script);
@@ -271,7 +289,10 @@ void Test262Helper_RunTests()
 		}
 		JSStringRelease(js_file_name);
 		JSStringRelease(js_script_string);
+		
 
+		current_index_count = current_index_count + 1;
+		[ns_progress setCompletedUnitCount:current_index_count];
 	}
 
 	NSLog(@"number_of_failed_tests=%lu", (unsigned long)number_of_failed_tests);

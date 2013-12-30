@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 
 NSString* Test262Helper_LoadTestHarnessScripts(void);
-void Test262Helper_RunTests(void);
+void Test262Helper_RunTests(NSProgress* ns_progress);
 
 @interface Test262Helper : NSObject
 

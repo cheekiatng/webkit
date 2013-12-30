@@ -9,6 +9,11 @@
 #import "AppDelegate.h"
 #import "Test262Helper.h"
 
+@interface AppDelegate ()
+@property (weak) IBOutlet NSProgressIndicator* progressIndicator;
+@property(strong, nonatomic) NSProgress* test262Progress;
+@end
+
 @implementation AppDelegate
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
@@ -17,8 +22,17 @@
 		^{
 			// We want to disable App Nap while running this test since it might take awhile to finish.
 			id test262_process_activity = [[NSProcessInfo processInfo] beginActivityWithOptions:NSActivityUserInitiated reason:@"Running long conformance test: test262"];
-			// work
-			Test262Helper_RunTests();
+
+			NSProgress* test262_progress = [[NSProgress alloc] initWithParent:nil userInfo:nil];
+			// I'm using Cocoa Bindings to tie the NSProgress fractionCompleted to the progressIndicator.
+			// I'm a little surprised this isn't crashing due to being in a background thread.
+			// If this crashes, I'll add the layer of indirection later.
+			[self setTest262Progress:test262_progress];
+
+			[[self progressIndicator] startAnimation:nil];
+			Test262Helper_RunTests(test262_progress);
+			[[self progressIndicator] stopAnimation:nil];
+
 			[[NSProcessInfo processInfo] endActivity:test262_process_activity];
 		}
 	);
