@@ -14,10 +14,11 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-    // Override point for customization after application launch.
-
-	Test262Helper_RunTests();
-	
+	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
+		^{
+			Test262Helper_RunTests();
+		}
+	);
     return YES;
 }
 							

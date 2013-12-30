@@ -27,6 +27,7 @@
 		0079D4201870496600D6F559 /* JavaScriptCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0079D41F1870496600D6F559 /* JavaScriptCore.framework */; };
 		0079D4251870497900D6F559 /* Test262Helper.m in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4231870497900D6F559 /* Test262Helper.m */; };
 		0079D4331870E81A00D6F559 /* test262.c in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4321870E81A00D6F559 /* test262.c */; };
+		0079D4371871249000D6F559 /* test262_filelist.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0079D4361871249000D6F559 /* test262_filelist.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,6 +67,7 @@
 		0079D4221870497900D6F559 /* Test262Helper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Test262Helper.h; path = ../../common/source/Test262Helper.h; sourceTree = "<group>"; };
 		0079D4231870497900D6F559 /* Test262Helper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Test262Helper.m; path = ../../common/source/Test262Helper.m; sourceTree = "<group>"; };
 		0079D4321870E81A00D6F559 /* test262.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = test262.c; path = ../../../common/source/test262.c; sourceTree = "<group>"; };
+		0079D4361871249000D6F559 /* test262_filelist.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = test262_filelist.txt; path = ../../../test262/test262_filelist.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -183,6 +185,7 @@
 		0079D41A1870491D00D6F559 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				0079D4361871249000D6F559 /* test262_filelist.txt */,
 				0079D41B1870493100D6F559 /* harness */,
 				0079D41C1870493100D6F559 /* suite */,
 			);
@@ -237,6 +240,9 @@
 				LastUpgradeCheck = 0500;
 				ORGANIZATIONNAME = JavaScriptCore;
 				TargetAttributes = {
+					0079D3DD1870490500D6F559 = {
+						DevelopmentTeam = KCDL38H59P;
+					};
 					0079D4011870490500D6F559 = {
 						TestTargetID = 0079D3DD1870490500D6F559;
 					};
@@ -272,6 +278,7 @@
 				0079D41E1870493100D6F559 /* suite in Resources */,
 				0079D3F51870490500D6F559 /* Main_iPhone.storyboard in Resources */,
 				0079D3EC1870490500D6F559 /* InfoPlist.strings in Resources */,
+				0079D4371871249000D6F559 /* test262_filelist.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -431,10 +438,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "Test262/Test262-Prefix.pch";
 				INFOPLIST_FILE = "Test262/Test262-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -444,10 +454,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "Test262/Test262-Prefix.pch";
 				INFOPLIST_FILE = "Test262/Test262-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
