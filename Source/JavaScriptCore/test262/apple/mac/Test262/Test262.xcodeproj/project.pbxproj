@@ -11,6 +11,7 @@
 		0079D42918704A3500D6F559 /* suite in Resources */ = {isa = PBXBuildFile; fileRef = 0079D42718704A3500D6F559 /* suite */; };
 		0079D42F18704A8C00D6F559 /* Test262Helper.m in Sources */ = {isa = PBXBuildFile; fileRef = 0079D42D18704A8C00D6F559 /* Test262Helper.m */; };
 		0079D4311870E7E700D6F559 /* test262.c in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4301870E7E700D6F559 /* test262.c */; };
+		0079D4351871175F00D6F559 /* test262_filelist.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0079D4341871175F00D6F559 /* test262_filelist.txt */; };
 		008D276F1870344D0032A573 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 008D276E1870344D0032A573 /* Cocoa.framework */; };
 		008D27791870344D0032A573 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 008D27771870344D0032A573 /* InfoPlist.strings */; };
 		008D277B1870344D0032A573 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 008D277A1870344D0032A573 /* main.m */; };
@@ -41,6 +42,7 @@
 		0079D42C18704A8C00D6F559 /* Test262Helper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Test262Helper.h; path = ../../../common/source/Test262Helper.h; sourceTree = "<group>"; };
 		0079D42D18704A8C00D6F559 /* Test262Helper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Test262Helper.m; path = ../../../common/source/Test262Helper.m; sourceTree = "<group>"; };
 		0079D4301870E7E700D6F559 /* test262.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = test262.c; path = ../../../../common/source/test262.c; sourceTree = "<group>"; };
+		0079D4341871175F00D6F559 /* test262_filelist.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = test262_filelist.txt; path = ../../../test262/test262_filelist.txt; sourceTree = "<group>"; };
 		008D276B1870344D0032A573 /* Test262.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Test262.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		008D276E1870344D0032A573 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		008D27711870344D0032A573 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -183,6 +185,7 @@
 		00F083FE187035B8005F7DDF /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				0079D4341871175F00D6F559 /* test262_filelist.txt */,
 				0079D42618704A3500D6F559 /* harness */,
 				0079D42718704A3500D6F559 /* suite */,
 			);
@@ -272,6 +275,7 @@
 				0079D42918704A3500D6F559 /* suite in Resources */,
 				008D277F1870344D0032A573 /* Credits.rtf in Resources */,
 				008D27851870344D0032A573 /* MainMenu.xib in Resources */,
+				0079D4351871175F00D6F559 /* test262_filelist.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

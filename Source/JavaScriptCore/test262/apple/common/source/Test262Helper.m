@@ -114,7 +114,7 @@ NSString* Test262Helper_LoadTestHarnessScripts()
 NSString* Test262Helper_DetermineStrictModeStringFromScript(NSString* raw_script)
 {
 	NSRange is_in_range = [raw_script rangeOfString:@"@onlyStrict" options:0];
-	if(0 == is_in_range.location)
+	if(NSNotFound != is_in_range.location)
 	{
 		// found it
 		return @"\"use strict\";\nvar strict_mode = true;\n";
@@ -128,7 +128,7 @@ NSString* Test262Helper_DetermineStrictModeStringFromScript(NSString* raw_script
 _Bool Test262Helper_DetermineIfPositiveTestFromScript(NSString* raw_script)
 {
 	NSRange is_in_range = [raw_script rangeOfString:@"@negative" options:0];
-	if(0 == is_in_range.location)
+	if(NSNotFound != is_in_range.location)
 	{
 		// found it
 		return false;
@@ -145,85 +145,136 @@ void Test262Helper_RunTests()
 	NSString* test_harness_script_string = Test262Helper_LoadTestHarnessScripts();
 	NSMutableString* concat_string = [[NSMutableString alloc] init];
 
-	NSString* suite_dir = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"suite"];
+//	NSString* suite_dir = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"suite"];
+
+	NSString* resource_path = [[NSBundle mainBundle] resourcePath];
 
 	NSString* raw_test_script = nil;
 	NSError* the_error = nil;
-	NSString* file_path = nil;
+//	NSString* file_path = nil;
 
-	file_path = [suite_dir stringByAppendingPathComponent:@"ch06/6.1.js"];
-	raw_test_script = [NSString stringWithContentsOfFile:file_path encoding:NSUTF8StringEncoding error:&the_error];
-	if((nil == raw_test_script) || (the_error != nil))
+	NSUInteger number_of_failed_tests = 0;
+
+	/* I originally was going to dynamically traverse the directories, but on Android,
+		there was a serious performance problem with this (took 3 hours just to get a full directory listing in an APK).
+		So instead, I used a pre-created text file which contained the list of files.
+		While we don't have the performance problems on Android, I discovered I liked having the text file because
+		I could modify the text file to run specific tests for debugging.
+		So I've decided to use the text file here too.
+	 */
+	NSString* test_manifiest_file_string = [NSString stringWithContentsOfFile:[[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"test262_filelist.txt"] encoding:NSUTF8StringEncoding error:&the_error];
+	NSArray* file_list = [test_manifiest_file_string componentsSeparatedByString:@"\n"];
+
+
+	for(NSString* a_file in file_list)
 	{
-		NSLog(@"Error loading %@", file_path);
-		if(the_error != nil)
+		if([a_file length] == 0)
 		{
-			NSLog(@"NSError is: %@", [the_error localizedDescription]);
-			the_error = nil;
+			continue;
 		}
-	}
-	_Bool is_positive_test = Test262Helper_DetermineIfPositiveTestFromScript(raw_test_script);
-
-
-	[concat_string appendString:Test262Helper_DetermineStrictModeStringFromScript(raw_test_script)];
-	[concat_string appendString:@"\n"];
-	[concat_string appendString:test_harness_script_string];
-	[concat_string appendString:@"\n"];
-	[concat_string appendString:raw_test_script];
-
-
-	JSStringRef js_script_string = JSStringCreateWithCFString((__bridge CFStringRef)concat_string);
-	JSStringRef js_file_name = JSStringCreateWithCFString((__bridge CFStringRef)file_path);
-	JSStringRef js_exception_string = NULL;
-	JSStringRef js_stack_string = NULL;
-
-	_Bool is_success = Test262_EvaluateStringScript(js_script_string, js_file_name, &js_exception_string, &js_stack_string);
-
-	if(NULL != js_stack_string)
-	{
-		JSStringRelease(js_stack_string);
-	}
-	if(NULL != js_exception_string)
-	{
-		JSStringRelease(js_exception_string);
-	}
-	JSStringRelease(js_file_name);
-	JSStringRelease(js_script_string);
-
-	NSLog(@"is_success: %d", is_success);
-
-
-
-#if 0
-	// FIXME: This likely deserves a better check.
-	if(is_positive_test != is_success)
-	{
-		numberOfFailedTests = numberOfFailedTests + 1;
-
-		//
-		//                    			this.failedTests.Add(result);
-		if(is_success && !is_positive_test)
+		NSString* file_path = [resource_path stringByAppendingPathComponent:a_file];
+		raw_test_script = [NSString stringWithContentsOfFile:file_path encoding:NSUTF8StringEncoding error:&the_error];
+		if((nil == raw_test_script) || (the_error != nil))
 		{
-			//									Log.i("Test262", "Test failed: (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
-			writeToLogFile("Test failed: (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
+			NSLog(@"Error loading %@", file_path);
+			if(the_error != nil)
+			{
+				NSLog(@"NSError is: %@", [the_error localizedDescription]);
+				the_error = nil;
+			}
+			continue;
+		}
+		_Bool is_positive_test = Test262Helper_DetermineIfPositiveTestFromScript(raw_test_script);
+
+
+		// clear string for next loop
+		[concat_string setString:@""];
+
+		[concat_string appendString:Test262Helper_DetermineStrictModeStringFromScript(raw_test_script)];
+		[concat_string appendString:@"\n"];
+		[concat_string appendString:test_harness_script_string];
+		[concat_string appendString:@"\n"];
+		[concat_string appendString:raw_test_script];
+
+
+		JSStringRef js_script_string = JSStringCreateWithCFString((__bridge CFStringRef)concat_string);
+		JSStringRef js_file_name = JSStringCreateWithCFString((__bridge CFStringRef)file_path);
+		JSStringRef js_exception_string = NULL;
+		JSStringRef js_stack_string = NULL;
+
+		_Bool is_success = Test262_EvaluateStringScript(js_script_string, js_file_name, &js_exception_string, &js_stack_string);
+
+
+
+//		NSLog(@"%@ is_success: %d", file_path, is_success);
+
+
+
+	#if 1
+		// FIXME: This likely deserves a better check.
+		if(is_positive_test != is_success)
+		{
+//			numberOfFailedTests = numberOfFailedTests + 1;
+			number_of_failed_tests = number_of_failed_tests +1;
+
+			NSString* nscf_exception_string = nil;
+			NSString* nscf_stack_string = nil;
+			if(NULL != js_exception_string)
+			{
+				nscf_exception_string = (__bridge_transfer NSString*)JSStringCopyCFString(NULL, js_exception_string);
+			}
+			if(NULL != js_stack_string)
+			{
+				nscf_stack_string = (__bridge_transfer NSString*)JSStringCopyCFString(NULL, js_stack_string);
+			}
+
+			//
+			//                    			this.failedTests.Add(result);
+			if(is_success && !is_positive_test)
+			{
+				//									Log.i("Test262", "Test failed: (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
+				/*
+				writeToLogFile("Test failed: (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
+				*/
+
+				NSLog(@"Test failed: (script passed but negative test means it should have not have passed): %@, %@, %@\n%@", file_path, nscf_exception_string, nscf_stack_string, raw_test_script);
+
+			}
+			else
+			{
+				//									Log.i("Test262", "Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
+				/*
+				writeToLogFile("Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
+				*/
+				NSLog(@"Test failed: %@, %@, %@\n%@", file_path, nscf_exception_string, nscf_stack_string, raw_test_script);
+
+			}
+
+
 		}
 		else
 		{
-			//									Log.i("Test262", "Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
-			writeToLogFile("Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
+			//								Log.i("Test262", "Test passed: " + current_file_name);
+//			writeToLogFile("Test passed: " + current_file_name);
+//			NSLog(@"Test passed: %@", file_path);
 		}
+
+	#endif
+
+		if(NULL != js_stack_string)
+		{
+			JSStringRelease(js_stack_string);
+		}
+		if(NULL != js_exception_string)
+		{
+			JSStringRelease(js_exception_string);
+		}
+		JSStringRelease(js_file_name);
+		JSStringRelease(js_script_string);
+
 	}
-	else
-	{
-		//								Log.i("Test262", "Test passed: " + current_file_name);
-		writeToLogFile("Test passed: " + current_file_name);
-	}
 
-#endif
-
-//	[concat_string setString:@""];
-
-
+	NSLog(@"number_of_failed_tests=%lu", (unsigned long)number_of_failed_tests);
 
 }
 
