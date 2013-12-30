@@ -17,7 +17,8 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE    := Test262
-LOCAL_SRC_FILES := Test262_JNI.c test262.c
+LOCAL_SRC_FILES := Test262_JNI.c \
+../../../common/source/test262.c
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/../../../../API/ 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../../WTF/
