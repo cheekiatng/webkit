@@ -13,8 +13,15 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
-	// Insert code here to initialize your application
-	Test262Helper_RunTests();
+	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
+		^{
+			// We want to disable App Nap while running this test since it might take awhile to finish.
+			id test262_process_activity = [[NSProcessInfo processInfo] beginActivityWithOptions:NSActivityUserInitiated reason:@"Running long conformance test: test262"];
+			// work
+			Test262Helper_RunTests();
+			[[NSProcessInfo processInfo] endActivity:test262_process_activity];
+		}
+	);
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)the_sender
