@@ -118,14 +118,15 @@ static int LogWrapper_CustomPrintfToNSPuts(Logger* logger, void* userdata, const
 		Logger_Free(loggerFile);
 		loggerFile = NULL;
 	}
-
 	loggerFile = Logger_CreateWithName([full_path_and_file fileSystemRepresentation]);
 	if(NULL != loggerFile)
 	{
+		[self setLogFilePathAndName:full_path_and_file];
 		return YES;
 	}
 	else
 	{
+		[self setLogFilePathAndName:nil];
 		return NO;
 	}
 }
@@ -134,6 +135,7 @@ static int LogWrapper_CustomPrintfToNSPuts(Logger* logger, void* userdata, const
 {
 	Logger_Free(loggerFile);
 	loggerFile = NULL;
+	[self setLogFilePathAndName:nil];
 }
 
 @end

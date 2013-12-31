@@ -28,6 +28,8 @@
 	Logger* loggerSocket;
 }
 
+@property(strong, nonatomic) NSString* logFilePathAndName;
+
 //+ (instancetype) sharedInstance;
 - (instancetype) init;
 

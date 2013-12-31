@@ -10,6 +10,13 @@
 #import "Test262Helper.h"
 
 @interface ViewController ()
+{
+	// These blocks don't change, so let's make them instance variables
+	NSInteger (^callbackForAllTestsStarting)(NSUInteger);
+	NSInteger (^callbackForBeginningTest)(NSString*, NSUInteger, NSUInteger);
+	NSInteger (^callbackForEndingTest)(NSString*, NSUInteger, NSUInteger, NSUInteger, _Bool, NSString*, NSString*);
+	NSInteger (^callbackForAllTestsFinished)(NSUInteger, NSUInteger, NSUInteger);
+}
 @property (weak, nonatomic) IBOutlet UIProgressView* progressIndicator;
 @property(strong, nonatomic) NSProgress* test262Progress;
 @property(strong, nonatomic) LogWrapper* logWrapper;
@@ -42,7 +49,12 @@
 			[log_wrapper openNewFile];
 
 
-			Test262Helper_RunTests(test262_progress, log_wrapper);
+			Test262Helper_RunTests(test262_progress, log_wrapper,
+				callbackForAllTestsStarting,
+				callbackForBeginningTest,
+				callbackForEndingTest,
+				callbackForAllTestsFinished
+			);
 
 			dispatch_async(dispatch_get_main_queue(),
 				^{

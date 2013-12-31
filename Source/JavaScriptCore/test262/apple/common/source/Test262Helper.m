@@ -140,7 +140,12 @@ _Bool Test262Helper_DetermineIfPositiveTestFromScript(NSString* raw_script)
 	}
 }
 
-void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper)
+void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
+	NSInteger (^callback_for_all_tests_starting)(NSUInteger total_number_of_tests),
+	NSInteger (^callback_for_beginning_test)(NSString* test_file, NSUInteger total_number_of_tests, NSUInteger current_test_number),
+	NSInteger (^callback_for_ending_test)(NSString* test_file, NSUInteger total_number_of_tests, NSUInteger current_test_number, NSUInteger total_number_of_tests_failed, _Bool did_pass, NSString* nscf_exception_string, NSString* nscf_stack_string),
+	NSInteger (^callback_for_all_tests_finished)(NSUInteger total_number_of_tests, NSUInteger number_of_tests_run, NSUInteger total_number_of_tests_failed)
+)
 {
 	const int TIMESTAMP_LENGTH = 24;
 	char current_time[TIMESTAMP_LENGTH];
@@ -164,6 +169,7 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper)
 
 	NSUInteger number_of_failed_tests = 0;
 	NSUInteger current_index_count = 0;
+	_Bool should_keep_running = true;
 
 	/* I originally was going to dynamically traverse the directories, but on Android,
 		there was a serious performance problem with this (took 3 hours just to get a full directory listing in an APK).
@@ -188,8 +194,17 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper)
 	// We might want to further sanitize the list if we support commented out lines and so forth
 	[ns_progress setTotalUnitCount:[file_list count]];
 
+	if(nil != callback_for_all_tests_starting)
+	{
+		callback_for_all_tests_starting([file_list count]);
+	}
+
 	for(NSString* a_file in file_list)
 	{
+		if(!should_keep_running)
+		{
+			break;
+		}
 		// just in case there is a blank line
 		if([a_file length] == 0)
 		{
@@ -213,6 +228,17 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper)
 			[ns_progress setCompletedUnitCount:current_index_count];
 			continue;
 		}
+
+		if(nil != callback_for_beginning_test)
+		{
+			NSInteger return_status = callback_for_beginning_test(a_file, [file_list count], current_index_count);
+			if(0 == return_status)
+			{
+				// 0 means user wants to cancel tests
+				should_keep_running = false;
+			}
+		}
+
 		_Bool is_positive_test = Test262Helper_DetermineIfPositiveTestFromScript(raw_test_script);
 
 
@@ -283,6 +309,16 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper)
 				LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test failed", @"Test failed: %@, %@, %@\n%@", a_file, nscf_exception_string, nscf_stack_string, raw_test_script);
 			}
 
+			if(nil != callback_for_ending_test)
+			{
+				NSInteger return_status = callback_for_ending_test(a_file, [file_list count], current_index_count, number_of_failed_tests, false, nscf_exception_string, nscf_stack_string);
+				if(0 == return_status)
+				{
+					// 0 means user wants to cancel tests
+					should_keep_running = false;
+				}
+			}
+
 
 		}
 		else
@@ -291,6 +327,17 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper)
 //			writeToLogFile("Test passed: " + current_file_name);
 //			NSLog(@"Test passed: %@", file_path);
 			LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test passed", @"Test passed: %@", a_file);
+
+			if(nil != callback_for_ending_test)
+			{
+				NSInteger return_status = callback_for_ending_test(a_file, [file_list count], current_index_count, number_of_failed_tests, true, nil, nil);
+				if(0 == return_status)
+				{
+					// 0 means user wants to cancel tests
+					should_keep_running = false;
+				}
+			}
+
 
 		}
 
@@ -326,6 +373,10 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper)
 		current_time
 	);
 
+	if(nil != callback_for_all_tests_finished)
+	{
+		callback_for_all_tests_finished([file_list count], current_index_count, number_of_failed_tests);
+	}
 }
 
 @implementation Test262Helper

@@ -17,6 +17,7 @@
 		0079D46C1872833000D6F559 /* TimeStamp.c in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4581872833000D6F559 /* TimeStamp.c */; };
 		0079D46E1872A2D400D6F559 /* LoggerObjC.m in Sources */ = {isa = PBXBuildFile; fileRef = 0079D44D1872833000D6F559 /* LoggerObjC.m */; };
 		0079D4701872AF8E00D6F559 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0079D46F1872AF8E00D6F559 /* QuartzCore.framework */; };
+		0079D4A81872F4E800D6F559 /* NSAttributedString+Hyperlink.m in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4A71872F4E700D6F559 /* NSAttributedString+Hyperlink.m */; };
 		008D276F1870344D0032A573 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 008D276E1870344D0032A573 /* Cocoa.framework */; };
 		008D27791870344D0032A573 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 008D27771870344D0032A573 /* InfoPlist.strings */; };
 		008D277B1870344D0032A573 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 008D277A1870344D0032A573 /* main.m */; };
@@ -69,6 +70,8 @@
 		0079D4581872833000D6F559 /* TimeStamp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = TimeStamp.c; sourceTree = "<group>"; };
 		0079D4591872833000D6F559 /* TimeStamp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TimeStamp.h; sourceTree = "<group>"; };
 		0079D46F1872AF8E00D6F559 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		0079D4A61872F4E700D6F559 /* NSAttributedString+Hyperlink.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSAttributedString+Hyperlink.h"; sourceTree = "<group>"; };
+		0079D4A71872F4E700D6F559 /* NSAttributedString+Hyperlink.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSAttributedString+Hyperlink.m"; sourceTree = "<group>"; };
 		008D276B1870344D0032A573 /* Test262.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Test262.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		008D276E1870344D0032A573 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		008D27711870344D0032A573 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -239,6 +242,8 @@
 		008D27741870344D0032A573 /* Test262 */ = {
 			isa = PBXGroup;
 			children = (
+				0079D4A61872F4E700D6F559 /* NSAttributedString+Hyperlink.h */,
+				0079D4A71872F4E700D6F559 /* NSAttributedString+Hyperlink.m */,
 				008D27801870344D0032A573 /* AppDelegate.h */,
 				008D27811870344D0032A573 /* AppDelegate.m */,
 				008D27831870344D0032A573 /* MainMenu.xib */,
@@ -394,6 +399,7 @@
 			files = (
 				0079D4311870E7E700D6F559 /* test262.c in Sources */,
 				0079D42F18704A8C00D6F559 /* Test262Helper.m in Sources */,
+				0079D4A81872F4E800D6F559 /* NSAttributedString+Hyperlink.m in Sources */,
 				0079D46E1872A2D400D6F559 /* LoggerObjC.m in Sources */,
 				008D27821870344D0032A573 /* AppDelegate.m in Sources */,
 				008D277B1870344D0032A573 /* main.m in Sources */,
