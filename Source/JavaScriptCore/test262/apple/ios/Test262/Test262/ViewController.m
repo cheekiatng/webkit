@@ -12,6 +12,7 @@
 @interface ViewController ()
 @property (weak, nonatomic) IBOutlet UIProgressView* progressIndicator;
 @property(strong, nonatomic) NSProgress* test262Progress;
+@property(strong, nonatomic) LogWrapper* logWrapper;
 
 @end
 
@@ -20,6 +21,9 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
+
+	_logWrapper = [[LogWrapper alloc] init];
+
 	NSProgress* test262_progress = [[NSProgress alloc] initWithParent:nil userInfo:nil];
 
 
@@ -34,9 +38,11 @@
 
 	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
 		^{
+			LogWrapper* log_wrapper = [self logWrapper];
+			[log_wrapper openNewFile];
 
 
-			Test262Helper_RunTests(test262_progress);
+			Test262Helper_RunTests(test262_progress, log_wrapper);
 
 			dispatch_async(dispatch_get_main_queue(),
 				^{
@@ -44,6 +50,9 @@
 					[_test262Progress removeObserver:self forKeyPath:@"fractionCompleted"];
 				}
 			);
+
+			[log_wrapper flush];
+			[log_wrapper closeFile];
 		}
 	);
 

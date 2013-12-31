@@ -8,7 +8,8 @@
 
 #import "Test262Helper.h"
 #import <JavaScriptCore/JavaScriptCore.h>
-
+#include <QuartzCore/QuartzCore.h> // for CACurrentMediaTime
+#include "TimeStamp.h"
 
 extern _Bool Test262_EvaluateStringScript(JSStringRef js_script_string, JSStringRef js_file_name, JSStringRef* out_error_string, JSStringRef* out_stack_string);
 
@@ -139,9 +140,17 @@ _Bool Test262Helper_DetermineIfPositiveTestFromScript(NSString* raw_script)
 	}
 }
 
-
-void Test262Helper_RunTests(NSProgress* ns_progress)
+void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper)
 {
+	const int TIMESTAMP_LENGTH = 24;
+	char current_time[TIMESTAMP_LENGTH];
+	TimeStamp_GetTimeStamp(current_time, TIMESTAMP_LENGTH);
+	// Being from a gaming background, I prefer tick clocks because it is easier to do math on.
+	CFTimeInterval start_time_in_ticks = CACurrentMediaTime();
+
+
+	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Starting Tests", @"Starting Tests at time: %s", current_time);
+
 	NSString* test_harness_script_string = Test262Helper_LoadTestHarnessScripts();
 	NSMutableString* concat_string = [[NSMutableString alloc] init];
 
@@ -192,10 +201,12 @@ void Test262Helper_RunTests(NSProgress* ns_progress)
 		raw_test_script = [NSString stringWithContentsOfFile:file_path encoding:NSUTF8StringEncoding error:&the_error];
 		if((nil == raw_test_script) || (the_error != nil))
 		{
-			NSLog(@"Error loading %@", file_path);
+			LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_CRITICAL, LOGWRAPPER_PRIMARY_KEYWORD, "Error", @"Error loading file: %@", file_path);
+			//NSLog(@"Error loading %@", file_path);
 			if(the_error != nil)
 			{
-				NSLog(@"NSError is: %@", [the_error localizedDescription]);
+				LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_CRITICAL, LOGWRAPPER_PRIMARY_KEYWORD, "Error", @"NSError is: %@", [the_error localizedDescription]);
+				// NSLog(@"NSError is: %@", [the_error localizedDescription]);
 				the_error = nil;
 			}
 			current_index_count = current_index_count + 1;
@@ -219,6 +230,9 @@ void Test262Helper_RunTests(NSProgress* ns_progress)
 		JSStringRef js_file_name = JSStringCreateWithCFString((__bridge CFStringRef)file_path);
 		JSStringRef js_exception_string = NULL;
 		JSStringRef js_stack_string = NULL;
+
+		LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Evaluating Script", @"Evaluating Script: %@", a_file);
+
 
 		_Bool is_success = Test262_EvaluateStringScript(js_script_string, js_file_name, &js_exception_string, &js_stack_string);
 
@@ -255,7 +269,8 @@ void Test262Helper_RunTests(NSProgress* ns_progress)
 				writeToLogFile("Test failed: (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
 				*/
 
-				NSLog(@"Test failed: (script passed but negative test means it should have not have passed): %@, %@, %@\n%@", file_path, nscf_exception_string, nscf_stack_string, raw_test_script);
+				//NSLog(@"Test failed: (script passed but negative test means it should have not have passed): %@, %@, %@\n%@", file_path, nscf_exception_string, nscf_stack_string, raw_test_script);
+				LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test failed", @"Test failed: (script passed but negative test means it should have not have passed): %@, %@, %@\n%@", a_file, nscf_exception_string, nscf_stack_string, raw_test_script);
 
 			}
 			else
@@ -264,8 +279,8 @@ void Test262Helper_RunTests(NSProgress* ns_progress)
 				/*
 				writeToLogFile("Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
 				*/
-				NSLog(@"Test failed: %@, %@, %@\n%@", file_path, nscf_exception_string, nscf_stack_string, raw_test_script);
-
+				//NSLog(@"Test failed: %@, %@, %@\n%@", file_path, nscf_exception_string, nscf_stack_string, raw_test_script);
+				LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test failed", @"Test failed: %@, %@, %@\n%@", a_file, nscf_exception_string, nscf_stack_string, raw_test_script);
 			}
 
 
@@ -275,6 +290,8 @@ void Test262Helper_RunTests(NSProgress* ns_progress)
 			//								Log.i("Test262", "Test passed: " + current_file_name);
 //			writeToLogFile("Test passed: " + current_file_name);
 //			NSLog(@"Test passed: %@", file_path);
+			LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test passed", @"Test passed: %@", a_file);
+
 		}
 
 	#endif
@@ -295,7 +312,19 @@ void Test262Helper_RunTests(NSProgress* ns_progress)
 		[ns_progress setCompletedUnitCount:current_index_count];
 	}
 
-	NSLog(@"number_of_failed_tests=%lu", (unsigned long)number_of_failed_tests);
+	TimeStamp_GetTimeStamp(current_time, TIMESTAMP_LENGTH);
+	CFTimeInterval end_time_in_ticks = CACurrentMediaTime();
+
+	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Tests completed",
+		@"Tests completed: %d of %d run.\n"
+		@"Total failed: %lu\n"
+		@"Total execution time: %lf seconds\n"
+		@"Timestamp: %s",
+		current_index_count, [file_list count],
+		(unsigned long)number_of_failed_tests,
+		end_time_in_ticks - start_time_in_ticks,
+		current_time
+	);
 
 }
 

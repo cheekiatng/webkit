@@ -7,9 +7,10 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "LogWrapper.h"
 
 NSString* Test262Helper_LoadTestHarnessScripts(void);
-void Test262Helper_RunTests(NSProgress* ns_progress);
+void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper);
 
 @interface Test262Helper : NSObject
 

@@ -12,6 +12,11 @@
 		0079D42F18704A8C00D6F559 /* Test262Helper.m in Sources */ = {isa = PBXBuildFile; fileRef = 0079D42D18704A8C00D6F559 /* Test262Helper.m */; };
 		0079D4311870E7E700D6F559 /* test262.c in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4301870E7E700D6F559 /* test262.c */; };
 		0079D4351871175F00D6F559 /* test262_filelist.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0079D4341871175F00D6F559 /* test262_filelist.txt */; };
+		0079D43A1872830900D6F559 /* LogWrapper.m in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4391872830900D6F559 /* LogWrapper.m */; };
+		0079D4621872833000D6F559 /* CMakeLists.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0079D44B1872833000D6F559 /* CMakeLists.txt */; };
+		0079D46C1872833000D6F559 /* TimeStamp.c in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4581872833000D6F559 /* TimeStamp.c */; };
+		0079D46E1872A2D400D6F559 /* LoggerObjC.m in Sources */ = {isa = PBXBuildFile; fileRef = 0079D44D1872833000D6F559 /* LoggerObjC.m */; };
+		0079D4701872AF8E00D6F559 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0079D46F1872AF8E00D6F559 /* QuartzCore.framework */; };
 		008D276F1870344D0032A573 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 008D276E1870344D0032A573 /* Cocoa.framework */; };
 		008D27791870344D0032A573 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 008D27771870344D0032A573 /* InfoPlist.strings */; };
 		008D277B1870344D0032A573 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 008D277A1870344D0032A573 /* main.m */; };
@@ -43,6 +48,27 @@
 		0079D42D18704A8C00D6F559 /* Test262Helper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Test262Helper.m; path = ../../../common/source/Test262Helper.m; sourceTree = "<group>"; };
 		0079D4301870E7E700D6F559 /* test262.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = test262.c; path = ../../../../common/source/test262.c; sourceTree = "<group>"; };
 		0079D4341871175F00D6F559 /* test262_filelist.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = test262_filelist.txt; path = ../../../test262/test262_filelist.txt; sourceTree = "<group>"; };
+		0079D4381872830900D6F559 /* LogWrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LogWrapper.h; path = ../../../common/source/LogWrapper.h; sourceTree = "<group>"; };
+		0079D4391872830900D6F559 /* LogWrapper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LogWrapper.m; path = ../../../common/source/LogWrapper.m; sourceTree = "<group>"; };
+		0079D43F1872832F00D6F559 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		0079D4401872832F00D6F559 /* Logger.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Logger.c; sourceTree = "<group>"; };
+		0079D4411872832F00D6F559 /* Logger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Logger.h; sourceTree = "<group>"; };
+		0079D4421872832F00D6F559 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		0079D4481872833000D6F559 /* Doxyfile.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Doxyfile.in; sourceTree = "<group>"; };
+		0079D4491872833000D6F559 /* Doxygen.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Doxygen.h; sourceTree = "<group>"; };
+		0079D44B1872833000D6F559 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		0079D44C1872833000D6F559 /* LoggerObjC.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LoggerObjC.h; sourceTree = "<group>"; };
+		0079D44D1872833000D6F559 /* LoggerObjC.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LoggerObjC.m; sourceTree = "<group>"; };
+		0079D44E1872833000D6F559 /* README.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README.txt; sourceTree = "<group>"; };
+		0079D4501872833000D6F559 /* CMakeLists.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		0079D4511872833000D6F559 /* testcperformance1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = testcperformance1.c; sourceTree = "<group>"; };
+		0079D4521872833000D6F559 /* testloggerc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = testloggerc.c; sourceTree = "<group>"; };
+		0079D4531872833000D6F559 /* testloggercpp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = testloggercpp.cpp; sourceTree = "<group>"; };
+		0079D4541872833000D6F559 /* testloggerobjc.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = testloggerobjc.m; sourceTree = "<group>"; };
+		0079D4551872833000D6F559 /* testthreadscpp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = testthreadscpp.cpp; sourceTree = "<group>"; };
+		0079D4581872833000D6F559 /* TimeStamp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = TimeStamp.c; sourceTree = "<group>"; };
+		0079D4591872833000D6F559 /* TimeStamp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TimeStamp.h; sourceTree = "<group>"; };
+		0079D46F1872AF8E00D6F559 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		008D276B1870344D0032A573 /* Test262.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Test262.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		008D276E1870344D0032A573 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		008D27711870344D0032A573 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -70,6 +96,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0079D4701872AF8E00D6F559 /* QuartzCore.framework in Frameworks */,
 				00F0840B18703BBE005F7DDF /* JavaScriptCore.framework in Frameworks */,
 				008D276F1870344D0032A573 /* Cocoa.framework in Frameworks */,
 			);
@@ -90,12 +117,81 @@
 		0079D42A18704A5E00D6F559 /* common */ = {
 			isa = PBXGroup;
 			children = (
+				0079D43B1872832F00D6F559 /* Logger */,
+				0079D4381872830900D6F559 /* LogWrapper.h */,
+				0079D4391872830900D6F559 /* LogWrapper.m */,
 				0079D4301870E7E700D6F559 /* test262.c */,
 				0079D42C18704A8C00D6F559 /* Test262Helper.h */,
 				0079D42D18704A8C00D6F559 /* Test262Helper.m */,
 			);
 			name = common;
 			path = Test262;
+			sourceTree = "<group>";
+		};
+		0079D43B1872832F00D6F559 /* Logger */ = {
+			isa = PBXGroup;
+			children = (
+				0079D43C1872832F00D6F559 /* clogger */,
+				0079D4421872832F00D6F559 /* CMakeLists.txt */,
+				0079D4471872833000D6F559 /* doc */,
+				0079D4491872833000D6F559 /* Doxygen.h */,
+				0079D44A1872833000D6F559 /* objclogger */,
+				0079D44E1872833000D6F559 /* README.txt */,
+				0079D44F1872833000D6F559 /* test */,
+				0079D4561872833000D6F559 /* timestamp */,
+			);
+			name = Logger;
+			path = ../../../../common/source/Logger;
+			sourceTree = "<group>";
+		};
+		0079D43C1872832F00D6F559 /* clogger */ = {
+			isa = PBXGroup;
+			children = (
+				0079D43F1872832F00D6F559 /* CMakeLists.txt */,
+				0079D4401872832F00D6F559 /* Logger.c */,
+				0079D4411872832F00D6F559 /* Logger.h */,
+			);
+			path = clogger;
+			sourceTree = "<group>";
+		};
+		0079D4471872833000D6F559 /* doc */ = {
+			isa = PBXGroup;
+			children = (
+				0079D4481872833000D6F559 /* Doxyfile.in */,
+			);
+			path = doc;
+			sourceTree = "<group>";
+		};
+		0079D44A1872833000D6F559 /* objclogger */ = {
+			isa = PBXGroup;
+			children = (
+				0079D44B1872833000D6F559 /* CMakeLists.txt */,
+				0079D44C1872833000D6F559 /* LoggerObjC.h */,
+				0079D44D1872833000D6F559 /* LoggerObjC.m */,
+			);
+			path = objclogger;
+			sourceTree = "<group>";
+		};
+		0079D44F1872833000D6F559 /* test */ = {
+			isa = PBXGroup;
+			children = (
+				0079D4501872833000D6F559 /* CMakeLists.txt */,
+				0079D4511872833000D6F559 /* testcperformance1.c */,
+				0079D4521872833000D6F559 /* testloggerc.c */,
+				0079D4531872833000D6F559 /* testloggercpp.cpp */,
+				0079D4541872833000D6F559 /* testloggerobjc.m */,
+				0079D4551872833000D6F559 /* testthreadscpp.cpp */,
+			);
+			path = test;
+			sourceTree = "<group>";
+		};
+		0079D4561872833000D6F559 /* timestamp */ = {
+			isa = PBXGroup;
+			children = (
+				0079D4581872833000D6F559 /* TimeStamp.c */,
+				0079D4591872833000D6F559 /* TimeStamp.h */,
+			);
+			path = timestamp;
 			sourceTree = "<group>";
 		};
 		008D27621870344D0032A573 = {
@@ -121,6 +217,7 @@
 		008D276D1870344D0032A573 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				0079D46F1872AF8E00D6F559 /* QuartzCore.framework */,
 				00F0840A18703BBE005F7DDF /* JavaScriptCore.framework */,
 				008D276E1870344D0032A573 /* Cocoa.framework */,
 				008D278D1870344D0032A573 /* XCTest.framework */,
@@ -272,6 +369,7 @@
 				008D27791870344D0032A573 /* InfoPlist.strings in Resources */,
 				008D27871870344D0032A573 /* Images.xcassets in Resources */,
 				0079D42818704A3500D6F559 /* harness in Resources */,
+				0079D4621872833000D6F559 /* CMakeLists.txt in Resources */,
 				0079D42918704A3500D6F559 /* suite in Resources */,
 				008D277F1870344D0032A573 /* Credits.rtf in Resources */,
 				008D27851870344D0032A573 /* MainMenu.xib in Resources */,
@@ -296,8 +394,11 @@
 			files = (
 				0079D4311870E7E700D6F559 /* test262.c in Sources */,
 				0079D42F18704A8C00D6F559 /* Test262Helper.m in Sources */,
+				0079D46E1872A2D400D6F559 /* LoggerObjC.m in Sources */,
 				008D27821870344D0032A573 /* AppDelegate.m in Sources */,
 				008D277B1870344D0032A573 /* main.m in Sources */,
+				0079D43A1872830900D6F559 /* LogWrapper.m in Sources */,
+				0079D46C1872833000D6F559 /* TimeStamp.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -430,6 +531,11 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "Test262/Test262-Prefix.pch";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+					LOGGER_ENABLE_LOCKING,
+				);
 				INFOPLIST_FILE = "Test262/Test262-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
@@ -443,6 +549,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "Test262/Test262-Prefix.pch";
+				GCC_PREPROCESSOR_DEFINITIONS = LOGGER_ENABLE_LOCKING;
 				INFOPLIST_FILE = "Test262/Test262-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
