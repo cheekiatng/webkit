@@ -23,7 +23,7 @@ $ gradle osxbuild
 $ gradle test
 ```
 
-# How to build for Android
+## How to build for Android
 
 Make sure NDK_MODULE_PATH is properly set to your BUILD_webkit2 JavaScriptCore module directory
 
