@@ -83,13 +83,16 @@ public class  TestAPI {
         
         print_callAsFunction = new JSObjectCallAsFunctionCallback() {
             @Override
-            public JSValueRef callAsFunction(JSContextRef context,
+            public JSValueRef callAsFunction(JSContextRef ctx,
                     JSObjectRef function, JSObjectRef object, int argumentCount,
                     JSValueArrayRef arguments, Pointer exception) {
+
+                assertTrue(jsc.JSContextGetGlobalContext(ctx).equals(context));
+
                 if (argumentCount > 0) {
-                    System.out.println(arguments.get(context, 0).toString());
+                    System.out.println(arguments.get(ctx, 0).toString());
                 }
-                return jsc.JSValueMakeUndefined(context);
+                return jsc.JSValueMakeUndefined(ctx);
             }
         };
         myConstructor_callAsConstructor = new JSObjectCallAsConstructorCallback() {
@@ -199,6 +202,8 @@ public class  TestAPI {
         JSContextGroupRef contextGroup = jsc.JSContextGetGroup(context);
         jsc.JSGlobalContextRetain(context);
         jsc.JSGlobalContextRelease(context);
+        assertTrue(jsc.JSContextGetGlobalContext(context).equals(context));
+
         JSObjectRef globalObject = jsc.JSContextGetGlobalObject(context);
         assertTrue(jsc.JSValueIsObject(context, globalObject));
 
@@ -251,6 +256,14 @@ public class  TestAPI {
         JSObjectRef aStackRef = jsc.JSObjectMakeArray(context, null, null);
         aHeapRef = aStackRef;
         jsc.JSObjectSetProperty(context, aHeapRef, "length", jsc.JSValueMakeNumber(context, 10), JSPropertyAttribute.None, null);
+
+        String privatePropertyName = "privateProperty";
+        assertTrue (jsc.JSObjectSetPrivateProperty(context, myObject, privatePropertyName, aHeapRef));
+        aStackRef = null;
+        assertTrue(!jsc.JSObjectSetPrivateProperty(context, aHeapRef, privatePropertyName, aHeapRef));
+        assertTrue(jsc.JSObjectGetPrivateProperty(context, myObject, privatePropertyName).equals(aHeapRef));
+        assertTrue(jsc.JSObjectGetPrivateProperty(context, aHeapRef, privatePropertyName).isNullPointer());
+        assertTrue(!jsc.JSObjectGetProperty(context, myObject, privatePropertyName, null).equals(aHeapRef));
         jsc.JSGarbageCollect(context);
 
         JSValueRef nullJSONObject = jsc.JSValueMakeFromJSONString(context, null);
@@ -534,7 +547,7 @@ public class  TestAPI {
         String scriptUTF8 = createStringWithContentsOfFile("/com/appcelerator/javascriptcore/testapi.js");
         exception = JSValueRef.Null();
         result = jsc.JSEvaluateScript(context, scriptUTF8, globalObject, null, 1, exception);
-        assertTrue(jsc.JSValueIsNull(context, result));
+        assertTrue(result.isUndefined());
 
         // Clear out local variables pointing at JSObjectRefs to allow their values to be collected
         function = null;
@@ -849,13 +862,16 @@ class EvilExceptionObjectDefinition extends JSClassDefinition implements JSObjec
     @Override
     public boolean hasInstance(JSContextRef context, JSObjectRef constructor,
             JSValueRef possibleValue, Pointer exception) {
-        JSValueRef hasInstance = jsc.JSObjectGetProperty(context, constructor, "hasInstance", null);
+        JSValueRef new_exception = JSValueRef.Null();
+        JSValueRef hasInstance = jsc.JSObjectGetProperty(context, constructor, "hasInstance", new_exception);
+        exception.update(new_exception);
         if (hasInstance.isNull())
             return false;
-        JSObjectRef function = jsc.JSValueToObject(context, hasInstance, null);
+        JSObjectRef function = jsc.JSValueToObject(context, hasInstance, new_exception);
         JSValueArrayRef argv = new JSValueArrayRef(1);
         argv.set(0, possibleValue);
-        JSValueRef result = jsc.JSObjectCallAsFunction(context, function, constructor, argv, null);
+        JSValueRef result = jsc.JSObjectCallAsFunction(context, function, constructor, argv, new_exception);
+        exception.update(new_exception);
         return !result.isNull() && jsc.JSValueToBoolean(context, result);
     }
     

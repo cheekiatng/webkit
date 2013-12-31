@@ -470,6 +470,29 @@ public class JavaScriptCoreLibrary {
         return new JSObjectRef(context, function);
     }
 
+    /*
+     * Private API
+     */
+    public JSGlobalContextRef JSContextGetGlobalContext(JSContextRef ctx) {
+        return new JSGlobalContextRef(NativeJSContextGetGlobalContext(p(ctx)));
+    }
+
+    public String JSContextCreateBacktrace(JSContextRef ctx, int maxStackSize) {
+        return NativeJSContextCreateBacktrace(p(ctx), maxStackSize);
+    }
+
+    public boolean JSObjectSetPrivateProperty(JSContextRef ctx, JSObjectRef object, String propertyName, JSValueRef value) {
+        return NativeJSObjectSetPrivateProperty(p(ctx), p(object), propertyName, p(value));
+    }
+
+    public JSValueRef JSObjectGetPrivateProperty(JSContextRef ctx, JSObjectRef object, String propertyName) {
+        return new JSValueRef(ctx, NativeJSObjectGetPrivateProperty(p(ctx), p(object), propertyName));
+    }
+
+    public boolean JSObjectDeletePrivateProperty(JSContextRef ctx, JSObjectRef object, String propertyName) {
+        return NativeJSObjectDeletePrivateProperty(p(ctx), p(object), propertyName);
+    }
+
 
     /*
      * Native methods
@@ -553,4 +576,11 @@ public class JavaScriptCoreLibrary {
     public native long NativeJSPropertyNameArrayRetain(long jsPropertyNameArrayRef);
     public native long NativeJSObjectMakeConstructor(long jsContextRef, long jsClassRef, JSClassDefinition definition);
     public native long NativeJSObjectMakeFunctionWithCallback(long jsContextRef, String name);
+
+    /* Private API */
+    public native long NativeJSContextGetGlobalContext(long jsContextRef);
+    public native String NativeJSContextCreateBacktrace(long jsContextRef, int maxStackSize);
+    public native boolean NativeJSObjectSetPrivateProperty(long jsContextRef, long jsObjectRef, String propertyName, long jsValueRef);
+    public native long NativeJSObjectGetPrivateProperty(long jsContextRef, long jsObjectRef, String propertyName);
+    public native boolean NativeJSObjectDeletePrivateProperty(long jsContextRef, long jsObjectRef, String propertyName);
 }

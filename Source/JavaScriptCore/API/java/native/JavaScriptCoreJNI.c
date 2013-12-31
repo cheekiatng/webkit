@@ -5,7 +5,6 @@
 //  Created by Kota Iguchi on 11/30/13.
 //  Copyright (c) 2013 Appcelerator, Inc. All rights reserved.
 //
-
 #include <stdlib.h>
 #include <string.h>
 #include <JavaScriptCore/JSBase.h>
@@ -14,6 +13,16 @@
 #include <JavaScriptCore/JSObjectRef.h>
 #include <JavaScriptCore/JSValueRef.h>
 #include "JavaScriptCoreJNI.h"
+
+#ifdef ENABLE_JAVASCRIPTCORE_PRIVATE_API
+#ifdef __APPLE__
+#include "JSObjectRefPrivate.h"
+#include "JSContextRefPrivate.h"
+#else
+#include <JavaScriptCore/JSObjectRefPrivate.h>
+#include <JavaScriptCore/JSContextRefPrivate.h>
+#endif
+#endif
 
 #define JSCORE_LOG_TAG "JavaScriptCore"
 #define NEWLINE "\n"
@@ -237,6 +246,7 @@ static void NativeCallback_JSObjectInitializeCallback(JSContextRef ctx, JSObject
  * for the one object because of the JS prototype chain, but by design we release
  * private object for the first time here, actuall Java callback should be fired only once.
  * Java callback object should take care of the finalizer callback chain.
+ * Do not set finalize callback on global object otherwise JSGlobalContextRelease will crash.
  */
 static void NativeCallback_JSObjectFinalizeCallback(JSObjectRef object)
 {
@@ -520,6 +530,9 @@ static bool NativeCallback_JSObjectHasPropertyCallback(
 /*
  * JNI methods
  */
+/**
+ * Return JSClassDefinition struct that contains default attributes and pointer to callback functions
+ */
 JNIEXPORT jobject JNICALL
 Java_com_appcelerator_javascriptcore_opaquetypes_JSClassDefinition_NativeGetClassDefinitionTemplate
     (JNIEnv *env, jclass clazz)
@@ -543,6 +556,9 @@ Java_com_appcelerator_javascriptcore_opaquetypes_JSClassDefinition_NativeGetClas
     return (*env)->NewDirectByteBuffer(env, &jsClassDefinitionTemplate, sizeof(JSClassDefinition));
 }
 
+/**
+ * Return JSStaticValue struct that contains default attributes and pointer to callback functions
+ */
 JNIEXPORT jobject JNICALL
 Java_com_appcelerator_javascriptcore_opaquetypes_JSStaticValues_NativeGetStaticValueTemplate
     (JNIEnv *env, jclass clazz)
@@ -554,6 +570,9 @@ Java_com_appcelerator_javascriptcore_opaquetypes_JSStaticValues_NativeGetStaticV
     return (*env)->NewDirectByteBuffer(env, &jsStaticValueTemplate, sizeof(JSStaticValue));
 }
 
+/**
+ * Return JSStaticFunction struct that contains default attributes and pointer to callback functions
+ */
 JNIEXPORT jobject JNICALL
 Java_com_appcelerator_javascriptcore_opaquetypes_JSStaticFunctions_NativeGetStaticFunctionTemplate
     (JNIEnv *env, jclass clazz)
@@ -564,6 +583,9 @@ Java_com_appcelerator_javascriptcore_opaquetypes_JSStaticFunctions_NativeGetStat
     return (*env)->NewDirectByteBuffer(env, &jsStaticFunctionTemplate, sizeof(JSStaticFunction));
 }
 
+/**
+ * Allocate char arrays from Java String
+ */
 JNIEXPORT jlongArray JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeAllocateCharacterBuffer
     (JNIEnv *env, jclass clazz, jobjectArray invalues)
@@ -583,6 +605,9 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeAllocateCharact
     return outvalues;
 }
 
+/*
+ * Release char arrays from pointers
+ */
 JNIEXPORT void JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeReleasePointers
     (JNIEnv *env, jclass clazz, jlongArray invalues)
@@ -595,6 +620,12 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeReleasePointers
     (*env)->ReleaseLongArrayElements(env, invalues, p_invalues, 0);
 }
 
+/*!
+@function
+@abstract Creates a JavaScript class suitable for use with JSObjectMake.
+@param definition A JSClassDefinition that defines the class.
+@result A JSClass with the given definition. Ownership follows the Create Rule.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSClassCreate
     (JNIEnv *env, jobject thiz, jobject definitionBuffer, jstring className, jobject staticValuesBuffer, jobject staticFunctionsBuffer)
@@ -628,6 +659,17 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSClassCreate
     return (jlong)jsClass;
 }
 
+/*!
+@function
+@abstract Creates a JavaScript object.
+@param ctx The execution context to use.
+@param jsClass The JSClass to assign to the object. Pass NULL to use the default object class.
+@param data A void* to set as the object's private data. Pass NULL to specify no private data.
+@result A JSObject with the given class and private data.
+@discussion The default object class does not allocate storage for private data, so you must provide a non-NULL jsClass to JSObjectMake if you want your object to be able to store private data.
+
+data is set on the created object before the intialize methods in its class chain are called. This enables the initialize methods to retrieve and manipulate data through JSObjectGetPrivate.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMake
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsClassRef,
@@ -656,6 +698,12 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMake
     return (jlong)JSObjectMake(ctx, jsClass, prv);
 }
 
+/*!
+@function
+@abstract Gets an object's private data.
+@param object A JSObject whose private data you want to get.
+@result A void* that is the object's private data, if the object has private data, otherwise NULL.
+*/
 JNIEXPORT jobject JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectGetPrivate
 (JNIEnv *env, jobject thiz, jlong jsObjectRef)
@@ -669,6 +717,14 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectGetPriv
     return NULL;
 }
 
+/*!
+@function
+@abstract Sets a pointer to private data on an object.
+@param object The JSObject whose private data you want to set.
+@param data A void* to set as the object's private data.
+@result true if object can store private data, otherwise false.
+@discussion The default object class does not allocate storage for private data. Only objects created with a non-NULL JSClass can store private data.
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectSetPrivate
 (JNIEnv *env, jobject thiz, jlong jsObjectRef, jobject object)
@@ -691,7 +747,16 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectSetPriv
     }
     return JSObjectSetPrivate(jsObject, prv) ? JNI_TRUE : JNI_FALSE;
 }
-
+/*!
+@function
+@abstract Creates a JavaScript context group.
+@discussion A JSContextGroup associates JavaScript contexts with one another.
+ Contexts in the same group may share and exchange JavaScript objects. Sharing and/or exchanging
+ JavaScript objects between contexts in different groups will produce undefined behavior.
+ When objects from the same context group are used in multiple threads, explicit
+ synchronization is required.
+@result The created JSContextGroup.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSContextGroupCreate
     (JNIEnv *env, jobject thiz)
@@ -701,6 +766,11 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSContextGroupC
     return (jlong)group;
 }
 
+/*!
+@function
+@abstract Releases a JavaScript context group.
+@param group The JSContextGroup to release.
+*/
 JNIEXPORT void JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSContextGroupRelease
     (JNIEnv *env, jobject thiz, jlong jsContextGroupRef)
@@ -709,7 +779,12 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSContextGroupR
     JSContextGroupRef group = (JSContextGroupRef)jsContextGroupRef;
     JSContextGroupRelease(group);
 }
-
+/*!
+@function
+@abstract Retains a JavaScript context group.
+@param group The JSContextGroup to retain.
+@result A JSContextGroup that is the same as group.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSContextGroupRetain
     (JNIEnv *env, jobject thiz, jlong jsContextGroupRef)
@@ -719,6 +794,12 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSContextGroupR
     return (jlong)JSContextGroupRetain(group);
 }
 
+/*!
+@function
+@abstract Gets the global object of a JavaScript execution context.
+@param ctx The JSContext whose global object you want to get.
+@result ctx's global object.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSContextGetGlobalObject
     (JNIEnv *env, jobject thiz, jlong jsContextRef)
@@ -727,7 +808,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSContextGetGlo
     JSGlobalContextRef ctx = (JSGlobalContextRef)jsContextRef;
     return (jlong)JSContextGetGlobalObject(ctx);
 }
-    
+
+/*!
+@function
+@abstract Gets the context group to which a JavaScript execution context belongs.
+@param ctx The JSContext whose group you want to get.
+@result ctx's group.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSContextGetGroup
     (JNIEnv *env, jobject thiz, jlong jsContextRef)
@@ -737,6 +824,19 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSContextGetGro
     return (jlong)JSContextGetGroup(ctx);
 }
 
+/*!
+@function
+@abstract Creates a global JavaScript execution context.
+@discussion JSGlobalContextCreate allocates a global object and populates it with all the
+ built-in JavaScript objects, such as Object, Function, String, and Array.
+
+ In WebKit version 4.0 and later, the context is created in a unique context group.
+ Therefore, scripts may execute in it concurrently with scripts executing in other contexts.
+ However, you may not use values created in the context in other contexts.
+@param globalObjectClass The class to use when creating the global object. Pass 
+ NULL to use the default object class.
+@result A JSGlobalContext with a global object of class globalObjectClass.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSGlobalContextCreate
     (JNIEnv *env, jobject thiz, jlong jsClassRef, jobject callback)
@@ -750,6 +850,18 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSGlobalContext
     return (jlong)ctx;
 }
 
+/*!
+@function
+@abstract Creates a global JavaScript execution context in the context group provided.
+@discussion JSGlobalContextCreateInGroup allocates a global object and populates it with
+ all the built-in JavaScript objects, such as Object, Function, String, and Array.
+@param globalObjectClass The class to use when creating the global object. Pass
+ NULL to use the default object class.
+@param group The context group to use. The created global context retains the group.
+ Pass NULL to create a unique group for the context.
+@result A JSGlobalContext with a global object of class globalObjectClass and a context
+ group equal to group.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSGlobalContextCreateInGroup
     (JNIEnv *env, jobject thiz, jlong jsContextGroupRef, jlong jsClassRef, jobject callback)
@@ -764,6 +876,11 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSGlobalContext
     return (jlong)ctx;
 }
 
+/*!
+@function
+@abstract Releases a global JavaScript execution context.
+@param ctx The JSGlobalContext to release.
+*/
 JNIEXPORT void JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSGlobalContextRelease
     (JNIEnv *env, jobject thiz, jlong jsContextRef)
@@ -773,6 +890,12 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSGlobalContext
     JSGlobalContextRelease(ctx);
 }
 
+/*!
+@function
+@abstract Retains a global JavaScript execution context.
+@param ctx The JSGlobalContext to retain.
+@result A JSGlobalContext that is the same as ctx.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSGlobalContextRetain
     (JNIEnv *env, jobject thiz, jlong jsContextRef)
@@ -781,7 +904,17 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSGlobalContext
     JSGlobalContextRef ctx = (JSGlobalContextRef)jsContextRef;
     return (jlong)JSGlobalContextRetain(ctx);
 }
-
+/*!
+@function JSEvaluateScript
+@abstract Evaluates a string of JavaScript.
+@param ctx The execution context to use.
+@param script A JSString containing the script to evaluate.
+@param thisObject The object to use as "this," or NULL to use the global object as "this."
+@param sourceURL A JSString containing a URL for the script's source file. This is only used when reporting exceptions. Pass NULL if you do not care to include source file information in exceptions.
+@param startingLineNumber An integer value specifying the script's starting line number in the file located at sourceURL. This is only used when reporting exceptions.
+@param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+@result The JSValue that results from evaluating script, or NULL if an exception is thrown.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSEvaluateScriptShort
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jstring script, jobject exceptionObj)
@@ -802,6 +935,17 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSEvaluateScrip
     return (jlong)result;
 }
 
+/*!
+@function JSEvaluateScript
+@abstract Evaluates a string of JavaScript.
+@param ctx The execution context to use.
+@param script A JSString containing the script to evaluate.
+@param thisObject The object to use as "this," or NULL to use the global object as "this."
+@param sourceURL A JSString containing a URL for the script's source file. This is only used when reporting exceptions. Pass NULL if you do not care to include source file information in exceptions.
+@param startingLineNumber An integer value specifying the script's starting line number in the file located at sourceURL. This is only used when reporting exceptions.
+@param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+@result The JSValue that results from evaluating script, or NULL if an exception is thrown.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSEvaluateScriptFull
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jstring script,
@@ -826,6 +970,16 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSEvaluateScrip
     return (jlong)result;
 }
 
+/*!
+@function JSCheckScriptSyntax
+@abstract Checks for syntax errors in a string of JavaScript.
+@param ctx The execution context to use.
+@param script A JSString containing the script to check for syntax errors.
+@param sourceURL A JSString containing a URL for the script's source file. This is only used when reporting exceptions. Pass NULL if you do not care to include source file information in exceptions.
+@param startingLineNumber An integer value specifying the script's starting line number in the file located at sourceURL. This is only used when reporting exceptions.
+@param exception A pointer to a JSValueRef in which to store a syntax error exception, if any. Pass NULL if you do not care to store a syntax error exception.
+@result true if the script is syntactically correct, otherwise false.
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSCheckScriptSyntax
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jstring script, jobject exceptionObj)
@@ -846,6 +1000,19 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSCheckScriptSy
     return check ? JNI_TRUE : JNI_FALSE;
 }
 
+/*!
+@function JSGarbageCollect
+@abstract Performs a JavaScript garbage collection. 
+@param ctx The execution context to use.
+@discussion JavaScript values that are on the machine stack, in a register, 
+ protected by JSValueProtect, set as the global object of an execution context, 
+ or reachable from any such value will not be collected.
+
+ During JavaScript execution, you are not required to call this function; the 
+ JavaScript engine will garbage collect as needed. JavaScript values created
+ within a context group are automatically destroyed when the last reference
+ to the context group is released.
+*/
 JNIEXPORT void JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSGarbageCollect
     (JNIEnv *env, jobject thiz, jlong jsContextRef)
@@ -855,6 +1022,12 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSGarbageCollec
     JSGarbageCollect(ctx);
 }
 
+/*!
+@function
+@abstract       Creates a JavaScript value of the undefined type.
+@param ctx  The execution context to use.
+@result         The unique undefined value.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueMakeUndefined
     (JNIEnv *env, jobject thiz, jlong jsContextRef)
@@ -864,6 +1037,12 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueMakeUnde
     return (jlong)JSValueMakeUndefined(ctx);
 }
 
+/*!
+@function
+@abstract       Creates a JavaScript value of the null type.
+@param ctx  The execution context to use.
+@result         The unique null value.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueMakeNull
     (JNIEnv *env, jobject thiz, jlong jsContextRef)
@@ -873,6 +1052,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueMakeNull
     return (jlong)JSValueMakeNull(ctx);
 }
 
+/*!
+@function
+@abstract       Creates a JavaScript value of the number type.
+@param ctx  The execution context to use.
+@param number   The double to assign to the newly created JSValue.
+@result         A JSValue of the number type, representing the value of number.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueMakeNumber
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jdouble arg)
@@ -882,6 +1068,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueMakeNumb
     return (jlong)JSValueMakeNumber(ctx, (double)arg);
 }
 
+/*!
+@function
+@abstract       Creates a JavaScript value of the boolean type.
+@param ctx  The execution context to use.
+@param boolean  The bool to assign to the newly created JSValue.
+@result         A JSValue of the boolean type, representing the value of boolean.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueMakeBoolean
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jboolean arg)
@@ -891,6 +1084,14 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueMakeBool
     return (jlong)JSValueMakeBoolean(ctx, arg == JNI_TRUE ? true : false);
 }
 
+/*!
+@function
+@abstract Tests whether a JavaScript value is an object with a given class in its class chain.
+@param ctx The execution context to use.
+@param value The JSValue to test.
+@param jsClass The JSClass to test against.
+@result true if value is an object and has jsClass in its class chain, otherwise false.
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsObjectOfClass
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef, jlong jsClassRef)
@@ -902,6 +1103,15 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsObject
     return JSValueIsObjectOfClass(ctx, value, jsClass) ? JNI_TRUE : JNI_FALSE;
 }
 
+/*!
+@function
+@abstract Tests whether a JavaScript value is an object constructed by a given constructor, as compared by the JS instanceof operator.
+@param ctx The execution context to use.
+@param value The JSValue to test.
+@param constructor The constructor to test against.
+@param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+@result true if value is an object constructed by constructor, as compared by the JS instanceof operator, otherwise false.
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsInstanceOfConstructor
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef, jlong jsObjectRef, jobject exceptionObj)
@@ -918,6 +1128,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsInstan
     return result;
 }
 
+/*!
+@function
+@abstract       Tests whether a JavaScript value's type is the undefined type.
+@param ctx  The execution context to use.
+@param value    The JSValue to test.
+@result         true if value's type is the undefined type, otherwise false.
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsUndefined
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef)
@@ -928,6 +1145,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsUndefi
     return JSValueIsUndefined(ctx, value) ? JNI_TRUE : JNI_FALSE;
 }
 
+/*!
+@function
+@abstract       Tests whether a JavaScript value's type is the null type.
+@param ctx  The execution context to use.
+@param value    The JSValue to test.
+@result         true if value's type is the null type, otherwise false.
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsNull
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef)
@@ -938,6 +1162,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsNull
     return JSValueIsNull(ctx, value) ? JNI_TRUE : JNI_FALSE;
 }
 
+/*!
+@function
+@abstract       Tests whether a JavaScript value's type is the number type.
+@param ctx  The execution context to use.
+@param value    The JSValue to test.
+@result         true if value's type is the number type, otherwise false.
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsNumber
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef)
@@ -948,6 +1179,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsNumber
     return JSValueIsNumber(ctx, value) ? JNI_TRUE : JNI_FALSE;
 }
 
+/*!
+@function
+@abstract       Tests whether a JavaScript value's type is the boolean type.
+@param ctx  The execution context to use.
+@param value    The JSValue to test.
+@result         true if value's type is the boolean type, otherwise false.
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsBoolean
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef)
@@ -958,6 +1196,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsBoolea
     return JSValueIsBoolean(ctx, value) ? JNI_TRUE : JNI_FALSE;
 }
 
+/*!
+@function
+@abstract       Tests whether a JavaScript value's type is the string type.
+@param ctx  The execution context to use.
+@param value    The JSValue to test.
+@result         true if value's type is the string type, otherwise false.
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsString
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef)
@@ -968,6 +1213,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsString
     return JSValueIsString(ctx, value) ? JNI_TRUE : JNI_FALSE;
 }
 
+/*!
+@function
+@abstract       Tests whether a JavaScript value's type is the object type.
+@param ctx  The execution context to use.
+@param value    The JSValue to test.
+@result         true if value's type is the object type, otherwise false.
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsObject
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef)
@@ -978,6 +1230,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsObject
     return JSValueIsObject(ctx, value) ? JNI_TRUE : JNI_FALSE;
 }
 
+/*!
+@function
+@abstract       Converts a JavaScript value to boolean and returns the resulting boolean.
+@param ctx  The execution context to use.
+@param value    The JSValue to convert.
+@result         The boolean result of conversion.
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueToBoolean
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef)
@@ -989,6 +1248,14 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueToBoolea
     return JSValueToBoolean(ctx, value) ? JNI_TRUE : JNI_FALSE;
 }
 
+/*!
+@function
+@abstract       Converts a JavaScript value to number and returns the resulting number.
+@param ctx  The execution context to use.
+@param value    The JSValue to convert.
+@param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+@result         The numeric result of conversion, or NaN if an exception is thrown.
+*/
 JNIEXPORT jdouble JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueToNumber
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef, jobject exceptionObj)
@@ -1005,6 +1272,14 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueToNumber
     return (jdouble)result;
 }
 
+/*!
+@function
+@abstract Converts a JavaScript value to object and returns the resulting object.
+@param ctx  The execution context to use.
+@param value    The JSValue to convert.
+@param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+@result         The JSObject result of conversion, or NULL if an exception is thrown.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueToObject
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef, jobject exceptionObj)
@@ -1021,6 +1296,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueToObject
     return (jlong)result;
 }
 
+/*!
+ @function
+ @abstract       Creates a JavaScript value from a JSON formatted string.
+ @param ctx      The execution context to use.
+ @param string   The JSString containing the JSON string to be parsed.
+ @result         A JSValue containing the parsed value, or NULL if the input is invalid.
+ */
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueMakeFromJSONString
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jstring jjson)
@@ -1035,6 +1317,14 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueMakeFrom
     return (jlong)value;
 }
 
+/*!
+@function
+@abstract       Converts a JavaScript value to string and copies the result into a JavaScript string.
+@param ctx  The execution context to use.
+@param value    The JSValue to convert.
+@param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+@result         A JSString with the result of conversion, or NULL if an exception is thrown. Ownership follows the Create Rule.
+*/
 JNIEXPORT jstring JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueToStringCopy
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef, jobject exceptionObj)
@@ -1060,6 +1350,15 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueToString
     return copy;
 }
 
+/*!
+@function
+@abstract Tests whether two JavaScript values are equal, as compared by the JS == operator.
+@param ctx The execution context to use.
+@param a The first value to test.
+@param b The second value to test.
+@param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+@result true if the two values are equal, false if they are not equal or an exception is thrown.
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsEqual
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRefA, jlong jsValueRefB, jobject exceptionObj)
@@ -1077,6 +1376,14 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsEqual
     return result;
 }
 
+/*!
+@function
+@abstract       Tests whether two JavaScript values are strict equal, as compared by the JS === operator.
+@param ctx  The execution context to use.
+@param a        The first value to test.
+@param b        The second value to test.
+@result         true if the two values are strict equal, otherwise false.
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsStrictEqual
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRefA, jlong jsValueRefB)
@@ -1088,7 +1395,15 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueIsStrict
     
     return JSValueIsStrictEqual(ctx, a, b) ? JNI_TRUE : JNI_FALSE;
 }
-
+/*!
+@function
+@abstract Protects a JavaScript value from garbage collection.
+@param ctx The execution context to use.
+@param value The JSValue to protect.
+@discussion Use this method when you want to store a JSValue in a global or on the heap, where the garbage collector will not be able to discover your reference to it.
+ 
+A value may be protected multiple times and must be unprotected an equal number of times before becoming eligible for garbage collection.
+*/
 JNIEXPORT void JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueProtect
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef)
@@ -1099,6 +1414,14 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueProtect
     JSValueProtect(ctx, value);
 }
 
+/*!
+@function
+@abstract       Unprotects a JavaScript value from garbage collection.
+@param ctx      The execution context to use.
+@param value    The JSValue to unprotect.
+@discussion     A value may be protected multiple times and must be unprotected an 
+ equal number of times before becoming eligible for garbage collection.
+*/
 JNIEXPORT void JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueUnprotect
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef)
@@ -1109,6 +1432,15 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueUnprotec
     JSValueUnprotect(ctx, value);
 }
 
+/*!
+ @function
+ @abstract       Creates a JavaScript string containing the JSON serialized representation of a JS value.
+ @param ctx      The execution context to use.
+ @param value    The value to serialize.
+ @param indent   The number of spaces to indent when nesting.  If 0, the resulting JSON will not contains newlines.  The size of the indent is clamped to 10 spaces.
+ @param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+ @result         A JSString with the result of serialization, or NULL if an exception is thrown.
+ */
 JNIEXPORT jstring JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueCreateJSONString
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef, jint indent, jobject exceptionObj)
@@ -1135,6 +1467,14 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueCreateJS
     return copy;
 }
 
+/*!
+@function
+@abstract       Creates a JavaScript value of the string type.
+@param ctx  The execution context to use.
+@param string   The JSString to assign to the newly created JSValue. The
+ newly created JSValue retains string, and releases it upon garbage collection.
+@result         A JSValue of the string type, representing the value of string.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueMakeString
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jstring value)
@@ -1147,6 +1487,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueMakeStri
     return (jlong)string;
 }
 
+/*!
+@function
+@abstract       Returns a JavaScript value's type.
+@param ctx  The execution context to use.
+@param value    The JSValue whose type you want to obtain.
+@result         A value of type JSType that identifies value's type.
+*/
 JNIEXPORT jint JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueGetType
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsValueRef)
@@ -1158,6 +1505,16 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSValueGetType
     return (jint)JSValueGetType(ctx, value);
 }
 
+/*!
+@function
+@abstract Calls an object as a constructor.
+@param ctx The execution context to use.
+@param object The JSObject to call as a constructor.
+@param argumentCount An integer count of the number of arguments in arguments.
+@param arguments A JSValue array of arguments to pass to the constructor. Pass NULL if argumentCount is 0.
+@param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+@result The JSObject that results from calling object as a constructor, or NULL if an exception is thrown or object is not a constructor.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectCallAsConstructor
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef, jint argc, jobject argv, jobject exceptionObj)
@@ -1178,6 +1535,17 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectCallAsC
     return (jlong)value;
 }
 
+/*!
+@function
+@abstract Calls an object as a function.
+@param ctx The execution context to use.
+@param object The JSObject to call as a function.
+@param thisObject The object to use as "this," or NULL to use the global object as "this."
+@param argumentCount An integer count of the number of arguments in arguments.
+@param arguments A JSValue array of arguments to pass to the function. Pass NULL if argumentCount is 0.
+@param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+@result The JSValue that results from calling object as a function, or NULL if an exception is thrown or object is not a function.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectCallAsFunction
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef, jlong jsThisObjectRef,
@@ -1200,6 +1568,16 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectCallAsF
     return (jlong)value;
 }
 
+/*!
+@function
+@abstract Sets a property on an object.
+@param ctx The execution context to use.
+@param object The JSObject whose property you want to set.
+@param propertyName A JSString containing the property's name.
+@param value A JSValue to use as the property's value.
+@param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+@param attributes A logically ORed set of JSPropertyAttributes to give to the property.
+*/
 JNIEXPORT void JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectSetProperty
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef, jstring name,
@@ -1220,6 +1598,15 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectSetProp
     }
 }
 
+/*!
+@function
+@abstract Gets a property from an object.
+@param ctx The execution context to use.
+@param object The JSObject whose property you want to get.
+@param propertyName A JSString containing the property's name.
+@param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+@result The property's value if object has the property, otherwise the undefined value.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectGetProperty
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef,
@@ -1241,6 +1628,11 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectGetProp
     return (jlong)value;
 }
 
+/*!
+@function
+@abstract Releases a JavaScript class.
+@param jsClass The JSClass to release.
+*/
 JNIEXPORT void JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSClassRelease
     (JNIEnv *env, jobject thiz, jlong jsClassRef)
@@ -1249,6 +1641,12 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSClassRelease
     JSClassRelease((JSClassRef)jsClassRef);
 }
 
+/*!
+@function
+@abstract Retains a JavaScript class.
+@param jsClass The JSClass to retain.
+@result A JSClass that is the same as jsClass.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSClassRetain
     (JNIEnv *env, jobject thiz, jlong jsClassRef)
@@ -1257,6 +1655,12 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSClassRetain
     return (jlong)JSClassRetain((JSClassRef)jsClassRef);
 }
 
+/*!
+@function
+@abstract Gets a count of the number of items in a JavaScript property name array.
+@param array The array from which to retrieve the count.
+@result An integer count of the number of names in array.
+*/
 JNIEXPORT jint JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSPropertyNameArrayGetCount
     (JNIEnv *env, jobject thiz, jlong namesRef)
@@ -1266,6 +1670,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSPropertyNameA
     return (jint)JSPropertyNameArrayGetCount(array);
 }
 
+/*!
+@function
+@abstract Gets a property name at a given index in a JavaScript property name array.
+@param array The array from which to retrieve the property name.
+@param index The index of the property name to retrieve.
+@result A JSStringRef containing the property name.
+*/
 JNIEXPORT jstring JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSPropertyNameArrayGetNameAtIndex
     (JNIEnv *env, jobject thiz, jlong namesRef, jint index)
@@ -1277,6 +1688,11 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSPropertyNameA
     return jname;
 }
 
+/*!
+@function
+@abstract Releases a JavaScript property name array.
+@param array The JSPropetyNameArray to release.
+*/
 JNIEXPORT void JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSPropertyNameArrayRelease
     (JNIEnv *env, jobject thiz, jlong namesRef)
@@ -1286,6 +1702,12 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSPropertyNameA
     JSPropertyNameArrayRelease(array);
 }
 
+/*!
+@function
+@abstract Retains a JavaScript property name array.
+@param array The JSPropertyNameArray to retain.
+@result A JSPropertyNameArray that is the same as array.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSPropertyNameArrayRetain
     (JNIEnv *env, jobject thiz, jlong namesRef)
@@ -1295,6 +1717,12 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSPropertyNameA
     return (jlong)JSPropertyNameArrayRetain(array);
 }
 
+/*!
+@function
+@abstract Adds a property name to a JavaScript property name accumulator.
+@param accumulator The accumulator object to which to add the property name.
+@param propertyName The property name to add.
+*/
 JNIEXPORT void JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSPropertyNameAccumulatorAddName
     (JNIEnv *env, jobject thiz, jlong accumulatorRef, jstring name)
@@ -1307,6 +1735,16 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSPropertyNameA
     JSSTRING_RELEASE(jsname);
 }
 
+/*!
+@function
+@abstract Sets a property on an object by numeric index.
+@param ctx The execution context to use.
+@param object The JSObject whose property you want to set.
+@param propertyIndex The property's name as a number.
+@param value A JSValue to use as the property's value.
+@param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+@discussion Calling JSObjectSetPropertyAtIndex is equivalent to calling JSObjectSetProperty with a string containing propertyIndex, but JSObjectSetPropertyAtIndex provides optimized access to numeric properties.
+*/
 JNIEXPORT void JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectSetPropertyAtIndex
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef, jint propertyIndex,
@@ -1325,6 +1763,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectSetProp
     }
 }
 
+/*!
+@function
+@abstract Sets an object's prototype.
+@param ctx  The execution context to use.
+@param object The JSObject whose prototype you want to set.
+@param value A JSValue to set as the object's prototype.
+*/
 JNIEXPORT void JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectSetPrototype
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef, jlong jsValueRef)
@@ -1337,6 +1782,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectSetProt
     JSObjectSetPrototype(ctx, object, value);
 }
 
+/*!
+@function
+@abstract Tests whether an object can be called as a constructor.
+@param ctx  The execution context to use.
+@param object The JSObject to test.
+@result true if the object can be called as a constructor, otherwise false.
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectIsConstructor
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef)
@@ -1348,6 +1800,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectIsConst
     return JSObjectIsConstructor(ctx, object) ? JNI_TRUE : JNI_FALSE;
 }
 
+/*!
+@function
+@abstract Tests whether an object can be called as a function.
+@param ctx  The execution context to use.
+@param object The JSObject to test.
+@result true if the object can be called as a function, otherwise false.
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectIsFunction
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef)
@@ -1359,6 +1818,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectIsFunct
     return JSObjectIsFunction(ctx, object) ? JNI_TRUE : JNI_FALSE;
 }
 
+/*!
+@function
+@abstract Gets the names of an object's enumerable properties.
+@param ctx The execution context to use.
+@param object The object whose property names you want to get.
+@result A JSPropertyNameArray containing the names object's enumerable properties. Ownership follows the Create Rule.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectCopyPropertyNames
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef)
@@ -1370,6 +1836,15 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectCopyPro
     return (jlong)JSObjectCopyPropertyNames(ctx, object);
 }
 
+/*!
+@function
+@abstract Deletes a property from an object.
+@param ctx The execution context to use.
+@param object The JSObject whose property you want to delete.
+@param propertyName A JSString containing the property's name.
+@param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+@result true if the delete operation succeeds, otherwise false (for example, if the property has the kJSPropertyAttributeDontDelete attribute set).
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectDeleteProperty
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef, jstring name, jobject exceptionObj)
@@ -1387,6 +1862,16 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectDeleteP
     return value ? JNI_TRUE : JNI_FALSE;
 }
 
+/*!
+@function
+@abstract Gets a property from an object by numeric index.
+@param ctx The execution context to use.
+@param object The JSObject whose property you want to get.
+@param propertyIndex An integer value that is the property's name.
+@param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+@result The property's value if object has the property, otherwise the undefined value.
+@discussion Calling JSObjectGetPropertyAtIndex is equivalent to calling JSObjectGetProperty with a string containing propertyIndex, but JSObjectGetPropertyAtIndex provides optimized access to numeric properties.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectGetPropertyAtIndex
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef, jint index, jobject exceptionObj)
@@ -1403,6 +1888,13 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectGetProp
     return (jlong)result;
 }
 
+/*!
+@function
+@abstract Gets an object's prototype.
+@param ctx  The execution context to use.
+@param object A JSObject whose prototype you want to get.
+@result A JSValue that is the object's prototype.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectGetPrototype
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef)
@@ -1413,7 +1905,14 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectGetProt
     
     return (jlong)JSObjectGetPrototype(ctx, object);
 }
-    
+
+/*!
+@function
+@abstract Tests whether an object has a given property.
+@param object The JSObject to test.
+@param propertyName A JSString containing the property's name.
+@result true if the object has a property whose name matches propertyName, otherwise false.
+*/
 JNIEXPORT jboolean JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectHasProperty
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef, jstring name)
@@ -1426,7 +1925,18 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectHasProp
     JSSTRING_RELEASE(jsname);
     return value ? JNI_TRUE : JNI_FALSE;
 }
-    
+
+/*!
+ @function
+ @abstract Creates a JavaScript Array object.
+ @param ctx The execution context to use.
+ @param argumentCount An integer count of the number of arguments in arguments.
+ @param arguments A JSValue array of data to populate the Array with. Pass NULL if argumentCount is 0.
+ @param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+ @result A JSObject that is an Array.
+ @discussion The behavior of this function does not exactly match the behavior of the built-in Array constructor. Specifically, if one argument 
+ is supplied, this function returns an array with one element.
+ */
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeArray
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jint argc, jobject argv, jobject exceptionObj)
@@ -1442,6 +1952,15 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeArr
     return (jlong)value;
 }
 
+/*!
+ @function
+ @abstract Creates a JavaScript Date object, as if by invoking the built-in Date constructor.
+ @param ctx The execution context to use.
+ @param argumentCount An integer count of the number of arguments in arguments.
+ @param arguments A JSValue array of arguments to pass to the Date Constructor. Pass NULL if argumentCount is 0.
+ @param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+ @result A JSObject that is a Date.
+ */
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeDate
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jint argc, jobject argv, jobject exceptionObj)
@@ -1457,6 +1976,15 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeDat
     return (jlong)value;
 }
 
+/*!
+ @function
+ @abstract Creates a JavaScript Error object, as if by invoking the built-in Error constructor.
+ @param ctx The execution context to use.
+ @param argumentCount An integer count of the number of arguments in arguments.
+ @param arguments A JSValue array of arguments to pass to the Error Constructor. Pass NULL if argumentCount is 0.
+ @param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+ @result A JSObject that is a Error.
+ */
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeError
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jint argc, jobject argv, jobject exceptionObj)
@@ -1472,6 +2000,15 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeErr
     return (jlong)value;
 }
 
+/*!
+ @function
+ @abstract Creates a JavaScript RegExp object, as if by invoking the built-in RegExp constructor.
+ @param ctx The execution context to use.
+ @param argumentCount An integer count of the number of arguments in arguments.
+ @param arguments A JSValue array of arguments to pass to the RegExp Constructor. Pass NULL if argumentCount is 0.
+ @param exception A pointer to a JSValueRef in which to store an exception, if any. Pass NULL if you do not care to store an exception.
+ @result A JSObject that is a RegExp.
+ */
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeRegExp
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jint argc, jobject argv, jobject exceptionObj)
@@ -1539,6 +2076,20 @@ Java_com_appcelerator_javascriptcore_opaquetypes_Pointer_NativeUpdatePointer
     *toPointer = fromValue;
 }
 
+/*!
+@function
+@abstract Creates a function with a given script as its body.
+@param ctx The execution context to use.
+@param name A JSString containing the function's name. This will be used when converting the function to string. Pass NULL to create an anonymous function.
+@param parameterCount An integer count of the number of parameter names in parameterNames.
+@param parameterNames A JSString array containing the names of the function's parameters. Pass NULL if parameterCount is 0.
+@param body A JSString containing the script to use as the function's body.
+@param sourceURL A JSString containing a URL for the script's source file. This is only used when reporting exceptions. Pass NULL if you do not care to include source file information in exceptions.
+@param startingLineNumber An integer value specifying the script's starting line number in the file located at sourceURL. This is only used when reporting exceptions.
+@param exception A pointer to a JSValueRef in which to store a syntax error exception, if any. Pass NULL if you do not care to store a syntax error exception.
+@result A JSObject that is a function, or NULL if either body or parameterNames contains a syntax error. The object's prototype will be the default function prototype.
+@discussion Use this method when you want to execute a script repeatedly, to avoid the cost of re-parsing the script before each execution.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeFunction
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jstring name, jint paramCount,
@@ -1579,6 +2130,15 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeFun
     return (jlong)value;
 }
 
+/*!
+@function
+@abstract Convenience method for creating a JavaScript constructor.
+@param ctx The execution context to use.
+@param jsClass A JSClass that is the class your constructor will assign to the objects its constructs. jsClass will be used to set the constructor's .prototype property, and to evaluate 'instanceof' expressions. Pass NULL to use the default object class.
+@param callAsConstructor A JSObjectCallAsConstructorCallback to invoke when your constructor is used in a 'new' expression. Pass NULL to use the default object constructor.
+@result A JSObject that is a constructor. The object's prototype will be the default object prototype.
+@discussion The default object constructor takes no arguments and constructs an object of class jsClass with no private data.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeConstructor
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsClassRef, jobject callback, jboolean useCallback)
@@ -1588,6 +2148,14 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeCon
                                           NativeCallback_JSObjectMakeConstructorCallback);
 }
 
+/*!
+@function
+@abstract Convenience method for creating a JavaScript function with a given callback as its implementation.
+@param ctx The execution context to use.
+@param name A JSString containing the function's name. This will be used when converting the function to string. Pass NULL to create an anonymous function.
+@param callAsFunction The JSObjectCallAsFunctionCallback to invoke when the function is called.
+@result A JSObject that is a function. The object's prototype will be the default function prototype.
+*/
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeFunctionWithCallback
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jstring name)
@@ -1600,6 +2168,9 @@ Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMakeFun
     return (jlong)function;
 }
 
+/*
+ * Return pointers to JavaScript static functions for specific object
+ */
 JNIEXPORT jlongArray JNICALL
 Java_com_appcelerator_javascriptcore_opaquetypes_JSClassDefinition_NativeGetStaticFunctions
     (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef, jint staticFunctionCount, jobject staticFunctionsBuffer)
@@ -1627,6 +2198,117 @@ Java_com_appcelerator_javascriptcore_opaquetypes_JSClassDefinition_NativeGetStat
     
     return outValues;
 }
+
+#ifdef ENABLE_JAVASCRIPTCORE_PRIVATE_API
+/*
+ * Private APIs
+ */
+/*!
+@function
+@abstract Gets the global context of a JavaScript execution context.
+@param ctx The JSContext whose global context you want to get.
+@result ctx's global context.
+*/
+JNIEXPORT jlong JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSContextGetGlobalContext
+    (JNIEnv *env, jobject thiz, jlong jsContextRef)
+{
+    LOGD("JSContextGetGlobalContext");
+    JSGlobalContextRef ctx = (JSGlobalContextRef)jsContextRef;
+    return (jlong)JSContextGetGlobalContext(ctx);
+}
+
+/*!
+@function
+@abstract Gets a Backtrace for the existing context
+@param ctx The JSContext whose backtrace you want to get
+@result A string containing the backtrace
+*/
+JNIEXPORT jstring JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSContextCreateBacktrace
+    (JNIEnv *env, jobject thiz, jlong jsContextRef, jint maxStackSize)
+{
+    LOGD("JSContextCreateBacktrace");
+    JSGlobalContextRef ctx = (JSGlobalContextRef)jsContextRef;
+    JSStringRef trace = JSContextCreateBacktrace(ctx, (unsigned)maxStackSize);
+    JSTRING_FROM_JSSTRINGREF(trace, ctrace, jtrace);
+    JSSTRING_RELEASE(trace);
+    return jtrace;
+}
+
+/*!
+ @function
+ @abstract Sets a private property on an object.  This private property cannot be accessed from within JavaScript.
+ @param ctx The execution context to use.
+ @param object The JSObject whose private property you want to set.
+ @param propertyName A JSString containing the property's name.
+ @param value A JSValue to use as the property's value.  This may be NULL.
+ @result true if object can store private data, otherwise false.
+ @discussion This API allows you to store JS values directly an object in a way that will be ensure that they are kept alive without exposing them to JavaScript code and without introducing the reference cycles that may occur when using JSValueProtect.
+
+ The default object class does not allocate storage for private data. Only objects created with a non-NULL JSClass can store private properties.
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectSetPrivateProperty
+    (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef, jstring propertyName, jlong jsValueRef)
+{
+    LOGD("JSObjectSetPrivateProperty");
+    JSGlobalContextRef ctx = (JSGlobalContextRef)jsContextRef;
+    JSObjectRef object = (JSObjectRef)jsObjectRef;
+    JSValueRef value = (JSValueRef)jsValueRef;
+    
+    JSSTRINGREF_FROM_JSTRING(propertyName, jsname)
+    jboolean result = JSObjectSetPrivateProperty(ctx, object, jsname, value) ? JNI_TRUE : JNI_FALSE;
+    JSSTRING_RELEASE(jsname);
+    return result;
+}
+
+/*!
+ @function
+ @abstract Gets a private property from an object.
+ @param ctx The execution context to use.
+ @param object The JSObject whose private property you want to get.
+ @param propertyName A JSString containing the property's name.
+ @result The property's value if object has the property, otherwise NULL.
+ */
+JNIEXPORT jlong JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectGetPrivateProperty
+    (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef, jstring propertyName)
+{
+    LOGD("JSObjectGetPrivateProperty");
+    JSGlobalContextRef ctx = (JSGlobalContextRef)jsContextRef;
+    JSObjectRef object = (JSObjectRef)jsObjectRef;
+    
+    JSSTRINGREF_FROM_JSTRING(propertyName, jsname)
+    JSValueRef value = JSObjectGetPrivateProperty(ctx, object, jsname);
+    JSSTRING_RELEASE(jsname);
+    return (jlong)value;
+}
+
+/*!
+ @function
+ @abstract Deletes a private property from an object.
+ @param ctx The execution context to use.
+ @param object The JSObject whose private property you want to delete.
+ @param propertyName A JSString containing the property's name.
+ @result true if object can store private data, otherwise false.
+ @discussion The default object class does not allocate storage for private data. Only objects created with a non-NULL JSClass can store private data.
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectDeletePrivateProperty
+    (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsObjectRef, jstring propertyName)
+{
+    LOGD("JSObjectDeletePrivateProperty");
+    JSGlobalContextRef ctx = (JSGlobalContextRef)jsContextRef;
+    JSObjectRef object = (JSObjectRef)jsObjectRef;
+    
+    JSSTRINGREF_FROM_JSTRING(propertyName, jsname)
+    jboolean result = JSObjectDeletePrivateProperty(ctx, object, jsname) ? JNI_TRUE : JNI_FALSE;
+    JSSTRING_RELEASE(jsname);
+    return result;
+}
+#endif
+
 #ifdef __cplusplus
 }
 #endif

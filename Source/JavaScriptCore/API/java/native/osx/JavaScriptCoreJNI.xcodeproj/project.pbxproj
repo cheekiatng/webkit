@@ -9,12 +9,16 @@
 /* Begin PBXBuildFile section */
 		F91CAF34185C67E700AA0B4F /* JavaScriptCoreJNI.c in Sources */ = {isa = PBXBuildFile; fileRef = F91CAF32185C67E700AA0B4F /* JavaScriptCoreJNI.c */; };
 		F91CAF35185C67E700AA0B4F /* JavaScriptCoreJNI.h in Headers */ = {isa = PBXBuildFile; fileRef = F91CAF33185C67E700AA0B4F /* JavaScriptCoreJNI.h */; };
+		F9366C0E186C2D0600205A0B /* JSContextRefPrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = F9366C0C186C2D0600205A0B /* JSContextRefPrivate.h */; };
+		F9366C0F186C2D0600205A0B /* JSObjectRefPrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = F9366C0D186C2D0600205A0B /* JSObjectRefPrivate.h */; };
 		F97C5C30184DE400002A9E74 /* JavaScriptCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F97C5C2F184DE400002A9E74 /* JavaScriptCore.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		F91CAF32185C67E700AA0B4F /* JavaScriptCoreJNI.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = JavaScriptCoreJNI.c; path = ../JavaScriptCoreJNI.c; sourceTree = "<group>"; };
 		F91CAF33185C67E700AA0B4F /* JavaScriptCoreJNI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = JavaScriptCoreJNI.h; path = ../JavaScriptCoreJNI.h; sourceTree = "<group>"; };
+		F9366C0C186C2D0600205A0B /* JSContextRefPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSContextRefPrivate.h; sourceTree = "<group>"; };
+		F9366C0D186C2D0600205A0B /* JSObjectRefPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSObjectRefPrivate.h; sourceTree = "<group>"; };
 		F97C5C2F184DE400002A9E74 /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F9D71B5E184DE3CD00838DF4 /* libJavaScriptCoreJNI.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libJavaScriptCoreJNI.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -31,6 +35,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		F9366C10186C2D4000205A0B /* Private Headers */ = {
+			isa = PBXGroup;
+			children = (
+				F9366C0C186C2D0600205A0B /* JSContextRefPrivate.h */,
+				F9366C0D186C2D0600205A0B /* JSObjectRefPrivate.h */,
+			);
+			name = "Private Headers";
+			sourceTree = "<group>";
+		};
 		F97C5C31184DE450002A9E74 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -44,6 +57,7 @@
 			children = (
 				F91CAF32185C67E700AA0B4F /* JavaScriptCoreJNI.c */,
 				F91CAF33185C67E700AA0B4F /* JavaScriptCoreJNI.h */,
+				F9366C10186C2D4000205A0B /* Private Headers */,
 				F97C5C31184DE450002A9E74 /* Frameworks */,
 				F9D71B5F184DE3CD00838DF4 /* Products */,
 			);
@@ -65,6 +79,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				F91CAF35185C67E700AA0B4F /* JavaScriptCoreJNI.h in Headers */,
+				F9366C0F186C2D0600205A0B /* JSObjectRefPrivate.h in Headers */,
+				F9366C0E186C2D0600205A0B /* JSContextRefPrivate.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -208,6 +224,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				EXECUTABLE_PREFIX = lib;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+					ENABLE_JAVASCRIPTCORE_PRIVATE_API,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -216,6 +237,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				EXECUTABLE_PREFIX = lib;
+				GCC_PREPROCESSOR_DEFINITIONS = ENABLE_JAVASCRIPTCORE_PRIVATE_API;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

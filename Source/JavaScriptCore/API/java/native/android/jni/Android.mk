@@ -21,7 +21,7 @@ LOCAL_SRC_FILES := ../../JavaScriptCoreJNI.c
 
 LOCAL_SHARED_LIBRARIES := JavaScriptCore_shared
 LOCAL_LDLIBS    := -llog -landroid
-LOCAL_CFLAGS := -std=c99
+LOCAL_CFLAGS    := -std=c99 -DENABLE_JAVASCRIPTCORE_PRIVATE_API
 
 include $(BUILD_SHARED_LIBRARY)
 
