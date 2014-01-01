@@ -10,12 +10,15 @@
 #import "Test262Helper.h"
 #import "LogWrapper.h"
 #import "NSAttributedString+Hyperlink.h"
+#import "NetworkHelper.h"
+#import "NetworkHelperForAppDelegate.h"
+#import "SocketServer.h"
 
 #define TEST262_QUIT_BY_APPLICATION_QUIT (void*)0x01
 #define TEST262_QUIT_BY_WINDOW_CLOSE (void*)0x02
 
 
-@interface AppDelegate () <NSWindowDelegate>
+@interface AppDelegate () <NSWindowDelegate, NetworkHelperForAppDelegate>
 {
 	// These blocks don't change, so let's make them instance variables
 	NSInteger (^callbackForAllTestsStarting)(NSUInteger);
@@ -31,10 +34,14 @@
 @property(strong, nonatomic) NSString* currentTestNameStatusString;
 @property(strong, nonatomic) NSString* totalFailedStatusString;
 
+@property(strong, nonatomic) NSString* logFileLocationString;
 
 @property(strong, nonatomic) LogWrapper* logWrapper;
 @property(assign, nonatomic) _Bool javaScriptThreadRunning;
 @property(assign, nonatomic) _Bool javaScriptThreadShouldContinueRunning;
+
+@property(strong, nonatomic) NetworkHelper* networkHelper;
+
 @end
 
 @implementation AppDelegate
@@ -45,6 +52,16 @@
 	if(nil != self)
 	{
 		_logWrapper = [[LogWrapper alloc] init];
+		_networkHelper = [[NetworkHelper alloc] init];
+		// Assumption is AppDelegate lives for the life of the program, so I don't need to retain it and __bridge is sufficient.
+		SocketServer_SetUploadFileCallback(NetworkHelperForAppDelegate_UploadFile, (__bridge void *)(self));
+		NSArray* directory_paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+		NSString* documents_directory = [directory_paths firstObject];
+		NSString* test_file = [documents_directory stringByAppendingPathComponent:@"test262_runlog.txt"];
+		if([[NSFileManager defaultManager] fileExistsAtPath:test_file])
+		{
+			_logFileLocationString = test_file;
+		}
 	}
 	return self;
 }
@@ -138,6 +155,8 @@
 - (void) applicationDidFinishLaunching:(NSNotification *)aNotification
 {
 	[self initBlockIvarsForTestGui];
+	[[self networkHelper] startServer];
+
 /*
 	NSNotificationCenter* notification_center = [NSNotificationCenter defaultCenter];
 //	[notification_center addObserver:self selector:@selector(appWillTerminate:) name:NSApplicationWillTerminateNotification object:nil];
@@ -206,7 +225,7 @@
 			[log_wrapper openNewFile];
 			// Hold on to this reference because logger closeFile will nil its reference.
 			NSString* log_file_path_and_name = [log_wrapper logFilePathAndName];
-
+			[self setLogFileLocationString:log_file_path_and_name];
 
 
 			// We want to disable App Nap while running this test since it might take awhile to finish.

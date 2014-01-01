@@ -1,0 +1,20 @@
+//
+//  NetworkHelperForAppDelegate.h
+//  Test262
+//
+//  Created by Eric Wing on 1/1/14.
+//  Copyright (c) 2014 JavaScriptCore. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+void NetworkHelperForAppDelegate_UploadFile(int accepted_socket, uint16_t http_server_port, void* user_data);
+
+@protocol NetworkHelperForAppDelegate <NSObject>
+@optional
+- (NSString*) logFileLocationString;
+@end
+
+@interface NetworkHelperForAppDelegate : NSObject
+
+@end
