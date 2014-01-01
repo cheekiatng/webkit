@@ -11,7 +11,7 @@
 #import "LogWrapper.h"
 #import "NSAttributedString+Hyperlink.h"
 
-@interface AppDelegate ()
+@interface AppDelegate () <NSWindowDelegate>
 {
 	// These blocks don't change, so let's make them instance variables
 	NSInteger (^callbackForAllTestsStarting)(NSUInteger);
@@ -61,7 +61,7 @@
 	// (Though maybe not since this will involve a block copy to the heap?)
 	__weak typeof(self) weak_self = self;
 
-	callbackForAllTestsStarting = ^(NSUInteger total_number_of_tests)
+	callbackForAllTestsStarting = ^ NSInteger (NSUInteger total_number_of_tests)
 	{
 		dispatch_async(dispatch_get_main_queue(),
 			^{
@@ -70,15 +70,15 @@
 		);
 		if(true == [weak_self javaScriptThreadShouldContinueRunning])
 		{
-			return (NSInteger)1;
+			return 1;
 		}
 		else
 		{
-			return (NSInteger)0;
+			return 0;
 		}
 	};
 
-	callbackForBeginningTest = ^(NSString* test_file, NSUInteger total_number_of_tests, NSUInteger current_test_number)
+	callbackForBeginningTest = ^ NSInteger (NSString* test_file, NSUInteger total_number_of_tests, NSUInteger current_test_number)
 	{
 		dispatch_async(dispatch_get_main_queue(),
 			^{
@@ -88,15 +88,15 @@
 		);
 		if(true == [weak_self javaScriptThreadShouldContinueRunning])
 		{
-			return (NSInteger)1;
+			return 1;
 		}
 		else
 		{
-			return (NSInteger)0;
+			return 0;
 		}
 	};
 
-	callbackForEndingTest = ^(NSString* test_file, NSUInteger total_number_of_tests, NSUInteger current_test_number, NSUInteger total_number_of_tests_failed, _Bool did_pass, NSString* nscf_exception_string, NSString* nscf_stack_string)
+	callbackForEndingTest = ^ NSInteger (NSString* test_file, NSUInteger total_number_of_tests, NSUInteger current_test_number, NSUInteger total_number_of_tests_failed, _Bool did_pass, NSString* nscf_exception_string, NSString* nscf_stack_string)
 	{
 		dispatch_async(dispatch_get_main_queue(),
 			^{
@@ -105,15 +105,15 @@
 		);
 		if(true == [weak_self javaScriptThreadShouldContinueRunning])
 		{
-			return (NSInteger)1;
+			return 1;
 		}
 		else
 		{
-			return (NSInteger)0;
+			return 0;
 		}
 	};
 
-	callbackForAllTestsFinished = ^(NSUInteger total_number_of_tests, NSUInteger number_of_tests_run, NSUInteger total_number_of_tests_failed)
+	callbackForAllTestsFinished = ^ NSInteger (NSUInteger total_number_of_tests, NSUInteger number_of_tests_run, NSUInteger total_number_of_tests_failed)
 	{
 		dispatch_async(dispatch_get_main_queue(),
 			^{
@@ -122,11 +122,11 @@
 		);
 		if(true == [weak_self javaScriptThreadShouldContinueRunning])
 		{
-			return (NSInteger)1;
+			return 1;
 		}
 		else
 		{
-			return (NSInteger)0;
+			return 0;
 		}
 	};
 }
@@ -134,7 +134,11 @@
 - (void) applicationDidFinishLaunching:(NSNotification *)aNotification
 {
 	[self initBlockIvarsForTestGui];
-
+/*
+	NSNotificationCenter* notification_center = [NSNotificationCenter defaultCenter];
+//	[notification_center addObserver:self selector:@selector(appWillTerminate:) name:NSApplicationWillTerminateNotification object:nil];
+	[notification_center addObserver:self selector:@selector(windowClosing:) name:NSWindowWillCloseNotification object:nil];
+*/
 //	LogWrapper_LogEvent([self logWrapper], LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "applicationDidFinishLaunching:", @"Entered applicationDidFinishLaunching");
 //	[self runTests];
 }
@@ -145,6 +149,47 @@
 }
 
 - (IBAction)clickedAbortTests:(id)the_sender
+{
+		NSAlert* alert = [[NSAlert alloc] init];
+		[alert addButtonWithTitle:@"Continue Running Tests"];
+		[alert addButtonWithTitle:@"Abort Tests"];
+		NSString* message_text = [NSString stringWithFormat:@"Tests are currently running."];
+		[alert setMessageText:message_text];
+		NSString* info_text = [NSString stringWithFormat:@"Are you sure you want to abort tests?"];
+
+		[alert setInformativeText:info_text];
+		[alert setAlertStyle:NSInformationalAlertStyle];
+
+		[alert beginSheetModalForWindow:[self window]
+			modalDelegate:self
+			didEndSelector:@selector(abortTestsAlertDidEnd:returnCode:contextInfo:)
+			contextInfo:nil
+		];
+
+
+
+}
+
+- (void) abortTestsAlertDidEnd:(NSAlert*)alert returnCode:(int)return_code contextInfo:(void*)context_info
+{
+	// user doesn't want to quit
+	if(NSAlertFirstButtonReturn == return_code)
+	{
+		return;
+	}
+	// user wants to quit
+	if(NSAlertSecondButtonReturn == return_code)
+	{
+		[self abortTests];
+		return;
+	}
+
+	//    [alert release];
+	
+}
+
+
+- (void) abortTests
 {
 	[self setJavaScriptThreadShouldContinueRunning:false];
 }
@@ -192,7 +237,6 @@
 			
 
 			[[NSProcessInfo processInfo] endActivity:test262_process_activity];
-			[self setJavaScriptThreadRunning:false];
 
 			[log_wrapper flush];
 			[log_wrapper closeFile];
@@ -205,6 +249,8 @@
 					[self setHyperlinkWithTextField:[self labelForLogFileLocation] withPath:log_file_path_and_name];
 				}
 			);
+
+			[self setJavaScriptThreadRunning:false];
 
 		}
 	);
@@ -231,9 +277,136 @@
 }
 
 
-- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)the_sender
+- (BOOL) applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)the_sender
 {
 	return YES;
+}
+
+/*
+- (void) windowClosing:(NSNotification*)the_notification
+{
+	if([the_notification object] == [self window])
+	{
+
+	}
+}
+*/
+
+
+- (NSApplicationTerminateReply) applicationShouldTerminate:(NSApplication*)the_sender
+{
+	// This can get complicated. Should ask the user if they really want to quit if tests are running.
+	// NSTerminateLater requires pumping the event loop manually to handle dialogs.
+	// For best practices, the app should allow quiting/resuming,
+	// but this requires saving/restoring the current test run state, the current file handle,
+	// the current file upload to server status,
+	// and any socket connections. Yuck.
+	if([self javaScriptThreadRunning])
+	{
+		NSAlert* alert = [[NSAlert alloc] init];
+		[alert addButtonWithTitle:@"Continue Running Tests"];
+		[alert addButtonWithTitle:@"Abort Tests & Quit"];
+		NSString* message_text = [NSString stringWithFormat:@"Tests are currently running."];
+		[alert setMessageText:message_text];
+		NSString* info_text = [NSString stringWithFormat:@"Quitting now will abort running tests. Are you sure you want to abort tests & quit?"];
+
+		[alert setInformativeText:info_text];
+		[alert setAlertStyle:NSInformationalAlertStyle];
+
+		[alert beginSheetModalForWindow:[self window]
+			modalDelegate:self
+			didEndSelector:@selector(abortTestsForWindowCloseAlertDidEnd:returnCode:contextInfo:)
+			contextInfo:nil
+		];
+
+		// Cancel this. The callback will eventually call [NSApp terminate:nil] for the correct sequence.
+		return NSTerminateCancel;
+	}
+	else
+	{
+		return NSTerminateNow;
+	}
+}
+
+// NSWindowDelegate
+- (BOOL) windowShouldClose:(id)the_sender
+{
+	// This can get complicated. Should ask the user if they really want to quit if tests are running.
+	// NSTerminateLater requires pumping the event loop manually to handle dialogs.
+	// For best practices, the app should allow quiting/resuming,
+	// but this requires saving/restoring the current test run state, the current file handle,
+	// the current file upload to server status,
+	// and any socket connections. Yuck.
+	if([self javaScriptThreadRunning])
+	{
+
+		NSAlert* alert = [[NSAlert alloc] init];
+		[alert addButtonWithTitle:@"Continue Running Tests"];
+		[alert addButtonWithTitle:@"Abort Tests & Quit"];
+		NSString* message_text = [NSString stringWithFormat:@"Tests are currently running."];
+		[alert setMessageText:message_text];
+		NSString* info_text = [NSString stringWithFormat:@"Quitting now will abort running tests. Are you sure you want to abort tests & quit?"];
+
+		[alert setInformativeText:info_text];
+		[alert setAlertStyle:NSInformationalAlertStyle];
+
+		[alert beginSheetModalForWindow:[self window]
+			modalDelegate:self
+			didEndSelector:@selector(abortTestsForWindowCloseAlertDidEnd:returnCode:contextInfo:)
+			contextInfo:nil
+		];
+
+
+
+		return NO;
+	}
+	else
+	{
+		return YES;
+	}
+}
+
+- (void) abortTestsForWindowCloseAlertDidEnd:(NSAlert*)alert returnCode:(int)return_code contextInfo:(void*)context_info
+{
+	// user doesn't want to quit
+	if(NSAlertFirstButtonReturn == return_code)
+	{
+		return;
+	}
+	// user wants to quit
+	if(NSAlertSecondButtonReturn == return_code)
+	{
+		[self abortTests];
+		// So here's a problem. We really should wait for the thread to finish.
+		// That means we can't quit here and need to monitor javaScriptThreadRunning.
+		// I can use KVO to watch the variable. I really should create some different objects though to prevent possible collisions with other parts of this code that might want to watch it.
+		[self addObserver:self
+			forKeyPath:@"javaScriptThreadRunning"
+			options:NSKeyValueObservingOptionNew
+			context:NULL
+		];
+
+		return;
+	}
+
+	//    [alert release];
+
+}
+
+
+- (void)observeValueForKeyPath:(NSString*)key_path
+	ofObject:(id)the_object
+	change:(NSDictionary*)the_change
+	context:(void*)the_context
+{
+	// Assumuption: This observer is only setup when the user has told the application to quit.
+	if([key_path isEqualToString:@"javaScriptThreadRunning"])
+	{
+		[NSApp terminate:nil];
+		return;
+	}
+
+	[super observeValueForKeyPath:key_path ofObject:the_object change:the_change context:the_context];
 }
 
 @end
