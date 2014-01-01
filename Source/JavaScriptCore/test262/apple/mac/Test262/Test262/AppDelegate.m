@@ -11,6 +11,10 @@
 #import "LogWrapper.h"
 #import "NSAttributedString+Hyperlink.h"
 
+#define TEST262_QUIT_BY_APPLICATION_QUIT (void*)0x01
+#define TEST262_QUIT_BY_WINDOW_CLOSE (void*)0x02
+
+
 @interface AppDelegate () <NSWindowDelegate>
 {
 	// These blocks don't change, so let's make them instance variables
@@ -316,11 +320,11 @@
 		[alert beginSheetModalForWindow:[self window]
 			modalDelegate:self
 			didEndSelector:@selector(abortTestsForWindowCloseAlertDidEnd:returnCode:contextInfo:)
-			contextInfo:nil
+			contextInfo:TEST262_QUIT_BY_APPLICATION_QUIT
 		];
 
-		// Cancel this. The callback will eventually call [NSApp terminate:nil] for the correct sequence.
-		return NSTerminateCancel;
+
+		return NSTerminateLater;
 	}
 	else
 	{
@@ -353,7 +357,7 @@
 		[alert beginSheetModalForWindow:[self window]
 			modalDelegate:self
 			didEndSelector:@selector(abortTestsForWindowCloseAlertDidEnd:returnCode:contextInfo:)
-			contextInfo:nil
+			contextInfo:TEST262_QUIT_BY_WINDOW_CLOSE
 		];
 
 
@@ -371,6 +375,7 @@
 	// user doesn't want to quit
 	if(NSAlertFirstButtonReturn == return_code)
 	{
+		[NSApp replyToApplicationShouldTerminate:NO];
 		return;
 	}
 	// user wants to quit
@@ -380,10 +385,11 @@
 		// So here's a problem. We really should wait for the thread to finish.
 		// That means we can't quit here and need to monitor javaScriptThreadRunning.
 		// I can use KVO to watch the variable. I really should create some different objects though to prevent possible collisions with other parts of this code that might want to watch it.
+		// I can use the context_info to help differentiate cases.
 		[self addObserver:self
 			forKeyPath:@"javaScriptThreadRunning"
 			options:NSKeyValueObservingOptionNew
-			context:NULL
+			context:context_info
 		];
 
 		return;
@@ -402,7 +408,14 @@
 	// Assumuption: This observer is only setup when the user has told the application to quit.
 	if([key_path isEqualToString:@"javaScriptThreadRunning"])
 	{
-		[NSApp terminate:nil];
+		if(TEST262_QUIT_BY_APPLICATION_QUIT == the_context)
+		{
+			[NSApp replyToApplicationShouldTerminate:YES];
+		}
+		else if(TEST262_QUIT_BY_WINDOW_CLOSE == the_context)
+		{
+			[NSApp terminate:nil];
+		}
 		return;
 	}
 
