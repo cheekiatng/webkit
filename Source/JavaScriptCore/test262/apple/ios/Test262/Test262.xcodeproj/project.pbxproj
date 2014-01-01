@@ -32,6 +32,11 @@
 		0079D4A11872C12000D6F559 /* .TimeStamp.h.swp in Resources */ = {isa = PBXBuildFile; fileRef = 0079D48D1872C12000D6F559 /* .TimeStamp.h.swp */; };
 		0079D4A21872C12000D6F559 /* TimeStamp.c in Sources */ = {isa = PBXBuildFile; fileRef = 0079D48E1872C12000D6F559 /* TimeStamp.c */; };
 		0079D4A51872C16C00D6F559 /* LogWrapper.m in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4A41872C16C00D6F559 /* LogWrapper.m */; };
+		0079D4C418744B9700D6F559 /* NetworkHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4C118744B9600D6F559 /* NetworkHelper.m */; };
+		0079D4C518744B9700D6F559 /* NetworkHelperForAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4C318744B9700D6F559 /* NetworkHelperForAppDelegate.m */; };
+		0079D4CF18744BDE00D6F559 /* SimpleMutex.c in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4C818744BDE00D6F559 /* SimpleMutex.c */; };
+		0079D4D018744BDE00D6F559 /* SimpleThreadPosix.c in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4CB18744BDE00D6F559 /* SimpleThreadPosix.c */; };
+		0079D4D218744BDE00D6F559 /* SocketServer.c in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4CD18744BDE00D6F559 /* SocketServer.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -93,6 +98,17 @@
 		0079D48F1872C12000D6F559 /* TimeStamp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TimeStamp.h; sourceTree = "<group>"; };
 		0079D4A31872C16C00D6F559 /* LogWrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LogWrapper.h; path = ../../common/source/LogWrapper.h; sourceTree = "<group>"; };
 		0079D4A41872C16C00D6F559 /* LogWrapper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LogWrapper.m; path = ../../common/source/LogWrapper.m; sourceTree = "<group>"; };
+		0079D4C018744B9600D6F559 /* NetworkHelper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NetworkHelper.h; path = ../../common/source/NetworkHelper.h; sourceTree = "<group>"; };
+		0079D4C118744B9600D6F559 /* NetworkHelper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = NetworkHelper.m; path = ../../common/source/NetworkHelper.m; sourceTree = "<group>"; };
+		0079D4C218744B9600D6F559 /* NetworkHelperForAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NetworkHelperForAppDelegate.h; path = ../../common/source/NetworkHelperForAppDelegate.h; sourceTree = "<group>"; };
+		0079D4C318744B9700D6F559 /* NetworkHelperForAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = NetworkHelperForAppDelegate.m; path = ../../common/source/NetworkHelperForAppDelegate.m; sourceTree = "<group>"; };
+		0079D4C818744BDE00D6F559 /* SimpleMutex.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SimpleMutex.c; sourceTree = "<group>"; };
+		0079D4C918744BDE00D6F559 /* SimpleMutex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SimpleMutex.h; sourceTree = "<group>"; };
+		0079D4CA18744BDE00D6F559 /* SimpleThread.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SimpleThread.h; sourceTree = "<group>"; };
+		0079D4CB18744BDE00D6F559 /* SimpleThreadPosix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SimpleThreadPosix.c; sourceTree = "<group>"; };
+		0079D4CC18744BDE00D6F559 /* SimpleThreadWindows.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SimpleThreadWindows.c; sourceTree = "<group>"; };
+		0079D4CD18744BDE00D6F559 /* SocketServer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = SocketServer.c; path = ../../../common/source/SocketServer.c; sourceTree = "<group>"; };
+		0079D4CE18744BDE00D6F559 /* SocketServer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SocketServer.h; path = ../../../common/source/SocketServer.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -123,6 +139,7 @@
 		0079D3D51870490500D6F559 = {
 			isa = PBXGroup;
 			children = (
+				0079D4C618744BA000D6F559 /* applecommon */,
 				0079D4191870491100D6F559 /* common */,
 				0079D3E71870490500D6F559 /* Test262 */,
 				0079D4091870490500D6F559 /* Test262Tests */,
@@ -200,12 +217,11 @@
 		0079D4191870491100D6F559 /* common */ = {
 			isa = PBXGroup;
 			children = (
-				0079D4711872C11F00D6F559 /* Logger */,
-				0079D4A31872C16C00D6F559 /* LogWrapper.h */,
-				0079D4A41872C16C00D6F559 /* LogWrapper.m */,
+				0079D4CD18744BDE00D6F559 /* SocketServer.c */,
+				0079D4CE18744BDE00D6F559 /* SocketServer.h */,
 				0079D4321870E81A00D6F559 /* test262.c */,
-				0079D4221870497900D6F559 /* Test262Helper.h */,
-				0079D4231870497900D6F559 /* Test262Helper.m */,
+				0079D4711872C11F00D6F559 /* Logger */,
+				0079D4C718744BDE00D6F559 /* SimpleThread */,
 			);
 			name = common;
 			sourceTree = "<group>";
@@ -286,6 +302,34 @@
 				0079D48F1872C12000D6F559 /* TimeStamp.h */,
 			);
 			path = timestamp;
+			sourceTree = "<group>";
+		};
+		0079D4C618744BA000D6F559 /* applecommon */ = {
+			isa = PBXGroup;
+			children = (
+				0079D4A31872C16C00D6F559 /* LogWrapper.h */,
+				0079D4A41872C16C00D6F559 /* LogWrapper.m */,
+				0079D4C018744B9600D6F559 /* NetworkHelper.h */,
+				0079D4C118744B9600D6F559 /* NetworkHelper.m */,
+				0079D4C218744B9600D6F559 /* NetworkHelperForAppDelegate.h */,
+				0079D4C318744B9700D6F559 /* NetworkHelperForAppDelegate.m */,
+				0079D4221870497900D6F559 /* Test262Helper.h */,
+				0079D4231870497900D6F559 /* Test262Helper.m */,
+			);
+			name = applecommon;
+			sourceTree = "<group>";
+		};
+		0079D4C718744BDE00D6F559 /* SimpleThread */ = {
+			isa = PBXGroup;
+			children = (
+				0079D4C818744BDE00D6F559 /* SimpleMutex.c */,
+				0079D4C918744BDE00D6F559 /* SimpleMutex.h */,
+				0079D4CA18744BDE00D6F559 /* SimpleThread.h */,
+				0079D4CB18744BDE00D6F559 /* SimpleThreadPosix.c */,
+				0079D4CC18744BDE00D6F559 /* SimpleThreadWindows.c */,
+			);
+			name = SimpleThread;
+			path = ../../../common/source/SimpleThread;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -399,13 +443,18 @@
 			buildActionMask = 2147483647;
 			files = (
 				0079D3FB1870490500D6F559 /* ViewController.m in Sources */,
+				0079D4D018744BDE00D6F559 /* SimpleThreadPosix.c in Sources */,
 				0079D3F21870490500D6F559 /* AppDelegate.m in Sources */,
 				0079D4A51872C16C00D6F559 /* LogWrapper.m in Sources */,
 				0079D4251870497900D6F559 /* Test262Helper.m in Sources */,
 				0079D4331870E81A00D6F559 /* test262.c in Sources */,
+				0079D4C518744B9700D6F559 /* NetworkHelperForAppDelegate.m in Sources */,
 				0079D4991872C12000D6F559 /* LoggerObjC.m in Sources */,
+				0079D4D218744BDE00D6F559 /* SocketServer.c in Sources */,
 				0079D3EE1870490500D6F559 /* main.m in Sources */,
 				0079D4A21872C12000D6F559 /* TimeStamp.c in Sources */,
+				0079D4CF18744BDE00D6F559 /* SimpleMutex.c in Sources */,
+				0079D4C418744B9700D6F559 /* NetworkHelper.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

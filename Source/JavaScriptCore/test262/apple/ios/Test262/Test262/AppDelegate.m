@@ -7,12 +7,42 @@
 //
 
 #import "AppDelegate.h"
+#import "SocketServer.h"
+#import "NetworkHelper.h"
+#import "NetworkHelperForAppDelegate.h"
 
+@interface AppDelegate () <NetworkHelperForAppDelegate>
+
+@property(strong, nonatomic) NSString* logFileLocationString;
+@property(strong, nonatomic) NetworkHelper* networkHelper;
+
+@end
 
 @implementation AppDelegate
 
+- (instancetype) init
+{
+	self = [super init];
+	if(nil != self)
+	{
+		_networkHelper = [[NetworkHelper alloc] init];
+		// Assumption is AppDelegate lives for the life of the program, so I don't need to retain it and __bridge is sufficient.
+		SocketServer_SetUploadFileCallback(NetworkHelperForAppDelegate_UploadFile, (__bridge void *)(self));
+		NSArray* directory_paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+		NSString* documents_directory = [directory_paths firstObject];
+		NSString* test_file = [documents_directory stringByAppendingPathComponent:@"test262_runlog.txt"];
+		if([[NSFileManager defaultManager] fileExistsAtPath:test_file])
+		{
+			_logFileLocationString = test_file;
+		}
+	}
+	return self;
+}
+
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
+	[[self networkHelper] startServer];
+
     return YES;
 }
 							
@@ -20,27 +50,35 @@
 {
 	// Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
 	// Use this method to pause ongoing tasks, disable timers, and throttle down OpenGL ES frame rates. Games should use this method to pause the game.
+	[[self networkHelper] stopServer];
+
 }
 
 - (void)applicationDidEnterBackground:(UIApplication *)application
 {
 	// Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later. 
 	// If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+	[[self networkHelper] stopServer];
 }
 
 - (void)applicationWillEnterForeground:(UIApplication *)application
 {
 	// Called as part of the transition from the background to the inactive state; here you can undo many of the changes made on entering the background.
+	[[self networkHelper] startServer];
 }
 
 - (void)applicationDidBecomeActive:(UIApplication *)application
 {
 	// Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+	[[self networkHelper] startServer];
+
 }
 
 - (void)applicationWillTerminate:(UIApplication *)application
 {
 	// Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+	[[self networkHelper] stopServer];
+
 }
 
 @end

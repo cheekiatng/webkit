@@ -16,8 +16,10 @@
 @property(assign) struct SocketServer_UserData* serverUserData;
 @property(assign) SimpleThread* serverAcceptThread;
 
+
 @property(nonatomic, strong, readwrite) NSNetService* netService;
 @property(nonatomic, strong, readwrite) NSString* serviceName;
+@property(assign) _Bool isServerStarted;
 
 @end
 
@@ -39,6 +41,10 @@
 
 - (void) startServer
 {
+	if([self isServerStarted])
+	{
+		return;
+	}
 	SocketServer_CreateSocketAndListen(&_serverSocket, &_serverPort);
 	NSLog(@"socket: %d, port: %d", _serverSocket, _serverPort);
 	_serverUserData = (struct SocketServer_UserData*)calloc(1, sizeof(struct SocketServer_UserData));
@@ -55,11 +61,18 @@
 	[_netService setDelegate:self];
 	[_netService publishWithOptions:0];
 
-
+	[self setIsServerStarted:true];
 }
 
 - (void) stopServer
 {
+	if( ! [self isServerStarted])
+	{
+		return;
+	}
+	// this needs to be before [_netService stop] because it is infinitely recursing between this and its netServiceDidStop: delegate
+	[self setIsServerStarted:false];
+
 	int thread_status = 0;
 	// This pointer is how we will signal the server thread to stop
 	_serverUserData->shouldKeepRunning = 0;
