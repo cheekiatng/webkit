@@ -231,7 +231,7 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 
 		if(nil != callback_for_beginning_test)
 		{
-			NSInteger return_status = callback_for_beginning_test(a_file, [file_list count], current_index_count);
+			NSInteger return_status = callback_for_beginning_test(a_file, [file_list count], current_index_count+1);
 			if(0 == return_status)
 			{
 				// 0 means user wants to cancel tests
@@ -311,7 +311,7 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 
 			if(nil != callback_for_ending_test)
 			{
-				NSInteger return_status = callback_for_ending_test(a_file, [file_list count], current_index_count, number_of_failed_tests, false, nscf_exception_string, nscf_stack_string);
+				NSInteger return_status = callback_for_ending_test(a_file, [file_list count], current_index_count+1, number_of_failed_tests, false, nscf_exception_string, nscf_stack_string);
 				if(0 == return_status)
 				{
 					// 0 means user wants to cancel tests
@@ -330,7 +330,7 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 
 			if(nil != callback_for_ending_test)
 			{
-				NSInteger return_status = callback_for_ending_test(a_file, [file_list count], current_index_count, number_of_failed_tests, true, nil, nil);
+				NSInteger return_status = callback_for_ending_test(a_file, [file_list count], current_index_count+1, number_of_failed_tests, true, nil, nil);
 				if(0 == return_status)
 				{
 					// 0 means user wants to cancel tests
@@ -375,7 +375,7 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 
 	if(nil != callback_for_all_tests_finished)
 	{
-		callback_for_all_tests_finished([file_list count], current_index_count, number_of_failed_tests);
+		callback_for_all_tests_finished([file_list count], current_index_count+1, number_of_failed_tests);
 	}
 }
 

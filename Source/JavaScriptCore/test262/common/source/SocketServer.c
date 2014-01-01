@@ -216,6 +216,8 @@ int SocketServer_RunAcceptLoop(void* user_data)
 		else
 		{
 			s_uploadFileCallback(new_fd, command_or_port_received_host, s_uploadFileCallbackUserData);
+			// assumption is that the uploadFileCallback is done with the socket so I can close it for all platforms.
+			close(new_fd);
 		}
 
 
