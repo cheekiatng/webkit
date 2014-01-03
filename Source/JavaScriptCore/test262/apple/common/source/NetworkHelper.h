@@ -10,6 +10,8 @@
 
 @interface NetworkHelper : NSObject
 
+@property(nonatomic, strong, readonly) NSString* serviceName;
+
 - (void) startServer;
 - (void) stopServer;
 

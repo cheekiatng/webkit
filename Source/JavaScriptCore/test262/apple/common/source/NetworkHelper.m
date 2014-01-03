@@ -18,7 +18,6 @@
 
 
 @property(nonatomic, strong, readwrite) NSNetService* netService;
-@property(nonatomic, strong, readwrite) NSString* serviceName;
 @property(assign) _Bool isServerStarted;
 
 @end
@@ -37,6 +36,11 @@
 
 	}
 	return self;
+}
+
+- (NSString*) serviceName
+{
+	return [[self netService] name];
 }
 
 - (void) startServer

@@ -7,9 +7,17 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "LogWrapper.h"
+#import "NetworkHelperForAppDelegate.h"
 
-@interface AppDelegate : UIResponder <UIApplicationDelegate>
+@interface AppDelegate : UIResponder <UIApplicationDelegate, NetworkHelperForAppDelegate>
 
 @property (strong, nonatomic) UIWindow *window;
+@property(strong, nonatomic, readonly) LogWrapper* logWrapper;
+
+// for NetworkHelperForAppDelegate
+@property(strong, nonatomic, readonly) NSString* logFileLocationString;
+// for NetworkHelperForAppDelegate
+- (NSString*) serviceName;
 
 @end

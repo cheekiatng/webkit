@@ -25,9 +25,17 @@
 	self = [super init];
 	if(nil != self)
 	{
+		_logWrapper = [[LogWrapper alloc] init];
+
+		// I'm debating if I should use CFBridgingRetain on _logWrapper.
+		// For now, since it also lives the life of the app, I'll ignore it.
+		SocketServer_SetOpenLogStreamCallback(NetworkHelperForAppDelegate_OpenLogStream, (__bridge void *)(_logWrapper), (__bridge void *)(self));
+
+
 		_networkHelper = [[NetworkHelper alloc] init];
 		// Assumption is AppDelegate lives for the life of the program, so I don't need to retain it and __bridge is sufficient.
 		SocketServer_SetUploadFileCallback(NetworkHelperForAppDelegate_UploadFile, (__bridge void *)(self));
+		
 		NSArray* directory_paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
 		NSString* documents_directory = [directory_paths firstObject];
 		NSString* test_file = [documents_directory stringByAppendingPathComponent:@"test262_runlog.txt"];
@@ -79,6 +87,11 @@
 	// Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
 	[[self networkHelper] stopServer];
 
+}
+
+- (NSString*) serviceName
+{
+	return [[self networkHelper] serviceName];
 }
 
 @end

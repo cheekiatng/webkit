@@ -14,7 +14,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
-
+#import "LogWrapper.h"
 
 void NetworkHelperForAppDelegate_UploadFile(int accepted_socket, uint16_t http_server_port, void* user_data)
 {
@@ -38,19 +38,34 @@ void NetworkHelperForAppDelegate_UploadFile(int accepted_socket, uint16_t http_s
 	if( ! [object_providing_log_file_path respondsToSelector:selector_for_logFileLocationString])
 	{
 		NSLog(@"Invalid userdata object provided to NetworkHelperForAppDelegate_UploadFile");
+		assert([object_providing_log_file_path respondsToSelector:selector_for_logFileLocationString]);
 		return;
 	}
 	NSString* log_file_location_string = [object_providing_log_file_path logFileLocationString];
 	NSString* filename_without_path = [log_file_location_string lastPathComponent];
 
+	NSString* service_name = @"";
+	if( ! [object_providing_log_file_path respondsToSelector:@selector(serviceName)])
+	{
+		NSLog(@"Invalid userdata object provided to NetworkHelperForAppDelegate_UploadFile");
+		// I'll make this one optional
+		// return;
+	}
+	else
+	{
+		service_name = [object_providing_log_file_path serviceName];
+	}
 	// This points to a statically stored char array within inet_ntoa() so that each time you call inet_ntoa() it will overwrite the last IP address you asked for.
 	const char* ip_address_string = inet_ntoa(addr.sin_addr);
 
-	NSString* url_string = [NSString stringWithFormat: @"http://%s:%d/%@",
+	NSString* url_string = [NSString stringWithFormat: @"http://%s:%d/%@-%@",
 		ip_address_string,
 		http_server_port,
+		service_name,
 		filename_without_path
 	];
+	url_string = [url_string stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+
 
 	NSURL* the_url = [NSURL URLWithString:url_string];
     NSLog(@"client url: %@", url_string);
@@ -94,6 +109,35 @@ void NetworkHelperForAppDelegate_UploadFile(int accepted_socket, uint16_t http_s
 	
 }
 
+void NetworkHelperForAppDelegate_OpenLogStream(int accepted_socket, void* opaque_log_wrapper, void* user_data)
+{
+	LogWrapper* log_wrapper = (__bridge LogWrapper*)opaque_log_wrapper;
+
+	// disable SIGPIPE errors (crashes) on writing to a dead socket. I need this since I'm blindly throwing stuff at Logger.
+	// decided to move to platform specific code:
+	// http://stackoverflow.com/questions/108183/how-to-prevent-sigpipes-or-handle-them-properly
+	int set_value = 1;
+	setsockopt(accepted_socket, SOL_SOCKET, SO_NOSIGPIPE, &set_value, sizeof(set_value));
+
+	// Thanks to Unix, where everything is a file, I'll just convert a socket into a FILE* with fdopen.
+	// int fd = socket(AF_INET, SOCK_STREAM, 0);
+	// fdopen or fdreopen?
+	FILE* file_pointer_from_socket = fdopen(accepted_socket, "a");
+	// Only allow one right now. Need to figure out if it is worth supporting more.
+	if(NULL != log_wrapper->loggerSocket)
+	{
+		Logger_Free(log_wrapper->loggerSocket);
+	}
+	// the "" is a hack to deal with that there are no file names in sockets, but Logger currently expects files except for stdout/stderr. Logger should be extended to handle this case.
+	log_wrapper->loggerSocket = Logger_CreateWithHandle(file_pointer_from_socket, "");
+
+	Logger_EnableAutoFlush(log_wrapper->loggerSocket);
+
+	// Test/debug message. Sending it directly to the socketLogger instead of all 3 loggers.
+	Logger_LogEventNoFormat(log_wrapper->loggerSocket, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Debug", "Log Stream socket connected to Logger via socket->fdopen (this not echoed to other loggers)");
+
+	
+}
 
 @implementation NetworkHelperForAppDelegate
 

@@ -32,6 +32,18 @@ void SocketServer_SetUploadFileCallback(void (*upload_file_callback)(int accepte
 	s_uploadFileCallbackUserData = user_data;
 }
 
+static void (*s_openLogStreamCallback)(int accepted_socket, void* log_wrapper, void* user_data) = NULL;
+static void* s_opaquelogWrapper = NULL;
+static void* s_openLogStreamCallbackUserData = NULL;
+
+void SocketServer_SetOpenLogStreamCallback(void (*open_log_stream_callback)(int accepted_socket, void* log_wrapper, void* user_data), void* log_wrapper, void* user_data)
+{
+	s_openLogStreamCallback = open_log_stream_callback;
+	s_opaquelogWrapper = log_wrapper;
+	s_openLogStreamCallbackUserData = user_data;
+}
+
+
 
 /*
 void sigchld_handler(int s)
@@ -212,10 +224,31 @@ int SocketServer_RunAcceptLoop(void* user_data)
 		if(0 == command_or_port_received_host)
 		{
 			printf("LogStream command received");
+			if(NULL != s_openLogStreamCallback)
+			{
+				// disable SIGPIPE errors (crashes) on writing to a dead socket. I need this since I'm blindly throwing stuff at Logger.
+				// decided to move to platform specific code:
+				// http://stackoverflow.com/questions/108183/how-to-prevent-sigpipes-or-handle-them-properly
+//				int n = 1;
+//				setsockopt(new_fd, SOL_SOCKET, SO_NOSIGPIPE, &n, sizeof(n));
+				s_openLogStreamCallback(new_fd, s_opaquelogWrapper, s_openLogStreamCallbackUserData);
+			}
+			else
+			{
+				printf("OpenLogStreamCallback has not been set");
+			}
+			// TODO: probably should continue listening to the socket to listen for close messages or special commands
 		}
 		else
 		{
-			s_uploadFileCallback(new_fd, command_or_port_received_host, s_uploadFileCallbackUserData);
+			if(NULL != s_uploadFileCallback)
+			{
+				s_uploadFileCallback(new_fd, command_or_port_received_host, s_uploadFileCallbackUserData);
+			}
+			else
+			{
+				printf("UploadFileCallback has not been set");
+			}
 			// assumption is that the uploadFileCallback is done with the socket so I can close it for all platforms.
 			close(new_fd);
 		}

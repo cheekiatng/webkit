@@ -176,6 +176,9 @@
 
 	AppDelegate* app_delegate = (AppDelegate*)[[NSApplication sharedApplication] delegate];
 
+	[app_delegate resolveForDownloadForNetService:net_service];
+
+#if 0
 	[net_service setDelegate:[app_delegate resolveForDownloadDelegate]];
 	[net_service resolveWithTimeout:5.0];
 	NSProgressIndicator* progress_indicator = nil;
@@ -189,6 +192,7 @@
 	progress_indicator = [app_delegate progressIndicator];
 	[progress_indicator setIndeterminate:YES];
 	[progress_indicator startAnimation:nil];
+#endif
 }
 
 - (void)alertDidEnd:(NSAlert*)alert returnCode:(int)return_code contextInfo:(void*)context_info

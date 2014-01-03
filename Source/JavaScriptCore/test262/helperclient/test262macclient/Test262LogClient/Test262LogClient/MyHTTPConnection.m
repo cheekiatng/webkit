@@ -41,6 +41,9 @@
 	
 	if ([method isEqualToString:@"POST"])
 	{
+		// replace the %20 and other URL characters
+		path = [path stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+
 		[self setFilePath:path];
 
 //		if ([path isEqualToString:@"/upload.html"])

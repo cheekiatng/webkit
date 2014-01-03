@@ -50,7 +50,7 @@
 	[self setKeepReceiving:NO];
 	if([self currentSocketFD] >= 0)
 	{
-		shutdown([self currentSocketFD], SHUT_RDWR);
+//		shutdown([self currentSocketFD], SHUT_RDWR);
 		close([self currentSocketFD]);
 		[self setCurrentSocketFD:-1];
 	}

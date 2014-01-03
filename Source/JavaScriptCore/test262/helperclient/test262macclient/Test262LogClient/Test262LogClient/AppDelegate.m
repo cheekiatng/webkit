@@ -42,6 +42,9 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
 @property (nonatomic, strong, readonly ) NSMutableArray* listOfActiveLogStreamWindowControllers;
 
+@property (nonatomic, strong) NSMutableDictionary* mapOfServersToLogStreamDelegates;
+@property (nonatomic, strong) NSMutableDictionary* mapOfServersToDownloadDelegates;
+
 @end
 @implementation AppDelegate
 
@@ -60,11 +63,10 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
                                    [[NSSortDescriptor alloc] initWithKey:@"domain" ascending:YES selector:@selector(localizedStandardCompare:)]
                                    ];
 
-		_resolveForDownloadDelegate = [[ResolveForDownloadDelegate alloc] init];
-		_resolveForLogStreamDelegate = [[ResolveForLogStreamDelegate alloc] init];
-
 		_listOfActiveLogStreamWindowControllers = [[NSMutableArray alloc] init];
 
+		_mapOfServersToLogStreamDelegates = [[NSMutableDictionary alloc] init];
+		_mapOfServersToDownloadDelegates = [[NSMutableDictionary alloc] init];
 
     }
     return self;
@@ -100,7 +102,6 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 	// Initalize our http server
 	httpServer = [[HTTPServer alloc] init];
 
-	[_resolveForDownloadDelegate setHttpServer:httpServer];
 
     /* This may seem a little indirect.
     The device will publish itself via Bonjour/Zeroconf, not this client.
@@ -323,8 +324,24 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
         
         service = [[self.servicesArray selectedObjects] objectAtIndex:0];
         assert([service isKindOfClass:[NSNetService class]]);
+		[self resolveForDownloadForNetService:service];
+	}
+}
+- (void) resolveForDownloadForNetService:(NSNetService*)service
+{
+
 #if 1
-        [service setDelegate:[self resolveForDownloadDelegate]];
+		NSString* service_name = [service name];
+		ResolveForDownloadDelegate* resolve_for_download_delegate = [[self mapOfServersToDownloadDelegates] objectForKey:service_name];
+		if(nil == resolve_for_download_delegate)
+		{
+			resolve_for_download_delegate = [[ResolveForDownloadDelegate alloc] init];
+			[resolve_for_download_delegate setHttpServer:httpServer];
+
+			[[self mapOfServersToDownloadDelegates] setObject:resolve_for_download_delegate forKey:service_name];
+		}
+
+        [service setDelegate:resolve_for_download_delegate];
         [service resolveWithTimeout:5.0];
 		NSProgressIndicator* progress_indicator = [self progressIndicator];
 		[progress_indicator setIndeterminate:YES];
@@ -349,7 +366,7 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
 
         //        [self startReceiveFromService:service];
 //        [self startBackgroundDownloadWithNetService:service];
-    }
+
 }
 
 - (void) resolveForLogStreamForSelectedRow:(NSInteger)selected_row
@@ -363,7 +380,15 @@ static const int ddLogLevel = LOG_LEVEL_VERBOSE;
         service = [[self.servicesArray selectedObjects] objectAtIndex:0];
         assert([service isKindOfClass:[NSNetService class]]);
 
-        [service setDelegate:[self resolveForLogStreamDelegate]];
+		NSString* service_name = [service name];
+		ResolveForLogStreamDelegate* resolve_for_log_stream_delegate = [[self mapOfServersToLogStreamDelegates] objectForKey:service_name];
+		if(nil == resolve_for_log_stream_delegate)
+		{
+			resolve_for_log_stream_delegate = [[ResolveForLogStreamDelegate alloc] init];
+			[[self mapOfServersToLogStreamDelegates] setObject:resolve_for_log_stream_delegate forKey:service_name];
+		}
+
+        [service setDelegate:resolve_for_log_stream_delegate];
         [service resolveWithTimeout:5.0];
 		NSProgressIndicator* progress_indicator = [self progressIndicator];
 		[progress_indicator setIndeterminate:YES];

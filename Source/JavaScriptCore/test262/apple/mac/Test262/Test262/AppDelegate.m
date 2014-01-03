@@ -18,7 +18,7 @@
 #define TEST262_QUIT_BY_WINDOW_CLOSE (void*)0x02
 
 
-@interface AppDelegate () <NSWindowDelegate, NetworkHelperForAppDelegate>
+@interface AppDelegate () <NSWindowDelegate>
 {
 	// These blocks don't change, so let's make them instance variables
 	NSInteger (^callbackForAllTestsStarting)(NSUInteger);
@@ -55,6 +55,13 @@
 		_networkHelper = [[NetworkHelper alloc] init];
 		// Assumption is AppDelegate lives for the life of the program, so I don't need to retain it and __bridge is sufficient.
 		SocketServer_SetUploadFileCallback(NetworkHelperForAppDelegate_UploadFile, (__bridge void *)(self));
+
+		// I'm debating if I should use CFBridgingRetain on _logWrapper.
+		// For now, since it also lives the life of the app, I'll ignore it.
+		SocketServer_SetOpenLogStreamCallback(NetworkHelperForAppDelegate_OpenLogStream, (__bridge void *)(_logWrapper), (__bridge void *)(self));
+
+
+		// Setup initial location for log so network downloads have a shot
 		NSArray* directory_paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
 		NSString* documents_directory = [directory_paths firstObject];
 		NSString* test_file = [documents_directory stringByAppendingPathComponent:@"test262_runlog.txt"];
@@ -164,6 +171,11 @@
 */
 //	LogWrapper_LogEvent([self logWrapper], LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "applicationDidFinishLaunching:", @"Entered applicationDidFinishLaunching");
 //	[self runTests];
+}
+
+- (NSString*) serviceName
+{
+	return [[self networkHelper] serviceName];
 }
 
 - (IBAction) clickedRunTests:(id)the_sender

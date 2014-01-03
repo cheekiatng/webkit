@@ -52,6 +52,11 @@
 	{ \
 		LoggerObjC_LogEvent(log_wrapper->loggerFile, priority, keyword, subkeyword, __VA_ARGS__); \
 		LoggerObjC_LogEvent(log_wrapper->loggerNative, priority, keyword, subkeyword, __VA_ARGS__); \
-		LoggerObjC_LogEvent(log_wrapper->loggerSocket, priority, keyword, subkeyword, __VA_ARGS__); \
+		int macro_loggger_retval = LoggerObjC_LogEvent(log_wrapper->loggerSocket, priority, keyword, subkeyword, __VA_ARGS__); \
+		if(macro_loggger_retval < 0) \
+		{ \
+			NSLog(@"Error writing to loggerSocket"); \
+			Logger_Disable(log_wrapper->loggerSocket); \
+		} \
 	} \
 	while (0)

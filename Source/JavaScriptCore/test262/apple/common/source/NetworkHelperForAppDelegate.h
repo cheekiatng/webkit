@@ -10,9 +10,12 @@
 
 void NetworkHelperForAppDelegate_UploadFile(int accepted_socket, uint16_t http_server_port, void* user_data);
 
+void NetworkHelperForAppDelegate_OpenLogStream(int accepted_socket, void* log_wrapper, void* user_data);
+
 @protocol NetworkHelperForAppDelegate <NSObject>
-@optional
 - (NSString*) logFileLocationString;
+@optional
+- (NSString*) serviceName;
 @end
 
 @interface NetworkHelperForAppDelegate : NSObject

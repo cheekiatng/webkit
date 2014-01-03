@@ -68,8 +68,9 @@ static int LogWrapper_CustomPrintfToNSPuts(Logger* logger, void* userdata, const
 */
 		loggerFile = NULL;
 		loggerNative = Logger_Create();
-		loggerSocket = Logger_Create();
-		Logger_Disable(loggerSocket);
+		loggerSocket = NULL;
+//		loggerSocket = Logger_Create();
+//		Logger_Disable(loggerSocket);
 
 		// These are backdoor extensions I added to Logger awhile back to allow overriding the built in print functions.
 		// Use these to override fprintf/fputs with NSLog.

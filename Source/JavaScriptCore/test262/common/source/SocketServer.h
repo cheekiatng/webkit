@@ -26,5 +26,6 @@ SimpleThread* SocketServer_RunAcceptLoopInThread(struct SocketServer_UserData* u
 // It is expected you have only one function you set once for the entire life of the program
 void SocketServer_SetUploadFileCallback(void (*upload_file_callback)(int accepted_socket, uint16_t http_server_port, void* user_data), void* user_data);
 
+void SocketServer_SetOpenLogStreamCallback(void (*open_log_stream_callback)(int accepted_socket, void* log_wrapper, void* user_data), void* log_wrapper, void* user_data);
 
 #endif

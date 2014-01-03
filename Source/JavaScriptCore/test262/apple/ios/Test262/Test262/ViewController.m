@@ -9,6 +9,11 @@
 #import "ViewController.h"
 #import "Test262Helper.h"
 
+#import "SocketServer.h"
+#import "NetworkHelperForAppDelegate.h"
+#import "AppDelegate.h"
+
+
 @interface ViewController ()
 {
 	// These blocks don't change, so let's make them instance variables
@@ -19,7 +24,6 @@
 }
 @property (weak, nonatomic) IBOutlet UIProgressView* progressIndicator;
 @property(strong, nonatomic) NSProgress* test262Progress;
-@property(strong, nonatomic) LogWrapper* logWrapper;
 
 @end
 
@@ -29,7 +33,6 @@
 {
     [super viewDidLoad];
 
-	_logWrapper = [[LogWrapper alloc] init];
 
 	NSProgress* test262_progress = [[NSProgress alloc] initWithParent:nil userInfo:nil];
 
@@ -45,7 +48,7 @@
 
 	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
 		^{
-			LogWrapper* log_wrapper = [self logWrapper];
+			LogWrapper* log_wrapper = [(AppDelegate*)[[UIApplication sharedApplication] delegate] logWrapper];
 			[log_wrapper openNewFile];
 
 
