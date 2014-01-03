@@ -36,7 +36,6 @@ import com.appcelerator.javascriptcore.callbacks.JSObjectInitializeCallback;
 import com.appcelerator.javascriptcore.callbacks.JSObjectSetPropertyCallback;
 import com.appcelerator.javascriptcore.callbacks.JSObjectGetPropertyCallback;
 
-import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 import org.junit.Test;
@@ -860,13 +859,18 @@ public class JSVirtualMachineTest {
 
         JSPropertyNameArrayRef names = jsc.JSObjectCopyPropertyNames(context, jsObj);
         assertTrue(jsc.JSPropertyNameArrayGetCount(names) == 3);
-        assertThat(jsc.JSPropertyNameArrayGetNameAtIndex(names, 0), isOneOf("property1", "property2", "property3"));
-        assertThat(jsc.JSPropertyNameArrayGetNameAtIndex(names, 1), isOneOf("property1", "property2", "property3"));
-        assertThat(jsc.JSPropertyNameArrayGetNameAtIndex(names, 2), isOneOf("property1", "property2", "property3"));
+        
+        String name0 = jsc.JSPropertyNameArrayGetNameAtIndex(names, 0);
+        String name1 = jsc.JSPropertyNameArrayGetNameAtIndex(names, 1);
+        String name2 = jsc.JSPropertyNameArrayGetNameAtIndex(names, 2);
+        assertTrue(name0.equals("property1") || name0.equals("property2") || name0.equals("property3"));
+        assertTrue(name1.equals("property1") || name1.equals("property2") || name1.equals("property3"));
+        assertTrue(name2.equals("property1") || name2.equals("property2") || name2.equals("property3"));
 
         assertTrue(jsc.JSObjectDeleteProperty(context, jsObj, "property1", null));
         assertTrue(jsc.JSObjectDeleteProperty(context, jsObj, "property2", null));
         assertTrue(jsc.JSObjectDeleteProperty(context, jsObj, "property3", null));
+        jsc.JSPropertyNameArrayRelease(names);
 
         assertTrue(jsc.JSValueToNumber(context, jsObj, null) == 1);
     }
