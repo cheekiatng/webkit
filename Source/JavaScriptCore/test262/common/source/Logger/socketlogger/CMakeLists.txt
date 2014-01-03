@@ -1,7 +1,4 @@
 
-FIND_PATH(FOUNDATION_INCLUDE_DIR Foundation/Foundation.h)
-
-FIND_LIBRARY(FOUNDATION_LIBRARY Foundation)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/clogger ${PROJECT_SOURCE_DIR}/timestamp ${FOUNDATION_INCLUDE_DIR})
 
 
@@ -18,14 +15,12 @@ LINK_DIRECTORIES(${PROJECT_BINARY_DIR}/clogger)
 # Instead I explicitly list all files. This is not important for Makefiles,
 # but is nicer for IDEs like Visual Studio, Xcode, etc, because the header 
 # files will be included in the IDE file browsers.
-ADD_LIBRARY( loggerobjc SHARED
-	LoggerObjC.h
-	LoggerObjC.m
+ADD_LIBRARY( loggersocket SHARED
+	LoggerSocket.c
 )
 
 # This tells the build system that the library "loggerobjc" must
 # be linked against the "loggerc" library.
-TARGET_LINK_LIBRARIES(loggerobjc
+TARGET_LINK_LIBRARIES(loggersocket
 	loggerc
-	${FOUNDATION_LIBRARY}
 )

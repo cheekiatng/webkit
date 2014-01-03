@@ -1,7 +1,12 @@
 
 # Add the logger (source) directory as part of the header search path so 
 # the test program can find the Logger headers.
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/clogger ${PROJECT_SOURCE_DIR}/cpplogger)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/clogger
+	${PROJECT_SOURCE_DIR}/cpplogger
+	${PROJECT_SOURCE_DIR}/socketlogger
+	${PROJECT_SOURCE_DIR}/objclogger
+	${PROJECT_SOURCE_DIR}/lualogger
+)
 
 
 # Add the Logger (binary) directory as part of the link search path so
@@ -21,10 +26,10 @@ ADD_EXECUTABLE(testloggercpp
 # This tells the build system that the executable "testlogger" must
 # be linked against the "logger" library.
 TARGET_LINK_LIBRARIES(testloggerc
-	clogger
+	loggerc
 )
 TARGET_LINK_LIBRARIES(testloggercpp
-	cpplogger
+	loggercpp
 )
 
 # The thread test only works with posix (pthreads) right now because my
@@ -41,7 +46,16 @@ ADD_EXECUTABLE(testthreadscpp
 	testthreadscpp.cpp
 )
 TARGET_LINK_LIBRARIES(testthreadscpp
-	cpplogger
+	loggercpp
 	${CMAKE_THREAD_LIBS_INIT}
 )
+
+ADD_EXECUTABLE(testsocket
+	testloggerc_socket.c
+)
+TARGET_LINK_LIBRARIES(testsocket
+	loggersocket
+	loggerc
+)
+
 ENDIF(UNIX)

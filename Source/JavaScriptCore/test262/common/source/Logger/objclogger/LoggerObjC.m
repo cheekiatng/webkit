@@ -3,14 +3,8 @@
 
 #include "LoggerObjC.h"
 #import <Foundation/Foundation.h>
-
-
-/* This is a hack.
- The problem is that the Obj-C implementation requires on private static functions in the Logger.c file.
- I could re-do them to make them private API but potentially visible, but this is faster/easier.
- Make sure to only compile this file and not Logger.c if you use this file.
- */
-#include "../clogger/Logger.c"
+#include "TimeStamp.h"
+#include "LoggerPrimitives.h"
 
 
 int LoggerObjC_LogEvent(Logger* logger, unsigned int priority, 
@@ -25,6 +19,14 @@ int LoggerObjC_LogEvent(Logger* logger, unsigned int priority,
 	return byte_counter;
 }
 
+/* There is too much copy-and-paste here. 
+ * But the motivation is to keep performance as high as possible which means doing things
+ * like checking the enabled and priorty levels before evaluating the format strings.
+ * I don't know any good way to evaluate the NSString without alloc'ing an instance which 
+ * is less optimal than the C implementation which avoids malloc calls.
+ * But since we have to malloc a string, we can at least reuse it for the echo and avoid reparsing.
+ * Hence, there is a lot of code duplication to get access to these subtle optimizations.
+ */
 int LoggerObjC_LogEventv(Logger* logger, unsigned int priority, 
 	const char* keyword, const char* subkeyword,
 	NSString* text, va_list argp)
@@ -33,16 +35,16 @@ int LoggerObjC_LogEventv(Logger* logger, unsigned int priority,
 	int byte_counter = 0;
 	int ret_val;
 	int error_flag = 0;
-	
+
 	if(NULL == logger)
 	{
 		return 0;
 	}
-	LOGGER_LOCKMUTEX(logger);
+	LOGGERPRIMITIVES_LOCKMUTEX(logger);
 
 	if(!logger->loggingEnabled)
 	{
-		LOGGER_UNLOCKMUTEX(logger);
+		LOGGERPRIMITIVES_UNLOCKMUTEX(logger);
 		return 0;
 	}
 	if(0 == priority)
@@ -52,7 +54,7 @@ int LoggerObjC_LogEventv(Logger* logger, unsigned int priority,
 	/* print to log only if priority is >= threshold */
 	if(priority < logger->thresholdPriority)
 	{
-		LOGGER_UNLOCKMUTEX(logger);
+		LOGGERPRIMITIVES_UNLOCKMUTEX(logger);
 		return 0;
 	}
 	
@@ -68,7 +70,7 @@ int LoggerObjC_LogEventv(Logger* logger, unsigned int priority,
 			/* SegmentFile() will just return if logger->fileHandle
 			 * is not a file.
 			 */
-			if(!Logger_SegmentFile(logger))
+			if(!LoggerPrimitives_SegmentFile(logger))
 			{
 				/* Might still want echo
 				 * Commented out for now
@@ -84,7 +86,12 @@ int LoggerObjC_LogEventv(Logger* logger, unsigned int priority,
 	 * Further optimizations could be done to check this, but it probably isn't worth it.
 	 */
 	NSString* the_string = [[NSString alloc] initWithFormat:text arguments:argp];
+	/* Hoping Obj-C garbage collection and ARC are smart enough to not collect the NSString until after I'm done with the internal pointer. */
+	/* For ARC, use look at objc_precise_lifetime if there is a problem. 
+	 * ARC complains if I declare as __strong const char*. I removed the __strong hoping GC won't care, but also since it's going away, it's not worth worrying about now.
+	 */
 	const char* formatted_string = [the_string UTF8String];
+
 
 	/* Log stuff to fileHandle */
 	if(logger->fileHandle != NULL)
@@ -92,13 +99,13 @@ int LoggerObjC_LogEventv(Logger* logger, unsigned int priority,
 		int use_custom_print = LOGGER_USE_CUSTOM_PRINT(logger);
 		if(0 == use_custom_print)
 		{
-			ret_val = Logger_PrintHeaderToFileHandle(logger->fileHandle,
+			ret_val = LoggerPrimitives_PrintHeaderToFileHandle(logger->fileHandle,
 				logger->preNewLines,
 				priority, time_stamp, keyword, subkeyword);
 		}
 		else
 		{
-			ret_val = Logger_PrintHeaderWithCustom(logger,
+			ret_val = LoggerPrimitives_PrintHeaderWithCustom(logger,
 				logger->preNewLines,
 				priority, time_stamp, keyword, subkeyword);
 		}
@@ -114,7 +121,7 @@ int LoggerObjC_LogEventv(Logger* logger, unsigned int priority,
 			error_flag = ret_val;
 		}
 		
-		if(text != NULL)
+		if(NULL != formatted_string)
 		{
 			if(0 == use_custom_print)
 			{
@@ -122,11 +129,14 @@ int LoggerObjC_LogEventv(Logger* logger, unsigned int priority,
 			}
 			else
 			{
-				ret_val = logger->customPuts(logger, logger->customCallbackUserData, formatted_string);
+				ret_val = ((LoggerOpaqueData*)logger->opaqueLoggerData)->customPuts(logger, ((LoggerOpaqueData*)logger->opaqueLoggerData)->customCallbackUserData, priority, keyword, subkeyword, formatted_string);
 			}
 			if(ret_val >= 0)
 			{
-				byte_counter = byte_counter + ret_val;
+				/* fputs doesn't return the number of bytes written unlike fprintf, so we must compute it ourselves.
+					Using the UTF8-string length (via strlen on the UTF8String) because it might be different than the [NSString length].
+				*/
+				byte_counter = byte_counter + strlen(formatted_string);
 			}
 			else if(0 == error_flag)
 			{
@@ -137,13 +147,14 @@ int LoggerObjC_LogEventv(Logger* logger, unsigned int priority,
 		
 		if(0 == use_custom_print)
 		{
-			ret_val = Logger_PrintFooterToFileHandle(logger->fileHandle,
+			ret_val = LoggerPrimitives_PrintFooterToFileHandle(logger->fileHandle,
 				logger->postNewLines,
 				logger->autoFlushEnabled);
 		}
 		else
 		{
-			ret_val = Logger_PrintFooterWithCustom(logger,
+			ret_val = LoggerPrimitives_PrintFooterWithCustom(logger,
+				priority, keyword, subkeyword,
 				logger->postNewLines,
 				logger->autoFlushEnabled);
 		}
@@ -162,7 +173,7 @@ int LoggerObjC_LogEventv(Logger* logger, unsigned int priority,
 	/* Repeat again (to terminal) if echo is on. */
 	if(logger->echoOn && (NULL != logger->echoHandle))
 	{
-		ret_val = Logger_PrintHeaderToFileHandle(logger->echoHandle,
+		ret_val = LoggerPrimitives_PrintHeaderToFileHandle(logger->echoHandle,
 			logger->preNewLines,
 			priority, time_stamp, keyword, subkeyword);
 		if((ret_val < 0) && (0 == error_flag))
@@ -170,16 +181,18 @@ int LoggerObjC_LogEventv(Logger* logger, unsigned int priority,
 			error_flag = ret_val;
 		}
 
-		if(text != NULL)
+		if(NULL != formatted_string)
 		{
-			ret_val = fputs(formatted_string, logger-> echoHandle);
+			/* Not taking any chances with fprintf. */
+			ret_val = fputs(formatted_string, logger->echoHandle);
 			if((ret_val < 0) && (0 == error_flag))
 			{
 				error_flag = ret_val;
 			}
+
 		}
 		
-		ret_val = Logger_PrintFooterToFileHandle(logger->echoHandle,
+		ret_val = LoggerPrimitives_PrintFooterToFileHandle(logger->echoHandle,
 			logger->postNewLines,
 			logger->autoFlushEnabled);
 		if((ret_val < 0) && (0 == error_flag))
@@ -187,12 +200,13 @@ int LoggerObjC_LogEventv(Logger* logger, unsigned int priority,
 			error_flag = ret_val;
 		}
 
-	}
+	}	
+		
+	LOGGERPRIMITIVES_UNLOCKMUTEX(logger);
+
 #if ! __has_feature(objc_arc)
 	[the_string release];
 #endif
-
-	LOGGER_UNLOCKMUTEX(logger);
 
 	if(error_flag == 0)
 	{
@@ -202,8 +216,8 @@ int LoggerObjC_LogEventv(Logger* logger, unsigned int priority,
 	{
 		return error_flag;
 	}
-}
 
+}
 
 #endif /* __OBJC__ */
 

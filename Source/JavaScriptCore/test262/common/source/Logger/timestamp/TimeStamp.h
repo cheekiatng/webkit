@@ -30,6 +30,31 @@
 extern "C" {
 #endif
 
+/** Windows needs to know explicitly which functions to export in a DLL. */
+/* TODO: Make exporting TIMESTAMP_EXPORT optional */	
+#ifdef LOGGER_BUILD_AS_DLL
+	#ifdef WIN32
+		#define TIMESTAMP_EXPORT __declspec(dllexport)
+	#elif defined(__GNUC__) && __GNUC__ >= 4
+		#define TIMESTAMP_EXPORT __attribute__ ((visibility("default")))
+	#else
+		#define TIMESTAMP_EXPORT
+	#endif
+#else
+	#define TIMESTAMP_EXPORT
+#endif /* LOGGER_BUILD_AS_DLL */
+
+/* For Windows, by default, use the C calling convention */
+#ifndef TIMESTAMP_CALLCONVENTION
+	#ifdef WIN32
+		#define TIMESTAMP_CALLCONVENTION __cdecl
+	#else
+		#define TIMESTAMP_CALLCONVENTION
+	#endif
+#endif /* TIMESTAMP_CALLCONVENTION */
+
+
+
 /**
  * This function initializes the TimeStamp library.
  * This is currently only needed by the SDL backend.
@@ -44,7 +69,7 @@ extern "C" {
  * @return Returns 1 if using native milliseconds, 0 if faking it.
  * @see TimeStamp_Quit
  */
-extern int TimeStamp_Init(void);
+extern TIMESTAMP_EXPORT int TIMESTAMP_CALLCONVENTION TimeStamp_Init(void);
 
 /**
  * This function shuts down the TimeStamp library.
@@ -53,7 +78,7 @@ extern int TimeStamp_Init(void);
  * Note that currently, the SDL backend will not call SDL_Quit
  * on your behalf and you must do this manually.
  */
-extern void TimeStamp_Quit(void);
+extern TIMESTAMP_EXPORT void TIMESTAMP_CALLCONVENTION TimeStamp_Quit(void);
 
 /**
  * This function gets the current time and copies the time (in string format)
@@ -85,7 +110,7 @@ extern void TimeStamp_Quit(void);
  * should include the '\\0' character.
  *
  */
-extern void TimeStamp_GetTimeStamp(char* time_stamp, int buffer_size);
+extern TIMESTAMP_EXPORT void TIMESTAMP_CALLCONVENTION TimeStamp_GetTimeStamp(char* time_stamp, int buffer_size);
 
 /**
  * This is a version of GetTimeStamp that returns a pointer to 
@@ -97,7 +122,7 @@ extern void TimeStamp_GetTimeStamp(char* time_stamp, int buffer_size);
  * The memory is held by a static array provided by this library.
  * Do not delete this memory.
  */
-extern const char* TimeStamp_GetStaticTimeStamp(void);
+extern TIMESTAMP_EXPORT const char* TIMESTAMP_CALLCONVENTION TimeStamp_GetStaticTimeStamp(void);
 
 
 #ifdef __cplusplus

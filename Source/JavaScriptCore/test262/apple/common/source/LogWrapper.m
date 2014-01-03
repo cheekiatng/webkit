@@ -6,7 +6,10 @@
 // I learned from experience that NSLog is treated as special by Apple on iOS and in the iOS simulator,
 // and in some cases, this is the only way to get output displayed through the console.
 // I also learned the hard way that ASLog is not the same as NSLog, despite that it is implied that it is.
-static int LogWrapper_CustomPrintfToNSLog(Logger* logger, void* userdata, const char* format, ...)
+
+// In all cases, priority, keyword, subkeyword are not useful to NSLog.
+
+static int LogWrapper_CustomPrintfToNSLog(Logger* logger, void* userdata, unsigned int priority, const char* keyword, const char* subkeyword, const char* format, ...)
 {
 	va_list argp;
 	va_start(argp, format);
@@ -19,7 +22,7 @@ static int LogWrapper_CustomPrintfToNSLog(Logger* logger, void* userdata, const 
 	return (int)[the_string length];
 }
 
-static int LogWrapper_CustomPrintfToNSLogv(Logger* logger, void* userdata, const char* format, va_list argp)
+static int LogWrapper_CustomPrintfToNSLogv(Logger* logger, void* userdata, unsigned int priority, const char* keyword, const char* subkeyword, const char* format, va_list argp)
 {
 	NSString* ns_format = [[NSString alloc] initWithUTF8String:format];
 	// In order to get the number of bytes to use as a return value, I must create the full string because NSLog returns void.
@@ -29,7 +32,7 @@ static int LogWrapper_CustomPrintfToNSLogv(Logger* logger, void* userdata, const
 	return (int)[the_string length];
 }
 
-static int LogWrapper_CustomPrintfToNSPuts(Logger* logger, void* userdata, const char* text)
+static int LogWrapper_CustomPrintfToNSPuts(Logger* logger, void* userdata, unsigned int priority, const char* keyword, const char* subkeyword, const char* text)
 {
 	// NSLog doesn't have a puts equivalent.
 	NSLog(@"%s", text);

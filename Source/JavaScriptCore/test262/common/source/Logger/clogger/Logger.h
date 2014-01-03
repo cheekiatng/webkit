@@ -134,7 +134,7 @@ extern "C" {
  * Printable format: "%d.%d.%d", MAJOR, MINOR, PATCHLEVEL
  */
 #define LOGGER_MAJOR_VERSION		0
-#define LOGGER_MINOR_VERSION		2
+#define LOGGER_MINOR_VERSION		4
 #define LOGGER_PATCH_VERSION		0
 
 /** @endcond DOXYGEN_SHOULD_IGNORE_THIS */
@@ -248,9 +248,9 @@ struct Logger
 	char* segmentFormatString; /**< Format str for ext like ".%04d". */
 	size_t segmentFormatStringMaxSize; /**< Max size of the fmtstr with \\0. */
 
-    int (*customPrintf)(Logger* logger, void* userdata, const char* format, ...);
-    int (*customPrintfv)(Logger* logger, void* userdata, const char* format, va_list argp);
-    int (*customPuts)(Logger* logger, void* userdata, const char* text);
+    int (*customPrintf)(Logger* logger, void* userdata, unsigned int priority, const char* keyword, const char* subkeyword, const char* format, ...);
+    int (*customPrintfv)(Logger* logger, void* userdata, unsigned int priority, const char* keyword, const char* subkeyword, const char* format, va_list argp);
+    int (*customPuts)(Logger* logger, void* userdata, unsigned int priority, const char* keyword, const char* subkeyword, const char* text);
 	void* customCallbackUserData;
 	
 	/** 
@@ -793,6 +793,36 @@ extern LOGGER_EXPORT int LOGGER_CALLCONVENTION Logger_WillLog(Logger* logger, un
  *
  */
 extern LOGGER_EXPORT void LOGGER_CALLCONVENTION Logger_SetSegmentFormatString(Logger* logger, const char* format_string);
+
+
+/**
+ * Sets custom override functions for the internal fputs, fprintf, vfprintf.
+ * This function is designed to allow overriding the internal 
+ * fputs/fprintf/vfprintf calls used to print to the log.
+ * This is intended for special cases where Logger is mostly sufficient, but needs
+ * to be slightly tweaked.
+ * The original case for this was for redirecting logging through a socket because
+ * on Windows, fdopen does not work with a Windows socket so the stdio family doesn't work.
+ * @warning Features like autoflush (fflush) and segmentation may need to be 
+ * disabled because they are not currently taken into account.
+ * @note These functions do not override the echo to stdout/stderr prints.
+ *
+ *
+ * @param logger The pointer to the logger instance.
+ * @param custom_puts Override for fputs.
+ * @param custom_printf Override for fprintf.
+ * @param custom_printfv Override for vfprintf.
+ * @param custom_callback_user_data Userdata that will be passed back to each callback. May be NULL.
+ *
+ * @note: All 3 must function pointers be defined or all must be NULL. Only overriding some is not supported.
+ *
+ */
+extern LOGGER_EXPORT void LOGGER_CALLCONVENTION Logger_SetCustomPrintFunctions(Logger* logger,
+	int (*custom_puts)(Logger* logger, void* userdata, unsigned int priority, const char* keyword, const char* subkeyword, const char* text),
+	int (*custom_printf)(Logger* logger, void* userdata, unsigned int priority, const char* keyword, const char* subkeyword, const char* format, ...),
+    int (*custom_printfv)(Logger* logger, void* userdata, unsigned int priority, const char* keyword, const char* subkeyword, const char* format, va_list argp),
+	void* custom_callback_user_data
+);
 
 
 /*

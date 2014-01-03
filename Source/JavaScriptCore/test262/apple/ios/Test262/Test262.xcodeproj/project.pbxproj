@@ -37,6 +37,8 @@
 		0079D4CF18744BDE00D6F559 /* SimpleMutex.c in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4C818744BDE00D6F559 /* SimpleMutex.c */; };
 		0079D4D018744BDE00D6F559 /* SimpleThreadPosix.c in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4CB18744BDE00D6F559 /* SimpleThreadPosix.c */; };
 		0079D4D218744BDE00D6F559 /* SocketServer.c in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4CD18744BDE00D6F559 /* SocketServer.c */; };
+		00F06625187646FF002E484F /* LoggerPrimitives.c in Sources */ = {isa = PBXBuildFile; fileRef = 00F06623187646FF002E484F /* LoggerPrimitives.c */; };
+		00F06626187648D3002E484F /* Logger.c in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4761872C11F00D6F559 /* Logger.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -109,6 +111,8 @@
 		0079D4CC18744BDE00D6F559 /* SimpleThreadWindows.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SimpleThreadWindows.c; sourceTree = "<group>"; };
 		0079D4CD18744BDE00D6F559 /* SocketServer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = SocketServer.c; path = ../../../common/source/SocketServer.c; sourceTree = "<group>"; };
 		0079D4CE18744BDE00D6F559 /* SocketServer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SocketServer.h; path = ../../../common/source/SocketServer.h; sourceTree = "<group>"; };
+		00F06623187646FF002E484F /* LoggerPrimitives.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; lineEnding = 0; path = LoggerPrimitives.c; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.c; };
+		00F06624187646FF002E484F /* LoggerPrimitives.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = LoggerPrimitives.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -256,6 +260,8 @@
 		0079D4721872C11F00D6F559 /* clogger */ = {
 			isa = PBXGroup;
 			children = (
+				00F06623187646FF002E484F /* LoggerPrimitives.c */,
+				00F06624187646FF002E484F /* LoggerPrimitives.h */,
 				0079D4751872C11F00D6F559 /* CMakeLists.txt */,
 				0079D4761872C11F00D6F559 /* Logger.c */,
 				0079D4771872C11F00D6F559 /* Logger.h */,
@@ -443,6 +449,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0079D3FB1870490500D6F559 /* ViewController.m in Sources */,
+				00F06625187646FF002E484F /* LoggerPrimitives.c in Sources */,
 				0079D4D018744BDE00D6F559 /* SimpleThreadPosix.c in Sources */,
 				0079D3F21870490500D6F559 /* AppDelegate.m in Sources */,
 				0079D4A51872C16C00D6F559 /* LogWrapper.m in Sources */,
@@ -455,6 +462,7 @@
 				0079D4A21872C12000D6F559 /* TimeStamp.c in Sources */,
 				0079D4CF18744BDE00D6F559 /* SimpleMutex.c in Sources */,
 				0079D4C418744B9700D6F559 /* NetworkHelper.m in Sources */,
+				00F06626187648D3002E484F /* Logger.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

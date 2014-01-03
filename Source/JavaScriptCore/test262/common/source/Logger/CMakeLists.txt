@@ -35,7 +35,16 @@ IF(LOGGER_ENABLE_LOCKING)
 ENDIF(LOGGER_ENABLE_LOCKING)
 
 # Go through the subdirectories that contain source.
-SUBDIRS(clogger cpplogger objclogger test)
+SUBDIRS(clogger cpplogger socket test)
+
+IF(APPLE)
+	ADD_SUBDIRECTORY(objclogger)
+ENDIF(APPLE)
+
+FIND_PACKAGE(Lua51)
+IF(LUA51_FOUND)
+	ADD_SUBDIRECTORY(lualogger)
+ENDIF()
 
 # To build the documention, you will have to enable it
 # and then do the equivalent of "make doc".

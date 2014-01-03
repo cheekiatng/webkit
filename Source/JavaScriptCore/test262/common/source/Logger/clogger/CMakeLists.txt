@@ -10,10 +10,12 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/timestamp)
 # Instead I explicitly list all files. This is not important for Makefiles,
 # but is nicer for IDEs like Visual Studio, Xcode, etc, because the header 
 # files will be included in the IDE file browsers.
-ADD_LIBRARY( clogger SHARED
+ADD_LIBRARY( loggerc SHARED
 	${PROJECT_SOURCE_DIR}/timestamp/TimeStamp.h
 	${PROJECT_SOURCE_DIR}/timestamp/TimeStamp.c
 	Logger.h
 	Logger.c
+	LoggerPrimitives.h
+	LoggerPrimitives.c
 )
 

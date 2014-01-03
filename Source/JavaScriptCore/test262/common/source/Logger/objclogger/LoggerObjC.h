@@ -105,6 +105,8 @@ extern "C" {
  * @return Returns the number of bytes written to the log. This conforms 
  * with fprintf.
  *
+ * @note Assumes the existence of an autorelease pool.
+ *
  * @see Logger_LogEvent
  */
 extern LOGGER_EXPORT int LOGGER_CALLCONVENTION LoggerObjC_LogEvent(
