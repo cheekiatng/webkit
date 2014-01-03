@@ -28,7 +28,6 @@ public class JSStaticFunctions {
 
     private ByteBuffer buffer = null;
     private long[] addressForNames;
-    private boolean frozen = false;
 
     public JSStaticFunctions() {
         if (bufferTemplate == null) {
@@ -42,7 +41,7 @@ public class JSStaticFunctions {
      * Note that buffer allocation is done only once.
      */
     public ByteBuffer commit() {
-        if (!frozen) {
+        if (buffer == null) {
             int size = namesCache.size();
             buffer = ByteBuffer.allocateDirect(CHUNK * (size + 1)).order(nativeOrder);
             addressForNames = JavaScriptCoreLibrary.NativeAllocateCharacterBuffer(namesCache.toArray(new String[size]));
@@ -50,7 +49,6 @@ public class JSStaticFunctions {
                 update(namesCache.get(i), i * CHUNK, addressForNames[i]);
             }
             updateLast(size);
-            frozen = true;
         }
         return buffer;
     }
@@ -90,17 +88,17 @@ public class JSStaticFunctions {
     }
     
     public void add(String name, JSObjectCallAsFunctionCallback callback, JSPropertyAttribute attrs) {
-        if (frozen) throw new JavaScriptException("No changes can be done after commit()");
+        if (buffer != null) throw new JavaScriptException("No changes can be done after commit()");
         functions.put(name, new JSStaticFunction(callback, attrs.getValue()));
         namesCache.add(name);
     }
 
-    private HashMap<Long, ArrayList<Long>> functionPointers = new HashMap<Long, ArrayList<Long>>();
+    private HashMap<Long, HashMap<Long, String>> functionPointers = new HashMap<Long, HashMap<Long, String>>();
     public void registerFunctions(long object, long[] pointers) {
         removeObject(object);
-        ArrayList<Long> funcs = new ArrayList<Long>();
+        HashMap<Long, String> funcs = new HashMap<Long, String>();
         for (int i = 0; i < pointers.length; i++) {
-            funcs.add(pointers[i]);
+            funcs.put(pointers[i], namesCache.get(i));
         }
         functionPointers.put(object, funcs);       
     }
@@ -115,9 +113,8 @@ public class JSStaticFunctions {
 
     public JSObjectCallAsFunctionCallback getFunction(long object, long pointer) {
         if (!functionPointers.containsKey(object)) return null;
-        int index = functionPointers.get(object).indexOf(pointer);
-        if (index < 0) return null;
-        return functions.get(namesCache.get(index)).callback;
+        if (!functionPointers.get(object).containsKey(pointer)) return null;
+        return functions.get(functionPointers.get(object).get(pointer)).callback;
     }
 
     private class JSStaticFunction {

@@ -1,5 +1,11 @@
 package com.appcelerator.javascriptcore;
 
+import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.StringWriter;
+import java.io.PrintWriter;
+
 import com.appcelerator.javascriptcore.opaquetypes.JSContextGroupRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSContextRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSGlobalContextRef;
@@ -30,6 +36,7 @@ import com.appcelerator.javascriptcore.callbacks.JSObjectInitializeCallback;
 import com.appcelerator.javascriptcore.callbacks.JSObjectSetPropertyCallback;
 import com.appcelerator.javascriptcore.callbacks.JSObjectGetPropertyCallback;
 
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
 import org.junit.Test;
@@ -506,6 +513,7 @@ public class JSVirtualMachineTest {
         JSValueRef value = context.evaluateScript("println('Hello, World');");
         assertTrue(value.p() != 0);
         assertTrue(value.toInt() == 1234);
+        jsc.JSObjectDeleteProperty(context, globalObject, "println", null);
     }
 
     @Test
@@ -636,13 +644,64 @@ public class JSVirtualMachineTest {
     }
 
     @Test
+    public void testTryCatchJavaException() {
+        JSGlobalContextRef context = vm.getDefaultContext();
+        JSObjectRef globalObject = jsc.JSContextGetGlobalObject(context);
+        // print function
+        JSObjectRef println = jsc.JSObjectMakeFunctionWithCallback(context,
+                                "print", new JSObjectCallAsFunctionCallback() {
+            public JSValueRef callAsFunction(JSContextRef ctx, JSObjectRef function,
+                        JSObjectRef thisObject, int argumentCount,
+                        JSValueArrayRef arguments, Pointer exception) {
+                if (argumentCount > 0) {
+                    System.out.println(arguments.get(ctx, 0).toString());
+                }
+                return jsc.JSValueMakeUndefined(ctx);
+            }
+        });
+        jsc.JSObjectSetProperty(context, globalObject, "print", println, JSPropertyAttribute.None, null);
+
+        // throwAnException function that throws Java exception
+        JSObjectRef throwAnException = jsc.JSObjectMakeFunctionWithCallback(context,
+                                "throwAnException", new JSObjectCallAsFunctionCallback() {
+            public JSValueRef callAsFunction(JSContextRef ctx, JSObjectRef function,
+                        JSObjectRef thisObject, int argumentCount,
+                        JSValueArrayRef arguments, Pointer exception) {
+                try {
+                    if (argumentCount == 0) {
+                        throw new IllegalArgumentException("From Java, throwAnException test");
+                    }
+                } catch (Exception e) {
+                    StringWriter errors = new StringWriter();
+                    e.printStackTrace(new PrintWriter(errors));
+                    JSObjectRef exception_detail = jsc.JSObjectMake(ctx, null);
+                    JSValueRef javaStackTrace = jsc.JSValueMakeString(ctx, errors.toString());
+                    JSValueRef javaScriptStackTrace = jsc.JSValueMakeString(ctx, jsc.JSContextCreateBacktrace(ctx, 10));
+                    jsc.JSObjectSetProperty(ctx, exception_detail, "nativeStack", javaStackTrace, JSPropertyAttribute.None, null);
+                    jsc.JSObjectSetProperty(ctx, exception_detail, "stack", javaScriptStackTrace, JSPropertyAttribute.None, null);
+                    exception.update(exception_detail);
+                }
+                return jsc.JSValueMakeUndefined(ctx);
+            }
+        });
+        jsc.JSObjectSetProperty(context, globalObject, "throwAnException", throwAnException, JSPropertyAttribute.None, null);
+        String script = createStringWithContentsOfFile("/com/appcelerator/javascriptcore/exception_test.js");
+        JSValueRef exception = JSValueRef.Null();
+        JSValueRef result = jsc.JSEvaluateScript(context, script, globalObject, "exception_test.js", 1, exception);
+        assertTrue(jsc.JSValueIsNull(context, exception));
+        assertTrue(jsc.JSValueIsUndefined(context, result));
+    }
+
+    @Test
     public void testDerivedObjectHasPropertyCallback() {
         JSGlobalContextRef context = vm.getDefaultContext();
         JSClassDefinition grandParentDefinition = new JSClassDefinition();
         grandParentDefinition.className = "GrandParent";
         grandParentDefinition.hasProperty = new JSObjectHasPropertyCallback() {
             public boolean hasProperty(JSContextRef ctx, JSObjectRef object, String propertyName) {
-                return true;
+                if (propertyName.equals("property1")) return true;
+                if (propertyName.equals("property2")) return true;
+                return false;
             }
         };
         grandParentDefinition.hasInstance = new JSObjectHasInstanceCallback() {
@@ -654,14 +713,16 @@ public class JSVirtualMachineTest {
         grandParentDefinition.getPropertyNames = new JSObjectGetPropertyNamesCallback() {
             public void getPropertyNames(JSContextRef ctx, JSObjectRef object,
                                             JSPropertyNameAccumulatorRef propertyNames) {
+                jsc.JSPropertyNameAccumulatorAddName(propertyNames, "property1");
+                jsc.JSPropertyNameAccumulatorAddName(propertyNames, "property2");
             }
         };
         grandParentDefinition.getProperty = new JSObjectGetPropertyCallback() {
             public JSValueRef getProperty(JSContextRef ctx, JSObjectRef object,
                                         String propertyName, Pointer exception) {
-                if (propertyName.equals("unknown_property1")) {
+                if (propertyName.equals("property1")) {
                     return jsc.JSValueMakeNumber(ctx, 1);
-                } else if (propertyName.equals("unknown_property2")) {
+                } else if (propertyName.equals("property2")) {
                     return jsc.JSValueMakeNumber(ctx, 2);
                 }
                 return null;
@@ -676,7 +737,9 @@ public class JSVirtualMachineTest {
         grandParentDefinition.deleteProperty = new JSObjectDeletePropertyCallback() {
             public boolean deleteProperty(JSContextRef ctx, JSObjectRef object,
                                         String propertyName, Pointer exception) {
-                return true;
+                if (propertyName.equals("property1")) return true;
+                if (propertyName.equals("property2")) return true;
+                return false;
             }
         };
         grandParentDefinition.convertToType = new JSObjectConvertToTypeCallback() {
@@ -693,6 +756,7 @@ public class JSVirtualMachineTest {
         parentDefinition.parentClass = grandParentClass;
         parentDefinition.hasProperty = new JSObjectHasPropertyCallback() {
             public boolean hasProperty(JSContextRef ctx, JSObjectRef object, String propertyName) {
+                if (propertyName.equals("property3")) return true;
                 return false;
             }
         };
@@ -705,11 +769,15 @@ public class JSVirtualMachineTest {
         parentDefinition.getPropertyNames = new JSObjectGetPropertyNamesCallback() {
             public void getPropertyNames(JSContextRef ctx, JSObjectRef object,
                                             JSPropertyNameAccumulatorRef propertyNames) {
+                jsc.JSPropertyNameAccumulatorAddName(propertyNames, "property3");
             }
         };
         parentDefinition.getProperty = new JSObjectGetPropertyCallback() {
             public JSValueRef getProperty(JSContextRef ctx, JSObjectRef object,
                                         String propertyName, Pointer exception) {
+                if (propertyName.equals("property3")) {
+                    return jsc.JSValueMakeNumber(ctx, 3);
+                }
                 return null;
             }
         };
@@ -781,23 +849,43 @@ public class JSVirtualMachineTest {
         JSClassRef jsClass = jsc.JSClassCreate(definition);
         JSObjectRef jsObj = jsc.JSObjectMake(context, jsClass);
 
-        JSValueRef value1 = jsc.JSObjectGetProperty(context, jsObj, "unknown_property1", null);
+        JSValueRef value1 = jsc.JSObjectGetProperty(context, jsObj, "property1", null);
         assertTrue(value1.isNumber() && value1.toInt() == 1);
-/*
 
-        jsc.JSObjectSetProperty(context, jsObj, "unknown_property2", jsc.JSValueMakeNumber(context, 2), 0);
-        JSValueRef value2 = jsc.JSObjectGetProperty(context, jsObj, "unknown_property2");
+        JSValueRef value2 = jsc.JSObjectGetProperty(context, jsObj, "property2", null);
         assertTrue(value2.isNumber() && value2.toInt() == 2);
 
-        JSValueRef value2 = jsc.JSObjectGetProperty(context, jsObj, "unknown_property2");
-        assertTrue(value2.isUndefined());
+        JSValueRef value3 = jsc.JSObjectGetProperty(context, jsObj, "property3", null);
+        assertTrue(value3.isNumber() && value3.toInt() == 3);
 
-        jsc.JSValueIsInstanceOfConstructor(context, jsObj, jsObj);
-        jsc.JSObjectCopyPropertyNames(context, jsObj);
-        jsc.JSObjectDeleteProperty(context, jsObj, "unknown_property1");
-        jsc.JSValueToNumber(context, jsObj);
-        jsc.JSObjectCallAsFunction(context, jsObj, jsObj, new JSValueArrayRef(0));
-        jsc.JSObjectCallAsConstructor(context, jsObj, new JSValueArrayRef(0), null);
-*/
+        JSPropertyNameArrayRef names = jsc.JSObjectCopyPropertyNames(context, jsObj);
+        assertTrue(jsc.JSPropertyNameArrayGetCount(names) == 3);
+        assertThat(jsc.JSPropertyNameArrayGetNameAtIndex(names, 0), isOneOf("property1", "property2", "property3"));
+        assertThat(jsc.JSPropertyNameArrayGetNameAtIndex(names, 1), isOneOf("property1", "property2", "property3"));
+        assertThat(jsc.JSPropertyNameArrayGetNameAtIndex(names, 2), isOneOf("property1", "property2", "property3"));
+
+        assertTrue(jsc.JSObjectDeleteProperty(context, jsObj, "property1", null));
+        assertTrue(jsc.JSObjectDeleteProperty(context, jsObj, "property2", null));
+        assertTrue(jsc.JSObjectDeleteProperty(context, jsObj, "property3", null));
+
+        assertTrue(jsc.JSValueToNumber(context, jsObj, null) == 1);
+    }
+
+    private String createStringWithContentsOfFile(String fileName) {
+        String newline = System.getProperty("line.separator");
+        StringBuilder sb = new StringBuilder();
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream(fileName), "UTF-8"));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line).append(newline);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {if (reader != null) reader.close(); } catch (IOException e) {}
+        }
+        return sb.toString();
     }
 }
