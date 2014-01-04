@@ -7,6 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
+@class LogWrapper;
 
 void NetworkHelperForAppDelegate_UploadFile(int accepted_socket, uint16_t http_server_port, void* user_data);
 
@@ -14,6 +15,7 @@ void NetworkHelperForAppDelegate_OpenLogStream(int accepted_socket, void* log_wr
 
 @protocol NetworkHelperForAppDelegate <NSObject>
 - (NSString*) logFileLocationString;
+- (LogWrapper*) logWrapper;
 @optional
 - (NSString*) serviceName;
 @end

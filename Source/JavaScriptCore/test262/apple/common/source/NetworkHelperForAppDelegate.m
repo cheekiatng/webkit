@@ -14,7 +14,41 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
+#import "AppDelegate.h"
 #import "LogWrapper.h"
+
+#include <TargetConditionals.h>
+
+#ifdef __APPLE__
+/*
+	#if (TARGET_OS_IPHONE == 1) || (TARGET_IPHONE_SIMULATOR == 1)
+		#include <AudioToolbox/AudioToolbox.h>
+	#else
+		#include <OpenAL/MacOSX_OALExtensions.h>
+	#endif
+*/
+#endif
+
+
+// Watch out: Signal handlers are global
+// If you are automatically breaking on SIGPIPE due to writing on broken sockets, see this to make Xcode not do that:
+// http://stackoverflow.com/questions/10431579/permanently-configuring-lldb-in-xcode-4-3-2-not-to-stop-on-signals
+void NetworkHelperForAppDelegate_GlobalSignalHandlerForSIGPIPE(int sig)
+{
+	NSLog(@"NetworkHelperForAppDelegate_GlobalSignalHandlerForSIGPIPE");
+#if (TARGET_OS_IPHONE == 1) || (TARGET_IPHONE_SIMULATOR == 1)
+	id<NetworkHelperForAppDelegate> app_delegate = (id<NetworkHelperForAppDelegate>)[[UIApplication sharedApplication] delegate];
+#else
+	id<NetworkHelperForAppDelegate> app_delegate = (id<NetworkHelperForAppDelegate>)[[NSApplication sharedApplication] delegate];
+#endif
+	LogWrapper* log_wrapper = [app_delegate logWrapper];
+	Logger_Disable(log_wrapper->loggerSocket);
+	// I think I need an atomic set on LoggerWrapper because there might be a theoretical race condition between freeing the Logger and setting the pointer to NULL in the wrapper.
+	Logger* temp_logger = log_wrapper->loggerSocket;
+	log_wrapper->loggerSocket = NULL;
+	Logger_Free(temp_logger);
+
+}
 
 void NetworkHelperForAppDelegate_UploadFile(int accepted_socket, uint16_t http_server_port, void* user_data)
 {
@@ -116,8 +150,26 @@ void NetworkHelperForAppDelegate_OpenLogStream(int accepted_socket, void* opaque
 	// disable SIGPIPE errors (crashes) on writing to a dead socket. I need this since I'm blindly throwing stuff at Logger.
 	// decided to move to platform specific code:
 	// http://stackoverflow.com/questions/108183/how-to-prevent-sigpipes-or-handle-them-properly
+	// If you are automatically breaking on SIGPIPE due to writing on broken sockets, see this to make Xcode not do that:
+	// http://stackoverflow.com/questions/10431579/permanently-configuring-lldb-in-xcode-4-3-2-not-to-stop-on-signals
+#if 0
 	int set_value = 1;
 	setsockopt(accepted_socket, SOL_SOCKET, SO_NOSIGPIPE, &set_value, sizeof(set_value));
+#else
+    struct sigaction sa;
+    sa.sa_handler = NetworkHelperForAppDelegate_GlobalSignalHandlerForSIGPIPE;
+    sa.sa_flags = 0; // or SA_RESTART
+    sigemptyset(&sa.sa_mask);
+
+    if (sigaction(SIGPIPE, &sa, NULL) == -1)
+	{
+		perror("sigaction");
+		NSLog(@"can't setup signal handler");
+
+		int set_value = 1;
+		setsockopt(accepted_socket, SOL_SOCKET, SO_NOSIGPIPE, &set_value, sizeof(set_value));
+    }
+#endif
 
 	// Thanks to Unix, where everything is a file, I'll just convert a socket into a FILE* with fdopen.
 	// int fd = socket(AF_INET, SOCK_STREAM, 0);
