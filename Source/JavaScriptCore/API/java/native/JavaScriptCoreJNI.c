@@ -15,13 +15,8 @@
 #include "JavaScriptCoreJNI.h"
 
 #ifdef ENABLE_JAVASCRIPTCORE_PRIVATE_API
-#ifdef __APPLE__
-#include "JSObjectRefPrivate.h"
-#include "JSContextRefPrivate.h"
-#else
-#include <JavaScriptCore/JSObjectRefPrivate.h>
-#include <JavaScriptCore/JSContextRefPrivate.h>
-#endif
+#include "JavaScriptCore/JSObjectRefPrivate.h"
+#include "JavaScriptCore/JSContextRefPrivate.h"
 #endif
 
 #define JSCORE_LOG_TAG "JavaScriptCore"
