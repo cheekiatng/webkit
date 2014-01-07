@@ -24,6 +24,10 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/../../../../API/
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../../../WTF/
 
 LOCAL_CFLAGS := -std=c99
+# http://blog.algolia.com/android-ndk-how-to-reduce-libs-size/
+LOCAL_CFLAGS += -fvisibility=hidden
+LOCAL_CFLAGS += -ffunction-sections -fdata-sections 
+LOCAL_LDFLAGS += -Wl,--gc-sections
 
 #LOCAL_SHARED_LIBRARIES := ALmixer_shared openal_shared
 #LOCAL_SHARED_LIBRARIES := openal_shared

@@ -91,7 +91,7 @@ static jstring jstringFromC(JNIEnv* jni_env, const char* original_c_string)
 	return return_jstring;
 }
 
-jboolean Java_org_webkit_javascriptcore_test262_Test262_doInit(JNIEnv* env, jobject thiz, jobject java_asset_manager)
+JNIEXPORT jboolean JNICALL Java_org_webkit_javascriptcore_test262_Test262_doInit(JNIEnv* env, jobject thiz, jobject java_asset_manager)
 {
 	LOGD("Java_org_webkit_javascriptcore_test262_Test262_doInit");
 
@@ -108,17 +108,17 @@ jboolean Java_org_webkit_javascriptcore_test262_Test262_doInit(JNIEnv* env, jobj
 	return JNI_TRUE;
 }
 
-void Java_org_webkit_javascriptcore_test262_Test262_doPause(JNIEnv* env, jobject thiz)
+JNIEXPORT void JNICALL Java_org_webkit_javascriptcore_test262_Test262_doPause(JNIEnv* env, jobject thiz)
 {
 	LOGD("Java_org_webkit_javascriptcore_test262_Test262_doPause");
 }
 
-void Java_org_webkit_javascriptcore_test262_Test262_doResume(JNIEnv* env, jobject thiz)
+JNIEXPORT void JNICALL Java_org_webkit_javascriptcore_test262_Test262_doResume(JNIEnv* env, jobject thiz)
 {
 	LOGD("Java_org_webkit_javascriptcore_test262_Test262_doResume");
 }
 
-void Java_org_webkit_javascriptcore_test262_Test262_doDestroy(JNIEnv* env, jobject thiz)
+JNIEXPORT void JNICALL Java_org_webkit_javascriptcore_test262_Test262_doDestroy(JNIEnv* env, jobject thiz)
 {
 	LOGD("Java_org_webkit_javascriptcore_test262_Test262_doDestroy");
 
@@ -131,7 +131,7 @@ void Java_org_webkit_javascriptcore_test262_Test262_doDestroy(JNIEnv* env, jobje
 }
 
 
-jboolean Java_org_webkit_javascriptcore_test262_Test262_evaluateScript(JNIEnv* jni_env, jobject thiz, jstring java_string_script, jstring java_file_name, jobject java_return_data_object)
+JNIEXPORT jboolean JNICALL Java_org_webkit_javascriptcore_test262_Test262_evaluateScript(JNIEnv* jni_env, jobject thiz, jstring java_string_script, jstring java_file_name, jobject java_return_data_object)
 {
 	/*
 const char* c_str = jstringToC(jni_env, java_string_script);
