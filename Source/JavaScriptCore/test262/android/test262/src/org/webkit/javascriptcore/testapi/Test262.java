@@ -140,18 +140,21 @@ logFile = out_file;
 		}
 	}
 	
-	private void writeToLogFile(String log_string)
+	private void writeToLogFile(String subkeyword, String log_string)
 	{
 		String time_stamp = generateTimeStamp();
+		String space_padding = "    ";		
+		String log_header = time_stamp + space_padding + "Test262:" + space_padding + subkeyword + ":" + space_padding + "PRI=3\n";
+		String log_end = "\n^@END:$\n";
+
 		if(outputStreamWriter != null)
 		{
 
 			try
 			{
-				outputStreamWriter.write(time_stamp);
-				outputStreamWriter.write(" Test262: ");
-
+				outputStreamWriter.write(log_header);
 				outputStreamWriter.write(log_string);
+				outputStreamWriter.write(log_end);
 				outputStreamWriter.write("\n");
 			}
 			catch(IOException e)
@@ -162,11 +165,13 @@ logFile = out_file;
 
 		if(isAdbEchoingEnabled)
 		{
-			Log.v("Test262", log_string);
+			Log.i("Test262", log_header);
+			Log.i("Test262", log_string);
+			Log.i("Test262", log_end);
 		}
-		loggingConnection.writeToSocketDataOutputStream(time_stamp);
-		loggingConnection.writeToSocketDataOutputStream(" Test262: ");
+		loggingConnection.writeToSocketDataOutputStream(log_header);
 		loggingConnection.writeToSocketDataOutputStream(log_string);
+		loggingConnection.writeToSocketDataOutputStream(log_end);
 		loggingConnection.writeToSocketDataOutputStream("\n");
 	}
 
@@ -177,20 +182,21 @@ logFile = out_file;
 			return;
 		}
 		String time_stamp = generateTimeStamp();
+		String space_padding = "    ";
+		String log_header = time_stamp + space_padding + "Test262:" + space_padding + "MemoryInfo:" + space_padding + "PRI=3\n";
+		// memoryinfo has a trailing \n, so don't need one for end
+		String log_end = "^@END:$\n";
 
-		String memory_info_string = myMemoryInfo.createMemoryInfoStringForAll();
+		String memory_info_string = log_string + "\n" + myMemoryInfo.createMemoryInfoStringForAll();
 
 		if(outputStreamWriter != null)
 		{
 			try
 			{
-				outputStreamWriter.write(time_stamp);
-				outputStreamWriter.write(" Test262: ");
-
-				outputStreamWriter.write(log_string);
-				outputStreamWriter.write("\n");
-
+				outputStreamWriter.write(log_header);
 				outputStreamWriter.write(memory_info_string);
+				outputStreamWriter.write(log_end);
+				outputStreamWriter.write("\n");
 			}
 			catch(IOException e)
 			{
@@ -200,13 +206,14 @@ logFile = out_file;
 
 		if(isAdbEchoingEnabled)
 		{
-			Log.v("Test262", log_string + "\n" + memory_info_string);
+			Log.i("Test262", log_header);
+			Log.i("Test262", memory_info_string);
+			Log.i("Test262", log_end);
 		}
-		loggingConnection.writeToSocketDataOutputStream(time_stamp);
-		loggingConnection.writeToSocketDataOutputStream(" Test262: ");
-		loggingConnection.writeToSocketDataOutputStream(log_string);
-		loggingConnection.writeToSocketDataOutputStream("\n");
+		loggingConnection.writeToSocketDataOutputStream(log_header);
 		loggingConnection.writeToSocketDataOutputStream(memory_info_string);
+		loggingConnection.writeToSocketDataOutputStream(log_end);
+		loggingConnection.writeToSocketDataOutputStream("\n");
 	}
 
 	/** Called when the activity is first created. */
@@ -532,7 +539,7 @@ logFile = out_file;
 	public String generateTimeStamp()
 	{
 		// Docs say SimpleDataFormat is not thread safe. So I'm not caching this for reuse right now.
-		SimpleDateFormat simple_date_format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+		SimpleDateFormat simple_date_format = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss.SSS");
 		return simple_date_format.format(new Date());
 	}
 
@@ -547,7 +554,7 @@ logFile = out_file;
 		{
 			Log.i("Test262", "Log file could not be opened");
 		}
-		writeToLogFile("Starting tests");
+		writeToLogFile("Starting Tests", "Starting Tests at time: " + generateTimeStamp());
 		testProgressBar.setEnabled(true);
 
 
@@ -609,7 +616,7 @@ logFile = out_file;
 
 					final ReturnDataObject return_data_object = new ReturnDataObject();
 //		Log.i("Test262", "calling into C");
-					writeToLogFile("Evaluating Script: " + current_file_name);
+					writeToLogFile("Evaluating Script", "Evaluating Script: " + current_file_name);
 					writeMemoryInfoToLogFile("Memory right before (JNI) execution of script " + current_file_name);
 
 					final boolean is_success = evaluateScript(full_script, current_file_name, return_data_object);
@@ -626,18 +633,18 @@ logFile = out_file;
 						if(is_success && !is_positive_test)
 						{
 //									Log.i("Test262", "Test failed: (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);		
-							writeToLogFile("Test failed: (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
+							writeToLogFile("Test failed", "Test failed: (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
 						}
 						else
 						{
 //									Log.i("Test262", "Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
-							writeToLogFile("Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
+							writeToLogFile("Test failed", "Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
 						}
 					}
 					else
 					{
 //								Log.i("Test262", "Test passed: " + current_file_name);
-						writeToLogFile("Test passed: " + current_file_name);
+						writeToLogFile("Test passed", "Test passed: " + current_file_name);
 					}
 
 					/* // this will be updated soon enough in the next loop
@@ -656,10 +663,10 @@ logFile = out_file;
 
 				final long total_execution_time_in_milliseconds = System.currentTimeMillis() - millisecondsStartBenchmark;
 				final double total_execution_time_in_seconds = total_execution_time_in_milliseconds / 1000.0;
-				final String completed_string = "Tests completed: " + number_of_tests_run + " of " + numberOfTests + " run.\nTotal failed: " + numberOfFailedTests + "\nTotal execution time: " + total_execution_time_in_seconds + "seconds\n" 
+				final String completed_string = "Tests completed: " + number_of_tests_run + " of " + numberOfTests + " run.\nTotal failed: " + numberOfFailedTests + "\nTotal execution time: " + total_execution_time_in_seconds + "seconds\n" + "Timestamp: " + generateTimeStamp() + "\n"
 					+ Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "test262_runlog.txt";
 				final int final_number_of_tests_run = number_of_tests_run;
-				writeToLogFile(completed_string);
+				writeToLogFile("Tests completed", completed_string);
 
 				runOnUiThread(new Runnable()
 					{
