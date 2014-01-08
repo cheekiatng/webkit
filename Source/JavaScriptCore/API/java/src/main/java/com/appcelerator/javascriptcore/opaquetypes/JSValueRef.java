@@ -5,8 +5,8 @@ import com.appcelerator.javascriptcore.JavaScriptException;
 
 public class JSValueRef extends PointerType {
 
-    private JavaScriptCoreLibrary jsc = JavaScriptCoreLibrary.getInstance();
-    private JSContextRef context = null;
+    protected JavaScriptCoreLibrary jsc = JavaScriptCoreLibrary.getInstance();
+    protected JSContextRef context = null;
 
     public JSValueRef(JSContextRef context, long pointer) {
         super(pointer);
@@ -56,6 +56,14 @@ public class JSValueRef extends PointerType {
     public String toJSON(int indent) {
         checkContext();
         return jsc.JSValueCreateJSONString(context, this, indent, null);
+    }
+
+    /*
+     * Forcibly cast JSValueRef to JSObjectRef.
+     * This idiom is not recommended but often used by C/C++.
+     */
+    public JSObjectRef castToObject() {
+        return new JSObjectRef(context, pointer());
     }
 
     public boolean isUndefined() {

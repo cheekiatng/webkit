@@ -7,4 +7,7 @@ public class JSObjectRef extends JSValueRef {
     public JSObjectRef(JSContextRef context, long pointer) {
         super(context, pointer);
     }
+    public Object getPrivateObject() {
+        return jsc.JSObjectGetPrivate(this);
+    }
 }
