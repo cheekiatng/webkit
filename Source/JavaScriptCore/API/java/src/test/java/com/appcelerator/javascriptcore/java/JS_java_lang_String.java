@@ -2,6 +2,7 @@ package com.appcelerator.javascriptcore.java;
 
 import com.appcelerator.javascriptcore.JavaScriptCoreLibrary;
 import com.appcelerator.javascriptcore.callbacks.JSObjectCallAsConstructorCallback;
+import com.appcelerator.javascriptcore.callbacks.JSObjectHasInstanceCallback;
 import com.appcelerator.javascriptcore.callbacks.JSObjectCallAsFunctionCallback;
 import com.appcelerator.javascriptcore.enums.JSPropertyAttribute;
 import com.appcelerator.javascriptcore.opaquetypes.JSClassDefinition;
@@ -14,7 +15,7 @@ import com.appcelerator.javascriptcore.opaquetypes.JSValueArrayRef;
 import com.appcelerator.javascriptcore.opaquetypes.JSValueRef;
 import com.appcelerator.javascriptcore.opaquetypes.Pointer;
 
-public class JS_java_lang_String extends JSClassDefinition implements JSObjectCallAsConstructorCallback {
+public class JS_java_lang_String extends JSClassDefinition implements JSObjectCallAsConstructorCallback, JSObjectHasInstanceCallback {
 
     private static final String[] NAMESPACE = {"java", "lang"};
     private static final JavaScriptCoreLibrary jsc = JavaScriptCoreLibrary.getInstance();
@@ -32,6 +33,7 @@ public class JS_java_lang_String extends JSClassDefinition implements JSObjectCa
         if (jsClassRef == null) {
             JS_java_lang_String definition = new JS_java_lang_String();
             definition.callAsConstructor = definition;
+            definition.hasInstance     = definition;
             definition.staticValues    = definition.createStaticValues();
             definition.staticFunctions = definition.createStaticFunctions();
             definition.className   = getJSClassName();
@@ -44,6 +46,26 @@ public class JS_java_lang_String extends JSClassDefinition implements JSObjectCa
 
     public static String getJSClassName() {
         return "String";
+    }
+
+    public Class getJavaClass() {
+        return String.class;
+    }
+
+    @Override
+    public boolean hasInstance(JSContextRef context, JSObjectRef constructor,
+            JSValueRef possibleValue, Pointer exception) {
+        try {
+            Object objectB = possibleValue.castToObject().getPrivateObject();
+            if (objectB != null) {
+                return getJavaClass().isInstance(objectB);
+            } else {
+                return false;
+            }
+        } catch (Exception e) {
+            JSJavaObjectUtil.handleJSException(e, context, exception);
+        }
+        return false;
     }
     
     @Override

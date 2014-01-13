@@ -51,6 +51,10 @@ public class JS_java_lang_Object extends JSClassDefinition
         return "Object";
     }
 
+    public Class getJavaClass() {
+        return Object.class;
+    }
+
     @Override
     public JSObjectRef callAsConstructor(JSContextRef context, JSObjectRef object,
             int argumentCount, JSValueArrayRef arguments, Pointer exception) {
@@ -61,10 +65,9 @@ public class JS_java_lang_Object extends JSClassDefinition
     public boolean hasInstance(JSContextRef context, JSObjectRef constructor,
             JSValueRef possibleValue, Pointer exception) {
         try {
-            Object objectA = constructor.getPrivateObject();
             Object objectB = possibleValue.castToObject().getPrivateObject();
-            if (objectA != null && objectB != null) {
-                return objectA.getClass().isInstance(objectB);
+            if (objectB != null) {
+                return getJavaClass().isInstance(objectB);
             } else {
                 return false;
             }

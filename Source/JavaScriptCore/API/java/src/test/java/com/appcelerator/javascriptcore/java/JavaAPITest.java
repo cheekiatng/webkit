@@ -70,6 +70,30 @@ public class JavaAPITest {
         assertTrue(jsc.JSValueIsNull(context, exception));
         assertTrue(jsc.JSValueIsObject(context, result));
         assertTrue("Hello, JavaScript function".equals(result.toString()));
+
+        exception = JSValueRef.Null();
+        result = context.evaluateScript("var object = new java.lang.Object(); (object instanceof java.lang.Object);", globalObject, exception);
+        assertTrue(jsc.JSValueIsNull(context, exception));
+        assertTrue(jsc.JSValueIsBoolean(context, result));
+        assertTrue(result.toBoolean());
+
+        exception = JSValueRef.Null();
+        result = context.evaluateScript("var string = new java.lang.String('String'); (string instanceof java.lang.String);", globalObject, exception);
+        assertTrue(jsc.JSValueIsNull(context, exception));
+        assertTrue(jsc.JSValueIsBoolean(context, result));
+        assertTrue(result.toBoolean());
+
+        exception = JSValueRef.Null();
+        result = context.evaluateScript("(string instanceof java.lang.Object);", globalObject, exception);
+        assertTrue(jsc.JSValueIsNull(context, exception));
+        assertTrue(jsc.JSValueIsBoolean(context, result));
+        assertTrue(result.toBoolean());
+
+        exception = JSValueRef.Null();
+        result = context.evaluateScript("(object instanceof java.lang.String);", globalObject, exception);
+        assertTrue(jsc.JSValueIsNull(context, exception));
+        assertTrue(jsc.JSValueIsBoolean(context, result));
+        assertFalse(result.toBoolean());
     }
 
     private String createStringWithContentsOfFile(String fileName) {
