@@ -232,9 +232,6 @@ public class JSClassDefinition {
         if (staticFunctions != null) {
             staticFunctions.registerFunctions(object, NativeGetStaticFunctions(ctx, object, staticFunctions.size(), staticFunctions.commit()));
         }
-        if (hasParent) {
-            parentClass.getDefinition().registerStaticFunctionCallback(ctx, object);
-        }
     }
     private void clearStaticFunctions(long object) {
         if (staticFunctions != null) {
