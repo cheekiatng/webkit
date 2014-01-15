@@ -7,7 +7,7 @@
  * @author Norbert Lindenberg
  */
 
-$INCLUDE("harness\testIntl.js");
+$INCLUDE("testIntl.js");
 
 taintDataProperty(Intl, "DateTimeFormat");
 new Date().toLocaleString();

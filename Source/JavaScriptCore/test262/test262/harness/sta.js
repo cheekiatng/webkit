@@ -288,17 +288,16 @@ function testFailed(message) {
 
 
 function testPrint(message) {
-    print(message);
+
 }
 
 
 //adaptors for Test262 framework
 function $PRINT(message) {
-    print(message);
+
 }
 
 function $INCLUDE(message) { }
-
 function $ERROR(message) {
     testFailed(message);
 }
