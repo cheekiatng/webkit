@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="4514" systemVersion="13A603" targetRuntime="iOS.CocoaTouch.iPad" propertyAccessControl="none" useAutolayout="YES" initialViewController="BYZ-38-t0r">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="4514" systemVersion="13B42" targetRuntime="iOS.CocoaTouch.iPad" propertyAccessControl="none" useAutolayout="YES" initialViewController="BYZ-38-t0r">
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="3747"/>
     </dependencies>
@@ -17,11 +17,50 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <progressView opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="750" progress="0.5" translatesAutoresizingMaskIntoConstraints="NO" id="v7K-He-xK0">
-                                <rect key="frame" x="20" y="49" width="728" height="2"/>
+                                <rect key="frame" x="20" y="58" width="728" height="2"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             </progressView>
-                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Progress" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="p6C-KL-Qm5">
-                                <rect key="frame" x="20" y="20" width="68" height="21"/>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="3Q7-xQ-onk">
+                                <rect key="frame" x="20" y="20" width="68" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Run Tests">
+                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                                </state>
+                                <connections>
+                                    <action selector="touchedRunTests:" destination="BYZ-38-t0r" eventType="touchUpInside" id="jco-Lb-2th"/>
+                                </connections>
+                            </button>
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="runningTestNumberStatusString" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="WIt-N8-s8O">
+                                <rect key="frame" x="20" y="68" width="728" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="currentTestNameStatusString" lineBreakMode="characterWrap" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" preferredMaxLayoutWidth="728" translatesAutoresizingMaskIntoConstraints="NO" id="j2d-2g-T2s">
+                                <rect key="frame" x="20" y="97" width="728" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="totalFailedStatusString" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="dQB-oe-jTe">
+                                <rect key="frame" x="20" y="126" width="728" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="2G9-JR-6ru">
+                                <rect key="frame" x="670" y="20" width="78" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Abort Tests">
+                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                                </state>
+                                <connections>
+                                    <action selector="touchedAbortTests:" destination="BYZ-38-t0r" eventType="touchUpInside" id="dlz-Qa-i5T"/>
+                                </connections>
+                            </button>
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="logFileLocationString" lineBreakMode="wordWrap" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" preferredMaxLayoutWidth="728" translatesAutoresizingMaskIntoConstraints="NO" id="Hkk-U5-1TE">
+                                <rect key="frame" x="20" y="155" width="728" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
@@ -30,16 +69,51 @@
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
                         <constraints>
-                            <constraint firstItem="p6C-KL-Qm5" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="20" symbolic="YES" id="AMY-PW-aPw"/>
-                            <constraint firstItem="v7K-He-xK0" firstAttribute="top" secondItem="p6C-KL-Qm5" secondAttribute="bottom" constant="8" symbolic="YES" id="Xnt-BR-vke"/>
-                            <constraint firstItem="p6C-KL-Qm5" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" constant="20" symbolic="YES" id="YnX-xu-Btv"/>
-                            <constraint firstItem="p6C-KL-Qm5" firstAttribute="leading" secondItem="v7K-He-xK0" secondAttribute="leading" id="gGz-uU-MwQ"/>
+                            <constraint firstItem="dQB-oe-jTe" firstAttribute="top" secondItem="j2d-2g-T2s" secondAttribute="bottom" constant="8" id="04U-hC-Fpp"/>
+                            <constraint firstAttribute="trailing" secondItem="WIt-N8-s8O" secondAttribute="trailing" constant="20" id="10W-IK-ioA"/>
+                            <constraint firstItem="3Q7-xQ-onk" firstAttribute="top" secondItem="Osh-8t-B4C" secondAttribute="bottom" id="3CB-Qe-HZA"/>
+                            <constraint firstItem="WIt-N8-s8O" firstAttribute="top" secondItem="v7K-He-xK0" secondAttribute="bottom" constant="8" id="3Hl-78-VRD"/>
+                            <constraint firstAttribute="trailing" secondItem="2G9-JR-6ru" secondAttribute="trailing" constant="20" id="4sl-1a-FAu"/>
+                            <constraint firstItem="3Q7-xQ-onk" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="20" id="6cV-tn-E7n"/>
+                            <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="dQB-oe-jTe" secondAttribute="trailing" constant="20" id="A5q-hS-gwY"/>
+                            <constraint firstAttribute="trailing" relation="lessThanOrEqual" secondItem="v7K-He-xK0" secondAttribute="trailing" constant="20" id="AxM-I8-8LN"/>
+                            <constraint firstAttribute="trailing" secondItem="Hkk-U5-1TE" secondAttribute="trailing" constant="20" id="D84-Xe-LUY"/>
+                            <constraint firstItem="j2d-2g-T2s" firstAttribute="top" secondItem="WIt-N8-s8O" secondAttribute="bottom" constant="8" id="DPr-gi-Zlc"/>
+                            <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="j2d-2g-T2s" secondAttribute="trailing" constant="20" id="I2v-Qj-2TN"/>
+                            <constraint firstItem="2G9-JR-6ru" firstAttribute="top" secondItem="Osh-8t-B4C" secondAttribute="bottom" id="IbO-Mt-pcp"/>
+                            <constraint firstItem="v7K-He-xK0" firstAttribute="leading" relation="lessThanOrEqual" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="20" id="JJH-un-jHd"/>
+                            <constraint firstAttribute="trailing" secondItem="j2d-2g-T2s" secondAttribute="trailing" constant="20" id="KLH-dF-Yhv"/>
+                            <constraint firstItem="3Q7-xQ-onk" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="20" id="OMe-fP-dVA"/>
+                            <constraint firstItem="v7K-He-xK0" firstAttribute="top" secondItem="3Q7-xQ-onk" secondAttribute="bottom" constant="8" id="PgC-On-T9g"/>
+                            <constraint firstItem="dQB-oe-jTe" firstAttribute="top" secondItem="j2d-2g-T2s" secondAttribute="bottom" constant="8" id="R2O-Pk-beJ"/>
+                            <constraint firstItem="Hkk-U5-1TE" firstAttribute="top" secondItem="dQB-oe-jTe" secondAttribute="bottom" constant="8" id="UbW-2G-L1P"/>
+                            <constraint firstItem="WIt-N8-s8O" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="20" id="Wmg-5x-dpq"/>
+                            <constraint firstItem="WIt-N8-s8O" firstAttribute="top" secondItem="v7K-He-xK0" secondAttribute="bottom" constant="8" id="a2k-Z6-rV5"/>
+                            <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="v7K-He-xK0" secondAttribute="trailing" constant="20" id="aoo-xb-O4U"/>
+                            <constraint firstItem="j2d-2g-T2s" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="20" id="bVt-ne-xGN"/>
+                            <constraint firstItem="v7K-He-xK0" firstAttribute="top" secondItem="3Q7-xQ-onk" secondAttribute="bottom" constant="8" id="hYg-LU-fGH"/>
+                            <constraint firstItem="dQB-oe-jTe" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="20" id="isT-80-mVT"/>
+                            <constraint firstAttribute="trailing" secondItem="dQB-oe-jTe" secondAttribute="trailing" constant="20" id="k6v-gh-0a8"/>
+                            <constraint firstItem="3Q7-xQ-onk" firstAttribute="top" secondItem="Osh-8t-B4C" secondAttribute="bottom" id="lB6-PF-RE0"/>
+                            <constraint firstItem="Hkk-U5-1TE" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="20" id="mmn-IJ-Aks"/>
+                            <constraint firstItem="dQB-oe-jTe" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="20" id="o5g-Mt-wPg"/>
+                            <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="WIt-N8-s8O" secondAttribute="trailing" constant="20" id="oLk-yk-HWS"/>
+                            <constraint firstItem="j2d-2g-T2s" firstAttribute="top" secondItem="WIt-N8-s8O" secondAttribute="bottom" constant="8" id="p5F-gy-beN"/>
                             <constraint firstAttribute="trailing" secondItem="v7K-He-xK0" secondAttribute="trailing" constant="20" id="v6m-4b-Gsx"/>
+                            <constraint firstItem="j2d-2g-T2s" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="20" id="vbE-B6-FSv"/>
+                            <constraint firstItem="v7K-He-xK0" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="20" id="x7a-WX-ILY"/>
                             <constraint firstItem="v7K-He-xK0" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="20" id="xvB-2F-d6k"/>
+                            <constraint firstItem="WIt-N8-s8O" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="20" id="zsI-IZ-Zg8"/>
                         </constraints>
                     </view>
                     <connections>
+                        <outlet property="abortTestsButton" destination="2G9-JR-6ru" id="lEu-j7-Yqf"/>
+                        <outlet property="currentTestNameStatusLabel" destination="j2d-2g-T2s" id="vjK-Ab-i3e"/>
+                        <outlet property="logFileLocationLabel" destination="Hkk-U5-1TE" id="c4B-LW-BRS"/>
                         <outlet property="progressIndicator" destination="v7K-He-xK0" id="5aH-WS-zc0"/>
+                        <outlet property="runTestsButton" destination="3Q7-xQ-onk" id="2xh-3b-zOb"/>
+                        <outlet property="runningTestNumberStatusLabel" destination="WIt-N8-s8O" id="853-dS-SX4"/>
+                        <outlet property="totalFailedStatusLabel" destination="dQB-oe-jTe" id="xqw-5f-4gV"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>

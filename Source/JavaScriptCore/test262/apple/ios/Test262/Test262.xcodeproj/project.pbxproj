@@ -111,7 +111,7 @@
 		0079D4CC18744BDE00D6F559 /* SimpleThreadWindows.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = SimpleThreadWindows.c; sourceTree = "<group>"; };
 		0079D4CD18744BDE00D6F559 /* SocketServer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = SocketServer.c; path = ../../../common/source/SocketServer.c; sourceTree = "<group>"; };
 		0079D4CE18744BDE00D6F559 /* SocketServer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SocketServer.h; path = ../../../common/source/SocketServer.h; sourceTree = "<group>"; };
-		00F06623187646FF002E484F /* LoggerPrimitives.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; lineEnding = 0; path = LoggerPrimitives.c; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.c; };
+		00F06623187646FF002E484F /* LoggerPrimitives.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; lineEnding = 0; path = LoggerPrimitives.c; sourceTree = "<group>"; };
 		00F06624187646FF002E484F /* LoggerPrimitives.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = LoggerPrimitives.h; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.objcpp; };
 /* End PBXFileReference section */
 
