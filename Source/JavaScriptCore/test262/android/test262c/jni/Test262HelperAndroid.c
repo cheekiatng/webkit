@@ -1,0 +1,418 @@
+#include "Test262HelperAndroid.h"
+#include <assert.h>
+#include <string.h>
+#include <sys/types.h> // need for off_t for asset_manager because it looks like r9b broke something.
+#include <stdbool.h>
+
+#include <android/asset_manager.h>
+#include <android/log.h>
+
+#include <JavaScriptCore/JSContextRef.h>
+#include <JavaScriptCore/JSStringRef.h>
+
+#include "CommonUtils.h"
+#include "TimeStamp.h"
+//#include "LogWrapper.h"
+
+
+// Note: The strategy of this file is to try to avoid anything that touches JNI. Use the _JNI file for that.
+// There are build system reasons for this (related to hard-fp registers).
+
+extern _Bool Test262_EvaluateStringScript(JSStringRef js_script_string, JSStringRef js_file_name, JSStringRef* out_error_string, JSStringRef* out_stack_string);
+
+// This returns a string created on the heap. You are responsible for calling free() on it.
+char* Test262HelperAndroid_CreateTestHarnessScripts(size_t* out_buffer_size, AAssetManager* asset_manager)
+{
+//AAssetManager* mgr = AAssetManager_fromJava(env, assetManager);
+
+	off_t total_file_size = 0;
+	char* string_buffer;
+	int bytes_read;
+	char* current_buffer_ptr;
+
+	// For minor ease and efficiency, I'll compute the file sizes first for the buffer beforehand
+	// so I can use just one large buffer.
+	AAsset* asset_cth = AAssetManager_open(asset_manager, "harness/cth.js", AASSET_MODE_UNKNOWN);
+	if(NULL == asset_cth)
+	{
+		__android_log_print(ANDROID_LOG_ERROR, "Test262Helper_LoadTestHarnessScripts", "Failed to open harness/cth.js");
+	}
+	off_t file_size_cth = AAsset_getLength(asset_cth);
+	total_file_size = total_file_size + file_size_cth;
+
+	AAsset* asset_sta = AAssetManager_open(asset_manager, "harness/sta.js", AASSET_MODE_UNKNOWN);
+	if(NULL == asset_sta)
+	{
+		__android_log_print(ANDROID_LOG_ERROR, "Test262Helper_LoadTestHarnessScripts", "Failed to open harness/sta.js");
+	}
+	off_t file_size_sta = AAsset_getLength(asset_sta);
+	total_file_size = total_file_size + file_size_sta;
+
+	AAsset* asset_ed = AAssetManager_open(asset_manager, "harness/ed.js", AASSET_MODE_UNKNOWN);
+	if(NULL == asset_ed)
+	{
+		__android_log_print(ANDROID_LOG_ERROR, "Test262Helper_LoadTestHarnessScripts", "Failed to open harness/ed.js");
+	}
+	off_t file_size_ed = AAsset_getLength(asset_ed);
+	total_file_size = total_file_size + file_size_ed;
+
+	AAsset* asset_test_built_in_object = AAssetManager_open(asset_manager, "harness/testBuiltInObject.js", AASSET_MODE_UNKNOWN);
+	if(NULL == asset_test_built_in_object)
+	{
+		__android_log_print(ANDROID_LOG_ERROR, "Test262Helper_LoadTestHarnessScripts", "Failed to open harness/testBuiltInObject.js");
+	}
+	off_t file_size_built_in_object = AAsset_getLength(asset_test_built_in_object);
+	total_file_size = total_file_size + file_size_built_in_object;
+
+	AAsset* asset_test_intl = AAssetManager_open(asset_manager, "harness/testIntl.js", AASSET_MODE_UNKNOWN);
+	if(NULL == asset_test_intl)
+	{
+		__android_log_print(ANDROID_LOG_ERROR, "Test262Helper_LoadTestHarnessScripts", "Failed to open harness/testIntl.js");
+	}
+	off_t file_size_intl = AAsset_getLength(asset_test_intl);
+	total_file_size = total_file_size + file_size_intl;
+
+
+	// For paranoia reasons, I'm going to inject a newline at the end of each file (because I was bit by not doing this before in the Java version).
+	// That will add 5 bytes (for 5 files).
+	// We also need a null terminator, so add 1 byte.
+	size_t string_buffer_size = total_file_size + 5 + 1;
+	string_buffer = (char*)malloc( string_buffer_size * sizeof(char) );
+	if(NULL == string_buffer)
+	{
+		__android_log_print(ANDROID_LOG_ERROR, "Test262Helper_LoadTestHarnessScripts", "malloc failed");
+		return NULL;
+	}
+	if(NULL != out_buffer_size)
+	{
+		*out_buffer_size = string_buffer_size;
+	}
+
+	current_buffer_ptr = &string_buffer[0];
+
+	// read the file into the string buffer
+	bytes_read = AAsset_read(asset_cth, current_buffer_ptr, file_size_cth);
+	assert(bytes_read == file_size_cth);
+	AAsset_close(asset_cth);	
+	// increment the string pointer for the next write into the buffer
+	current_buffer_ptr = current_buffer_ptr + bytes_read;
+	// add a newline
+	*current_buffer_ptr = '\n';
+	current_buffer_ptr = current_buffer_ptr + 1;
+
+
+	// read the file into the string buffer
+	bytes_read = AAsset_read(asset_sta, current_buffer_ptr, file_size_sta);
+	assert(bytes_read == file_size_sta);
+	AAsset_close(asset_sta);	
+	// increment the string pointer for the next write into the buffer
+	current_buffer_ptr = current_buffer_ptr + bytes_read;
+	// add a newline
+	*current_buffer_ptr = '\n';
+	current_buffer_ptr = current_buffer_ptr + 1;
+
+	// read the file into the string buffer
+	bytes_read = AAsset_read(asset_ed, current_buffer_ptr, file_size_ed);
+	assert(bytes_read == file_size_ed);
+	AAsset_close(asset_ed);	
+	// increment the string pointer for the next write into the buffer
+	current_buffer_ptr = current_buffer_ptr + bytes_read;
+	// add a newline
+	*current_buffer_ptr = '\n';
+	current_buffer_ptr = current_buffer_ptr + 1;
+
+	// read the file into the string buffer
+	bytes_read = AAsset_read(asset_test_built_in_object, current_buffer_ptr, file_size_built_in_object);
+	assert(bytes_read == file_size_built_in_object);
+	AAsset_close(asset_test_built_in_object);	
+	// increment the string pointer for the next write into the buffer
+	current_buffer_ptr = current_buffer_ptr + bytes_read;
+	// add a newline
+	*current_buffer_ptr = '\n';
+	current_buffer_ptr = current_buffer_ptr + 1;
+
+	// read the file into the string buffer
+	bytes_read = AAsset_read(asset_test_intl, current_buffer_ptr, file_size_intl);
+	assert(bytes_read == file_size_ed);
+	AAsset_close(asset_test_intl);	
+	// increment the string file_size_intl for the next write into the buffer
+	current_buffer_ptr = current_buffer_ptr + bytes_read;
+	// add a newline
+	*current_buffer_ptr = '\n';
+	current_buffer_ptr = current_buffer_ptr + 1;
+
+	// add the null terminator
+	*current_buffer_ptr = '\0';
+
+	return string_buffer;
+}
+
+// Returns a string literal. You do not need to free the memory.
+const char* Test262Helper_DetermineStrictModeStringFromScript(const char* raw_script)
+{
+	char* is_found = strstr(raw_script, "@onlyStrict");
+	if(is_found != NULL)
+	{
+		// found it
+		return "\"use strict\";\nvar strict_mode = true;\n";
+	}
+	else
+	{
+		return "var strict_mode = false; \n";
+	}
+}
+
+_Bool Test262Helper_DetermineIfPositiveTestFromScript(const char* raw_script)
+{
+	char* is_found = strstr(raw_script, "@negative");	
+	if(is_found != NULL)
+	{
+		// found it
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+#if 0
+void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
+	NSInteger (^callback_for_all_tests_starting)(NSUInteger total_number_of_tests),
+	NSInteger (^callback_for_beginning_test)(NSString* test_file, NSUInteger total_number_of_tests, NSUInteger current_test_number),
+	NSInteger (^callback_for_ending_test)(NSString* test_file, NSUInteger total_number_of_tests, NSUInteger current_test_number, NSUInteger total_number_of_tests_failed, _Bool did_pass, NSString* nscf_exception_string, NSString* nscf_stack_string),
+	NSInteger (^callback_for_all_tests_finished)(NSUInteger total_number_of_tests, NSUInteger number_of_tests_run, NSUInteger total_number_of_tests_failed)
+)
+{
+	const int TIMESTAMP_LENGTH = 24;
+	char current_time[TIMESTAMP_LENGTH];
+	TimeStamp_GetTimeStamp(current_time, TIMESTAMP_LENGTH);
+	// Being from a gaming background, I prefer tick clocks because it is easier to do math on.
+	unsigned long start_time_in_ticks = CommonUtils_GetTicks();
+
+
+	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Starting Tests", @"Starting Tests at time: %s", current_time);
+
+	NSString* test_harness_script_string = Test262Helper_LoadTestHarnessScripts();
+	NSMutableString* concat_string = [[NSMutableString alloc] init];
+
+//	NSString* suite_dir = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"suite"];
+
+	NSString* resource_path = [[NSBundle mainBundle] resourcePath];
+
+	NSString* raw_test_script = nil;
+	NSError* the_error = nil;
+//	NSString* file_path = nil;
+
+	NSUInteger number_of_failed_tests = 0;
+	NSUInteger current_index_count = 0;
+	_Bool should_keep_running = true;
+
+	/* I originally was going to dynamically traverse the directories, but on Android,
+		there was a serious performance problem with this (took 3 hours just to get a full directory listing in an APK).
+		So instead, I used a pre-created text file which contained the list of files.
+		While we don't have the performance problems of Android, I discovered I liked having the text file because
+		I could modify the text file to run specific tests for debugging.
+		So I've decided to use the text file here too.
+	 */
+	NSString* test_manifiest_file_string = [NSString stringWithContentsOfFile:[[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"test262_filelist.txt"] encoding:NSUTF8StringEncoding error:&the_error];
+	NSArray* file_list = [test_manifiest_file_string componentsSeparatedByString:@"\n"];
+
+	// componentsSeparatedByString is leaving me a blank line at the end
+	// I want to get rid of it
+	if([[file_list lastObject] length] == 0)
+	{
+		NSRange sub_range;
+		sub_range.location = 0;
+		sub_range.length = [file_list count] - 1;
+		file_list = [file_list subarrayWithRange:sub_range];
+	}
+
+	// We might want to further sanitize the list if we support commented out lines and so forth
+	[ns_progress setTotalUnitCount:[file_list count]];
+
+	if(nil != callback_for_all_tests_starting)
+	{
+		callback_for_all_tests_starting([file_list count]);
+	}
+
+	for(NSString* a_file in file_list)
+	{
+		if(!should_keep_running)
+		{
+			break;
+		}
+		// just in case there is a blank line
+		if([a_file length] == 0)
+		{
+			current_index_count = current_index_count + 1;
+			[ns_progress setCompletedUnitCount:current_index_count];
+			continue;
+		}
+		NSString* file_path = [resource_path stringByAppendingPathComponent:a_file];
+		raw_test_script = [NSString stringWithContentsOfFile:file_path encoding:NSUTF8StringEncoding error:&the_error];
+		if((nil == raw_test_script) || (the_error != nil))
+		{
+			LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_CRITICAL, LOGWRAPPER_PRIMARY_KEYWORD, "Error", @"Error loading file: %@", file_path);
+			//NSLog(@"Error loading %@", file_path);
+			if(the_error != nil)
+			{
+				LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_CRITICAL, LOGWRAPPER_PRIMARY_KEYWORD, "Error", @"NSError is: %@", [the_error localizedDescription]);
+				// NSLog(@"NSError is: %@", [the_error localizedDescription]);
+				the_error = nil;
+			}
+			current_index_count = current_index_count + 1;
+			[ns_progress setCompletedUnitCount:current_index_count];
+			continue;
+		}
+
+		if(nil != callback_for_beginning_test)
+		{
+			NSInteger return_status = callback_for_beginning_test(a_file, [file_list count], current_index_count+1);
+			if(0 == return_status)
+			{
+				// 0 means user wants to cancel tests
+				should_keep_running = false;
+			}
+		}
+
+		_Bool is_positive_test = Test262Helper_DetermineIfPositiveTestFromScript(raw_test_script);
+
+
+		// clear string for next loop
+		[concat_string setString:@""];
+
+		[concat_string appendString:Test262Helper_DetermineStrictModeStringFromScript(raw_test_script)];
+		[concat_string appendString:@"\n"];
+		[concat_string appendString:test_harness_script_string];
+		[concat_string appendString:@"\n"];
+		[concat_string appendString:raw_test_script];
+
+
+		JSStringRef js_script_string = JSStringCreateWithCFString((__bridge CFStringRef)concat_string);
+		JSStringRef js_file_name = JSStringCreateWithCFString((__bridge CFStringRef)file_path);
+		JSStringRef js_exception_string = NULL;
+		JSStringRef js_stack_string = NULL;
+
+		LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Evaluating Script", @"Evaluating Script: %@", a_file);
+
+
+		_Bool is_success = Test262_EvaluateStringScript(js_script_string, js_file_name, &js_exception_string, &js_stack_string);
+
+
+
+//		NSLog(@"%@ is_success: %d", file_path, is_success);
+
+
+
+		// FIXME: This likely deserves a better check.
+		if(is_positive_test != is_success)
+		{
+//			numberOfFailedTests = numberOfFailedTests + 1;
+			number_of_failed_tests = number_of_failed_tests +1;
+
+			NSString* nscf_exception_string = nil;
+			NSString* nscf_stack_string = nil;
+			if(NULL != js_exception_string)
+			{
+				nscf_exception_string = (__bridge_transfer NSString*)JSStringCopyCFString(NULL, js_exception_string);
+			}
+			if(NULL != js_stack_string)
+			{
+				nscf_stack_string = (__bridge_transfer NSString*)JSStringCopyCFString(NULL, js_stack_string);
+			}
+
+			//
+			//                    			this.failedTests.Add(result);
+			if(is_success && !is_positive_test)
+			{
+				//									Log.i("Test262", "Test failed: (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
+				/*
+				writeToLogFile("Test failed: (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
+				*/
+
+				//NSLog(@"Test failed: (script passed but negative test means it should have not have passed): %@, %@, %@\n%@", file_path, nscf_exception_string, nscf_stack_string, raw_test_script);
+				LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test failed", @"Test failed: (script passed but negative test means it should have not have passed): %@, %@, %@\n%@", a_file, nscf_exception_string, nscf_stack_string, raw_test_script);
+
+			}
+			else
+			{
+				//									Log.i("Test262", "Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
+				/*
+				writeToLogFile("Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
+				*/
+				//NSLog(@"Test failed: %@, %@, %@\n%@", file_path, nscf_exception_string, nscf_stack_string, raw_test_script);
+				LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test failed", @"Test failed: %@, %@, %@\n%@", a_file, nscf_exception_string, nscf_stack_string, raw_test_script);
+			}
+
+			if(nil != callback_for_ending_test)
+			{
+				NSInteger return_status = callback_for_ending_test(a_file, [file_list count], current_index_count+1, number_of_failed_tests, false, nscf_exception_string, nscf_stack_string);
+				if(0 == return_status)
+				{
+					// 0 means user wants to cancel tests
+					should_keep_running = false;
+				}
+			}
+
+
+		}
+		else
+		{
+			//								Log.i("Test262", "Test passed: " + current_file_name);
+//			writeToLogFile("Test passed: " + current_file_name);
+//			NSLog(@"Test passed: %@", file_path);
+			LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test passed", @"Test passed: %@", a_file);
+
+			if(nil != callback_for_ending_test)
+			{
+				NSInteger return_status = callback_for_ending_test(a_file, [file_list count], current_index_count+1, number_of_failed_tests, true, nil, nil);
+				if(0 == return_status)
+				{
+					// 0 means user wants to cancel tests
+					should_keep_running = false;
+				}
+			}
+
+
+		}
+
+
+		if(NULL != js_stack_string)
+		{
+			JSStringRelease(js_stack_string);
+		}
+		if(NULL != js_exception_string)
+		{
+			JSStringRelease(js_exception_string);
+		}
+		JSStringRelease(js_file_name);
+		JSStringRelease(js_script_string);
+		
+
+		current_index_count = current_index_count + 1;
+		[ns_progress setCompletedUnitCount:current_index_count];
+	}
+
+	TimeStamp_GetTimeStamp(current_time, TIMESTAMP_LENGTH);
+	unsigned long end_time_in_ticks = CommonUtils_GetTicks();
+
+	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Tests completed",
+		@"Tests completed: %d of %d run.\n"
+		@"Total failed: %lu\n"
+		@"Total execution time: %lf seconds\n"
+		@"Timestamp: %s",
+		current_index_count, [file_list count],
+		(unsigned long)number_of_failed_tests,
+		// converting to double for consistency with Apple versions
+		(double)(end_time_in_ticks - start_time_in_ticks),
+		current_time
+	);
+
+	if(nil != callback_for_all_tests_finished)
+	{
+		callback_for_all_tests_finished([file_list count], current_index_count+1, number_of_failed_tests);
+	}
+}
+#endif
+

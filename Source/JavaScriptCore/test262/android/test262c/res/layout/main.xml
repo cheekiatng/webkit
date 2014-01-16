@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+	android:splitMotionEvents="true"
+    >
+
+    <Button android:id="@+id/submit_button"
+        android:layout_width="wrap_content" 
+        android:layout_height="wrap_content"
+        android:text="@string/submit_press"
+        android:onClick="myClickHandler">
+	</Button>
+
+	<ProgressBar android:id="@+id/test_progress_bar"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+	android:text="Running tests..."
+	android:progress="1"
+	style="@android:style/Widget.Holo.ProgressBar.Horizontal"
+	android:indeterminate="false"
+    />
+
+	<TextView android:id="@+id/result_text"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:text="Run a script..."
+    />
+</LinearLayout>
+
