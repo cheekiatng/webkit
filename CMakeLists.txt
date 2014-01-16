@@ -132,6 +132,9 @@ endif ()
 # Default library types
 # -----------------------------------------------------------------------------
 option(SHARED_CORE "build JavaScriptCore and WebCore as shared libraries")
+# EXPORT_ONLY_PUBLIC_SYMBOLS:ON for SHARED_CORE should be the default to minimize library size and chances of symbol clashes.
+# But it appears some things in this project are using private API in JavaScriptCore such as the jsc shell tool and maybe testapi.
+option(EXPORT_ONLY_PUBLIC_SYMBOLS "exports only public symbols for shared libraries, currently disables jsc shell tool")
 
 if (SHARED_CORE)
     set(JavaScriptCore_LIBRARY_TYPE SHARED)

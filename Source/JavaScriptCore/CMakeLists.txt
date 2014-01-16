@@ -1216,7 +1216,11 @@ WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
 WEBKIT_CREATE_FORWARDING_HEADERS(JavaScriptCore DIRECTORIES ${JavaScriptCore_FORWARDING_HEADERS_DIRECTORIES} FILES ${JavaScriptCore_FORWARDING_HEADERS_FILES})
 
 
-add_subdirectory(shell)
+if ((${JavaScriptCore_LIBRARY_TYPE} STREQUAL "SHARED") AND EXPORT_ONLY_PUBLIC_SYMBOLS)
+	message(STATUS "jsc shell tool is skipped when SHARED_CORE and EXPORT_ONLY_PUBLIC_SYMBOLS are defined due to its dependency on private API")
+else ()
+    add_subdirectory(shell)
+endif ()
 
 WEBKIT_WRAP_SOURCELIST(${JavaScriptCore_SOURCES})
 include_directories(${JavaScriptCore_INCLUDE_DIRECTORIES})
