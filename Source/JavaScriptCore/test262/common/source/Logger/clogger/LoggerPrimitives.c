@@ -497,7 +497,7 @@ int LoggerPrimitives_SegmentFile(Logger* logger)
 	char next_file_string[LOGGER_PREALLOCATED_COPY_NAME + LOGGER_PREALLOCATED_SEGMENT_CHARS];
 	/* This is the total number of characters for the extension */
 	int total_num_ext_chars;
-	int copy_string_size;
+	size_t copy_string_size;
 	int ret_flag; 
 	const char* format_string = NULL;
 

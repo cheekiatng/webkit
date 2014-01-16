@@ -7,6 +7,11 @@
 // These three functions provide a Logger compatibility interface to Logger.
 // In all cases, priority, keyword, subkeyword are not useful to NSLog.
 
+// WARNING: The number of bytes written return values are wrong because they don't include the NSLog stamp.
+// Since NSLog stamps may contain appliation names and process id numbers (not necessarily with fixed-digits), 
+// I don't know how many bytes there are. 
+// So I will just return the string length.
+
 int LoggerAdapter_CustomPrintfToNSLog(Logger* logger, void* userdata, unsigned int priority, const char* keyword, const char* subkeyword, const char* format, ...)
 {
 	va_list argp;
@@ -37,4 +42,25 @@ int LoggerAdapter_CustomPutsToNSPuts(Logger* logger, void* userdata, unsigned in
 	return (int)strlen(text);
 }
 
+void Logger_Cocoa_SetCustomPrintFunctionToNSLog(Logger* logger)
+{
+	Logger_SetCustomPrintFunctions(
+		logger,
+		LoggerAdapter_CustomPutsToNSPuts,
+		LoggerAdapter_CustomPrintfToNSLog,
+		LoggerAdapter_CustomPrintfvToNSLogv,
+		NULL
+	);
+}
+
+void Logger_Cocoa_ClearCustomPrintFunctions(Logger* logger)
+{
+	Logger_SetCustomPrintFunctions(
+		logger,
+		NULL,
+		NULL,
+		NULL,
+		NULL
+	);
+}
 

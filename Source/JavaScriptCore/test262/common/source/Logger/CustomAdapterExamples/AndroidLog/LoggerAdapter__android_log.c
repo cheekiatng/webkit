@@ -63,8 +63,7 @@ int LoggerAdapter_CustomPrintfTo__android_log_print(Logger* logger, void* userda
 	va_list argp;
 	va_start(argp, format);
 	/* Android doesn't document what the return value is.
-	 * Knowing them, they probably screwed up and don't conform to printfv
-	 * and this will break me.
+	 * But it looks like it does what I want and counts all the bytes including their own stamps.
 	 */
 	num_bytes_written = __android_log_vprint(android_priority_value, keyword, format, argp);
 
@@ -75,8 +74,7 @@ int LoggerAdapter_CustomPrintfTo__android_log_print(Logger* logger, void* userda
 int LoggerAdapter_CustomPrintfvTo__android_log_vprint(Logger* logger, void* userdata, unsigned int priority, const char* keyword, const char* subkeyword, const char* format, va_list argp)
 {
 	/* Android doesn't document what the return value is.
-	 * Knowing them, they probably screwed up and don't conform to printfv
-	 * and this will break me.
+	 * But it looks like it does what I want and counts all the bytes including their own stamps.
 	 */
 	int android_priority_value = LoggerAdapter_ConvertLoggerPriorityToAndroidPriority(priority);
 	return __android_log_vprint(android_priority_value, keyword, format, argp);
@@ -85,9 +83,32 @@ int LoggerAdapter_CustomPrintfvTo__android_log_vprint(Logger* logger, void* user
 int LoggerAdapter_CustomPutsTo__android_log_write(Logger* logger, void* userdata, unsigned int priority, const char* keyword, const char* subkeyword, const char* text)
 {
 	int android_priority_value = LoggerAdapter_ConvertLoggerPriorityToAndroidPriority(priority);
-	/* Android doesn't document what the return value is, so I'm just going to return strlen. */
-	__android_log_write(android_priority_value, keyword, text);
-	return (int)strlen(text);
+	/* Android doesn't document what the return value is.
+	 * But it looks like it does what I want and counts all the bytes including their own stamps.
+	 */
+	int num_bytes_written = __android_log_write(android_priority_value, keyword, text);
+	return num_bytes_written;
 }
 
+void Logger_Android_SetCustomPrintFunctionToAndroidLog(Logger* logger)
+{
+	Logger_SetCustomPrintFunctions(
+		logger,
+		LoggerAdapter_CustomPutsTo__android_log_write,
+		LoggerAdapter_CustomPrintfTo__android_log_print,
+		LoggerAdapter_CustomPrintfvTo__android_log_vprint,
+		NULL
+	);
+}
+
+void Logger_Android_ClearCustomPrintFunctions(Logger* logger)
+{
+	Logger_SetCustomPrintFunctions(
+		logger,
+		NULL,
+		NULL,
+		NULL,
+		NULL
+	);
+}
 

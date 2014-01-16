@@ -13,7 +13,7 @@
 @interface AppDelegate : UIResponder <UIApplicationDelegate, NetworkHelperForAppDelegate>
 
 @property (strong, nonatomic) UIWindow *window;
-@property(strong, nonatomic, readonly) LogWrapper* logWrapper;
+@property(assign, nonatomic, readonly) LogWrapper* logWrapper;
 
 // for NetworkHelperForAppDelegate
 @property(strong, nonatomic, readonly) NSString* logFileLocationString;

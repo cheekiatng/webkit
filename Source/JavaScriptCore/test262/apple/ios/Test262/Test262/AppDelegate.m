@@ -25,11 +25,9 @@
 	self = [super init];
 	if(nil != self)
 	{
-		_logWrapper = [[LogWrapper alloc] init];
+		_logWrapper = LogWrapper_Create();
 
-		// I'm debating if I should use CFBridgingRetain on _logWrapper.
-		// For now, since it also lives the life of the app, I'll ignore it.
-		SocketServer_SetOpenLogStreamCallback(NetworkHelperForAppDelegate_OpenLogStream, (__bridge void *)(_logWrapper), (__bridge void *)(self));
+		SocketServer_SetOpenLogStreamCallback(NetworkHelperForAppDelegate_OpenLogStream, _logWrapper, (__bridge void *)(self));
 
 
 		_networkHelper = [[NetworkHelper alloc] init];

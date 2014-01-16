@@ -32,7 +32,7 @@ int LoggerObjC_LogEventv(Logger* logger, unsigned int priority,
 	NSString* text, va_list argp)
 {
 	char time_stamp[LOGGER_TIME_STAMP_SIZE];
-	int byte_counter = 0;
+	size_t byte_counter = 0;
 	int ret_val;
 	int error_flag = 0;
 
@@ -210,7 +210,7 @@ int LoggerObjC_LogEventv(Logger* logger, unsigned int priority,
 
 	if(error_flag == 0)
 	{
-		return byte_counter;
+		return (int)byte_counter;
 	}
 	else
 	{

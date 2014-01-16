@@ -145,7 +145,7 @@ void NetworkHelperForAppDelegate_UploadFile(int accepted_socket, uint16_t http_s
 
 void NetworkHelperForAppDelegate_OpenLogStream(int accepted_socket, void* opaque_log_wrapper, void* user_data)
 {
-	LogWrapper* log_wrapper = (__bridge LogWrapper*)opaque_log_wrapper;
+	LogWrapper* log_wrapper = (LogWrapper*)opaque_log_wrapper;
 
 	// disable SIGPIPE errors (crashes) on writing to a dead socket. I need this since I'm blindly throwing stuff at Logger.
 	// decided to move to platform specific code:

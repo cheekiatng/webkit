@@ -154,7 +154,7 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 	CFTimeInterval start_time_in_ticks = CACurrentMediaTime();
 
 
-	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Starting Tests", @"Starting Tests at time: %s", current_time);
+	LogWrapperObjC_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Starting Tests", @"Starting Tests at time: %s", current_time);
 
 	NSString* test_harness_script_string = Test262Helper_LoadTestHarnessScripts();
 	NSMutableString* concat_string = [[NSMutableString alloc] init];
@@ -216,11 +216,11 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 		raw_test_script = [NSString stringWithContentsOfFile:file_path encoding:NSUTF8StringEncoding error:&the_error];
 		if((nil == raw_test_script) || (the_error != nil))
 		{
-			LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_CRITICAL, LOGWRAPPER_PRIMARY_KEYWORD, "Error", @"Error loading file: %@", file_path);
+			LogWrapperObjC_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_CRITICAL, LOGWRAPPER_PRIMARY_KEYWORD, "Error", @"Error loading file: %@", file_path);
 			//NSLog(@"Error loading %@", file_path);
 			if(the_error != nil)
 			{
-				LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_CRITICAL, LOGWRAPPER_PRIMARY_KEYWORD, "Error", @"NSError is: %@", [the_error localizedDescription]);
+				LogWrapperObjC_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_CRITICAL, LOGWRAPPER_PRIMARY_KEYWORD, "Error", @"NSError is: %@", [the_error localizedDescription]);
 				// NSLog(@"NSError is: %@", [the_error localizedDescription]);
 				the_error = nil;
 			}
@@ -257,7 +257,7 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 		JSStringRef js_exception_string = NULL;
 		JSStringRef js_stack_string = NULL;
 
-		LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Evaluating Script", @"Evaluating Script: %@", a_file);
+		LogWrapperObjC_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Evaluating Script", @"Evaluating Script: %@", a_file);
 
 
 		_Bool is_success = Test262_EvaluateStringScript(js_script_string, js_file_name, &js_exception_string, &js_stack_string);
@@ -296,7 +296,7 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 				*/
 
 				//NSLog(@"Test failed: (script passed but negative test means it should have not have passed): %@, %@, %@\n%@", file_path, nscf_exception_string, nscf_stack_string, raw_test_script);
-				LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test failed", @"Test failed: (script passed but negative test means it should have not have passed): %@, %@, %@\n%@", a_file, nscf_exception_string, nscf_stack_string, raw_test_script);
+				LogWrapperObjC_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test failed", @"Test failed: (script passed but negative test means it should have not have passed): %@, %@, %@\n%@", a_file, nscf_exception_string, nscf_stack_string, raw_test_script);
 
 			}
 			else
@@ -306,7 +306,7 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 				writeToLogFile("Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
 				*/
 				//NSLog(@"Test failed: %@, %@, %@\n%@", file_path, nscf_exception_string, nscf_stack_string, raw_test_script);
-				LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test failed", @"Test failed: %@, %@, %@\n%@", a_file, nscf_exception_string, nscf_stack_string, raw_test_script);
+				LogWrapperObjC_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test failed", @"Test failed: %@, %@, %@\n%@", a_file, nscf_exception_string, nscf_stack_string, raw_test_script);
 			}
 
 			if(nil != callback_for_ending_test)
@@ -326,7 +326,7 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 			//								Log.i("Test262", "Test passed: " + current_file_name);
 //			writeToLogFile("Test passed: " + current_file_name);
 //			NSLog(@"Test passed: %@", file_path);
-			LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test passed", @"Test passed: %@", a_file);
+			LogWrapperObjC_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test passed", @"Test passed: %@", a_file);
 
 			if(nil != callback_for_ending_test)
 			{
@@ -362,7 +362,7 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 	TimeStamp_GetTimeStamp(current_time, TIMESTAMP_LENGTH);
 	CFTimeInterval end_time_in_ticks = CACurrentMediaTime();
 
-	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Tests completed",
+	LogWrapperObjC_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Tests completed",
 		@"Tests completed: %d of %d run.\n"
 		@"Total failed: %lu\n"
 		@"Total execution time: %lf seconds\n"

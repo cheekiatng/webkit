@@ -7,7 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
-@class LogWrapper;
+#include "LogWrapper.h"
 
 void NetworkHelperForAppDelegate_UploadFile(int accepted_socket, uint16_t http_server_port, void* user_data);
 

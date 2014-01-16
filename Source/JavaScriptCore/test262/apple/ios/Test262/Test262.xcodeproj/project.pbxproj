@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		006B249F1887CEE900A61F19 /* LogWrapperApple.m in Sources */ = {isa = PBXBuildFile; fileRef = 006B249E1887CEE900A61F19 /* LogWrapperApple.m */; };
+		006B24AA1887D00D00A61F19 /* LoggerAdapter_NSLog.m in Sources */ = {isa = PBXBuildFile; fileRef = 006B24A71887D00D00A61F19 /* LoggerAdapter_NSLog.m */; };
+		006B24BE1887DC6100A61F19 /* LogWrapper.c in Sources */ = {isa = PBXBuildFile; fileRef = 006B24BC1887DC6100A61F19 /* LogWrapper.c */; };
 		0079D3E21870490500D6F559 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0079D3E11870490500D6F559 /* Foundation.framework */; };
 		0079D3E41870490500D6F559 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0079D3E31870490500D6F559 /* CoreGraphics.framework */; };
 		0079D3E61870490500D6F559 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0079D3E51870490500D6F559 /* UIKit.framework */; };
@@ -31,7 +34,6 @@
 		0079D4991872C12000D6F559 /* LoggerObjC.m in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4831872C11F00D6F559 /* LoggerObjC.m */; };
 		0079D4A11872C12000D6F559 /* .TimeStamp.h.swp in Resources */ = {isa = PBXBuildFile; fileRef = 0079D48D1872C12000D6F559 /* .TimeStamp.h.swp */; };
 		0079D4A21872C12000D6F559 /* TimeStamp.c in Sources */ = {isa = PBXBuildFile; fileRef = 0079D48E1872C12000D6F559 /* TimeStamp.c */; };
-		0079D4A51872C16C00D6F559 /* LogWrapper.m in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4A41872C16C00D6F559 /* LogWrapper.m */; };
 		0079D4C418744B9700D6F559 /* NetworkHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4C118744B9600D6F559 /* NetworkHelper.m */; };
 		0079D4C518744B9700D6F559 /* NetworkHelperForAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4C318744B9700D6F559 /* NetworkHelperForAppDelegate.m */; };
 		0079D4CF18744BDE00D6F559 /* SimpleMutex.c in Sources */ = {isa = PBXBuildFile; fileRef = 0079D4C818744BDE00D6F559 /* SimpleMutex.c */; };
@@ -52,6 +54,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		006B249D1887CEE900A61F19 /* LogWrapperApple.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LogWrapperApple.h; path = ../../common/source/LogWrapperApple.h; sourceTree = "<group>"; };
+		006B249E1887CEE900A61F19 /* LogWrapperApple.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LogWrapperApple.m; path = ../../common/source/LogWrapperApple.m; sourceTree = "<group>"; };
+		006B24A61887D00C00A61F19 /* LoggerAdapter_NSLog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LoggerAdapter_NSLog.h; sourceTree = "<group>"; };
+		006B24A71887D00D00A61F19 /* LoggerAdapter_NSLog.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LoggerAdapter_NSLog.m; sourceTree = "<group>"; };
+		006B24BC1887DC6100A61F19 /* LogWrapper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = LogWrapper.c; path = ../../../common/source/LogWrapper.c; sourceTree = "<group>"; };
+		006B24BD1887DC6100A61F19 /* LogWrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LogWrapper.h; path = ../../../common/source/LogWrapper.h; sourceTree = "<group>"; };
 		0079D3DE1870490500D6F559 /* Test262.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Test262.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0079D3E11870490500D6F559 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		0079D3E31870490500D6F559 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
@@ -98,8 +106,6 @@
 		0079D48D1872C12000D6F559 /* .TimeStamp.h.swp */ = {isa = PBXFileReference; lastKnownFileType = file; path = .TimeStamp.h.swp; sourceTree = "<group>"; };
 		0079D48E1872C12000D6F559 /* TimeStamp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = TimeStamp.c; sourceTree = "<group>"; };
 		0079D48F1872C12000D6F559 /* TimeStamp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TimeStamp.h; sourceTree = "<group>"; };
-		0079D4A31872C16C00D6F559 /* LogWrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LogWrapper.h; path = ../../common/source/LogWrapper.h; sourceTree = "<group>"; };
-		0079D4A41872C16C00D6F559 /* LogWrapper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = LogWrapper.m; path = ../../common/source/LogWrapper.m; sourceTree = "<group>"; };
 		0079D4C018744B9600D6F559 /* NetworkHelper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NetworkHelper.h; path = ../../common/source/NetworkHelper.h; sourceTree = "<group>"; };
 		0079D4C118744B9600D6F559 /* NetworkHelper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = NetworkHelper.m; path = ../../common/source/NetworkHelper.m; sourceTree = "<group>"; };
 		0079D4C218744B9600D6F559 /* NetworkHelperForAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NetworkHelperForAppDelegate.h; path = ../../common/source/NetworkHelperForAppDelegate.h; sourceTree = "<group>"; };
@@ -140,6 +146,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		006B24A01887D00C00A61F19 /* CustomAdapterExamples */ = {
+			isa = PBXGroup;
+			children = (
+				006B24A51887D00C00A61F19 /* NSLog */,
+			);
+			path = CustomAdapterExamples;
+			sourceTree = "<group>";
+		};
+		006B24A51887D00C00A61F19 /* NSLog */ = {
+			isa = PBXGroup;
+			children = (
+				006B24A61887D00C00A61F19 /* LoggerAdapter_NSLog.h */,
+				006B24A71887D00D00A61F19 /* LoggerAdapter_NSLog.m */,
+			);
+			path = NSLog;
+			sourceTree = "<group>";
+		};
 		0079D3D51870490500D6F559 = {
 			isa = PBXGroup;
 			children = (
@@ -221,6 +244,8 @@
 		0079D4191870491100D6F559 /* common */ = {
 			isa = PBXGroup;
 			children = (
+				006B24BC1887DC6100A61F19 /* LogWrapper.c */,
+				006B24BD1887DC6100A61F19 /* LogWrapper.h */,
 				0079D4CD18744BDE00D6F559 /* SocketServer.c */,
 				0079D4CE18744BDE00D6F559 /* SocketServer.h */,
 				0079D4321870E81A00D6F559 /* test262.c */,
@@ -244,6 +269,7 @@
 		0079D4711872C11F00D6F559 /* Logger */ = {
 			isa = PBXGroup;
 			children = (
+				006B24A01887D00C00A61F19 /* CustomAdapterExamples */,
 				0079D4721872C11F00D6F559 /* clogger */,
 				0079D4781872C11F00D6F559 /* CMakeLists.txt */,
 				0079D47D1872C11F00D6F559 /* doc */,
@@ -313,8 +339,8 @@
 		0079D4C618744BA000D6F559 /* applecommon */ = {
 			isa = PBXGroup;
 			children = (
-				0079D4A31872C16C00D6F559 /* LogWrapper.h */,
-				0079D4A41872C16C00D6F559 /* LogWrapper.m */,
+				006B249D1887CEE900A61F19 /* LogWrapperApple.h */,
+				006B249E1887CEE900A61F19 /* LogWrapperApple.m */,
 				0079D4C018744B9600D6F559 /* NetworkHelper.h */,
 				0079D4C118744B9600D6F559 /* NetworkHelper.m */,
 				0079D4C218744B9600D6F559 /* NetworkHelperForAppDelegate.h */,
@@ -449,16 +475,18 @@
 			buildActionMask = 2147483647;
 			files = (
 				0079D3FB1870490500D6F559 /* ViewController.m in Sources */,
+				006B249F1887CEE900A61F19 /* LogWrapperApple.m in Sources */,
 				00F06625187646FF002E484F /* LoggerPrimitives.c in Sources */,
 				0079D4D018744BDE00D6F559 /* SimpleThreadPosix.c in Sources */,
+				006B24BE1887DC6100A61F19 /* LogWrapper.c in Sources */,
 				0079D3F21870490500D6F559 /* AppDelegate.m in Sources */,
-				0079D4A51872C16C00D6F559 /* LogWrapper.m in Sources */,
 				0079D4251870497900D6F559 /* Test262Helper.m in Sources */,
 				0079D4331870E81A00D6F559 /* test262.c in Sources */,
 				0079D4C518744B9700D6F559 /* NetworkHelperForAppDelegate.m in Sources */,
 				0079D4991872C12000D6F559 /* LoggerObjC.m in Sources */,
 				0079D4D218744BDE00D6F559 /* SocketServer.c in Sources */,
 				0079D3EE1870490500D6F559 /* main.m in Sources */,
+				006B24AA1887D00D00A61F19 /* LoggerAdapter_NSLog.m in Sources */,
 				0079D4A21872C12000D6F559 /* TimeStamp.c in Sources */,
 				0079D4CF18744BDE00D6F559 /* SimpleMutex.c in Sources */,
 				0079D4C418744B9700D6F559 /* NetworkHelper.m in Sources */,

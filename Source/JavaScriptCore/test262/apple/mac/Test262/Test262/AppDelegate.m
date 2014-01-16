@@ -9,6 +9,7 @@
 #import "AppDelegate.h"
 #import "Test262Helper.h"
 #import "LogWrapper.h"
+#import "LogWrapperApple.h"
 #import "NSAttributedString+Hyperlink.h"
 #import "NetworkHelper.h"
 #import "NetworkHelperForAppDelegate.h"
@@ -36,7 +37,7 @@
 
 @property(strong, nonatomic) NSString* logFileLocationString;
 
-@property(strong, nonatomic) LogWrapper* logWrapper;
+@property(assign, nonatomic) LogWrapper* logWrapper;
 @property(assign, nonatomic) _Bool javaScriptThreadRunning;
 @property(assign, nonatomic) _Bool javaScriptThreadShouldContinueRunning;
 
@@ -51,14 +52,12 @@
 	self = [super init];
 	if(nil != self)
 	{
-		_logWrapper = [[LogWrapper alloc] init];
+		_logWrapper = LogWrapper_Create();
 		_networkHelper = [[NetworkHelper alloc] init];
 		// Assumption is AppDelegate lives for the life of the program, so I don't need to retain it and __bridge is sufficient.
 		SocketServer_SetUploadFileCallback(NetworkHelperForAppDelegate_UploadFile, (__bridge void *)(self));
 
-		// I'm debating if I should use CFBridgingRetain on _logWrapper.
-		// For now, since it also lives the life of the app, I'll ignore it.
-		SocketServer_SetOpenLogStreamCallback(NetworkHelperForAppDelegate_OpenLogStream, (__bridge void *)(_logWrapper), (__bridge void *)(self));
+		SocketServer_SetOpenLogStreamCallback(NetworkHelperForAppDelegate_OpenLogStream, _logWrapper, (__bridge void *)(self));
 
 
 		// Setup initial location for log so network downloads have a shot
@@ -169,7 +168,7 @@
 //	[notification_center addObserver:self selector:@selector(appWillTerminate:) name:NSApplicationWillTerminateNotification object:nil];
 	[notification_center addObserver:self selector:@selector(windowClosing:) name:NSWindowWillCloseNotification object:nil];
 */
-//	LogWrapper_LogEvent([self logWrapper], LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "applicationDidFinishLaunching:", @"Entered applicationDidFinishLaunching");
+//	LogWrapperObjC_LogEvent([self logWrapper], LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "applicationDidFinishLaunching:", @"Entered applicationDidFinishLaunching");
 //	[self runTests];
 }
 
@@ -234,9 +233,11 @@
 	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
 		^{
 			LogWrapper* log_wrapper = [self logWrapper];
-			[log_wrapper openNewFile];
+			LogWrapperApple_OpenNewFile(log_wrapper);
+
 			// Hold on to this reference because logger closeFile will nil its reference.
-			NSString* log_file_path_and_name = [log_wrapper logFilePathAndName];
+			NSString* log_file_path_and_name = [NSString stringWithUTF8String:LogWrapper_GetLogFilePathAndName(log_wrapper)];
+
 			[self setLogFileLocationString:log_file_path_and_name];
 
 
@@ -273,9 +274,9 @@
 
 			[[NSProcessInfo processInfo] endActivity:test262_process_activity];
 
-			[log_wrapper flush];
-			[log_wrapper closeFile];
-
+			LogWrapper_Flush(log_wrapper);
+			LogWrapper_CloseFile(log_wrapper);
+			
 			dispatch_async(dispatch_get_main_queue(),
 				^{
 					// oops. I forgot this does nothing for determinate progress indicators

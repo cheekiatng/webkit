@@ -12,7 +12,8 @@
 #import "SocketServer.h"
 #import "NetworkHelperForAppDelegate.h"
 #import "AppDelegate.h"
-
+#include "LogWrapper.h"
+#include "LogWrapperApple.h"
 
 @interface ViewController ()
 {
@@ -199,9 +200,10 @@
 	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0),
 		^{
 			LogWrapper* log_wrapper = [(AppDelegate*)[[UIApplication sharedApplication] delegate] logWrapper];
-			[log_wrapper openNewFile];
+			LogWrapperApple_OpenNewFile(log_wrapper);
 
-			NSString* log_file_path_and_name = [log_wrapper logFilePathAndName];
+
+			NSString* log_file_path_and_name = [NSString stringWithUTF8String:LogWrapper_GetLogFilePathAndName(log_wrapper)];
 
 
 			Test262Helper_RunTests(test262_progress, log_wrapper,
@@ -211,8 +213,8 @@
 				callbackForAllTestsFinished
 			);
 
-			[log_wrapper flush];
-			[log_wrapper closeFile];
+			LogWrapper_Flush(log_wrapper);
+			LogWrapper_CloseFile(log_wrapper);
 
 			dispatch_async(dispatch_get_main_queue(),
 				^{
