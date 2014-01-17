@@ -1,10 +1,12 @@
 //
-//  Test262Helper.h
-//  Test262
+//  LogWrapper.h
 //
 //  Created by Eric Wing on 12/30/13.
 //  Copyright (c) 2013 JavaScriptCore. All rights reserved.
 //
+
+#ifndef LOGWRAPPER_H
+#define LOGWRAPPER_H
 
 #include "Logger.h"
 
@@ -36,7 +38,7 @@ const char* LogWrapper_GetLogFilePathAndName(LogWrapper* log_wrapper);
 
 // I use variadic macros here because I want to pass the same string message to multiple functions.
 // Without macros, this gets into temporary string creation or nasty platform specific/undefined behavior of va_copy.
-#define LogWrapperLogEvent(log_wrapper, priority, keyword, subkeyword, ...) \
+#define LogWrapper_LogEvent(log_wrapper, priority, keyword, subkeyword, ...) \
 	do \
 	{ \
 		Logger_LogEvent(log_wrapper->loggerFile, priority, keyword, subkeyword, __VA_ARGS__); \
@@ -70,5 +72,7 @@ const char* LogWrapper_GetLogFilePathAndName(LogWrapper* log_wrapper);
 	} \
 	while (0)
 #endif
+
+#endif /* LOGWRAPPER_H */
 
 

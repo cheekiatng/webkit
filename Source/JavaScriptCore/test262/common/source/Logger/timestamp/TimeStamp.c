@@ -32,6 +32,8 @@
 	|| defined (__OpenBSD__) || defined (__NetBSD__) \
 	|| defined (__bsdi__) || defined (__svr4__) \
 	|| defined (bsdi) || defined (__SVR4) \
+	|| defined (__linux__) || defined (linux) || defined (__linux) \
+	|| defined (__ANDROID__) \
 	|| defined (cygwin)
 	#include <sys/time.h>
 #elif defined (_WIN32)
@@ -71,6 +73,8 @@ int TimeStamp_Init()
 	|| defined (__FreeBSD__) || defined (__MACH__) \
 	|| defined (__OpenBSD__) || defined (__NetBSD__) \
 	|| defined (__bsdi__) || defined (__svr4__) \
+	|| defined (__linux__) || defined (linux) || defined (__linux) \
+	|| defined (__ANDROID__) \
 	|| defined (bsdi) || defined (__SVR4) 
 /*	fprintf(stderr, "Timestamp using gettimeofday\n"); */
 	/* not needed for the moment */
@@ -135,6 +139,8 @@ void TimeStamp_GetTimeStamp(char* time_stamp, int buffer_size)
 	|| defined (__OpenBSD__) || defined (__NetBSD__) \
 	|| defined (__bsdi__) || defined (__svr4__) \
 	|| defined (bsdi) || defined (__SVR4) \
+	|| defined (__linux__) || defined (linux) || defined (__linux) \
+	|| defined (__ANDROID__) \
 	|| defined (cygwin)
 	struct timeval time_struct;
 	unsigned short msec;
@@ -193,6 +199,8 @@ const char* TimeStamp_GetStaticTimeStamp()
 	|| defined (__FreeBSD__) || defined (__MACH__) \
 	|| defined (__OpenBSD__) || defined (__NetBSD__) \
 	|| defined (__bsdi__) || defined (__svr4__) \
+	|| defined (__linux__) || defined (linux) || defined (__linux) \
+	|| defined (__ANDROID__) \
 	|| defined (bsdi) || defined (__SVR4) \
 	|| defined (cygwin)
 	struct timeval time_struct;
