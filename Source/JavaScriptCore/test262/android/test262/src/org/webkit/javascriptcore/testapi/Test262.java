@@ -75,7 +75,7 @@ public class Test262 extends Activity
 
 	private org.webkit.javascriptcore.test262.MemoryInfo myMemoryInfo;
 	private boolean isAdbEchoingEnabled = true;
-	private boolean isMemoryInfoLoggingEnabled = true;
+	private boolean isMemoryInfoLoggingEnabled = false;
 
 
 	private Handler networkLoggingHandler;

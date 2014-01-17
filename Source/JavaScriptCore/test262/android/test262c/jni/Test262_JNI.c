@@ -24,6 +24,9 @@
 #include <JavaScriptCore/JSContextRef.h>
 #include <JavaScriptCore/JSStringRef.h>
 
+#include "Test262HelperAndroid.h"
+#include "LogWrapper.h"
+
 #define LOGD(...) ((void)__android_log_print(ANDROID_LOG_INFO,  "Test262", __VA_ARGS__))
 #define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR,  "Test262", __VA_ARGS__))
 
@@ -191,4 +194,75 @@ c_str = NULL;
 	
 	return (jboolean)is_success;
 }
+
+
+_Bool LogWrapperAndroid_OpenNewFile(JNIEnv* env, LogWrapper* log_wrapper)
+{
+	_Bool ret_val;
+    jthrowable exception;	
+    // Get File object for the external storage directory.
+    jclass class_environment = (*env)->FindClass(env, "android/os/Environment");
+    jmethodID method_getExternalStorageDirectory = (*env)->GetStaticMethodID(env, class_environment, "getExternalStorageDirectory", "()Ljava/io/File;"); // public static File getExternalStorageDirectory ()
+    jobject object_file = (*env)->CallStaticObjectMethod(env, class_environment, method_getExternalStorageDirectory);
+    exception = (*env)->ExceptionOccurred(env);
+    if(exception)
+	{
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);
+    }
+
+    // Call method on File object to retrieve String object.
+    jclass class_file = (*env)->GetObjectClass(env, object_file);
+    jmethodID method_getAbsolutePath = (*env)->GetMethodID(env, class_file, "getAbsolutePath", "()Ljava/lang/String;");
+    jstring j_string_path = (*env)->CallObjectMethod(env, object_file, method_getAbsolutePath);
+    exception = (*env)->ExceptionOccurred(env);
+    if (exception)
+	{
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);
+    }
+    // Extract a C string from the String object, and chdir() to it.
+    const char* c_string_path = (*env)->GetStringUTFChars(env, j_string_path, NULL);
+
+	const char* file_name = "test262_runlog.txt";
+
+	// add 1 for separator and 1 for null terminator
+	size_t total_string_length = strlen(c_string_path) + 1 + strlen(file_name) + 1;
+	char* full_path_and_file = (char*)malloc(total_string_length*sizeof(char));
+	strcpy(full_path_and_file, c_string_path);
+	strcat(full_path_and_file, "/");
+	strcat(full_path_and_file, file_name);
+
+	ret_val = LogWrapper_OpenNewFileWithName(log_wrapper, full_path_and_file);
+
+	free(full_path_and_file);
+
+	(*env)->ReleaseStringUTFChars(env, j_string_path, c_string_path);
+	return ret_val;
+
+}
+
+JNIEXPORT void JNICALL Java_org_webkit_javascriptcore_test262_Test262_runTests(JNIEnv* env, jobject thiz, jobject java_asset_manager)
+{
+	LOGD("Java_org_webkit_javascriptcore_test262_Test262_runTests");
+
+	// I'm not sure if I need to
+	AAssetManager* ndk_asset_manager = AAssetManager_fromJava(env, java_asset_manager);
+	/* Saving the object instance so it can be used for calling back into Java. 
+	 * I think I need to call NewGlobalRef on it because it must live past this function,
+	 * otherwise I get the error: 
+	 * JNI ERROR (app bug): accessed stale local reference
+	 */
+//	s_proxyObject = (*env)->NewGlobalRef(env, thiz);
+
+	LogWrapper* log_wrapper = LogWrapper_Create();
+	LogWrapperAndroid_OpenNewFile(env, log_wrapper);
+
+	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Created LogWrapper", "Created logwrapper instance");
+	
+	Test262Helper_RunTests(log_wrapper, ndk_asset_manager);
+
+	LogWrapper_Free(log_wrapper);
+}
+
 

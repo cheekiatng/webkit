@@ -23,6 +23,7 @@ Test262HelperAndroid.c \
 ../../../common/source/CommonUtils.c \
 ../../../common/source/LogWrapper.c \
 ../../../common/source/Logger/clogger/Logger.c \
+../../../common/source/Logger/clogger/LoggerPrimitives.c \
 ../../../common/source/Logger/timestamp/TimeStamp.c \
 ../../../common/source/Logger/CustomAdapterExamples/AndroidLog/LoggerAdapter__android_log.c \
 ../../../common/source/SimpleThread/SimpleMutex.c \

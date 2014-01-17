@@ -133,7 +133,7 @@ char* Test262HelperAndroid_LoadTestHarnessScriptsAndCreateString(size_t* out_buf
 
 	// read the file into the string buffer
 	bytes_read = AAsset_read(asset_test_intl, current_buffer_ptr, file_size_intl);
-	assert(bytes_read == file_size_ed);
+	assert(bytes_read == file_size_intl);
 	AAsset_close(asset_test_intl);	
 	// increment the string file_size_intl for the next write into the buffer
 	current_buffer_ptr = current_buffer_ptr + bytes_read;
@@ -176,6 +176,7 @@ _Bool Test262Helper_DetermineIfPositiveTestFromScript(const char* raw_script)
 	}
 }
 
+static LogWrapper* s_logWrapper = NULL;
 // From the raw character buffer, this will parse for all the newlines, and create an array of strings for each line.
 // This creates a file_list array and returns it. The number of items in the array is returned by reference via out_total_number_of_tests.
 // You will need to pass both of these values to Test262Helper_FreeFileList() to clean up when you are done.
@@ -203,27 +204,31 @@ char** Test262Helper_CreateFileListFromBuffer(const char* restrict file_buffer, 
 	i = 0;
 	while(NULL != (newline_ptr = strchr(begin_ptr, '\n')))
 	{
-		// doesn't include null terminator
+		// Remember: This doesn't include null terminator which we need to add. 
+		// Also remember: This subtraction already omits the newline which we intentionally want to remove.
 		size_t string_length = newline_ptr - begin_ptr;
 		file_list[i] = (char*)malloc( (string_length + 1) * sizeof(char) );
 		// strlcpy copies size-1 and auto-terminates the string.
 		strlcpy(file_list[i], begin_ptr, string_length+1);
+//		strncpy(file_list[i], begin_ptr, string_length+1);
+//		file_list[i] = '\0';
 //		fprintf(stderr, "string_length:%lu, created: %s.\n", string_length, file_list[i]);
+//		LogWrapper_LogEvent(s_logWrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_CreateFileListFromBuffer", "string_length:%lu, for i:%d, created: %s.\n", string_length, i, file_list[i]);
 		
 		i++;
+		// move to the next character after the newline
 		begin_ptr = newline_ptr + 1;
 	}
 	assert(i == total_number_of_files);
 //	fprintf(stderr, "created %lu strings\n", i);
 
-	
-	/*
+/*	
 	for(i=0; i<total_number_of_files; i++)
 	{
-		fprintf(stderr, "%s.\n", file_list[i]);
+	//	fprintf(stderr, "%s.\n", file_list[i]);
+		LogWrapper_LogEvent(s_logWrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_CreateFileListFromBuffer", "file_list[%d]: %s.", i, file_list[i]);
 	}
-	*/
-
+*/
 	if(NULL != out_total_number_of_tests)
 	{
 		*out_total_number_of_tests = total_number_of_files;
@@ -286,9 +291,10 @@ char** Test262HelperAndroid_CreateFileList(size_t* restrict out_total_number_of_
 	AAsset_close(the_asset);
 
 	char** file_list = Test262Helper_CreateFileListFromBuffer(file_buffer, file_size, out_total_number_of_tests);
-	free(file_buffer);
-	
 
+	free(file_buffer);
+
+	return file_list;
 }
 
 #if 1
@@ -302,6 +308,7 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 */
 void Test262Helper_RunTests(LogWrapper* log_wrapper, AAssetManager* asset_manager)
 {
+s_logWrapper = log_wrapper;
 
 	const int TIMESTAMP_LENGTH = 24;
 	char current_time[TIMESTAMP_LENGTH];
@@ -326,11 +333,24 @@ void Test262Helper_RunTests(LogWrapper* log_wrapper, AAssetManager* asset_manage
 
 
 
+	size_t number_of_reallocs_for_raw_script = 0;
+	size_t number_of_reallocs_for_concat_string = 0;
 
 	char* raw_test_script = NULL;
 	size_t raw_test_script_allocated_memory = 0;
 	char* concat_string = NULL;
 	size_t concat_string_allocated_memory = 0;
+//#define TEST262_USE_MAGIC_NUMBERS 1
+// If defined, this will preallocate memory, ideally in a way that doesn't need to keep realloc'ing.
+#if TEST262_USE_MAGIC_NUMBERS
+	// Recording the run, these were the max numbers:
+	// raw_test_script_allocated_memory=59783, concat_string_allocated_memory=132776
+	raw_test_script = (char*)malloc(59784);
+	raw_test_script_allocated_memory = 59784;
+
+	concat_string = (char*)malloc(132776);
+	concat_string_allocated_memory = 132776;
+#endif
 
 //	NSError* the_error = nil;
 //	NSString* file_path = nil;
@@ -349,6 +369,13 @@ void Test262Helper_RunTests(LogWrapper* log_wrapper, AAssetManager* asset_manage
 	char** file_list = Test262HelperAndroid_CreateFileList(&total_number_of_tests, asset_manager);
 
 
+		for(size_t i=0; i<total_number_of_tests; i++)
+	{
+	//	fprintf(stderr, "%s.\n", file_list[i]);
+		LogWrapper_LogEvent(s_logWrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "debug4", "file_list[%d]: %s.", i, file_list[i]);
+	}
+
+
 	
 //		NSString* test_manifiest_file_string = [NSString stringWithContentsOfFile:[[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"test262_filelist.txt"] encoding:NSUTF8StringEncoding error:&the_error];
 //	NSArray* file_list = [test_manifiest_file_string componentsSeparatedByString:@"\n"];
@@ -363,22 +390,38 @@ void Test262Helper_RunTests(LogWrapper* log_wrapper, AAssetManager* asset_manage
 		callback_for_all_tests_starting([file_list count]);
 	}
 #endif
+	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "entering main loop");
 
 	size_t i;
 	for(i=0; i<total_number_of_tests; i++)
 	{
+	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "loop:%d", i);
 		if(!should_keep_running)
 		{
+	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "!should_keep_running");
 			break;
 		}
+		char* file_path = file_list[i];
+	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "assign file_path");
+		if(NULL == file_path)
+		{
+	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "file_path is NULL");
+			current_index_count = current_index_count + 1;
+			continue;			
+		}
+	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "strlen file_path:%d", strlen(file_path));
+		
+	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "file_path:%s", file_path);
+
 		// just in case there is a blank line
-		if(strlen(file_list[i]) == 0)
+		if(strlen(file_path) == 0)
 		{
 			current_index_count = current_index_count + 1;
 //			[ns_progress setCompletedUnitCount:current_index_count];
+	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "strlen==0");
 			continue;
 		}
-		const char* file_path = file_list[i];
+		
 		AAsset* file_asset = AAssetManager_open(asset_manager, file_path, AASSET_MODE_UNKNOWN);
 		if(NULL == file_asset)
 		{
@@ -389,11 +432,13 @@ void Test262Helper_RunTests(LogWrapper* log_wrapper, AAssetManager* asset_manage
 		}
 		off_t file_size = AAsset_getLength(file_asset);
 		// file_size doesn't contain a null terminator, while raw_test_script_allocated_memory does, so adjust accordingly.
-		if(file_size > raw_test_script_allocated_memory-1)
+		if(file_size >= raw_test_script_allocated_memory)
 		{
+//	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "realloc raw_test_script", "file_size:%d", file_size);
 			raw_test_script = realloc(raw_test_script, file_size+1);
 			assert(raw_test_script != NULL);
 			raw_test_script_allocated_memory = file_size+1;
+			number_of_reallocs_for_raw_script++;
 		}
 		int bytes_read = AAsset_read(file_asset, raw_test_script, file_size);
 //		assert(bytes_read == file_size);
@@ -423,6 +468,7 @@ void Test262Helper_RunTests(LogWrapper* log_wrapper, AAssetManager* asset_manage
 			concat_string = realloc(concat_string, needed_bytes_for_full_script);
 			assert(concat_string != NULL);
 			concat_string_allocated_memory = needed_bytes_for_full_script;
+			number_of_reallocs_for_concat_string++;
 		}
 
 		// copy the first string over
@@ -573,6 +619,8 @@ void Test262Helper_RunTests(LogWrapper* log_wrapper, AAssetManager* asset_manage
 	free(raw_test_script);
 	free(test_harness_script_string);
 	Test262Helper_FreeFileList(file_list, total_number_of_tests);
+
+	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Debug Magic Number", "final raw_test_script_allocated_memory=%d, concat_string_allocated_memory=%d\nnumber_of_reallocs_for_raw_script=%d, number_of_reallocs_for_concat_string=%d", raw_test_script_allocated_memory, concat_string_allocated_memory, number_of_reallocs_for_raw_script, number_of_reallocs_for_concat_string);
 
 }
 #endif

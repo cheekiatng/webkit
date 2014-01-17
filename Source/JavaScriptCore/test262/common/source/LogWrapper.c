@@ -56,6 +56,9 @@ LogWrapper* LogWrapper_Create()
 //		int fd = socket(AF_INET, SOCK_STREAM, 0);
 //		FILE *fp = fdopen(fd, "a");
 
+		// for debugging
+//		Logger_EnableAutoFlush(log_wrapper->loggerFile);
+
 	}
 	return log_wrapper;
 }

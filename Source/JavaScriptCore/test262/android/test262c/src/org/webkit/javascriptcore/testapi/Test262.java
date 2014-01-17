@@ -87,6 +87,8 @@ public class Test262 extends Activity
 	public native void doResume();
 	public native void doDestroy();
 	public native boolean evaluateScript(String script_string, String file_name, ReturnDataObject return_data_object);
+	public native void runTests(AssetManager java_asset_manager);
+//	public native void runTests(AssetManager java_asset_manager, LogWrapper* log_wrapper);
 
 	private boolean openLogFile()
 	{
@@ -545,6 +547,28 @@ logFile = out_file;
 
 	public void startTests()
 	{
+		Thread thread = new Thread(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				AssetManager java_asset_manager = Test262.this.getAssets();
+				javaScriptThreadIsRunning = true;				
+				runTests(java_asset_manager);
+				javaScriptThreadIsRunning = false;	
+				javaScriptThread = null;
+			}
+
+		});
+		javaScriptThreadShouldContinueRunning = true;
+		javaScriptThread = thread;
+		thread.start();
+
+	}
+
+/*
+	public void startTestsOld()
+	{
 		millisecondsStartBenchmark = System.currentTimeMillis();
 
 		numberOfFailedTests = 0;
@@ -646,7 +670,7 @@ logFile = out_file;
 //								Log.i("Test262", "Test passed: " + current_file_name);
 						writeToLogFile("Test passed", "Test passed: " + current_file_name);
 					}
-
+*/
 					/* // this will be updated soon enough in the next loop
 					runOnUiThread(new Runnable()
 					{
@@ -659,6 +683,7 @@ logFile = out_file;
 						}
 					});
 					*/
+	/*
 				}
 
 				final long total_execution_time_in_milliseconds = System.currentTimeMillis() - millisecondsStartBenchmark;
@@ -702,6 +727,6 @@ logFile = out_file;
 		javaScriptThread = thread;
 		thread.start();
 	}
-
+*/
 
 }
