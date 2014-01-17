@@ -803,13 +803,19 @@ extern LOGGER_EXPORT void LOGGER_CALLCONVENTION Logger_SetSegmentFormatString(Lo
  * to be slightly tweaked.
  * The original case for this was for redirecting logging through a socket because
  * on Windows, fdopen does not work with a Windows socket so the stdio family doesn't work.
+ * @warning Your custom fputs function must return the number of bytes written instead of what the normal fputs returns.
+ * This is because it is impossible to know what your custom function actually wrote, so the API needs a feedback mechanism
+ * since strlen() on the passed in string is insufficient. 
+ * Failure to do this will break log segementation features as well as anybody checking return values.
+ * If it is impossible to know the exact number (e.g. NSLog), a sensible number can still be useful (e.g. strlen)
+ * to avoid completely breaking calling APIs.
  * @warning Features like autoflush (fflush) and segmentation may need to be 
  * disabled because they are not currently taken into account.
  * @note These functions do not override the echo to stdout/stderr prints.
  *
  *
  * @param logger The pointer to the logger instance.
- * @param custom_puts Override for fputs.
+ * @param custom_puts Override for fputs (but your fputs must return the number of bytes written or < 0 on error.
  * @param custom_printf Override for fprintf.
  * @param custom_printfv Override for vfprintf.
  * @param custom_callback_user_data Userdata that will be passed back to each callback. May be NULL.

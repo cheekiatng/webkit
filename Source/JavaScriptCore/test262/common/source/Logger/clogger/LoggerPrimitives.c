@@ -497,7 +497,7 @@ int LoggerPrimitives_SegmentFile(Logger* logger)
 	char next_file_string[LOGGER_PREALLOCATED_COPY_NAME + LOGGER_PREALLOCATED_SEGMENT_CHARS];
 	/* This is the total number of characters for the extension */
 	int total_num_ext_chars;
-	size_t copy_string_size;
+	int copy_string_size;
 	int ret_flag; 
 	const char* format_string = NULL;
 
@@ -743,16 +743,16 @@ int LoggerPrimitives_PrintHeaderToFileHandle(FILE* file_handle,
 	}
 	else if(NULL == subkeyword)
 	{
-		ret_val += fprintf(file_handle, "%s    %s:    :    PRI=%d\n", time_stamp, keyword, priority);
+		ret_val = fprintf(file_handle, "%s    %s:    :    PRI=%d\n", time_stamp, keyword, priority);
 
 	}
 	else if(NULL == keyword)
 	{
-		ret_val += fprintf(file_handle, "%s    :    %s:    PRI=%d\n", time_stamp, subkeyword, priority);
+		ret_val = fprintf(file_handle, "%s    :    %s:    PRI=%d\n", time_stamp, subkeyword, priority);
 	}
 	else
 	{		
-		ret_val += fprintf(file_handle, "%s    %s:    %s:    PRI=%d\n", time_stamp, keyword, subkeyword, priority);
+		ret_val = fprintf(file_handle, "%s    %s:    %s:    PRI=%d\n", time_stamp, keyword, subkeyword, priority);
 	}
 
 	if(ret_val >= 0)
@@ -795,6 +795,7 @@ int LoggerPrimitives_PrintHeaderWithCustom(Logger* logger,
 	{
 		for(i=0; i<pre_new_lines; i++)
 		{
+			/* customPuts should return the number of bytes written since it is impossible to know what it actually wrote. */
 			ret_val = ((LoggerOpaqueData*)logger->opaqueLoggerData)->customPuts(logger, ((LoggerOpaqueData*)logger->opaqueLoggerData)->customCallbackUserData, priority, keyword, subkeyword, "\n");
 			if(ret_val < 0)
 			{
@@ -802,7 +803,10 @@ int LoggerPrimitives_PrintHeaderWithCustom(Logger* logger,
 				 * that UNLOCKFILE is called in the footer. */
 				return ret_val;
 			}
+			/*
 			byte_counter += sizeof("\n");
+			*/
+			byte_counter += ret_val;
 		}
 	}
 	
@@ -817,16 +821,16 @@ int LoggerPrimitives_PrintHeaderWithCustom(Logger* logger,
 	}
 	else if(NULL == subkeyword)
 	{
-		ret_val += ((LoggerOpaqueData*)logger->opaqueLoggerData)->customPrintf(logger, ((LoggerOpaqueData*)logger->opaqueLoggerData)->customCallbackUserData, priority, keyword, subkeyword, "%s    %s:    :    PRI=%d\n", time_stamp, keyword, priority);
+		ret_val = ((LoggerOpaqueData*)logger->opaqueLoggerData)->customPrintf(logger, ((LoggerOpaqueData*)logger->opaqueLoggerData)->customCallbackUserData, priority, keyword, subkeyword, "%s    %s:    :    PRI=%d\n", time_stamp, keyword, priority);
 
 	}
 	else if(NULL == keyword)
 	{
-		ret_val += ((LoggerOpaqueData*)logger->opaqueLoggerData)->customPrintf(logger, ((LoggerOpaqueData*)logger->opaqueLoggerData)->customCallbackUserData, priority, keyword, subkeyword, "%s    :    %s:    PRI=%d\n", time_stamp, subkeyword, priority);
+		ret_val = ((LoggerOpaqueData*)logger->opaqueLoggerData)->customPrintf(logger, ((LoggerOpaqueData*)logger->opaqueLoggerData)->customCallbackUserData, priority, keyword, subkeyword, "%s    :    %s:    PRI=%d\n", time_stamp, subkeyword, priority);
 	}
 	else
 	{		
-		ret_val += ((LoggerOpaqueData*)logger->opaqueLoggerData)->customPrintf(logger, ((LoggerOpaqueData*)logger->opaqueLoggerData)->customCallbackUserData, priority, keyword, subkeyword, "%s    %s:    %s:    PRI=%d\n", time_stamp, keyword, subkeyword, priority);
+		ret_val = ((LoggerOpaqueData*)logger->opaqueLoggerData)->customPrintf(logger, ((LoggerOpaqueData*)logger->opaqueLoggerData)->customCallbackUserData, priority, keyword, subkeyword, "%s    %s:    %s:    PRI=%d\n", time_stamp, keyword, subkeyword, priority);
 	}
 
 	if(ret_val >= 0)
@@ -929,7 +933,11 @@ int LoggerPrimitives_PrintFooterWithCustom(Logger* logger,
 	error_flag = ((LoggerOpaqueData*)logger->opaqueLoggerData)->customPuts(logger, ((LoggerOpaqueData*)logger->opaqueLoggerData)->customCallbackUserData, priority, keyword, subkeyword, LOGGER_LOGENDTOKEN);
 	if(error_flag >= 0)
 	{
+		/* customPuts should return the number of bytes written since it is impossible to know what it actually wrote. */
+		/*
 		byte_counter += sizeof(LOGGER_LOGENDTOKEN);
+		*/
+		byte_counter += error_flag;		
 	}
 	
 	if(post_new_lines > 0)
@@ -941,7 +949,10 @@ int LoggerPrimitives_PrintFooterWithCustom(Logger* logger,
 			 * messages might be less helpful. */
 			if(ret_val >= 0)
 			{
+				/*
 				byte_counter += sizeof("\n");
+				*/
+				byte_counter += ret_val;		
 			}
 			else if(0 == error_flag)
 			{
