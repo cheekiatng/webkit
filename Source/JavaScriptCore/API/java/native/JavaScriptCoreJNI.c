@@ -99,7 +99,7 @@ const JSValueRef* js_argv = NULL;\
 if (argc > 0) js_argv = (*env)->GetDirectBufferAddress(env, argv);\
 JSObjectRef varout = callfunc(ctx, argc, js_argv, &exceptionStore);
 
-/* Release jstring local reference */
+/* Delete Java local reference */
 #define JAVA_DELETE_LOCALREF(varin)\
 if (varin != NULL) (*env)->DeleteLocalRef(env, varin);
 
