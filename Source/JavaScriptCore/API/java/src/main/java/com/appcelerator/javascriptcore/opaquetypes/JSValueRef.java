@@ -13,6 +13,10 @@ public class JSValueRef extends PointerType {
         this.context = context;
     }
 
+    public JSContextRef getContext() {
+        return this.context;
+    }
+
     public double toDouble() {
         checkContext();
         return jsc.JSValueToNumber(context, this, null);

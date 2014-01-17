@@ -93,12 +93,12 @@ public class JSStaticFunctions {
         namesCache.add(name);
     }
 
-    private HashMap<Long, HashMap<Long, String>> functionPointers = new HashMap<Long, HashMap<Long, String>>();
+    private HashMap<Long, HashMap<Long, Integer>> functionPointers = new HashMap<Long, HashMap<Long, Integer>>(JavaScriptCoreLibrary.numberOfJSObjectBuckets);
     public void registerFunctions(long object, long[] pointers) {
         removeObject(object);
-        HashMap<Long, String> funcs = new HashMap<Long, String>();
+        HashMap<Long, Integer> funcs = new HashMap<Long, Integer>();
         for (int i = 0; i < pointers.length; i++) {
-            funcs.put(pointers[i], namesCache.get(i));
+            funcs.put(pointers[i], i);
         }
         functionPointers.put(object, funcs);       
     }
@@ -114,7 +114,7 @@ public class JSStaticFunctions {
     public JSObjectCallAsFunctionCallback getFunction(long object, long pointer) {
         if (!functionPointers.containsKey(object)) return null;
         if (!functionPointers.get(object).containsKey(pointer)) return null;
-        return functions.get(functionPointers.get(object).get(pointer)).callback;
+        return functions.get(namesCache.get(functionPointers.get(object).get(pointer))).callback;
     }
 
     private class JSStaticFunction {

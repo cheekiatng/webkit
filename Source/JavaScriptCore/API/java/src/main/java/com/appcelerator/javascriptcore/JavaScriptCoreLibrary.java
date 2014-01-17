@@ -37,6 +37,13 @@ public class JavaScriptCoreLibrary {
     public static final short SizeOfJSStaticFunction = NativeSizeOfJSStaticFunction();
 
     /*
+     * Number of buckets for JS object map that is used by callbacks. 
+     * If object map requires more bucket HashMap rehash and GC is taking place.
+     * If you want to avoid GC to handle more JS objects just increase this number.
+     */
+    public static int numberOfJSObjectBuckets = 16384;
+
+    /*
      * Singleton
      */
     private JavaScriptCoreLibrary() {}
