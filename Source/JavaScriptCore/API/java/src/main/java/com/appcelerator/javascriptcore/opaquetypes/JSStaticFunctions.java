@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.ArrayList;
 
+import com.appcelerator.javascriptcore.util.LongSparseArray;
+
 import com.appcelerator.javascriptcore.JavaScriptCoreLibrary;
 import com.appcelerator.javascriptcore.JavaScriptException;
 import com.appcelerator.javascriptcore.callbacks.JSObjectCallAsFunctionCallback;
@@ -93,10 +95,10 @@ public class JSStaticFunctions {
         namesCache.add(name);
     }
 
-    private HashMap<Long, HashMap<Long, Integer>> functionPointers = new HashMap<Long, HashMap<Long, Integer>>(JavaScriptCoreLibrary.numberOfJSObjectBuckets);
+    private LongSparseArray<LongSparseArray<Integer>> functionPointers = new LongSparseArray<LongSparseArray<Integer>>(JavaScriptCoreLibrary.numberOfJSObjectBuckets);
     public void registerFunctions(long object, long[] pointers) {
         removeObject(object);
-        HashMap<Long, Integer> funcs = new HashMap<Long, Integer>();
+        LongSparseArray<Integer> funcs = new LongSparseArray<Integer>();
         for (int i = 0; i < pointers.length; i++) {
             funcs.put(pointers[i], i);
         }
@@ -108,12 +110,12 @@ public class JSStaticFunctions {
     }
 
     public boolean requestFunctions(long object) {
-        return !functionPointers.containsKey(object);
+        return functionPointers.get(object) == null;
     }
 
     public JSObjectCallAsFunctionCallback getFunction(long object, long pointer) {
-        if (!functionPointers.containsKey(object)) return null;
-        if (!functionPointers.get(object).containsKey(pointer)) return null;
+        if (functionPointers.get(object) == null) return null;
+        if (functionPointers.get(object).get(pointer) == null) return null;
         return functions.get(namesCache.get(functionPointers.get(object).get(pointer))).callback;
     }
 
