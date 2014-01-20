@@ -225,6 +225,10 @@ logFile = out_file;
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 
+		// invoke C-side initialization
+		AssetManager java_asset_manager = this.getAssets();
+		doInit(java_asset_manager);
+
 		ActivityManager activity_manager = (ActivityManager)this.getSystemService(ACTIVITY_SERVICE);
 		myMemoryInfo = new org.webkit.javascriptcore.test262.MemoryInfo(activity_manager);
 
@@ -363,6 +367,13 @@ logFile = out_file;
 		Log.i("Test262", "calling onPause");
 		
 		doPause();
+		// Even though the logging service itself may still be up, disable the advertising because 
+		// I'm hitting an Android bug where if the app crashes or is killed via adb (re)install,
+		// the old service persists and never gets reaped, even when the can't connect failure
+		// should propagate and remove itself. 
+		// Additionally, the service stays until the device is rebooted.
+		// So something in the OS is not cleaning up correctly.
+        zeroconfHelper.tearDown();		
 		super.onPause();
 	}
 
@@ -372,6 +383,7 @@ logFile = out_file;
 		Log.i("Test262", "calling onResume");
 		
 		super.onResume();
+		zeroconfHelper.registerService(loggingConnection.getLocalPort());
 		doResume();
 	}
 

@@ -139,29 +139,42 @@ public class NsdHelper {
             
             @Override
             public void onRegistrationFailed(NsdServiceInfo arg0, int arg1) {
+                    Log.d(TAG, "onRegistrationFailed " + mServiceName);
+				
             }
 
             @Override
             public void onServiceUnregistered(NsdServiceInfo arg0) {
-            }
+                    Log.d(TAG, "onServiceUnregistered " + mServiceName);
+            
+			}
             
             @Override
             public void onUnregistrationFailed(NsdServiceInfo serviceInfo, int errorCode) {
-            }
+                    Log.d(TAG, "onUnregistrationFailed " + errorCode);
+
+		  	}
             
         };
     }
 
-    public void registerService(int port) {
-        NsdServiceInfo serviceInfo  = new NsdServiceInfo();
-        serviceInfo.setPort(port);
-        serviceInfo.setServiceName(mServiceName);
-        serviceInfo.setServiceType(SERVICE_TYPE);
+    public void registerService(int port)
+	{
+		// Problem: onCreate and onResume end up calling this method twice.
+		// The easy solution is to check a registration flag.
+		// But this may impact a general case of trying to register multiple ports/services.
+		if(!isRegistered)
+		{
+        	NsdServiceInfo serviceInfo  = new NsdServiceInfo();
+        	serviceInfo.setPort(port);
+        	serviceInfo.setServiceName(mServiceName);
+        	serviceInfo.setServiceType(SERVICE_TYPE);
         
-        mNsdManager.registerService(
-                serviceInfo, NsdManager.PROTOCOL_DNS_SD, mRegistrationListener);
-		isRegistered = true;
-        
+        	mNsdManager.registerService(
+					serviceInfo, NsdManager.PROTOCOL_DNS_SD, mRegistrationListener);
+			isRegistered = true;
+			Log.d(TAG, "in registerService, calling registerService");
+		}
     }
 
     public void discoverServices() {
@@ -187,6 +200,7 @@ public class NsdHelper {
     public void tearDown() {
 		if(isRegistered)
 		{
+			Log.d(TAG, "in tearDown, calling unregisterService");
         	mNsdManager.unregisterService(mRegistrationListener);
 			isRegistered = false;
 		}

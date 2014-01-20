@@ -43,13 +43,13 @@ extern _Bool Test262_EvaluateStringScript(JSStringRef js_script_string, JSString
 
 //static jobject s_proxyObject;
 static JavaVM* s_javaVm;
+static LogWrapper* s_logWrapper;
 
 jint JNI_OnLoad(JavaVM* java_vm, void* reserved)
 {
 	s_javaVm = java_vm;
 	return JNI_VERSION_1_6;
 }
-
 
 /* Returns a const char* which must be freed by you when done */
 static const char* jstringToC(JNIEnv* jni_env, jstring original_jstring)
@@ -108,6 +108,8 @@ JNIEXPORT jboolean JNICALL Java_org_webkit_javascriptcore_test262_Test262_doInit
 //	s_proxyObject = (*env)->NewGlobalRef(env, thiz);
 
 
+	s_logWrapper = LogWrapper_Create();
+
 	return JNI_TRUE;
 }
 
@@ -128,6 +130,9 @@ JNIEXPORT void JNICALL Java_org_webkit_javascriptcore_test262_Test262_doDestroy(
 	/* Release the proxy object. */
 //	(*env)->DeleteGlobalRef(env, s_proxyObject);
 //	s_proxyObject = NULL;
+
+	LogWrapper_Free(s_logWrapper);
+	s_logWrapper = NULL;
 
 	LOGD("Java_org_webkit_javascriptcore_test262_Test262_doDestroy end");
 
@@ -195,7 +200,8 @@ c_str = NULL;
 	return (jboolean)is_success;
 }
 
-
+// Basically the JNI way to invoke:
+// Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "test262_runlog.txt"; 
 _Bool LogWrapperAndroid_OpenNewFile(JNIEnv* env, LogWrapper* log_wrapper)
 {
 	_Bool ret_val;
@@ -230,6 +236,7 @@ _Bool LogWrapperAndroid_OpenNewFile(JNIEnv* env, LogWrapper* log_wrapper)
 	size_t total_string_length = strlen(c_string_path) + 1 + strlen(file_name) + 1;
 	char* full_path_and_file = (char*)malloc(total_string_length*sizeof(char));
 	strcpy(full_path_and_file, c_string_path);
+	// I'm lazy. I probably should call File.separator, but I know '/' is fine.
 	strcat(full_path_and_file, "/");
 	strcat(full_path_and_file, file_name);
 
@@ -255,14 +262,17 @@ JNIEXPORT void JNICALL Java_org_webkit_javascriptcore_test262_Test262_runTests(J
 	 */
 //	s_proxyObject = (*env)->NewGlobalRef(env, thiz);
 
-	LogWrapper* log_wrapper = LogWrapper_Create();
+	LogWrapper* log_wrapper = s_logWrapper;
 	LogWrapperAndroid_OpenNewFile(env, log_wrapper);
 
 	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Created LogWrapper", "Created logwrapper instance");
 	
 	Test262Helper_RunTests(log_wrapper, ndk_asset_manager);
 
-	LogWrapper_Free(log_wrapper);
+	LogWrapper_Flush(log_wrapper);
+	LogWrapper_CloseFile(log_wrapper);
+
+//	LogWrapper_Free(log_wrapper);
 }
 
 
