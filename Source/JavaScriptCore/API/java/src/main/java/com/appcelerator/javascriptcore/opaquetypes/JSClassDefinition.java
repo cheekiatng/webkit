@@ -587,17 +587,17 @@ public class JSClassDefinition {
             staticValues = null;
         }
         
-        setPropertyChain = null;
-        getPropertyChain = null;
-        convertToTypeChain = null;
-        deletePropertyChain = null;
-        getPropertyNamesChain = null;
-        hasPropertyChain = null;
-        functionCallbacks = null;
-        hasInstanceChain = null;
-        constructorCallbacks = null;
-        functionCallbacks = null;
-        callAsConstructorChain = null;
+        setPropertyChain.clear();
+        getPropertyChain.clear();
+        convertToTypeChain.clear();
+        deletePropertyChain.clear();
+        getPropertyNamesChain.clear();
+        hasPropertyChain.clear();
+        functionCallbacks.clear();
+        hasInstanceChain.clear();
+        constructorCallbacks.clear();
+        functionCallbacks.clear();
+        callAsConstructorChain.clear();
 
         parentClass = null;
         initialize  = null;
@@ -611,6 +611,10 @@ public class JSClassDefinition {
         callAsConstructor = null;
         hasInstance = null;
         convertToType = null;
+
+        hasParent = false;
+        forceCallAsConstructor = false;
+        forceFinaizeCall       = true;
     }
 
     private void constructBufferTemplate() {
