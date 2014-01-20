@@ -261,7 +261,7 @@ public class JSClassDefinition {
         clearStaticFunctions(object);
     }
 
-    private static LongSparseArray<JSClassDefinition> setPropertyChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfJSObjectBuckets);
+    private static LongSparseArray<JSClassDefinition> setPropertyChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfPrototypeHierarchy);
     public boolean JSObjectSetPropertyCallback(long ctx, long object, String propertyName, long value, long exception) {
         if (setPropertyChain.get(object) != null && !this.equals(setPropertyChain.get(object))) {
             return setPropertyChain.get(object).JSObjectSetPropertyCallback(ctx, object, propertyName, value, exception);
@@ -283,7 +283,7 @@ public class JSClassDefinition {
         return false;
     }
 
-    private static LongSparseArray<JSClassDefinition> getPropertyChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfJSObjectBuckets);
+    private static LongSparseArray<JSClassDefinition> getPropertyChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfPrototypeHierarchy);
     public long JSObjectGetPropertyCallback(long ctx, long object, String propertyName, long exception) {
         if (getPropertyChain.get(object) != null && !this.equals(getPropertyChain.get(object))) {
             return getPropertyChain.get(object).JSObjectGetPropertyCallback(ctx, object, propertyName, exception);
@@ -337,7 +337,7 @@ public class JSClassDefinition {
         throw new JavaScriptException(String.format("Static function callback does not found for %d", thisObject));
     }
 
-    private static LongSparseArray<JSClassDefinition> callAsConstructorChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfJSObjectBuckets);
+    private static LongSparseArray<JSClassDefinition> callAsConstructorChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfPrototypeHierarchy);
     public long JSObjectCallAsConstructorCallback(long ctx, long constructor, int argc, ByteBuffer argv, long exception) {
         if (callAsConstructorChain.get(constructor) != null && !this.equals(callAsConstructorChain.get(constructor))) {
             return callAsConstructorChain.get(constructor).JSObjectCallAsConstructorCallback(ctx, constructor, argc, argv, exception);
@@ -365,7 +365,7 @@ public class JSClassDefinition {
     /*
      * Static CallAsFunction callbacks for JSObjectMakeFunctionWithCallback
      */
-    private static LongSparseArray<JSObjectCallAsFunctionCallback> functionCallbacks = new LongSparseArray<JSObjectCallAsFunctionCallback>(JavaScriptCoreLibrary.numberOfJSObjectBuckets);
+    private static LongSparseArray<JSObjectCallAsFunctionCallback> functionCallbacks = new LongSparseArray<JSObjectCallAsFunctionCallback>(JavaScriptCoreLibrary.numberOfPrototypeHierarchy);
     public static void registerMakeFunctionCallback(long function, JSObjectCallAsFunctionCallback callback) {
         functionCallbacks.put(function, callback);
     }
@@ -384,7 +384,7 @@ public class JSClassDefinition {
     /* 
      * Static CallAsConstructor callbacks for JSObjectMakeConstructor
      */
-    private static LongSparseArray<JSObjectCallAsConstructorCallback> constructorCallbacks = new LongSparseArray<JSObjectCallAsConstructorCallback>(JavaScriptCoreLibrary.numberOfJSObjectBuckets);
+    private static LongSparseArray<JSObjectCallAsConstructorCallback> constructorCallbacks = new LongSparseArray<JSObjectCallAsConstructorCallback>(JavaScriptCoreLibrary.numberOfPrototypeHierarchy);
     public static void registerMakeConstructorCallback(long constructor, JSObjectCallAsConstructorCallback callback) {
         constructorCallbacks.put(constructor, callback);
     }
@@ -399,7 +399,7 @@ public class JSClassDefinition {
         throw new JavaScriptException(String.format("JSObjectMakeConstructor callback does not found for %d", constructor));
     }
 
-    private static LongSparseArray<JSClassDefinition> convertToTypeChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfJSObjectBuckets);
+    private static LongSparseArray<JSClassDefinition> convertToTypeChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfPrototypeHierarchy);
     public long JSObjectConvertToTypeCallback(long ctx, long object, int type, long exception) {
         if (convertToTypeChain.get(object) != null && !this.equals(convertToTypeChain.get(object))) {
             return convertToTypeChain.get(object).JSObjectConvertToTypeCallback(ctx, object, type, exception);
@@ -423,7 +423,7 @@ public class JSClassDefinition {
         return 0;
     }
     
-    private static LongSparseArray<JSClassDefinition> deletePropertyChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfJSObjectBuckets);
+    private static LongSparseArray<JSClassDefinition> deletePropertyChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfPrototypeHierarchy);
     public boolean JSObjectDeletePropertyCallback(long ctx, long object, String name, long exception) {
         if (deletePropertyChain.get(object) != null && !this.equals(deletePropertyChain.get(object))) {
             return deletePropertyChain.get(object).JSObjectDeletePropertyCallback(ctx, object, name, exception);
@@ -444,7 +444,7 @@ public class JSClassDefinition {
         return false;
     }
 
-    private static LongSparseArray<JSClassDefinition> getPropertyNamesChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfJSObjectBuckets);
+    private static LongSparseArray<JSClassDefinition> getPropertyNamesChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfPrototypeHierarchy);
     public void JSObjectGetPropertyNamesCallback(long ctx, long object, long propertyNames) {
         if (getPropertyNamesChain.get(object) != null && !this.equals(getPropertyNamesChain.get(object))) {
             getPropertyNamesChain.get(object).JSObjectGetPropertyNamesCallback(ctx, object, propertyNames);
@@ -467,7 +467,7 @@ public class JSClassDefinition {
         return;
     }
 
-    private static LongSparseArray<JSClassDefinition> hasInstanceChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfJSObjectBuckets);
+    private static LongSparseArray<JSClassDefinition> hasInstanceChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfPrototypeHierarchy);
     public boolean JSObjectHasInstanceCallback(long ctx, long constructor, long possibleInstance, long exception) {
         if (hasInstanceChain.get(constructor) != null && !this.equals(hasInstanceChain.get(constructor))) {
             return hasInstanceChain.get(constructor).JSObjectHasInstanceCallback(ctx, constructor, possibleInstance, exception);
@@ -489,7 +489,7 @@ public class JSClassDefinition {
         return false;
     }
 
-    private static LongSparseArray<JSClassDefinition> hasPropertyChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfJSObjectBuckets);
+    private static LongSparseArray<JSClassDefinition> hasPropertyChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfPrototypeHierarchy);
     public boolean JSObjectHasPropertyCallback(long ctx, long object, String name) {
         if (hasPropertyChain.get(object) != null && !this.equals(hasPropertyChain.get(object))) {
             return hasPropertyChain.get(object).JSObjectHasPropertyCallback(ctx, object, name);

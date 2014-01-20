@@ -41,7 +41,13 @@ public class JavaScriptCoreLibrary {
      * If object map requires more bucket, LongSparseArray realocates the map and GC may be taking place.
      * If you want to avoid GC to handle more JS objects just increase this number.
      */
-    public static int numberOfJSObjectBuckets = 16;
+    public static int numberOfJSObjectBuckets = 16384;
+
+    /*
+     * Number of buckets for prototype hierarchy that is used by callbacks.
+     * If hierarchy map requires more space, LongSparseArray reallocates the map.
+     */
+    public static int numberOfPrototypeHierarchy = 16;
 
     /*
      * Singleton
