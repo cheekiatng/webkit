@@ -371,7 +371,7 @@ static JSObjectRef NativeCallback_JSObjectCallAsConstructorCallback(
                             (jlong)ctx, (jlong)constructor, (jint)argc, argvbuffer, (jlong)exception);
         JAVA_DELETE_LOCALREF(argvbuffer);
     } else {
-        LOGD("Constructor callback does not found for %lu", (long)constructor);
+        LOGD("Constructor callback is not found for %lu", (long)constructor);
     }
     JNI_ENV_EXIT
 
@@ -685,8 +685,7 @@ data is set on the created object before the intialize methods in its class chai
 */
 JNIEXPORT jlong JNICALL
 Java_com_appcelerator_javascriptcore_JavaScriptCoreLibrary_NativeJSObjectMake
-    (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsClassRef,
-     jobject callback, jobject staticFunctionsBuffer, jint staticFunctionCount, jobject object)
+    (JNIEnv *env, jobject thiz, jlong jsContextRef, jlong jsClassRef, jobject callback, jobject object)
 {
     LOGD("JSObjectMake");
     JSContextRef ctx = (JSContextRef)jsContextRef;

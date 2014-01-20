@@ -2,6 +2,7 @@ package com.appcelerator.javascriptcore.opaquetypes;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.HashMap;
 
 import com.appcelerator.javascriptcore.util.LongSparseArray;
 
@@ -317,7 +318,7 @@ public class JSClassDefinition {
         if (hasParent) {
             return parentClass.getDefinition().JSObjectCallAsFunctionCallback(ctx, func, thisObject, argc, argv, exception);
         }
-        throw new JavaScriptException(String.format("CallAsFunction callback does not found for %d", thisObject));
+        throw new JavaScriptException(String.format("CallAsFunction callback is not found for %d", thisObject));
     }
 
     public long JSObjectStaticFunctionCallback(long ctx, long func, long thisObject, int argc, ByteBuffer argv, long exception) {
@@ -334,7 +335,7 @@ public class JSClassDefinition {
         if (hasParent) {
             return parentClass.getDefinition().JSObjectStaticFunctionCallback(ctx, func, thisObject, argc, argv, exception);
         }
-        throw new JavaScriptException(String.format("Static function callback does not found for %d", thisObject));
+        throw new JavaScriptException(String.format("Static function callback is not found for %d", thisObject));
     }
 
     private static LongSparseArray<JSClassDefinition> callAsConstructorChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfPrototypeHierarchy);
@@ -359,13 +360,13 @@ public class JSClassDefinition {
         } else {
             callAsConstructorChain.remove(constructor);
         }
-        throw new JavaScriptException(String.format("CallAsConstructor callback does not found for %d", constructor));
+        throw new JavaScriptException(String.format("CallAsConstructor callback is not found for %d", constructor));
     }
 
     /*
      * Static CallAsFunction callbacks for JSObjectMakeFunctionWithCallback
      */
-    private static LongSparseArray<JSObjectCallAsFunctionCallback> functionCallbacks = new LongSparseArray<JSObjectCallAsFunctionCallback>(JavaScriptCoreLibrary.numberOfPrototypeHierarchy);
+    private static HashMap<Long, JSObjectCallAsFunctionCallback> functionCallbacks = new HashMap<Long, JSObjectCallAsFunctionCallback>(JavaScriptCoreLibrary.numberOfJSObjectBuckets);
     public static void registerMakeFunctionCallback(long function, JSObjectCallAsFunctionCallback callback) {
         functionCallbacks.put(function, callback);
     }
@@ -378,13 +379,13 @@ public class JSClassDefinition {
                                             new JSObjectRef(context, thisObject),
                                             argc, jargv, new Pointer(exception)));
         }
-        throw new JavaScriptException(String.format("JSObjectMakeFunctionWithCallback callback does not found for %d", thisObject));
+        throw new JavaScriptException(String.format("JSObjectMakeFunctionWithCallback callback is not found for %d", thisObject));
     }
 
     /* 
      * Static CallAsConstructor callbacks for JSObjectMakeConstructor
      */
-    private static LongSparseArray<JSObjectCallAsConstructorCallback> constructorCallbacks = new LongSparseArray<JSObjectCallAsConstructorCallback>(JavaScriptCoreLibrary.numberOfPrototypeHierarchy);
+    private static HashMap<Long, JSObjectCallAsConstructorCallback> constructorCallbacks = new HashMap<Long, JSObjectCallAsConstructorCallback>(JavaScriptCoreLibrary.numberOfJSObjectBuckets);
     public static void registerMakeConstructorCallback(long constructor, JSObjectCallAsConstructorCallback callback) {
         constructorCallbacks.put(constructor, callback);
     }
@@ -396,7 +397,7 @@ public class JSClassDefinition {
                                             context, new JSObjectRef(context, constructor),
                                             argc, jargv, new Pointer(exception)));
         }
-        throw new JavaScriptException(String.format("JSObjectMakeConstructor callback does not found for %d", constructor));
+        throw new JavaScriptException(String.format("JSObjectMakeConstructor callback is not found for %d", constructor));
     }
 
     private static LongSparseArray<JSClassDefinition> convertToTypeChain = new LongSparseArray<JSClassDefinition>(JavaScriptCoreLibrary.numberOfPrototypeHierarchy);
@@ -539,7 +540,7 @@ public class JSClassDefinition {
         if (hasParent) {
             return parentClass.getDefinition().JSObjectGetStaticValueCallback(ctx, object, propertyName, exception);
         }
-        throw new JavaScriptException(String.format("Static value '%s' callback does not found for %d", propertyName, object));
+        throw new JavaScriptException(String.format("Static value '%s' callback is not found for %d", propertyName, object));
     }
 
     public JSClassDefinition copy() {
