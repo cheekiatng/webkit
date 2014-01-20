@@ -74,12 +74,18 @@ public class JSStaticFunctions {
     }
 
     public void dispose() {
-        functionPointers.clear();
-        functionPointers = null;
-        bufferTemplate.clear();
-        bufferTemplate = null;
-        if (buffer != null) buffer.clear();
-        buffer = null;
+        if (functionPointers != null) {
+            functionPointers.clear();
+            functionPointers = null;
+        }
+        if (bufferTemplate != null) {
+            bufferTemplate.clear();
+            bufferTemplate = null;
+        }
+        if (buffer != null) {
+            buffer.clear();
+            buffer = null;
+        }
         namesCache  = null;
         functions = null;
         if (addressForNames != null) JavaScriptCoreLibrary.NativeReleasePointers(addressForNames);

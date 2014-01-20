@@ -59,10 +59,14 @@ public class JSStaticValues {
     }
 
     public void dispose() {
-        bufferTemplate.clear();
-        bufferTemplate = null;
-        if (buffer != null) buffer.clear();
-        buffer = null;
+        if (bufferTemplate != null) {
+            bufferTemplate.clear();
+            bufferTemplate = null;
+        }
+        if (buffer != null) {
+            buffer.clear();
+            buffer = null;
+        }
         namesCache = null;
         values = null;
         if (addressForNames != null) JavaScriptCoreLibrary.NativeReleasePointers(addressForNames);
