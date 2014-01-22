@@ -26,7 +26,6 @@ Common Errors:
 - Error about \r in build-generated-files.sh: Git mangled your line endings, so you need to set core.autocrlf to false and re-clone the repository.
 
 
-
 =============================================================================================
 Android
 =============================================================================================
@@ -193,11 +192,42 @@ WebKit via CMake
 mkdir -p BUILD_WEBKIT
 cd BUILD_WEBKIT
 
-cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_CMAKE_TOOLCHAIN_ROOT/android.toolchain.cmake -DANDROID_ABI=armeabi-v7a -DCMAKE_BUILD_TYPE=Debug  -DANDROID_STANDALONE_TOOLCHAIN=$NDK_STANDALONE_TOOLCHAIN_ROOT -DANDROID_USE_STLPORT=1 -DENABLE_WEBKIT=0 -ENABLE_WEBCORE=0 -DENABLE_TOOLS=0 -DENABLE_WEBKIT=0 -DENABLE_WEBKIT2=0 -DENABLE_API_TESTS=0 -DPORT=Android -DCMAKE_FIND_ROOT_PATH=$MY_ICU_ROOT_DIR/build_icu_android/icu_build -DPYTHON_EXECUTABLE=/usr/bin/python -DPERL_EXECUTABLE=/usr/bin/perl -DRUBY_EXECUTABLE=/usr/bin/ruby -DENABLE_LLINT=1 -DSHARED_CORE=1 ../webkit/
+# Please note: To have simultaneous debug and release versions, you should leverage CMake's out-of-source build feature and generate each in separate directories/passes.
+# (Watch Getting Started With CMake: An End-User's Perspective Part 6 if you don't understand this concept.)
+
+# Special Note: -DEXPORT_ONLY_PUBLIC_SYMBOLS=1 is best used all the time, but some accessories like the jsc shell tool and testapi use private API which this will break. The examples below set this flag only for Release builds.
+
+# Additional Note: Change the CMAKE_INSTALL_PREFIX below to what you really want. 
+# The below examples make it a peer directory to webkit and your build directory.
+
+# debug version (do this or the release version, but not both at the same time)
+cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_CMAKE_TOOLCHAIN_ROOT/android.toolchain.cmake -DANDROID_ABI=armeabi-v7a -DCMAKE_BUILD_TYPE=Debug  -DANDROID_STANDALONE_TOOLCHAIN=$NDK_STANDALONE_TOOLCHAIN_ROOT -DANDROID_USE_STLPORT=1 -DENABLE_WEBKIT=0 -ENABLE_WEBCORE=0 -DENABLE_TOOLS=0 -DENABLE_WEBKIT=0 -DENABLE_WEBKIT2=0 -DENABLE_API_TESTS=0 -DPORT=Android -DCMAKE_FIND_ROOT_PATH=$MY_ICU_ROOT_DIR/build_icu_android/icu_build -DPYTHON_EXECUTABLE=/usr/bin/python -DPERL_EXECUTABLE=/usr/bin/perl -DRUBY_EXECUTABLE=/usr/bin/ruby -DENABLE_LLINT=1 -DSHARED_CORE=1 -DCMAKE_INSTALL_PREFIX=../AndroidModulesDebug/JavaScriptCore ../webkit/
+
+# release version
+# cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_CMAKE_TOOLCHAIN_ROOT/android.toolchain.cmake -DANDROID_ABI=armeabi-v7a -DCMAKE_BUILD_TYPE=MinSizeRel -DANDROID_STANDALONE_TOOLCHAIN=$NDK_STANDALONE_TOOLCHAIN_ROOT -DANDROID_USE_STLPORT=1 -DENABLE_WEBKIT=0 -ENABLE_WEBCORE=0 -DENABLE_TOOLS=0 -DENABLE_WEBKIT=0 -DENABLE_WEBKIT2=0 -DENABLE_API_TESTS=0 -DPORT=Android -DCMAKE_FIND_ROOT_PATH=$MY_ICU_ROOT_DIR/build_icu_android/icu_build -DPYTHON_EXECUTABLE=/usr/bin/python -DPERL_EXECUTABLE=/usr/bin/perl -DRUBY_EXECUTABLE=/usr/bin/ruby -DENABLE_LLINT=1 -DSHARED_CORE=1 -DEXPORT_ONLY_PUBLIC_SYMBOLS=1 -DCMAKE_INSTALL_PREFIX=../AndroidModulesRelease/JavaScriptCore ../webkit/
+
 
 # If all goes well, the project should have successfully generated makefiles.
 # make
 # Use more cores
 make -j4
 # alternatively to see raw commands: make -j4 VERBOSE=1
+
+# To install
+make install
+
+
+# This will install the libraries with an Android.mk inside designed to conform to Android's external module system.
+# The Android documentation is terrible about how this system works, so I wrote better documentation inside the supplied Android.mk.
+# But the short story is, when building a standard Android application with NDK components, 
+# set the NDK_MODULE_PATH to the correct paths for your modules, e.g.:
+# export NDK_MODULE_PATH=/path/to/AndroidModulesRelease
+
+
+
+# Additional Notes:
+# Repeat for each architecture (armeabi, armeabi-v7a, x86)
+# ICU is currently build as generic armeabi instead of armeabi-v7a. Additional investigation is needed to figure out how to do this with.
+# ICU is huge and the dominating component to why JavaScriptCore is so large (~30MB min size release build). Apple's icucore modifications might be the starting point to reduce the size. Additionally, if you only need JavaScriptCore and not WebKit, it *might* be possible to shrink icucore even more.
+
 
