@@ -145,6 +145,16 @@ void SimpleThread_WaitThread(SimpleThread* simple_thread, int* thread_status)
 	free(simple_thread);
 }
 
+void SimpleThread_DetachThread(SimpleThread* simple_thread)
+{
+	if(NULL == simple_thread)
+	{
+		THRDDBG(("SimpleThread_DetachThread was passed NULL\n"));
+		return;
+	}
+    CloseHandle(simple_thread->nativeThread);
+}
+
 size_t SimpleThread_GetThreadID(SimpleThread* simple_thread)
 {
 	if(NULL == simple_thread)

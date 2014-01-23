@@ -39,8 +39,11 @@ extern SIMPLE_THREAD_DECLSPEC SimpleThread* SIMPLE_THREAD_CALL SimpleThread_Crea
 extern SIMPLE_THREAD_DECLSPEC size_t SIMPLE_THREAD_CALL SimpleThread_GetCurrentThreadID(void);
 extern SIMPLE_THREAD_DECLSPEC size_t SIMPLE_THREAD_CALL SimpleThread_GetThreadID(SimpleThread* simple_thread);
 
+/* Use WaitThread or DetachThread on a thread, but not both. */
 extern SIMPLE_THREAD_DECLSPEC void SIMPLE_THREAD_CALL SimpleThread_WaitThread(SimpleThread* simple_thread, int* thread_status);
 
+/* Use WaitThread or DetachThread on a thread, but not both. */
+extern SIMPLE_THREAD_DECLSPEC void SIMPLE_THREAD_CALL SimpleThread_DetachThread(SimpleThread* simple_thread);
 
 extern SIMPLE_THREAD_DECLSPEC int SIMPLE_THREAD_CALL SimpleThread_GetThreadPriority(SimpleThread* simple_thread);
 extern SIMPLE_THREAD_DECLSPEC void SIMPLE_THREAD_CALL SimpleThread_SetThreadPriority(SimpleThread* simple_thread, int priority_level);
