@@ -52,9 +52,13 @@ void NetworkHelperForAppDelegate_GlobalSignalHandlerForSIGPIPE(int sig)
 
 void NetworkHelperForAppDelegate_UploadFile(int accepted_socket, uint16_t http_server_port, void* user_data)
 {
-	struct sockaddr_in addr;
-	socklen_t addr_len = sizeof(addr);
-	int err = getpeername(accepted_socket, (struct sockaddr*)&addr, &addr_len);
+	struct sockaddr_storage addr_storage; // connector's address information
+
+	socklen_t addr_len = sizeof(addr_storage);
+	const char* ip_address_string = NULL;
+	char ipv6_address_string_storage_with_brackets[INET6_ADDRSTRLEN+2];
+
+	int err = getpeername(accepted_socket, (struct sockaddr*)&addr_storage, &addr_len);
 	if(err != 0)
 	{
 		NSLog(@"getpeername failed for NetworkHelperForAppDelegate_UploadFile");
@@ -89,16 +93,57 @@ void NetworkHelperForAppDelegate_UploadFile(int accepted_socket, uint16_t http_s
 	{
 		service_name = [object_providing_log_file_path serviceName];
 	}
-	// This points to a statically stored char array within inet_ntoa() so that each time you call inet_ntoa() it will overwrite the last IP address you asked for.
-	const char* ip_address_string = inet_ntoa(addr.sin_addr);
 
-	NSString* url_string = [NSString stringWithFormat: @"http://%s:%d/%@-%@",
-		ip_address_string,
-		http_server_port,
+
+	if(AF_INET == addr_storage.ss_family)
+	{
+		struct sockaddr_in* sin = (struct sockaddr_in*)&addr_storage;
+		// This points to a statically stored char array within inet_ntoa() so that each time you call inet_ntoa() it will overwrite the last IP address you asked for.
+		//		ip_address_string = inet_ntoa(sin->sin_addr);
+		ip_address_string = inet_ntop(AF_INET, &sin->sin_addr, ipv6_address_string_storage_with_brackets, sizeof(ipv6_address_string_storage_with_brackets));
+		//		ip_address_string = &ipv6_address_string_storage[0];
+
+//		LogWrapper_LogEvent(s_logWrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "NetworkHelperForAndroid_UploadFile", "ip_address_string: %s, port:%d", ip_address_string, http_server_port);
+	}
+	else if(AF_INET6 == addr_storage.ss_family)
+	{
+		char ipv6_address_string_storage[INET6_ADDRSTRLEN];
+		struct sockaddr_in6* sin6 = (struct sockaddr_in6*)&addr_storage;
+		const char* ipv6_address_string = inet_ntop(AF_INET6, &sin6->sin6_addr, ipv6_address_string_storage, sizeof(ipv6_address_string_storage));
+		// We need to add brackets around the address "literal" for IPv6. I think this is part of the spec.
+		// I'm assuming inet_ntop will always give a literal address.
+		ipv6_address_string_storage_with_brackets[0] = '[';
+		ipv6_address_string_storage_with_brackets[1] = '\0';
+		strcat(ipv6_address_string_storage_with_brackets, ipv6_address_string);
+		strcat(ipv6_address_string_storage_with_brackets, "]");
+//		LogWrapper_LogEvent(s_logWrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "NetworkHelperForAndroid_UploadFile", "ipv6_address_string_storage_with_brackets: %s, port:%d", ipv6_address_string_storage_with_brackets, http_server_port);
+		// for convenience, set ip_address_string so the following code can blindly use the same string pointer.
+		ip_address_string = &ipv6_address_string_storage_with_brackets[0];
+	}
+	else
+	{
+		fprintf(stderr, "unexpected ss_family: %d\n", addr_storage.ss_family);
+//		LogWrapper_LogEvent(s_logWrapper, LOGWRAPPER_PRIORITY_CRITICAL, LOGWRAPPER_PRIMARY_KEYWORD, "NetworkHelperForAndroid_UploadFile", "unexpected sin_family: %d", addr_storage.ss_family);
+		return;
+	}
+	
+	
+
+	// Drat: For IPv6 address literals, I must surround the address with brackets.
+	// But stringByAddingPercentEscapesUsingEncoding will replace the brackets with percent escaping which doesn't work correctly.
+	// The easiest thing to do is apply the percent escaping on the path part because
+	// I can assume the address and port will be clean.
+	NSString* url_path_component = [NSString stringWithFormat:@"%@-%@",
 		service_name,
 		filename_without_path
 	];
-	url_string = [url_string stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+	url_path_component = [url_path_component stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+
+	NSString* url_string = [NSString stringWithFormat: @"http://%s:%d/%@",
+		ip_address_string,
+		http_server_port,
+		url_path_component
+	];
 
 
 	NSURL* the_url = [NSURL URLWithString:url_string];

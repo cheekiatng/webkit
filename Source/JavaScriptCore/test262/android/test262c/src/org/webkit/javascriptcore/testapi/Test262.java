@@ -72,15 +72,41 @@ public class Test262 extends Activity
 	private Thread javaScriptThread;
 	private boolean javaScriptThreadIsRunning;
 	private boolean javaScriptThreadShouldContinueRunning;
+	// used by JNI to get value
+	public boolean getJavaScriptThreadShouldContinueRunning()
+	{
+		return javaScriptThreadShouldContinueRunning;
+	}
 
 	private org.webkit.javascriptcore.test262.MemoryInfo myMemoryInfo;
 	private boolean isAdbEchoingEnabled = true;
 	private boolean isMemoryInfoLoggingEnabled = true;
 
 
-	private Handler networkLoggingHandler;
-	private NsdHelper zeroconfHelper;
-	private LoggingConnection loggingConnection;
+  	public final static native long getNativeLoggerFile();
+	public static net.playcontrol.logger.CLogger GetNativeLoggerFileWithClassWrapper()
+	{
+		long c_ptr = getNativeLoggerFile();
+		return (c_ptr == 0) ? null : new net.playcontrol.logger.CLogger(c_ptr, false);
+	}
+  	public final static native long getNativeLoggerNative();
+	public static net.playcontrol.logger.CLogger GetNativeLoggerNativeWithClassWrapper()
+	{
+		long c_ptr = getNativeLoggerNative();
+		return (c_ptr == 0) ? null : new net.playcontrol.logger.CLogger(c_ptr, false);
+	}
+  	public final static native long getNativeLoggerSocket();
+	public static net.playcontrol.logger.CLogger GetNativeLoggerSocketWithClassWrapper()
+	{
+		long c_ptr = getNativeLoggerSocket();
+		return (c_ptr == 0) ? null : new net.playcontrol.logger.CLogger(c_ptr, false);
+	}
+  
+
+//	private Handler networkLoggingHandler;
+//	private NsdHelper zeroconfHelper;
+//	private LoggingConnection loggingConnection;
+	private NetworkHelper networkHelper;
 
 	public native boolean doInit(AssetManager java_asset_manager);
 	public native void doPause();
@@ -171,10 +197,10 @@ logFile = out_file;
 			Log.i("Test262", log_string);
 			Log.i("Test262", log_end);
 		}
-		loggingConnection.writeToSocketDataOutputStream(log_header);
-		loggingConnection.writeToSocketDataOutputStream(log_string);
-		loggingConnection.writeToSocketDataOutputStream(log_end);
-		loggingConnection.writeToSocketDataOutputStream("\n");
+		//loggingConnection.writeToSocketDataOutputStream(log_header);
+		//loggingConnection.writeToSocketDataOutputStream(log_string);
+		//loggingConnection.writeToSocketDataOutputStream(log_end);
+		//loggingConnection.writeToSocketDataOutputStream("\n");
 	}
 
 	private void writeMemoryInfoToLogFile(String log_string)
@@ -212,10 +238,10 @@ logFile = out_file;
 			Log.i("Test262", memory_info_string);
 			Log.i("Test262", log_end);
 		}
-		loggingConnection.writeToSocketDataOutputStream(log_header);
-		loggingConnection.writeToSocketDataOutputStream(memory_info_string);
-		loggingConnection.writeToSocketDataOutputStream(log_end);
-		loggingConnection.writeToSocketDataOutputStream("\n");
+		//loggingConnection.writeToSocketDataOutputStream(log_header);
+		//loggingConnection.writeToSocketDataOutputStream(memory_info_string);
+		//loggingConnection.writeToSocketDataOutputStream(log_end);
+		//loggingConnection.writeToSocketDataOutputStream("\n");
 	}
 
 	/** Called when the activity is first created. */
@@ -266,6 +292,7 @@ logFile = out_file;
 		testProgressBar.setMax(numberOfTests);
 		
 		// Zeroconf
+		/*
         networkLoggingHandler = new Handler()
 		{
 			@Override
@@ -277,13 +304,18 @@ logFile = out_file;
 //				addChatLine(chatLine);
 			}
 		};
+*/
 
-		loggingConnection = new LoggingConnection(networkLoggingHandler);
-		zeroconfHelper = new NsdHelper(this, "_test262logging._tcp.");
-        zeroconfHelper.initializeNsd();
+		//loggingConnection = new LoggingConnection(networkLoggingHandler);
+		networkHelper = new NetworkHelper(getApplicationContext());
+		networkHelper.startServer();
+
+
+//		zeroconfHelper = new NsdHelper(this, "_test262logging._tcp.");
+//        zeroconfHelper.initializeNsd();
         // Register service
-		zeroconfHelper.registerService(loggingConnection.getLocalPort());
-		loggingConnection.setZeroconfHelper(zeroconfHelper);
+//		zeroconfHelper.registerService(loggingConnection.getLocalPort());
+//		loggingConnection.setZeroconfHelper(zeroconfHelper);
 
 
 		writeMemoryInfoToLogFile("Memory at the end of onCreate");		
@@ -373,7 +405,8 @@ logFile = out_file;
 		// should propagate and remove itself. 
 		// Additionally, the service stays until the device is rebooted.
 		// So something in the OS is not cleaning up correctly.
-        zeroconfHelper.tearDown();		
+//        zeroconfHelper.tearDown();		
+		networkHelper.unregisterService();
 		super.onPause();
 	}
 
@@ -383,7 +416,8 @@ logFile = out_file;
 		Log.i("Test262", "calling onResume");
 		
 		super.onResume();
-		zeroconfHelper.registerService(loggingConnection.getLocalPort());
+//		zeroconfHelper.registerService(loggingConnection.getLocalPort());
+		networkHelper.registerService();
 		doResume();
 	}
 
@@ -391,15 +425,17 @@ logFile = out_file;
 	@Override
 	protected void onDestroy()
 	{
-        zeroconfHelper.tearDown();
+//        zeroconfHelper.tearDown();
 		
 		Log.i("Test262", "calling onDestroy");
-		doDestroy();
 
 		abortTests();
 
 		// Try not to tear this down until after the log writing is finished
-		loggingConnection.tearDown();
+//		loggingConnection.tearDown();
+		networkHelper.stopServer();
+
+		doDestroy();
 
 		super.onDestroy();
 		Log.i("Test262", "finished calling onDestroy");		
@@ -577,6 +613,23 @@ logFile = out_file;
 		thread.start();
 
 	}
+
+	public void callbackForAllTestsStarting(long total_number_of_tests, long user_data)
+	{
+	}
+	
+	public void callbackForBeginningTest(String test_file, long total_number_of_tests, long current_test_number, long user_data)
+	{
+	}
+
+	public void callbackForEndingTest(String test_file, long total_number_of_tests, long current_test_number, long total_number_of_tests_failed, boolean did_pass, String exception_string, String stack_string, long user_data)
+	{
+	}
+
+	public void callbackForAllTestsFinished(long total_number_of_tests, long number_of_tests_run, long total_number_of_tests_failed, long user_data)
+	{
+	}
+
 
 /*
 	public void startTestsOld()

@@ -101,50 +101,53 @@ static uint16_t SocketServer_GetPortFromSocket(int sock_fd)
 // Must pass in a socket_fd and out_port or things will crash.
 int SocketServer_CreateSocketAndListen(int* out_socket_fd, uint16_t* out_port)
 {
-    int sock_fd;  // listen on sock_fd
-    struct addrinfo hints, *servinfo, *p;
-//    struct sigaction sa;
-    int yes=1;
-    int rv;
+	int sock_fd;  // listen on sock_fd
+	struct addrinfo hints, *servinfo, *p;
+	//    struct sigaction sa;
+	int yes=1;
+	int rv;
 	uint16_t chosen_port_host;
 
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE; // use my IP
+	memset(&hints, 0, sizeof hints);
 
-    if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
-    }
+//	hints.ai_family = AF_INET;
+//	hints.ai_family = AF_INET6;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE; // use my IP
 
-    // loop through all the results and bind to the first we can
-    for(p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sock_fd = socket(p->ai_family, p->ai_socktype,
-                p->ai_protocol)) == -1) {
-            perror("server: socket");
-            continue;
-        }
+	if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+		return 1;
+	}
 
-        if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &yes,
-                sizeof(int)) == -1) {
-            perror("setsockopt");
-            return(2);
-        }
+	// loop through all the results and bind to the first we can
+	for(p = servinfo; p != NULL; p = p->ai_next) {
+		if ((sock_fd = socket(p->ai_family, p->ai_socktype,
+				p->ai_protocol)) == -1) {
+			perror("server: socket");
+			continue;
+		}
 
-        if (bind(sock_fd, p->ai_addr, p->ai_addrlen) == -1) {
-            close(sock_fd);
-            perror("server: bind");
-            continue;
-        }
+		if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &yes,
+				sizeof(int)) == -1) {
+			perror("setsockopt");
+			return(2);
+		}
 
-        break;
-    }
+		if (bind(sock_fd, p->ai_addr, p->ai_addrlen) == -1) {
+			close(sock_fd);
+			perror("server: bind");
+			continue;
+		}
 
-    if (p == NULL)  {
-        fprintf(stderr, "server: failed to bind\n");
-        return 3;
-    }
+		break;
+	}
+
+	if (p == NULL)  {
+		fprintf(stderr, "server: failed to bind\n");
+		return 3;
+	}
 
 /* // doesn't work
 	chosen_port_host = ntohs(get_in_port(p->ai_addr));

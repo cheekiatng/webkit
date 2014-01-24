@@ -50,7 +50,8 @@
 	[self setKeepReceiving:NO];
 	if([self currentSocketFD] >= 0)
 	{
-//		shutdown([self currentSocketFD], SHUT_RDWR);
+		// On Apple, shutdown doesn't seem required, but on Linux, it does.
+		shutdown([self currentSocketFD], SHUT_RDWR);
 		close([self currentSocketFD]);
 		[self setCurrentSocketFD:-1];
 	}

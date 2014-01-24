@@ -8,7 +8,7 @@
 
 #import "NetworkHelper.h"
 #include "SocketServer.h"
-
+#include <sys/socket.h>
 
 @interface NetworkHelper () <NSNetServiceDelegate>
 @property(assign) int serverSocket;
@@ -81,13 +81,16 @@
 	// This pointer is how we will signal the server thread to stop
 	_serverUserData->shouldKeepRunning = 0;
 	// I think this will disrupt the accept() blocking forcing the loop to continue
+	// On Mac, shutdown doesn't seem required, but on Linux, it does.
+	shutdown(_serverSocket, SHUT_RDWR);
 	close(_serverSocket);
-
 
 	[_netService stop];
 
 	// wait for the thread to end
 	SimpleThread_WaitThread(_serverAcceptThread, &thread_status);
+
+	free(_serverUserData);
 
 }
 

@@ -176,7 +176,7 @@ _Bool Test262Helper_DetermineIfPositiveTestFromScript(const char* raw_script)
 	}
 }
 
-static LogWrapper* s_logWrapper = NULL;
+//static LogWrapper* s_logWrapper = NULL;
 // From the raw character buffer, this will parse for all the newlines, and create an array of strings for each line.
 // This creates a file_list array and returns it. The number of items in the array is returned by reference via out_total_number_of_tests.
 // You will need to pass both of these values to Test262Helper_FreeFileList() to clean up when you are done.
@@ -298,6 +298,18 @@ char** Test262HelperAndroid_CreateFileList(size_t* restrict out_total_number_of_
 }
 
 #if 1
+// The function pointers are a little overkill, but I've been torn about abstracting this so this run loop can be used on all platforms.
+// This would require abstracting a few more things (like the asset manager and jnienv, and removing the Obj-C on the Apple side)
+// I assume I won't do this, but on the otherhand, when I wrote the first version of this in Java, I did not plan 
+// on writing the Mac and iOS version and rewriting this version in C.
+// So the function pointers are here to get me most of the way in case I do end up unifying everything in the future.
+void Test262Helper_RunTests(LogWrapper* log_wrapper, AAssetManager* asset_manager,
+	int (*callback_for_all_tests_starting)(unsigned int total_number_of_tests, void* user_data),
+	int (*callback_for_beginning_test)(const char* test_file, unsigned int total_number_of_tests, unsigned int current_test_number, void* user_data),
+	int (*callback_for_ending_test)(const char* test_file, unsigned int total_number_of_tests, unsigned int current_test_number, unsigned int total_number_of_tests_failed, _Bool did_pass, const char* exception_string, const char* stack_string, void* user_data),
+	int (*callback_for_all_tests_finished)(unsigned int total_number_of_tests, unsigned int number_of_tests_run, unsigned int total_number_of_tests_failed, void* user_data),
+	void* user_data
+)
 /*
 void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 	NSInteger (^callback_for_all_tests_starting)(NSUInteger total_number_of_tests),
@@ -306,10 +318,8 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 	NSInteger (^callback_for_all_tests_finished)(NSUInteger total_number_of_tests, NSUInteger number_of_tests_run, NSUInteger total_number_of_tests_failed)
 )
 */
-void Test262Helper_RunTests(LogWrapper* log_wrapper, AAssetManager* asset_manager)
+//void Test262Helper_RunTests(LogWrapper* log_wrapper, AAssetManager* asset_manager)
 {
-s_logWrapper = log_wrapper;
-
 	const int TIMESTAMP_LENGTH = 24;
 	char current_time[TIMESTAMP_LENGTH];
 	TimeStamp_GetTimeStamp(current_time, TIMESTAMP_LENGTH);
@@ -369,12 +379,13 @@ s_logWrapper = log_wrapper;
 	char** file_list = Test262HelperAndroid_CreateFileList(&total_number_of_tests, asset_manager);
 
 
-		for(size_t i=0; i<total_number_of_tests; i++)
+/*
+	for(size_t i=0; i<total_number_of_tests; i++)
 	{
 	//	fprintf(stderr, "%s.\n", file_list[i]);
-		LogWrapper_LogEvent(s_logWrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "debug4", "file_list[%d]: %s.", i, file_list[i]);
+		LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "debug4", "file_list[%d]: %s.", i, file_list[i]);
 	}
-
+*/
 
 	
 //		NSString* test_manifiest_file_string = [NSString stringWithContentsOfFile:[[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"test262_filelist.txt"] encoding:NSUTF8StringEncoding error:&the_error];
@@ -384,10 +395,10 @@ s_logWrapper = log_wrapper;
 	// We might want to further sanitize the list if we support commented out lines and so forth
 //	[ns_progress setTotalUnitCount:[file_list count]];
 
-#if 0
-	if(nil != callback_for_all_tests_starting)
+#if 1
+	if(NULL != callback_for_all_tests_starting)
 	{
-		callback_for_all_tests_starting([file_list count]);
+		callback_for_all_tests_starting(total_number_of_tests, user_data);
 	}
 #endif
 	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "entering main loop");
@@ -446,10 +457,10 @@ s_logWrapper = log_wrapper;
 		raw_test_script[file_size] = '\0';
 		AAsset_close(file_asset);	
 
-#if 0
-		if(nil != callback_for_beginning_test)
+#if 1
+		if(NULL != callback_for_beginning_test)
 		{
-			NSInteger return_status = callback_for_beginning_test(file_path, [file_list count], current_index_count+1);
+			int32_t return_status = callback_for_beginning_test(file_path, total_number_of_tests, current_index_count+1, user_data);
 			if(0 == return_status)
 			{
 				// 0 means user wants to cancel tests
@@ -542,10 +553,10 @@ s_logWrapper = log_wrapper;
 				//NSLog(@"Test failed: %@, %@, %@\n%@", file_path, nscf_exception_string, nscf_stack_string, raw_test_script);
 				LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test failed", "Test failed: %s, %s, %s\n%s", file_path, c_exception_string, c_stack_string, raw_test_script);
 			}
-#if 0
-			if(nil != callback_for_ending_test)
+#if 1
+			if(NULL != callback_for_ending_test)
 			{
-				NSInteger return_status = callback_for_ending_test(file_path, [file_list count], current_index_count+1, number_of_failed_tests, false, nscf_exception_string, nscf_stack_string);
+				int32_t return_status = callback_for_ending_test(file_path, total_number_of_tests, current_index_count+1, number_of_failed_tests, false, c_exception_string, c_stack_string, user_data);
 				if(0 == return_status)
 				{
 					// 0 means user wants to cancel tests
@@ -562,10 +573,10 @@ s_logWrapper = log_wrapper;
 //			writeToLogFile("Test passed: " + current_file_name);
 //			NSLog(@"Test passed: %@", file_path);
 			LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test passed", "Test passed: %s", file_path);
-#if 0
-			if(nil != callback_for_ending_test)
+#if 1
+			if(NULL != callback_for_ending_test)
 			{
-				NSInteger return_status = callback_for_ending_test(file_path, [file_list count], current_index_count+1, number_of_failed_tests, true, nil, nil);
+				int32_t return_status = callback_for_ending_test(file_path, total_number_of_tests, current_index_count+1, number_of_failed_tests, true, NULL, NULL, user_data);
 				if(0 == return_status)
 				{
 					// 0 means user wants to cancel tests
@@ -607,10 +618,10 @@ s_logWrapper = log_wrapper;
 		(double)(end_time_in_ticks - start_time_in_ticks)/1000.0,
 		current_time
 	);
-#if 0
-	if(nil != callback_for_all_tests_finished)
+#if 1
+	if(NULL != callback_for_all_tests_finished)
 	{
-		callback_for_all_tests_finished([file_list count], current_index_count+1, number_of_failed_tests);
+		callback_for_all_tests_finished(total_number_of_tests, current_index_count+1, number_of_failed_tests, user_data);
 	}
 #endif
 	// seems fair to free memory after the clock because GC cleans up later.
