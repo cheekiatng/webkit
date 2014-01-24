@@ -263,6 +263,8 @@ logFile = out_file;
 		runTestButton = (Button)findViewById(R.id.submit_button);
 		testProgressBar = (ProgressBar)findViewById(R.id.test_progress_bar);
 		resultStatusLabel = (TextView)findViewById(R.id.result_text);
+		testProgressBar.setMax(11000);
+		testProgressBar.setProgress(0);
 		testProgressBar.setEnabled(false);
 
 		// addKeyListener();
@@ -278,6 +280,7 @@ logFile = out_file;
 			
 		}
 		*/
+		/*
 		testFileList = file_list;
 		testHarnessString = loadTestHarnessScripts();
 
@@ -290,7 +293,8 @@ logFile = out_file;
 
 
 		testProgressBar.setMax(numberOfTests);
-		
+		*/
+
 		// Zeroconf
 		/*
         networkLoggingHandler = new Handler()
@@ -595,6 +599,8 @@ logFile = out_file;
 
 	public void startTests()
 	{
+		testProgressBar.setEnabled(true);
+		
 		Thread thread = new Thread(new Runnable()
 		{
 			@Override
@@ -614,21 +620,87 @@ logFile = out_file;
 
 	}
 
-	public void callbackForAllTestsStarting(long total_number_of_tests, long user_data)
+	public void callbackForAllTestsStarting(final long total_number_of_tests, final long user_data)
 	{
+		Log.i("Test262", "callbackForAllTestsStarting: " + total_number_of_tests);
+		
+		runOnUiThread(new Runnable()
+		{
+			
+			@Override
+			public void run()
+			{
+		Log.i("Test262", "callbackForAllTestsStarting:runOnUiThread " + total_number_of_tests);
+				
+				final int max_progess = (int)total_number_of_tests;			
+				testProgressBar.setMax(max_progess);
+
+			//	resultStatusLabel.setText("Running test " + current_test_index + " of " + total_number_of_tests + "\n" + current_file_name + "\nTotal failed: " + numberOfFailedTests);
+
+			}
+		});
 	}
 	
-	public void callbackForBeginningTest(String test_file, long total_number_of_tests, long current_test_number, long user_data)
+	public void callbackForBeginningTest(final String test_file, final long total_number_of_tests, final long current_test_number, final long user_data)
 	{
+		/*
+		runOnUiThread(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				testProgressBar.setProgress(current_test_number);
+				resultStatusLabel.setText("Running test " + current_test_number + " of " + total_number_of_tests + "\n" + test_file + "\nTotal failed: " + total_number_of_tests_failed);
+
+			}
+		});
+		*/
 	}
 
-	public void callbackForEndingTest(String test_file, long total_number_of_tests, long current_test_number, long total_number_of_tests_failed, boolean did_pass, String exception_string, String stack_string, long user_data)
+	public void callbackForEndingTest(final String test_file, final long total_number_of_tests, final long current_test_number, final long total_number_of_tests_failed, final boolean did_pass, final String exception_string, final String stack_string, final long user_data)
 	{
+		Log.i("Test262", "callbackForEndingTest: " + test_file);
+		
+		runOnUiThread(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+		Log.i("Test262", "callbackForEndingTest:runOnUiThread " + test_file);
+				
+				final int currnet_progess = (int)current_test_number;			
+				
+				testProgressBar.setProgress(currnet_progess);
+				resultStatusLabel.setText("Running test " + current_test_number + " of " + total_number_of_tests + "\n" + test_file + "\nTotal failed: " + total_number_of_tests_failed);
+			}
+		});
 	}
 
-	public void callbackForAllTestsFinished(long total_number_of_tests, long number_of_tests_run, long total_number_of_tests_failed, long user_data)
+	public void callbackForAllTestsFinished(final long total_number_of_tests, final long number_of_tests_run, final long total_number_of_tests_failed, final double diff_time_in_double_seconds, final long user_data)
 	{
-	}
+		runOnUiThread(new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					final int currnet_progess = (int)number_of_tests_run;			
+					testProgressBar.setProgress(currnet_progess);
+					testProgressBar.setEnabled(false);
+
+					final String completed_string = "Tests completed: " + number_of_tests_run + " of " + total_number_of_tests + " run.\nTotal failed: " + total_number_of_tests_failed + "\nTotal execution time: " + diff_time_in_double_seconds + "seconds\n"
+//					final String completed_string = "Tests completed: " + number_of_tests_run + " of " + total_number_of_tests + " run.\nTotal failed: " + total_number_of_tests_failed + "\n"
+						+ Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "test262_runlog.txt";	
+					resultStatusLabel.setText(completed_string);
+
+//					runTestButton.setEnabled(true);
+					runTestButton.setText(getApplicationContext().getString(R.string.submit_press));
+				
+			
+
+				}
+			}
+		);
+}
 
 
 /*

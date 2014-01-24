@@ -290,13 +290,14 @@ struct Test262AndroidUserDataForRunTests* Test262JNI_CreateUserDataForRunTests(J
 	user_data->jniEnv = jni_env;
 	// I don't know if NewLocalRef would work and be better than GlobalRef
 	user_data->mainActivityInstance = (*jni_env)->NewGlobalRef(jni_env, main_activity_instance);
-	user_data->mainActivityClass = (*jni_env)->GetObjectClass(jni_env, user_data->mainActivityInstance);
-
+	jclass main_activity_class = (*jni_env)->GetObjectClass(jni_env, user_data->mainActivityInstance);
+	user_data->mainActivityClass = (*jni_env)->NewGlobalRef(jni_env, main_activity_class);
+			 	 
 	// JNI doesn't have unsigned int. So promote everything to jlong?
 	user_data->methodIdCallbackForAllTestsStarting = (*jni_env)->GetMethodID(jni_env, user_data->mainActivityClass, "callbackForAllTestsStarting", "(JJ)V");
 	user_data->methodIdCallbackForAllBeginningTest = (*jni_env)->GetMethodID(jni_env, user_data->mainActivityClass, "callbackForBeginningTest", "(Ljava/lang/String;JJJ)V");
 	user_data->methodIdCallbackForAllEndingTest = (*jni_env)->GetMethodID(jni_env, user_data->mainActivityClass, "callbackForEndingTest", "(Ljava/lang/String;JJJZLjava/lang/String;Ljava/lang/String;J)V");
-	user_data->methodIdCallbackForAllTestsFinished = (*jni_env)->GetMethodID(jni_env, user_data->mainActivityClass, "callbackForAllTestsFinished", "(JJJJ)V");
+	user_data->methodIdCallbackForAllTestsFinished = (*jni_env)->GetMethodID(jni_env, user_data->mainActivityClass, "callbackForAllTestsFinished", "(JJJDJ)V");
 	user_data->methodIdForGetShouldContinueRunning = (*jni_env)->GetMethodID(jni_env, user_data->mainActivityClass, "getJavaScriptThreadShouldContinueRunning", "()Z");
 
 	return user_data;
@@ -305,6 +306,7 @@ struct Test262AndroidUserDataForRunTests* Test262JNI_CreateUserDataForRunTests(J
 void Test262JNI_FreeUserDataForRunTests(struct Test262AndroidUserDataForRunTests* user_data)
 {
 	JNIEnv* jni_env = user_data->jniEnv;
+	(*jni_env)->DeleteGlobalRef(jni_env, user_data->mainActivityClass);
 	(*jni_env)->DeleteGlobalRef(jni_env, user_data->mainActivityInstance);
 	free(user_data);
 }
@@ -312,7 +314,11 @@ void Test262JNI_FreeUserDataForRunTests(struct Test262AndroidUserDataForRunTests
 
 int32_t Test262JNI_CallbackForAllTestsStarting(uint32_t total_number_of_tests, void* user_data)
 {
+	LogWrapper_LogEvent(s_logWrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262JNI_CallbackForAllTestsStarting", "Test262JNI_CallbackForAllTestsStarting");
+	
 	struct Test262AndroidUserDataForRunTests* android_user_data = (struct Test262AndroidUserDataForRunTests*)user_data;
+
+	(*android_user_data->jniEnv)->CallVoidMethod(android_user_data->jniEnv, android_user_data->mainActivityInstance, android_user_data->methodIdCallbackForAllTestsStarting, (jlong)total_number_of_tests, (jlong)user_data);
 
 	jboolean should_continue = (*android_user_data->jniEnv)->CallBooleanMethod(android_user_data->jniEnv, android_user_data->mainActivityInstance, android_user_data->methodIdForGetShouldContinueRunning);
 	android_user_data->javaScriptThreadShouldContinueRunning = (int32_t)should_continue;
@@ -322,6 +328,11 @@ int32_t Test262JNI_CallbackForAllTestsStarting(uint32_t total_number_of_tests, v
 int32_t Test262JNI_CallbackForBeginningTest(const char* test_file, uint32_t total_number_of_tests, uint32_t current_test_number, void* user_data)
 {
 	struct Test262AndroidUserDataForRunTests* android_user_data = (struct Test262AndroidUserDataForRunTests*)user_data;
+
+	jstring java_test_file_string = jstringFromC(android_user_data->jniEnv, test_file);	
+	(*android_user_data->jniEnv)->CallVoidMethod(android_user_data->jniEnv, android_user_data->mainActivityInstance, android_user_data->methodIdCallbackForAllBeginningTest, java_test_file_string, (jlong)total_number_of_tests, (jlong)current_test_number, (jlong)user_data);
+	(*android_user_data->jniEnv)->DeleteLocalRef(android_user_data->jniEnv, java_test_file_string);
+	
 	jboolean should_continue = (*android_user_data->jniEnv)->CallBooleanMethod(android_user_data->jniEnv, android_user_data->mainActivityInstance, android_user_data->methodIdForGetShouldContinueRunning);
 	android_user_data->javaScriptThreadShouldContinueRunning = (int32_t)should_continue;
 	return android_user_data->javaScriptThreadShouldContinueRunning;
@@ -330,15 +341,29 @@ int32_t Test262JNI_CallbackForBeginningTest(const char* test_file, uint32_t tota
 int32_t Test262JNI_CallbackForEndingTest(const char* test_file, uint32_t total_number_of_tests, uint32_t current_test_number, uint32_t total_number_of_tests_failed, _Bool did_pass, const char* exception_string, const char* stack_string, void* user_data)
 {
 	struct Test262AndroidUserDataForRunTests* android_user_data = (struct Test262AndroidUserDataForRunTests*)user_data;
+
+	jstring java_test_file_string = jstringFromC(android_user_data->jniEnv, test_file);		
+	jstring java_exception_string = jstringFromC(android_user_data->jniEnv, exception_string);		
+	jstring java_stack_string = jstringFromC(android_user_data->jniEnv, stack_string);		
+	(*android_user_data->jniEnv)->CallVoidMethod(android_user_data->jniEnv, android_user_data->mainActivityInstance, android_user_data->methodIdCallbackForAllEndingTest,
+		java_test_file_string, (jlong)total_number_of_tests, (jlong)current_test_number, (jlong)total_number_of_tests_failed, (jboolean)did_pass, java_exception_string, java_stack_string, (jlong)user_data
+	);
+	(*android_user_data->jniEnv)->DeleteLocalRef(android_user_data->jniEnv, java_stack_string);
+	(*android_user_data->jniEnv)->DeleteLocalRef(android_user_data->jniEnv, java_exception_string);
+	(*android_user_data->jniEnv)->DeleteLocalRef(android_user_data->jniEnv, java_test_file_string);
+	
 	jboolean should_continue = (*android_user_data->jniEnv)->CallBooleanMethod(android_user_data->jniEnv, android_user_data->mainActivityInstance, android_user_data->methodIdForGetShouldContinueRunning);
 	android_user_data->javaScriptThreadShouldContinueRunning = (int32_t)should_continue;
 	return android_user_data->javaScriptThreadShouldContinueRunning;
 }
 
 
-int32_t Test262JNI_CallbackForAllTestsFinished(uint32_t total_number_of_tests, uint32_t number_of_tests_run, uint32_t total_number_of_tests_failed, void* user_data)
+int32_t Test262JNI_CallbackForAllTestsFinished(uint32_t total_number_of_tests, uint32_t number_of_tests_run, uint32_t total_number_of_tests_failed, double diff_time_in_double_seconds, void* user_data)
 {
 	struct Test262AndroidUserDataForRunTests* android_user_data = (struct Test262AndroidUserDataForRunTests*)user_data;
+
+	(*android_user_data->jniEnv)->CallVoidMethod(android_user_data->jniEnv, android_user_data->mainActivityInstance, android_user_data->methodIdCallbackForAllTestsFinished, (jlong)total_number_of_tests, (jlong)number_of_tests_run, (jdouble)diff_time_in_double_seconds, (jlong)user_data);
+	
 	jboolean should_continue = (*android_user_data->jniEnv)->CallBooleanMethod(android_user_data->jniEnv, android_user_data->mainActivityInstance, android_user_data->methodIdForGetShouldContinueRunning);
 	android_user_data->javaScriptThreadShouldContinueRunning = (int32_t)should_continue;
 	return android_user_data->javaScriptThreadShouldContinueRunning;
@@ -482,7 +507,7 @@ void NetworkHelperForAndroid_UploadFile(int accepted_socket, uint16_t http_serve
 	// I don't know what thread things are happening on (I probably do, but I don't want to be locked in).
 	// So we need to use Attach/DetachThread
 	
-		 /* There is a little JNI dance you can do to deal with this situation which is shown here.
+	 /* There is a little JNI dance you can do to deal with this situation which is shown here.
 	 */
 	jobject network_helper = (jobject)user_data;	
     JNIEnv* jni_env;

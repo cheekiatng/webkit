@@ -19,7 +19,7 @@ void Test262Helper_RunTests(LogWrapper* log_wrapper, AAssetManager* asset_manage
 	int32_t (*callback_for_all_tests_starting)(uint32_t total_number_of_tests, void* user_data),
 	int32_t (*callback_for_beginning_test)(const char* test_file, uint32_t total_number_of_tests, uint32_t current_test_number, void* user_data),
 	int32_t (*callback_for_ending_test)(const char* test_file, uint32_t total_number_of_tests, uint32_t current_test_number, uint32_t total_number_of_tests_failed, _Bool did_pass, const char* exception_string, const char* stack_string, void* user_data),
-	int32_t (*callback_for_all_tests_finished)(uint32_t total_number_of_tests, uint32_t number_of_tests_run, uint32_t total_number_of_tests_failed, void* user_data),
+	int32_t (*callback_for_all_tests_finished)(uint32_t total_number_of_tests, uint32_t number_of_tests_run, uint32_t total_number_of_tests_failed, double diff_time_in_double_seconds, void* user_data),
 	void* user_data
 );
 

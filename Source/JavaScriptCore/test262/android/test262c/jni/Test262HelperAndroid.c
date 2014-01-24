@@ -304,10 +304,10 @@ char** Test262HelperAndroid_CreateFileList(size_t* restrict out_total_number_of_
 // on writing the Mac and iOS version and rewriting this version in C.
 // So the function pointers are here to get me most of the way in case I do end up unifying everything in the future.
 void Test262Helper_RunTests(LogWrapper* log_wrapper, AAssetManager* asset_manager,
-	int (*callback_for_all_tests_starting)(unsigned int total_number_of_tests, void* user_data),
-	int (*callback_for_beginning_test)(const char* test_file, unsigned int total_number_of_tests, unsigned int current_test_number, void* user_data),
-	int (*callback_for_ending_test)(const char* test_file, unsigned int total_number_of_tests, unsigned int current_test_number, unsigned int total_number_of_tests_failed, _Bool did_pass, const char* exception_string, const char* stack_string, void* user_data),
-	int (*callback_for_all_tests_finished)(unsigned int total_number_of_tests, unsigned int number_of_tests_run, unsigned int total_number_of_tests_failed, void* user_data),
+	int32_t (*callback_for_all_tests_starting)(uint32_t total_number_of_tests, void* user_data),
+	int32_t (*callback_for_beginning_test)(const char* test_file, uint32_t total_number_of_tests, uint32_t current_test_number, void* user_data),
+	int32_t (*callback_for_ending_test)(const char* test_file, uint32_t total_number_of_tests, uint32_t current_test_number, uint32_t total_number_of_tests_failed, _Bool did_pass, const char* exception_string, const char* stack_string, void* user_data),
+	int32_t (*callback_for_all_tests_finished)(uint32_t total_number_of_tests, uint32_t number_of_tests_run, uint32_t total_number_of_tests_failed, double diff_time_in_double_seconds, void* user_data),
 	void* user_data
 )
 /*
@@ -398,6 +398,8 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 #if 1
 	if(NULL != callback_for_all_tests_starting)
 	{
+	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "callback_for_all_tests_starting");
+		
 		callback_for_all_tests_starting(total_number_of_tests, user_data);
 	}
 #endif
@@ -606,6 +608,8 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 
 	TimeStamp_GetTimeStamp(current_time, TIMESTAMP_LENGTH);
 	unsigned long end_time_in_ticks = CommonUtils_GetTicks();
+	// converting to double and seconds for consistency with Apple versions
+	double diff_time_in_double_seconds = (double)(end_time_in_ticks - start_time_in_ticks)/1000.0;
 
 	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Tests completed",
 		"Tests completed: %d of %d run.\n"
@@ -614,14 +618,13 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 		"Timestamp: %s",
 		current_index_count, total_number_of_tests,
 		(unsigned long)number_of_failed_tests,
-		// converting to double and seconds for consistency with Apple versions
-		(double)(end_time_in_ticks - start_time_in_ticks)/1000.0,
+		diff_time_in_double_seconds,
 		current_time
 	);
 #if 1
 	if(NULL != callback_for_all_tests_finished)
 	{
-		callback_for_all_tests_finished(total_number_of_tests, current_index_count+1, number_of_failed_tests, user_data);
+		callback_for_all_tests_finished(total_number_of_tests, current_index_count+1, number_of_failed_tests, diff_time_in_double_seconds, user_data);
 	}
 #endif
 	// seems fair to free memory after the clock because GC cleans up later.
