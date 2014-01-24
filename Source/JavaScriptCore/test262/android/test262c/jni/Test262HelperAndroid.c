@@ -303,6 +303,9 @@ char** Test262HelperAndroid_CreateFileList(size_t* restrict out_total_number_of_
 // I assume I won't do this, but on the otherhand, when I wrote the first version of this in Java, I did not plan 
 // on writing the Mac and iOS version and rewriting this version in C.
 // So the function pointers are here to get me most of the way in case I do end up unifying everything in the future.
+// All the callbacks return an int, where 0 means we should abort running the tests (and 1 means keep running).
+// This was designed as an easy/cheap way to poll status info from the Java side since we had to call in any way.
+// These are int32_t instead of booleans just in case I ever want to communicate more states across the bridge.
 void Test262Helper_RunTests(LogWrapper* log_wrapper, AAssetManager* asset_manager,
 	int32_t (*callback_for_all_tests_starting)(uint32_t total_number_of_tests, void* user_data),
 	int32_t (*callback_for_beginning_test)(const char* test_file, uint32_t total_number_of_tests, uint32_t current_test_number, void* user_data),
@@ -310,15 +313,6 @@ void Test262Helper_RunTests(LogWrapper* log_wrapper, AAssetManager* asset_manage
 	int32_t (*callback_for_all_tests_finished)(uint32_t total_number_of_tests, uint32_t number_of_tests_run, uint32_t total_number_of_tests_failed, double diff_time_in_double_seconds, void* user_data),
 	void* user_data
 )
-/*
-void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
-	NSInteger (^callback_for_all_tests_starting)(NSUInteger total_number_of_tests),
-	NSInteger (^callback_for_beginning_test)(NSString* test_file, NSUInteger total_number_of_tests, NSUInteger current_test_number),
-	NSInteger (^callback_for_ending_test)(NSString* test_file, NSUInteger total_number_of_tests, NSUInteger current_test_number, NSUInteger total_number_of_tests_failed, _Bool did_pass, NSString* nscf_exception_string, NSString* nscf_stack_string),
-	NSInteger (^callback_for_all_tests_finished)(NSUInteger total_number_of_tests, NSUInteger number_of_tests_run, NSUInteger total_number_of_tests_failed)
-)
-*/
-//void Test262Helper_RunTests(LogWrapper* log_wrapper, AAssetManager* asset_manager)
 {
 	const int TIMESTAMP_LENGTH = 24;
 	char current_time[TIMESTAMP_LENGTH];
@@ -335,14 +329,6 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 	char* test_harness_script_string = Test262HelperAndroid_LoadTestHarnessScriptsAndCreateString(&test_harness_script_string_buffer_size, asset_manager);
 
 
-//	NSMutableString* concat_string = [[NSMutableString alloc] init];
-
-//	NSString* suite_dir = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"suite"];
-
-//	NSString* resource_path = [[NSBundle mainBundle] resourcePath];
-
-
-
 	size_t number_of_reallocs_for_raw_script = 0;
 	size_t number_of_reallocs_for_concat_string = 0;
 
@@ -350,7 +336,7 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 	size_t raw_test_script_allocated_memory = 0;
 	char* concat_string = NULL;
 	size_t concat_string_allocated_memory = 0;
-//#define TEST262_USE_MAGIC_NUMBERS 1
+#define TEST262_USE_MAGIC_NUMBERS 1
 // If defined, this will preallocate memory, ideally in a way that doesn't need to keep realloc'ing.
 #if TEST262_USE_MAGIC_NUMBERS
 	// Recording the run, these were the max numbers:
@@ -387,51 +373,31 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 	}
 */
 
-	
-//		NSString* test_manifiest_file_string = [NSString stringWithContentsOfFile:[[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"test262_filelist.txt"] encoding:NSUTF8StringEncoding error:&the_error];
-//	NSArray* file_list = [test_manifiest_file_string componentsSeparatedByString:@"\n"];
-
-
-	// We might want to further sanitize the list if we support commented out lines and so forth
-//	[ns_progress setTotalUnitCount:[file_list count]];
-
 #if 1
 	if(NULL != callback_for_all_tests_starting)
 	{
-	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "callback_for_all_tests_starting");
-		
 		callback_for_all_tests_starting(total_number_of_tests, user_data);
 	}
 #endif
-	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "entering main loop");
 
 	size_t i;
 	for(i=0; i<total_number_of_tests; i++)
 	{
-	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "loop:%d", i);
 		if(!should_keep_running)
 		{
-	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "!should_keep_running");
 			break;
 		}
 		char* file_path = file_list[i];
-	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "assign file_path");
 		if(NULL == file_path)
 		{
-	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "file_path is NULL");
 			current_index_count = current_index_count + 1;
 			continue;			
 		}
-	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "strlen file_path:%d", strlen(file_path));
-		
-	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "file_path:%s", file_path);
 
 		// just in case there is a blank line
 		if(strlen(file_path) == 0)
 		{
 			current_index_count = current_index_count + 1;
-//			[ns_progress setCompletedUnitCount:current_index_count];
-	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_RunTests", "strlen==0");
 			continue;
 		}
 		
@@ -440,14 +406,13 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 		{
 			LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_CRITICAL, LOGWRAPPER_PRIMARY_KEYWORD, "Error", "Error loading file: %s", file_path);
 			current_index_count = current_index_count + 1;
-//			[ns_progress setCompletedUnitCount:current_index_count];
 			continue;
 		}
 		off_t file_size = AAsset_getLength(file_asset);
 		// file_size doesn't contain a null terminator, while raw_test_script_allocated_memory does, so adjust accordingly.
 		if(file_size >= raw_test_script_allocated_memory)
 		{
-//	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "realloc raw_test_script", "file_size:%d", file_size);
+			//	LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "realloc raw_test_script", "file_size:%d", file_size);
 			raw_test_script = realloc(raw_test_script, file_size+1);
 			assert(raw_test_script != NULL);
 			raw_test_script_allocated_memory = file_size+1;
@@ -505,10 +470,6 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 
 
 
-//		NSLog(@"%@ is_success: %d", file_path, is_success);
-
-
-
 		// FIXME: This likely deserves a better check.
 		if(is_positive_test != is_success)
 		{
@@ -534,25 +495,12 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 			}
 
 			//
-			//                    			this.failedTests.Add(result);
 			if(is_success && !is_positive_test)
 			{
-				//									Log.i("Test262", "Test failed: (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
-				/*
-				writeToLogFile("Test failed: (script passed but negative test means it should have not have passed): " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
-				*/
-
-				//NSLog(@"Test failed: (script passed but negative test means it should have not have passed): %@, %@, %@\n%@", file_path, nscf_exception_string, nscf_stack_string, raw_test_script);
 				LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test failed", "Test failed: (script passed but negative test means it should have not have passed): %s, %s, %s\n%s", file_path, c_exception_string, c_stack_string, raw_test_script);
-
 			}
 			else
 			{
-				//									Log.i("Test262", "Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
-				/*
-				writeToLogFile("Test failed: " + current_file_name + ", " + return_data_object.getExceptionString() + ", " + return_data_object.getStackString() + "\n" + raw_test_script);
-				*/
-				//NSLog(@"Test failed: %@, %@, %@\n%@", file_path, nscf_exception_string, nscf_stack_string, raw_test_script);
 				LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test failed", "Test failed: %s, %s, %s\n%s", file_path, c_exception_string, c_stack_string, raw_test_script);
 			}
 #if 1
@@ -571,9 +519,6 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 		}
 		else
 		{
-			//								Log.i("Test262", "Test passed: " + current_file_name);
-//			writeToLogFile("Test passed: " + current_file_name);
-//			NSLog(@"Test passed: %@", file_path);
 			LogWrapper_LogEvent(log_wrapper, LOGWRAPPER_PRIORITY_STANDARD, LOGWRAPPER_PRIMARY_KEYWORD, "Test passed", "Test passed: %s", file_path);
 #if 1
 			if(NULL != callback_for_ending_test)
@@ -603,7 +548,6 @@ void Test262Helper_RunTests(NSProgress* ns_progress, LogWrapper* log_wrapper,
 		
 
 		current_index_count = current_index_count + 1;
-//		[ns_progress setCompletedUnitCount:current_index_count];
 	}
 
 	TimeStamp_GetTimeStamp(current_time, TIMESTAMP_LENGTH);
