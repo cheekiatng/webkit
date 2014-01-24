@@ -35,7 +35,11 @@ public class Test262 extends Activity
 		System.loadLibrary("Test262");
 	}
     
-	private TextView resultStatusLabel;
+	private TextView runningTestNumberStatusLabel;
+	private TextView currentTestNameStatusLabel;
+	private TextView totalFailedStatusLabel;
+	private TextView logFileLocationLabel;
+	private TextView totalTimeLabel;
 	private Button runTestButton;
 	private ProgressBar testProgressBar;
 
@@ -134,7 +138,11 @@ public class Test262 extends Activity
 		// get the Progress Bar component from the XML layout
 		runTestButton = (Button)findViewById(R.id.submit_button);
 		testProgressBar = (ProgressBar)findViewById(R.id.test_progress_bar);
-		resultStatusLabel = (TextView)findViewById(R.id.result_text);
+		runningTestNumberStatusLabel = (TextView)findViewById(R.id.runningTestNumberStatusLabel);
+		currentTestNameStatusLabel = (TextView)findViewById(R.id.currentTestNameStatusLabel);
+		totalFailedStatusLabel = (TextView)findViewById(R.id.totalFailedStatusLabel);
+		logFileLocationLabel = (TextView)findViewById(R.id.logFileLocationLabel);
+		totalTimeLabel = (TextView)findViewById(R.id.totalTimeLabel);
 		testProgressBar.setMax(11000);
 		testProgressBar.setProgress(0);
 		testProgressBar.setEnabled(false);
@@ -312,7 +320,12 @@ public class Test262 extends Activity
 	public void startTests()
 	{
 		testProgressBar.setEnabled(true);
-		
+		runningTestNumberStatusLabel.setText("Starting tests...");
+		currentTestNameStatusLabel.setText("");
+		totalFailedStatusLabel.setText("");
+		logFileLocationLabel.setText("");
+		totalTimeLabel.setText("");
+
 		Thread thread = new Thread(new Runnable()
 		{
 			@Override
@@ -333,9 +346,7 @@ public class Test262 extends Activity
 	}
 
 	public void callbackForAllTestsStarting(final long total_number_of_tests, final long user_data)
-	{
-		Log.i("Test262", "callbackForAllTestsStarting: " + total_number_of_tests);
-		
+	{	
 		runOnUiThread(new Runnable()
 		{
 			
@@ -344,42 +355,33 @@ public class Test262 extends Activity
 			{
 				final int max_progess = (int)total_number_of_tests;			
 				testProgressBar.setMax(max_progess);
-
-			//	resultStatusLabel.setText("Running test " + current_test_index + " of " + total_number_of_tests + "\n" + current_file_name + "\nTotal failed: " + numberOfFailedTests);
-
 			}
 		});
 	}
 	
 	public void callbackForBeginningTest(final String test_file, final long total_number_of_tests, final long current_test_number, final long user_data)
 	{
-		/*
-		runOnUiThread(new Runnable()
-		{
-			@Override
-			public void run()
-			{
-				testProgressBar.setProgress(current_test_number);
-				resultStatusLabel.setText("Running test " + current_test_number + " of " + total_number_of_tests + "\n" + test_file + "\nTotal failed: " + total_number_of_tests_failed);
-
-			}
-		});
-		*/
-	}
-
-	public void callbackForEndingTest(final String test_file, final long total_number_of_tests, final long current_test_number, final long total_number_of_tests_failed, final boolean did_pass, final String exception_string, final String stack_string, final long user_data)
-	{
-		Log.i("Test262", "callbackForEndingTest: " + test_file);
-		
 		runOnUiThread(new Runnable()
 		{
 			@Override
 			public void run()
 			{
 				final int currnet_progess = (int)current_test_number;			
-				
 				testProgressBar.setProgress(currnet_progess);
-				resultStatusLabel.setText("Running test " + current_test_number + " of " + total_number_of_tests + "\n" + test_file + "\nTotal failed: " + total_number_of_tests_failed);
+				runningTestNumberStatusLabel.setText("Running test " + current_test_number + " of " + total_number_of_tests);
+				currentTestNameStatusLabel.setText(test_file);
+			}
+		});
+	}
+
+	public void callbackForEndingTest(final String test_file, final long total_number_of_tests, final long current_test_number, final long total_number_of_tests_failed, final boolean did_pass, final String exception_string, final String stack_string, final long user_data)
+	{
+		runOnUiThread(new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				totalFailedStatusLabel.setText("Total failed: " + total_number_of_tests_failed);
 			}
 		});
 	}
@@ -395,16 +397,10 @@ public class Test262 extends Activity
 					testProgressBar.setProgress(currnet_progess);
 					testProgressBar.setEnabled(false);
 
-					final String completed_string = "Tests completed: " + number_of_tests_run + " of " + total_number_of_tests + " run.\nTotal failed: " + total_number_of_tests_failed + "\nTotal execution time: " + diff_time_in_double_seconds + "seconds\n"
-//					final String completed_string = "Tests completed: " + number_of_tests_run + " of " + total_number_of_tests + " run.\nTotal failed: " + total_number_of_tests_failed + "\n"
-						+ Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "test262_runlog.txt";	
-					resultStatusLabel.setText(completed_string);
-
+					logFileLocationLabel.setText(Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "test262_runlog.txt");
+					totalTimeLabel.setText("Total execution time: " + diff_time_in_double_seconds + " seconds");
 //					runTestButton.setEnabled(true);
 					runTestButton.setText(getApplicationContext().getString(R.string.submit_press));
-				
-			
-
 				}
 			}
 		);
