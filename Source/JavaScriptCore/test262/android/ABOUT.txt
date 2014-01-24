@@ -1,0 +1,21 @@
+test262j is the original Java-centric version for test262 on Android. 
+The application was written in all Java except for the part that runs
+the actual script via JavaScriptCore which must be done in C via JNI.
+
+Performance problems were noticed in the Java version, with strong 
+suspicion that the Dalvik garbage collector and memory management 
+issues in general were the culprit. Thus test262c was implemented 
+for comparison.
+
+test262c is a re-write of most of application in C. Much of the code
+is shared with or extremely similar to the Mac/iOS versions. The core
+run test loop is now writen in C, along with the script/string manipulations,
+since it was believed these were the bottlenecks in the Java version.
+The GUI is done via function pointer callbacks back into Java since 
+GUI APIs are Java-only. The socket server is shared C code with Mac/iOS,
+though the Zeroconf code is Java based since Android's NSD APIs are 
+Java-only.
+
+The results have confirmed the C version to be significantly faster than 
+the Java version.
+
