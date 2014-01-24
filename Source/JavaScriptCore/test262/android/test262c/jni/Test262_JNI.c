@@ -362,7 +362,7 @@ int32_t Test262JNI_CallbackForAllTestsFinished(uint32_t total_number_of_tests, u
 {
 	struct Test262AndroidUserDataForRunTests* android_user_data = (struct Test262AndroidUserDataForRunTests*)user_data;
 
-	(*android_user_data->jniEnv)->CallVoidMethod(android_user_data->jniEnv, android_user_data->mainActivityInstance, android_user_data->methodIdCallbackForAllTestsFinished, (jlong)total_number_of_tests, (jlong)number_of_tests_run, (jdouble)diff_time_in_double_seconds, (jlong)user_data);
+	(*android_user_data->jniEnv)->CallVoidMethod(android_user_data->jniEnv, android_user_data->mainActivityInstance, android_user_data->methodIdCallbackForAllTestsFinished, (jlong)total_number_of_tests, (jlong)number_of_tests_run, (jlong)total_number_of_tests_failed, (jdouble)diff_time_in_double_seconds, (jlong)user_data);
 	
 	jboolean should_continue = (*android_user_data->jniEnv)->CallBooleanMethod(android_user_data->jniEnv, android_user_data->mainActivityInstance, android_user_data->methodIdForGetShouldContinueRunning);
 	android_user_data->javaScriptThreadShouldContinueRunning = (int32_t)should_continue;
