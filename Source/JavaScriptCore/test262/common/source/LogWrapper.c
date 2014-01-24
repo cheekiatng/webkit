@@ -113,3 +113,20 @@ const char* LogWrapper_GetLogFilePathAndName(LogWrapper* log_wrapper)
 {
 	return log_wrapper->logFilePathAndName;
 }
+
+int LogWrapper_LogEventNoFormat(
+	LogWrapper* log_wrapper,
+	unsigned int priority,
+	const char* keyword, const char* subkeyword,
+	const char* text)
+{
+	Logger_LogEvent(log_wrapper->loggerFile, priority, keyword, subkeyword, text);
+	Logger_LogEvent(log_wrapper->loggerNative, priority, keyword, subkeyword, text);
+	int loggger_retval = Logger_LogEvent(log_wrapper->loggerSocket, priority, keyword, subkeyword, text);
+	if(loggger_retval < 0)
+	{
+		fprintf(stderr, "Error writing to loggerSocket");
+		Logger_Disable(log_wrapper->loggerSocket);
+	}
+}
+

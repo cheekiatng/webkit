@@ -15,6 +15,8 @@
 #include "LogWrapper.h"
 
 
+//static LogWrapper* s_logWrapper = NULL;
+
 // Note: The strategy of this file is to try to avoid anything that touches JNI. Use the _JNI file for that.
 // There are build system reasons for this (related to hard-fp registers).
 
@@ -176,7 +178,6 @@ _Bool Test262Helper_DetermineIfPositiveTestFromScript(const char* raw_script)
 	}
 }
 
-//static LogWrapper* s_logWrapper = NULL;
 // From the raw character buffer, this will parse for all the newlines, and create an array of strings for each line.
 // This creates a file_list array and returns it. The number of items in the array is returned by reference via out_total_number_of_tests.
 // You will need to pass both of these values to Test262Helper_FreeFileList() to clean up when you are done.
@@ -186,6 +187,7 @@ char** Test262Helper_CreateFileListFromBuffer(const char* restrict file_buffer, 
 	size_t total_number_of_files = 0;
 	const char* newline_ptr = &file_buffer[0];
 	size_t i;
+	
 	for(i=0; i<buffer_size; i++)
 	{
 		if('\n' == file_buffer[i])
@@ -196,7 +198,6 @@ char** Test262Helper_CreateFileListFromBuffer(const char* restrict file_buffer, 
 //	fprintf(stderr, "%lu occurences of newline\n", total_number_of_files);
 
 	char** file_list = (char**)malloc(total_number_of_files * sizeof(char*));
-
 	
 	const char* begin_ptr = &file_buffer[0];
 //	fprintf(stderr, "begin_ptr %s\n", begin_ptr);
@@ -209,9 +210,13 @@ char** Test262Helper_CreateFileListFromBuffer(const char* restrict file_buffer, 
 		size_t string_length = newline_ptr - begin_ptr;
 		file_list[i] = (char*)malloc( (string_length + 1) * sizeof(char) );
 		// strlcpy copies size-1 and auto-terminates the string.
-		strlcpy(file_list[i], begin_ptr, string_length+1);
-//		strncpy(file_list[i], begin_ptr, string_length+1);
-//		file_list[i] = '\0';
+		// WTF?! strlcpy is *really* slow. If I use it, this loop takes about 9 seconds.
+		// If I switch to strncpy and null terminate myself, it takes 14 _milli_seconds.
+		// Is this a performance bug, or does it have something to do with the fact that my src string has no null terminator?
+		// Either way, I'm not going to use it.
+//		strlcpy(file_list[i], begin_ptr, string_length+1);
+		strncpy(file_list[i], begin_ptr, string_length);
+		file_list[i][string_length] = '\0';
 //		fprintf(stderr, "string_length:%lu, created: %s.\n", string_length, file_list[i]);
 //		LogWrapper_LogEvent(s_logWrapper, LOGWRAPPER_PRIORITY_DEBUG, LOGWRAPPER_PRIMARY_KEYWORD, "Test262Helper_CreateFileListFromBuffer", "string_length:%lu, for i:%d, created: %s.\n", string_length, i, file_list[i]);
 		
@@ -219,6 +224,7 @@ char** Test262Helper_CreateFileListFromBuffer(const char* restrict file_buffer, 
 		// move to the next character after the newline
 		begin_ptr = newline_ptr + 1;
 	}
+	
 	assert(i == total_number_of_files);
 //	fprintf(stderr, "created %lu strings\n", i);
 
@@ -314,6 +320,8 @@ void Test262Helper_RunTests(LogWrapper* log_wrapper, AAssetManager* asset_manage
 	void* user_data
 )
 {
+//s_logWrapper = log_wrapper;
+
 	const int TIMESTAMP_LENGTH = 24;
 	char current_time[TIMESTAMP_LENGTH];
 	TimeStamp_GetTimeStamp(current_time, TIMESTAMP_LENGTH);

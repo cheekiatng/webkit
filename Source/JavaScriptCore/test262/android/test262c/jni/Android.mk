@@ -42,6 +42,7 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)/../../../common/source/SimpleThread
 LOCAL_CFLAGS := -std=c99
 # http://blog.algolia.com/android-ndk-how-to-reduce-libs-size/
 LOCAL_CFLAGS += -DLOGGER_ENABLE_LOCKING
+LOCAL_CFLAGS += -DNDEBUG
 LOCAL_CFLAGS += -fvisibility=hidden
 LOCAL_CFLAGS += -ffunction-sections -fdata-sections 
 LOCAL_LDFLAGS += -Wl,--gc-sections

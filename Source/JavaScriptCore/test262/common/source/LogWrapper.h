@@ -35,6 +35,11 @@ void LogWrapper_CloseFile(LogWrapper* log_wrapper);
 // This returns a pointer to LogWrapper's internal copy of the string. Make your own copy if you need to keep it around or modify.
 const char* LogWrapper_GetLogFilePathAndName(LogWrapper* log_wrapper);
 
+int LogWrapper_LogEventNoFormat(
+	LogWrapper* log_wrapper,
+	unsigned int priority,
+	const char* keyword, const char* subkeyword,
+	const char* text);
 
 // I use variadic macros here because I want to pass the same string message to multiple functions.
 // Without macros, this gets into temporary string creation or nasty platform specific/undefined behavior of va_copy.

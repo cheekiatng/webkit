@@ -319,6 +319,7 @@ public class Test262 extends Activity
 
 	public void startTests()
 	{
+		testProgressBar.setProgress(0);		
 		testProgressBar.setEnabled(true);
 		runningTestNumberStatusLabel.setText("Starting tests...");
 		currentTestNameStatusLabel.setText("");

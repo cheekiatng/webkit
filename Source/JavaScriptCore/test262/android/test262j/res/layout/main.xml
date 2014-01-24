@@ -22,10 +22,26 @@
 	android:indeterminate="false"
     />
 
-	<TextView android:id="@+id/result_text"
+	<TextView android:id="@+id/runningTestNumberStatusLabel"
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
-    android:text="Run a script..."
+    />
+
+	<TextView android:id="@+id/currentTestNameStatusLabel"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+	/>
+	<TextView android:id="@+id/totalFailedStatusLabel"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+	/>
+	<TextView android:id="@+id/logFileLocationLabel"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+	/>
+	<TextView android:id="@+id/totalTimeLabel"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
     />
 </LinearLayout>
 

@@ -52,7 +52,11 @@ public class Test262 extends Activity
 		System.loadLibrary("Test262");
 	}
     
-	private TextView resultStatusLabel;
+	private TextView runningTestNumberStatusLabel;
+	private TextView currentTestNameStatusLabel;
+	private TextView totalFailedStatusLabel;
+	private TextView logFileLocationLabel;
+	private TextView totalTimeLabel;
 	private Button runTestButton;
 	private ProgressBar testProgressBar;
 
@@ -230,7 +234,13 @@ logFile = out_file;
 		// get the Progress Bar component from the XML layout
 		runTestButton = (Button)findViewById(R.id.submit_button);
 		testProgressBar = (ProgressBar)findViewById(R.id.test_progress_bar);
-		resultStatusLabel = (TextView)findViewById(R.id.result_text);
+		runningTestNumberStatusLabel = (TextView)findViewById(R.id.runningTestNumberStatusLabel);
+		currentTestNameStatusLabel = (TextView)findViewById(R.id.currentTestNameStatusLabel);
+		totalFailedStatusLabel = (TextView)findViewById(R.id.totalFailedStatusLabel);
+		logFileLocationLabel = (TextView)findViewById(R.id.logFileLocationLabel);
+		totalTimeLabel = (TextView)findViewById(R.id.totalTimeLabel);
+		testProgressBar.setMax(11000);
+		testProgressBar.setProgress(0);
 		testProgressBar.setEnabled(false);
 
 		// addKeyListener();
@@ -238,26 +248,9 @@ logFile = out_file;
 		//
 //		displayFiles(this.getAssets(), "", 0);
 
-		String[] file_list = getFileList();
-		/*
-		for(int i=0; i < file_list.length; i++)
-		{
-			Log.v("Test262", file_list[i]);
-			
-		}
-		*/
-		testFileList = file_list;
-		testHarnessString = loadTestHarnessScripts();
-
-		String external_path = Environment.getExternalStorageDirectory().getAbsolutePath();
 
 
-		numberOfTests = file_list.length;
-		
-		resultStatusLabel.setText("Total number of tests: " + file_list.length + "\nExternal Storage Path " + external_path);
 
-
-		testProgressBar.setMax(numberOfTests);
 		
 		// Zeroconf
         networkLoggingHandler = new Handler()
@@ -555,6 +548,23 @@ logFile = out_file;
 	{
 		millisecondsStartBenchmark = System.currentTimeMillis();
 
+		String[] file_list = getFileList();
+		/*
+		for(int i=0; i < file_list.length; i++)
+		{
+			Log.v("Test262", file_list[i]);
+			
+		}
+		*/
+		testFileList = file_list;
+		testHarnessString = loadTestHarnessScripts();
+
+		String external_path = Environment.getExternalStorageDirectory().getAbsolutePath();
+
+
+		numberOfTests = file_list.length;
+		
+
 		numberOfFailedTests = 0;
 
 		boolean log_opened = openLogFile();
@@ -563,8 +573,14 @@ logFile = out_file;
 			Log.i("Test262", "Log file could not be opened");
 		}
 		writeToLogFile("Starting Tests", "Starting Tests at time: " + generateTimeStamp());
+		testProgressBar.setProgress(0);				
+		testProgressBar.setMax(numberOfTests);
 		testProgressBar.setEnabled(true);
-
+		runningTestNumberStatusLabel.setText("Starting tests...");
+		currentTestNameStatusLabel.setText("");
+		totalFailedStatusLabel.setText("");
+		logFileLocationLabel.setText("");
+		totalTimeLabel.setText("");
 
 
 		Thread thread = new Thread(new Runnable()
@@ -592,15 +608,15 @@ logFile = out_file;
 
 					writeMemoryInfoToLogFile("Memory at the beginning of loop[" + i + "] :" + current_file_name);
 					
+					// callbackForBeginningTest
 					runOnUiThread(new Runnable()
 					{
 						@Override
 						public void run()
 						{
-
 							testProgressBar.setProgress(current_test_index);
-							resultStatusLabel.setText("Running test " + current_test_index + " of " + numberOfTests + "\n" + current_file_name + "\nTotal failed: " + numberOfFailedTests);
-
+							runningTestNumberStatusLabel.setText("Running test " + (current_test_index+1) + " of " + numberOfTests);
+							currentTestNameStatusLabel.setText(current_file_name);
 						}
 					});
 
@@ -655,18 +671,15 @@ logFile = out_file;
 						writeToLogFile("Test passed", "Test passed: " + current_file_name);
 					}
 
-					/* // this will be updated soon enough in the next loop
+					// callbackForEndingTest
 					runOnUiThread(new Runnable()
 					{
 						@Override
 						public void run()
 						{
-
-							testProgressBar.setProgress(current_test_index + 1);
-							resultStatusLabel.setText("Running test " + current_test_index + " of " + numberOfTests + "\n" + current_file_name + "\nTotal failed: " + numberOfFailedTests);
+							totalFailedStatusLabel.setText("Total failed: " + numberOfFailedTests);
 						}
 					});
-					*/
 				}
 
 				final long total_execution_time_in_milliseconds = System.currentTimeMillis() - millisecondsStartBenchmark;
@@ -681,11 +694,13 @@ logFile = out_file;
 						@Override
 						public void run()
 						{
-							Log.i("Test262", "finished ");		
+//							Log.i("Test262", "finished ");		
 
 							testProgressBar.setProgress(final_number_of_tests_run);
+							testProgressBar.setEnabled(false);
 							
-							resultStatusLabel.setText(completed_string);
+							logFileLocationLabel.setText(Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "test262_runlog.txt");
+							totalTimeLabel.setText("Total execution time: " + total_execution_time_in_seconds + " seconds");
 
 
 //							runTestButton.setEnabled(true);
