@@ -158,57 +158,6 @@ JNIEXPORT void JNICALL Java_org_webkit_javascriptcore_test262_Test262_doDestroy(
 
 }
 
-
-JNIEXPORT jboolean JNICALL Java_org_webkit_javascriptcore_test262_Test262_evaluateScript(JNIEnv* jni_env, jobject thiz, jstring java_string_script, jstring java_file_name, jobject java_return_data_object)
-{
-	JSStringRef js_string_script = jstringToJSStringRef(jni_env, java_string_script);
-	JSStringRef js_file_name = jstringToJSStringRef(jni_env, java_file_name);
-	JSStringRef js_exception_string = NULL;
-	JSStringRef js_stack_string = NULL;
-	_Bool is_success;
-
-	is_success = Test262_EvaluateStringScript(js_string_script, js_file_name, &js_exception_string, &js_stack_string);
-
-	if(!is_success)
-	{
-		// javap -classpath bin/classes -s -p org.webkit.javascriptcore.test262.ReturnDataObject
-	    jclass return_data_object_class = (*jni_env)->GetObjectClass(jni_env, java_return_data_object);
-		
-		if(NULL != js_exception_string)
-		{
-			// Because we don't have multiple return values for JNI,
-			// we will save any additional information in the ReturnDataObject instance 
-			// by calling back into Java to set values which can be read after this function returns.
-			jmethodID method_id = (*jni_env)->GetMethodID(jni_env, return_data_object_class, "setExceptionString", "(Ljava/lang/String;)V");
-			jstring java_exception_string = jstringFromJSStringRef(jni_env, js_exception_string);
-			(*jni_env)->CallVoidMethod(jni_env, java_return_data_object, method_id, java_exception_string);
-		}
-
-		if(NULL != js_stack_string)
-		{
-			// Because we don't have multiple return values for JNI,
-			// we will save any additional information in the ReturnDataObject instance 
-			// by calling back into Java to set values which can be read after this function returns.
-			jmethodID method_id = (*jni_env)->GetMethodID(jni_env, return_data_object_class, "setStackString", "(Ljava/lang/String;)V");
-			jstring java_stack_string = jstringFromJSStringRef(jni_env, js_stack_string);
-			(*jni_env)->CallVoidMethod(jni_env, java_return_data_object, method_id, java_stack_string);
-		}
-	}
-	
-	if(NULL != js_stack_string)
-	{
-		JSStringRelease(js_stack_string);
-	}
-	if(NULL != js_exception_string)
-	{
-		JSStringRelease(js_exception_string);
-	}
-	JSStringRelease(js_file_name);
-	JSStringRelease(js_string_script);
-	
-	return (jboolean)is_success;
-}
-
 // Basically the JNI way to invoke:
 // Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "test262_runlog.txt"; 
 _Bool LogWrapperAndroid_OpenNewFile(JNIEnv* env, LogWrapper* log_wrapper)
@@ -391,7 +340,7 @@ JNIEXPORT void JNICALL Java_org_webkit_javascriptcore_test262_Test262_runTests(J
 
 }
 
-jlong JNICALL Java_org_webkit_javascriptcore_test262_Test262_getNativeLoggerFile(JNIEnv* jenv, jclass jcls)
+JNIEXPORT jlong JNICALL Java_org_webkit_javascriptcore_test262_Test262_getNativeLoggerFile(JNIEnv* jenv, jclass jcls)
 {
 	jlong jresult = 0 ;
 	Logger* result = NULL;
@@ -404,7 +353,7 @@ jlong JNICALL Java_org_webkit_javascriptcore_test262_Test262_getNativeLoggerFile
 	return jresult;
 }
 
-jlong JNICALL Java_org_webkit_javascriptcore_test262_Test262_getNativeLoggerNative(JNIEnv* jenv, jclass jcls)
+JNIEXPORT jlong JNICALL Java_org_webkit_javascriptcore_test262_Test262_getNativeLoggerNative(JNIEnv* jenv, jclass jcls)
 {
 	jlong jresult = 0 ;
 	Logger* result = NULL;
@@ -417,7 +366,7 @@ jlong JNICALL Java_org_webkit_javascriptcore_test262_Test262_getNativeLoggerNati
 	return jresult;
 }
 
-jlong JNICALL Java_org_webkit_javascriptcore_test262_Test262_getNativeLoggerSocket(JNIEnv* jenv, jclass jcls)
+JNIEXPORT jlong JNICALL Java_org_webkit_javascriptcore_test262_Test262_getNativeLoggerSocket(JNIEnv* jenv, jclass jcls)
 {
 	jlong jresult = 0 ;
 	Logger* result = NULL;

@@ -188,6 +188,8 @@ static void SWIGUNUSED SWIG_JavaThrowException(JNIEnv *jenv, SWIG_JavaExceptionC
 
 
 	#include "Logger.h"
+#include "LoggerAdapter__android_log.h"
+#include "TimeStamp.h"
 
 SWIGINTERN void delete_Logger(struct Logger *self){
 		Logger_Free(self);

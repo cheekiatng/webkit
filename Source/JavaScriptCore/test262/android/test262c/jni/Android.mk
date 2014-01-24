@@ -19,6 +19,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE    := Test262
 LOCAL_SRC_FILES := Test262_JNI.c \
 Test262HelperAndroid.c \
+Logger_wrap.c \
 ../../../common/source/test262.c \
 ../../../common/source/CommonUtils.c \
 ../../../common/source/LogWrapper.c \
