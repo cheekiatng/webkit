@@ -19,6 +19,7 @@ public class NetworkHelper
 	private long serverUserData; // this is the pointer to the C struct instance userdata
 	private long serverAcceptThread; // this is the pointer to the C thread data structure
 	private boolean isServerStarted = false;
+	private boolean isServiceRegistered = false;
 
 	public native boolean startServerNative(NetworkHelperReturnDataObject return_data_object);
 	public native void stopServerNative(int server_socket, short server_port, long server_user_data, long server_accept_thread);
@@ -57,6 +58,7 @@ public class NetworkHelper
 		zeroconfHelper.registerService(serverPort);
 		
 		isServerStarted = true;
+		isServiceRegistered = true;		
 	}
 
 	void stopServer()
@@ -70,13 +72,15 @@ public class NetworkHelper
 		
 		stopServerNative(serverSocket, serverPort, serverUserData, serverAcceptThread);
 		isServerStarted = false;
+		isServiceRegistered = false;
 	}
 	
 	void registerService()
 	{
-		if(!isServerStarted)
+		if(isServerStarted && !isServiceRegistered)
 		{
-			zeroconfHelper.registerService(serverPort);		
+			zeroconfHelper.registerService(serverPort);
+			isServiceRegistered = true;	
 		}
 	}
 
@@ -88,7 +92,7 @@ public class NetworkHelper
 		// should propagate and remove itself. 
 		// Additionally, the service stays until the device is rebooted.
 		// So something in the OS is not cleaning up correctly.
-		if(isServerStarted)
+		if(isServiceRegistered)
 		{
 			zeroconfHelper.tearDown();		
 		}

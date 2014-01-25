@@ -49,6 +49,9 @@ LogWrapper* LogWrapper_Create()
 #else
 #endif
 
+		// disable native logging when performance testing
+//		Logger_Disable(log_wrapper->loggerNative);
+
 		// Since NSLog always prints a timestamp, printing newline padding between log messages just makes more clutter, so disable newline injection.
 		Logger_SetNewLines(log_wrapper->loggerNative, 0, 0);
 
@@ -114,7 +117,7 @@ const char* LogWrapper_GetLogFilePathAndName(LogWrapper* log_wrapper)
 	return log_wrapper->logFilePathAndName;
 }
 
-int LogWrapper_LogEventNoFormat(
+void LogWrapper_LogEventNoFormat(
 	LogWrapper* log_wrapper,
 	unsigned int priority,
 	const char* keyword, const char* subkeyword,

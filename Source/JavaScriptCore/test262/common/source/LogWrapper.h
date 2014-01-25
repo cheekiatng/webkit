@@ -35,7 +35,7 @@ void LogWrapper_CloseFile(LogWrapper* log_wrapper);
 // This returns a pointer to LogWrapper's internal copy of the string. Make your own copy if you need to keep it around or modify.
 const char* LogWrapper_GetLogFilePathAndName(LogWrapper* log_wrapper);
 
-int LogWrapper_LogEventNoFormat(
+void LogWrapper_LogEventNoFormat(
 	LogWrapper* log_wrapper,
 	unsigned int priority,
 	const char* keyword, const char* subkeyword,
