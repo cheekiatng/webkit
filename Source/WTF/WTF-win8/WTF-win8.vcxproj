@@ -1,0 +1,280 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{bd25b61c-f396-4434-be7b-8e1ac20afeb4}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectName>WTF</ProjectName>
+    <RootNamespace>WTF</RootNamespace>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
+    <AppContainerApplication>true</AppContainerApplication>
+    <ApplicationType>Windows Store</ApplicationType>
+    <ApplicationTypeRevision>8.1</ApplicationTypeRevision>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <GenerateManifest>false</GenerateManifest>
+    <TargetExt>.a</TargetExt>
+    <OutDir>$(WEBKIT_OUTPUTDIR)\$(Configuration)\bin32\</OutDir>
+    <IncludePath>$(ProjectDir)/../icu;$(ProjectDir)/../wtf;$(ProjectDir)/../wtf/threads;$(ProjectDir)/..;$(IncludePath)</IncludePath>
+    <IntDir>$(WEBKIT_OUTPUTDIR)\$(Configuration)\obj32\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <GenerateManifest>false</GenerateManifest>
+    <OutDir>$(WEBKIT_OUTPUTDIR)\$(Configuration)\bin32\</OutDir>
+    <IntDir>$(WEBKIT_OUTPUTDIR)\$(Configuration)\obj32\$(ProjectName)\</IntDir>
+    <IncludePath>$(ProjectDir)/../icu;$(ProjectDir)/../wtf;$(ProjectDir)/../wtf/threads;$(ProjectDir)/..;$(IncludePath)</IncludePath>
+    <TargetExt>.a</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <GenerateManifest>false</GenerateManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <GenerateManifest>false</GenerateManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <GenerateManifest>false</GenerateManifest>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <GenerateManifest>false</GenerateManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>BUILDING_WTF=1;_DEBUG;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4018;4068;4099;4100;4127;4138;4146;4180;4189;4201;4244;4251;4267;4275;4288;4291;4305;4344;4355;4389;4396;4481;4503;4505;4510;4512;4610;4706;4800;4819;4951;4952;4996;6011;6031;6211;6246;6255;6387;</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+    </Link>
+    <Lib>
+      <AdditionalOptions>/ignore:4221 %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories />
+      <PreprocessorDefinitions>BUILDING_WTF=1;NDEBUG;WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DisableSpecificWarnings>4018;4068;4099;4100;4127;4138;4146;4180;4189;4201;4244;4251;4267;4275;4288;4291;4305;4344;4355;4389;4396;4481;4503;4505;4510;4512;4610;4706;4800;4819;4951;4952;4996;6011;6031;6211;6246;6255;6387;</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|arm'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|arm'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <CompileAsWinRT>false</CompileAsWinRT>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\wtf\ArrayBuffer.cpp" />
+    <ClCompile Include="..\wtf\ArrayBufferView.cpp" />
+    <ClCompile Include="..\wtf\Assertions.cpp" />
+    <ClCompile Include="..\wtf\Atomics.cpp" />
+    <ClCompile Include="..\wtf\BitVector.cpp" />
+    <ClCompile Include="..\wtf\CompilationThread.cpp" />
+    <ClCompile Include="..\wtf\CryptographicallyRandomNumber.cpp" />
+    <ClCompile Include="..\wtf\CurrentTime.cpp" />
+    <ClCompile Include="..\wtf\DataLog.cpp" />
+    <ClCompile Include="..\wtf\DateMath.cpp" />
+    <ClCompile Include="..\wtf\DecimalNumber.cpp" />
+    <ClCompile Include="..\wtf\dtoa.cpp" />
+    <ClCompile Include="..\wtf\dtoa\bignum-dtoa.cc" />
+    <ClCompile Include="..\wtf\dtoa\bignum.cc" />
+    <ClCompile Include="..\wtf\dtoa\cached-powers.cc" />
+    <ClCompile Include="..\wtf\dtoa\diy-fp.cc" />
+    <ClCompile Include="..\wtf\dtoa\double-conversion.cc" />
+    <ClCompile Include="..\wtf\dtoa\fast-dtoa.cc" />
+    <ClCompile Include="..\wtf\dtoa\fixed-dtoa.cc" />
+    <ClCompile Include="..\wtf\dtoa\strtod.cc" />
+    <ClCompile Include="..\wtf\DynamicAnnotations.cpp" />
+    <ClCompile Include="..\wtf\FastMalloc.cpp" />
+    <ClCompile Include="..\wtf\FilePrintStream.cpp" />
+    <ClCompile Include="..\wtf\FunctionDispatcher.cpp" />
+    <ClCompile Include="..\wtf\GregorianDateTime.cpp" />
+    <ClCompile Include="..\wtf\HashTable.cpp" />
+    <ClCompile Include="..\wtf\MainThread.cpp" />
+    <ClCompile Include="..\wtf\MD5.cpp" />
+    <ClCompile Include="..\wtf\MediaTime.cpp" />
+    <ClCompile Include="..\wtf\MetaAllocator.cpp" />
+    <ClCompile Include="..\wtf\NullPtr.cpp" />
+    <ClCompile Include="..\wtf\NumberOfCores.cpp" />
+    <ClCompile Include="..\wtf\OSAllocatorWinPhone.cpp" />
+    <ClCompile Include="..\wtf\OSRandomSource.cpp" />
+    <ClCompile Include="..\wtf\PageAllocationAligned.cpp" />
+    <ClCompile Include="..\wtf\PageBlock.cpp" />
+    <ClCompile Include="..\wtf\ParallelJobsGeneric.cpp" />
+    <ClCompile Include="..\wtf\PrintStream.cpp" />
+    <ClCompile Include="..\wtf\RAMSize.cpp" />
+    <ClCompile Include="..\wtf\RandomNumber.cpp" />
+    <ClCompile Include="..\wtf\RefCountedLeakCounter.cpp" />
+    <ClCompile Include="..\wtf\RunLoopTimerCF.cpp" />
+    <ClCompile Include="..\wtf\SHA1.cpp" />
+    <ClCompile Include="..\wtf\SixCharacterHash.cpp" />
+    <ClCompile Include="..\wtf\SizeLimits.cpp" />
+    <ClCompile Include="..\wtf\StackBounds.cpp" />
+    <ClCompile Include="..\wtf\StackStats.cpp" />
+    <ClCompile Include="..\wtf\StringPrintStream.cpp" />
+    <ClCompile Include="..\wtf\TCSystemAlloc.cpp" />
+    <ClCompile Include="..\wtf\text\AtomicString.cpp" />
+    <ClCompile Include="..\wtf\text\AtomicStringTable.cpp" />
+    <ClCompile Include="..\wtf\text\Base64.cpp" />
+    <ClCompile Include="..\wtf\text\CString.cpp" />
+    <ClCompile Include="..\wtf\text\StringBuilder.cpp" />
+    <ClCompile Include="..\wtf\text\StringImpl.cpp" />
+    <ClCompile Include="..\wtf\text\StringStatics.cpp" />
+    <ClCompile Include="..\wtf\text\WTFString.cpp" />
+    <ClCompile Include="..\wtf\ThreadIdentifierDataPthreads.cpp" />
+    <ClCompile Include="..\wtf\Threading.cpp" />
+    <ClCompile Include="..\wtf\ThreadingPthreads.cpp" />
+    <ClCompile Include="..\wtf\ThreadingStdThread.cpp" />
+    <ClCompile Include="..\wtf\ThreadingWin.cpp" />
+    <ClCompile Include="..\wtf\ThreadSpecificWin.cpp" />
+    <ClCompile Include="..\wtf\ThreadSpecificWinPhone.cpp" />
+    <ClCompile Include="..\wtf\threads\BinarySemaphore.cpp" />
+    <ClCompile Include="..\wtf\TypeTraits.cpp" />
+    <ClCompile Include="..\wtf\unicode\CollatorDefault.cpp" />
+    <ClCompile Include="..\wtf\unicode\icu\CollatorICU.cpp" />
+    <ClCompile Include="..\wtf\unicode\UTF8.cpp" />
+    <ClCompile Include="..\wtf\unicode\wchar\UnicodeWchar.cpp" />
+    <ClCompile Include="..\wtf\win\MainThreadWinPhone.cpp" />
+    <ClCompile Include="..\wtf\WTFThreadData.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
