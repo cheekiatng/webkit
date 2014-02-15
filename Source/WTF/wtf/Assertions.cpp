@@ -127,7 +127,10 @@ static void vprintf_stderr_common(const char* format, va_list args)
                 break;
 
             if (vsnprintf(buffer, size, format, args) != -1) {
+// Problem: Windows Store/Phone doesn't allow OutputDebugString so we must remove it.
+#if defined(_DEBUG)
                 OutputDebugStringA(buffer);
+#endif
                 free(buffer);
                 break;
             }
