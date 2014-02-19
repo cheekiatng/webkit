@@ -24,12 +24,12 @@ objc/*.h diff=objcppheader
 
 
 # These files must always be Unix LF format, even on Windows.
-Source/JavaScriptCore/JavaScriptCore-Win81.vxcproj/LLInt/LLIntAssembly/build-LLIntAssembly.sh
-Source/JavaScriptCore/JavaScriptCore-Win81.vxcproj/LLInt/LLIntDesiredOffsets/build-LLIntDesiredOffsets.sh
-Source/JavaScriptCore/JavaScriptCore-Win81.vxcproj/build-generated-files.sh
-Source/JavaScriptCore/llint/LowLevelInterpreter.asm
-Source/JavaScriptCore/llint/LowLevelInterpreter32_64.asm
-Source/JavaScriptCore/llint/LowLevelInterpreter64.asm
+Source/JavaScriptCore/JavaScriptCore-Win81.vxcproj/LLInt/LLIntAssembly/build-LLIntAssembly.sh eol=lf
+Source/JavaScriptCore/JavaScriptCore-Win81.vxcproj/LLInt/LLIntDesiredOffsets/build-LLIntDesiredOffsets.sh eol=lf
+Source/JavaScriptCore/JavaScriptCore-Win81.vxcproj/build-generated-files.sh eol=lf
+Source/JavaScriptCore/llint/LowLevelInterpreter.asm eol=lf
+Source/JavaScriptCore/llint/LowLevelInterpreter32_64.asm eol=lf
+Source/JavaScriptCore/llint/LowLevelInterpreter64.asm eol=lf
 
 
 # For best performance, place rules for deep paths in the parent directory.
