@@ -22,6 +22,16 @@ objc/*.h diff=objcppheader
 *.vsprops eol=crlf
 *.sln eol=crlf
 
+
+# These files must always be Unix LF format, even on Windows.
+Source/JavaScriptCore/JavaScriptCore-Win81.vxcproj/LLInt/LLIntAssembly/build-LLIntAssembly.sh
+Source/JavaScriptCore/JavaScriptCore-Win81.vxcproj/LLInt/LLIntDesiredOffsets/build-LLIntDesiredOffsets.sh
+Source/JavaScriptCore/JavaScriptCore-Win81.vxcproj/build-generated-files.sh
+Source/JavaScriptCore/llint/LowLevelInterpreter.asm
+Source/JavaScriptCore/llint/LowLevelInterpreter32_64.asm
+Source/JavaScriptCore/llint/LowLevelInterpreter64.asm
+
+
 # For best performance, place rules for deep paths in the parent directory.
 # For example: instead of "Source/WebCore/inspector/Inspector.json -crlf" here,
 # place "Inspector.json -crlf" in Source/WebCore/inspector/.gitattributes
