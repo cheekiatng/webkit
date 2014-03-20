@@ -34,8 +34,16 @@
 #include "JSScriptRefPrivate.h"
 #include "JSStringRefPrivate.h"
 #include <math.h>
-#define ASSERT_DISABLED 0
+
+// ATTENTION: JavaScriptCore compiled properly for Release won't have access to private symbols, one of which is used by ASSERT.
+// As a workaround, I am redefining to assert()
+#define ASSERT_DISABLED 1
 #include <wtf/Assertions.h>
+#if ASSERT_DISABLED
+	#undef ASSERT
+	#include <assert.h>
+	#define ASSERT assert
+#endif
 
 #if PLATFORM(MAC) || PLATFORM(IOS)
 #include <mach/mach.h>
