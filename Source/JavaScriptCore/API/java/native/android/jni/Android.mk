@@ -21,10 +21,10 @@ LOCAL_SRC_FILES := ../../JavaScriptCoreJNI.c
 
 LOCAL_SHARED_LIBRARIES := JavaScriptCore_shared
 LOCAL_LDLIBS    := -llog -landroid
-LOCAL_CFLAGS    := -std=c99 -DENABLE_JAVASCRIPTCORE_PRIVATE_API
+LOCAL_CFLAGS    := -std=c99
 
 include $(BUILD_SHARED_LIBRARY)
 
 # Remember: The NDK_MODULE_PATH environmental variable must contain the modules directories in the search path.
-$(call import-module,BUILD_webkit2)
+$(call import-module,JavaScriptCore)
 
