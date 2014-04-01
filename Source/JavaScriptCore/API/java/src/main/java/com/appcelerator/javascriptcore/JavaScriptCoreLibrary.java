@@ -24,6 +24,7 @@ import com.appcelerator.javascriptcore.enums.JSPropertyAttribute;
 public class JavaScriptCoreLibrary {
 
     static {
+        System.loadLibrary("JavaScriptCore");
         System.loadLibrary("JavaScriptCoreJNI");
     }   
 
