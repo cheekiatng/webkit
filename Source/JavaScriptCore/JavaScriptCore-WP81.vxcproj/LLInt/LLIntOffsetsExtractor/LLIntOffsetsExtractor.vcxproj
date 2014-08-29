@@ -76,7 +76,7 @@
     <OutDir>$(ConfigurationBuildDir)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
-    <IncludePath>$(WP80ToolSetPath)include;$(WindowsSDK_IncludePath);..\..\..\;..\..\..\tools\;..\..\..\runtime\;..\..\..\llint\;..\..\..\jit\;..\..\..\disassembler\;..\..\..\heap\;..\..\..\debugger\;..\..\..\assembler\;..\..\..\profiler\;..\..\..\yarr\;..\..\..\interpreter\;..\..\..\bytecode\;..\..\..\dfg\;..\..\..\bytecompiler\;..\..\..\parser\;..\..\..\API\;..\..\..\ftl\;$(ConfigurationBuildDir)\DerivedSources\;$(ConfigurationBuildDir)\include\;$(ConfigurationBuildDir)\include\JavaScriptCore\;$(ConfigurationBuildDir)\include\private\;..\..\..\..\WTF;..\..\..\..\WTF\icu</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsPhoneSDK_IncludePath);$(WP80ToolSetPath)include;$(WindowsSDK_IncludePath);..\..\..\;..\..\..\tools\;..\..\..\runtime\;..\..\..\llint\;..\..\..\jit\;..\..\..\disassembler\;..\..\..\heap\;..\..\..\debugger\;..\..\..\assembler\;..\..\..\profiler\;..\..\..\yarr\;..\..\..\interpreter\;..\..\..\bytecode\;..\..\..\dfg\;..\..\..\bytecompiler\;..\..\..\parser\;..\..\..\API\;..\..\..\ftl\;$(ConfigurationBuildDir)\DerivedSources\;$(ConfigurationBuildDir)\include\;$(ConfigurationBuildDir)\include\JavaScriptCore\;$(ConfigurationBuildDir)\include\private\;..\..\..\..\WTF;..\..\..\..\WTF\icu</IncludePath>
     <OutDir>$(ConfigurationBuildDir)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -137,6 +137,7 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <AdditionalUsingDirectories>$(WindowsSDK_MetadataPath);$(AdditionalUsingDirectories)</AdditionalUsingDirectories>
+      <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

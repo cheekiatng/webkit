@@ -84,7 +84,7 @@
     <IncludePath>$(VC_IncludePath);$(WindowsPhoneSDK_IncludePath);$(ProjectDir)/../icu;$(ProjectDir)/../wtf;$(ProjectDir)/../wtf/threads;$(ProjectDir)/..;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
-    <IncludePath>$(ProjectDir)/../icu;$(ProjectDir)/../wtf;$(ProjectDir)/../wtf/threads;$(ProjectDir)/..;$(IncludePath)</IncludePath>
+    <IncludePath>$(VC_IncludePath);$(WindowsPhoneSDK_IncludePath);$(ProjectDir)/../icu;$(ProjectDir)/../wtf;$(ProjectDir)/../wtf/threads;$(ProjectDir)/..;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>$(ProjectDir)/../icu;$(ProjectDir)/../wtf;$(ProjectDir)/../wtf/threads;$(ProjectDir)/..;$(IncludePath)</IncludePath>
