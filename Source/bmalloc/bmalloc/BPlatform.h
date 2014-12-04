@@ -26,16 +26,21 @@
 #ifndef BPlatform_h
 #define BPlatform_h
 
-#define BPLATFORM(PLATFORM) (defined BPLATFORM_##PLATFORM && PLATFORM_##PLATFORM)
+/* OS(DARWIN) - Any Darwin-based OS, including Mac OS X and iPhone OS */
+#ifdef __APPLE__
+#define WTF_OS_DARWIN 1
+
+#include <Availability.h>
+#include <AvailabilityMacros.h>
+#include <TargetConditionals.h>
+#endif
+
+#define BPLATFORM(PLATFORM) (defined BPLATFORM_##PLATFORM && BPLATFORM_##PLATFORM)
 
 #if ((defined(TARGET_OS_EMBEDDED) && TARGET_OS_EMBEDDED) \
     || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE) \
     || (defined(TARGET_IPHONE_SIMULATOR) && TARGET_IPHONE_SIMULATOR))
 #define BPLATFORM_IOS 1
-#endif
-
-#if defined(TARGET_IPHONE_SIMULATOR) && TARGET_IPHONE_SIMULATOR
-#define BPLATFORM_IOS_SIMULATOR 1
 #endif
 
 #endif // BPlatform_h
