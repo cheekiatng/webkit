@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>79E72C6A-4B05-4169-B5A3-C8C55C28EF54</string>
+	<key>IDESourceControlProjectName</key>
+	<string>JavaScriptCore</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>94D753953040122F76D30FC1464B1B4DCE436F58</key>
+		<string>git://git.webkit.org/WebKit.git</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>mdl/JavaScriptCore.xcworkspace</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>94D753953040122F76D30FC1464B1B4DCE436F58</key>
+		<string>../..</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>git://git.webkit.org/WebKit.git</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>111</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>94D753953040122F76D30FC1464B1B4DCE436F58</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>94D753953040122F76D30FC1464B1B4DCE436F58</string>
+			<key>IDESourceControlWCCName</key>
+			<string>WebKit</string>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -1,0 +1,12 @@
+//  JavaScriptCore-iOS-Static.xcconfig
+//  Created by Matt Langston on 2014.12.04
+
+#include "../Source/JavaScriptCore/Configurations/JavaScriptCore.xcconfig"
+
+ENABLE_LLINT_C_LOOP = ENABLE_LLINT_C_LOOP;
+
+//VALID_ARCHS = arm64 armv7 armv7s i386;
+//ONLY_ACTIVE_ARCH = NO;
+
+//SDKROOT = iphoneos;
+//IPHONEOS_DEPLOYMENT_TARGET = 7.0;

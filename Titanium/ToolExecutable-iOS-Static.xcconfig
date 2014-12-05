@@ -1,0 +1,6 @@
+//  ToolExecutable-iOS-Static.xcconfig
+//  Created by Matt Langston on 2014.12.04
+
+#include "../Source/JavaScriptCore/Configurations/ToolExecutable.xcconfig"
+
+PRODUCT_NAME = JSCLLIntOffsetsExtractor;
