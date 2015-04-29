@@ -214,7 +214,7 @@ double currentTime()
         lastTime = timeNow;
         lastTickCount = tickCountNow;
     }
-    return timeNow / 1000.0;
+    return timeNow;
 }
 
 #else
