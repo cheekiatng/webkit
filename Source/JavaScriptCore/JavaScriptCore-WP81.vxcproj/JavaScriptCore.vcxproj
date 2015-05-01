@@ -160,6 +160,7 @@ echo XX%PROJECTNAME%XX &gt; "%CONFIGURATIONBUILDDIR%\buildfailed"</Command>
       <CompileAsWinRT>false</CompileAsWinRT>
       <AdditionalUsingDirectories>$(WindowsSDK_MetadataPath);$(AdditionalUsingDirectories)</AdditionalUsingDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/wd4714 /bigobj /GS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
