@@ -1186,7 +1186,7 @@ echo XX%PROJECTNAME%XX &gt; "%CONFIGURATIONBUILDDIR%\buildfailed"</Command>
     <None Include="..\tests\mozilla\README-jsDriver.html" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\WTF\WTF-wp8\WTF-wp8.vcxproj">
+    <ProjectReference Include="..\..\WTF\WTF-wp81\WTF-wp8.vcxproj">
       <Project>{d61a05de-008b-4048-8f0b-4d9772f0ae36}</Project>
       <Private>false</Private>
       <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
