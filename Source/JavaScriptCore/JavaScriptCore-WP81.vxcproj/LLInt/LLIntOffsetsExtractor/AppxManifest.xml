@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/2010/manifest"
+	 xmlns:m2="http://schemas.microsoft.com/appx/2013/manifest"
+	 xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest">
+  <Identity Name="LLIntOffsetsExtractor"
+            Version="1.0.0.0"
+            Publisher="CN=WebKit" />
+
+  <mp:PhoneIdentity PhoneProductId="f0473be1-c557-4f98-a103-4ba9f453b5b0"
+      PhonePublisherId="00000000-0000-0000-0000-000000000000" />
+
+  <Properties>
+    <DisplayName>LLIntOffsetsExtractor</DisplayName>
+    <PublisherDisplayName>WebKit</PublisherDisplayName>
+    <Logo>images\StoreLogo.png</Logo>
+  </Properties>
+  <Prerequisites>
+    <OSMinVersion>6.3.1</OSMinVersion>
+    <OSMaxVersionTested>6.3.1</OSMaxVersionTested>
+  </Prerequisites>
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+  <Applications>
+    <Application Id="LLIntOffsetsExtractor" Executable="LLIntOffsetsExtractor.exe" EntryPoint="LLIntOffsetsExtractor.App">
+      <VisualElements DisplayName="LLIntOffsetsExtractor" Description="LLIntOffsetsExtractor"
+           Logo="images\Logo.png" SmallLogo="images\SmallLogo.png"
+           ForegroundText="dark" BackgroundColor="#FFFFFF" >
+        <SplashScreen Image="images\SplashScreen.png" />
+      </VisualElements>
+    </Application>
+  </Applications>
+  <Capabilities>
+    <Capability Name="internetClient"/>
+    <Capability Name="musicLibrary"/>
+    <Capability Name="videosLibrary"/>
+  </Capabilities>
+</Package>

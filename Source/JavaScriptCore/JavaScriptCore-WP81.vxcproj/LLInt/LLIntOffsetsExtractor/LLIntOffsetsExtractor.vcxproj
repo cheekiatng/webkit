@@ -20,7 +20,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{2eb302a6-d335-4965-98dd-f79e18f68afd}</ProjectGuid>
-    <RootNamespace>PhoneLib1</RootNamespace>
+    <WinMDAssembly>false</WinMDAssembly>
     <DefaultLanguage>en-US</DefaultLanguage>
     <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
     <ProjectName>LLIntOffsetsExtractor</ProjectName>
@@ -143,6 +143,7 @@
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
+      <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -158,7 +159,11 @@
     <ClCompile Include="..\..\..\llint\LLIntOffsetsExtractor.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Xml Include="WMAppManifest.xml" />
+    <Xml Include="AppxManifest.xml" />
+    <Image Include="images\Logo.png" />
+    <Image Include="images\SmallLogo.png" />
+    <Image Include="images\SplashScreen.png" />
+    <Image Include="images\StoreLogo.png" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\WTF\WTF-wp81\WTF-wp8.vcxproj">

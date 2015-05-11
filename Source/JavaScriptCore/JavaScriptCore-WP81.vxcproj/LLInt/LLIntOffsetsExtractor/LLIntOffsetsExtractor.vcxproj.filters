@@ -10,6 +10,6 @@
     <ClCompile Include="..\..\..\llint\LLIntOffsetsExtractor.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Xml Include="WMAppManifest.xml" />
+    <Xml Include="AppxManifest.xml" />
   </ItemGroup>
 </Project>
