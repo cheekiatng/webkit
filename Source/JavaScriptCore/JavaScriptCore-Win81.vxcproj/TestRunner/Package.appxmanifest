@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/2010/manifest" xmlns:m2="http://schemas.microsoft.com/appx/2013/manifest">
-  <Identity Name="68ab7152-f751-497a-bb1b-756e16121551" Publisher="CN=Russ" Version="1.1.0.2" />
+  <Identity Name="68ab7152-f751-497a-bb1b-756e16121551" Publisher="CN=Christopher" Version="1.1.0.2" />
   <Properties>
     <DisplayName>TestRunner</DisplayName>
     <PublisherDisplayName>Russ</PublisherDisplayName>
