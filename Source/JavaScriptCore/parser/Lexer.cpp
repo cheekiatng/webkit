@@ -691,7 +691,12 @@ ALWAYS_INLINE bool Lexer<T>::lastTokenWasRestrKeyword() const
 
 static NEVER_INLINE bool isNonLatin1IdentStart(UChar c)
 {
+#if OS(WINDOWS_PHONE) || OS(WINDOWS)
+    // Every non-latin1 character can be identifier (TODO: Is this always valid?)
+    return true;
+#else
     return U_GET_GC_MASK(c) & U_GC_L_MASK;
+#endif
 }
 
 static ALWAYS_INLINE bool isLatin1(LChar)
@@ -721,8 +726,13 @@ static inline bool isIdentStart(UChar32 c)
 
 static NEVER_INLINE bool isNonLatin1IdentPart(UChar32 c)
 {
+#if OS(WINDOWS_PHONE) || OS(WINDOWS)
+    // Every non-latin1 character can be part of identifier (TODO: Is this always valid?)
+    return true;
+#else
     // FIXME: ES6 says this should be based on the Unicode property ID_Continue now instead.
     return (U_GET_GC_MASK(c) & (U_GC_L_MASK | U_GC_MN_MASK | U_GC_MC_MASK | U_GC_ND_MASK | U_GC_PC_MASK)) || c == 0x200C || c == 0x200D;
+#endif
 }
 
 static ALWAYS_INLINE bool isIdentPart(LChar c)
