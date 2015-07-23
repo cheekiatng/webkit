@@ -30,7 +30,7 @@ function pathToDatabseSQL(relativePath) {
 }
 
 function pathToTests(testName) {
-    return path.resolve(__dirname, 'tests', testName);
+    return testName ? path.resolve(__dirname, 'tests', testName) : path.resolve(__dirname, 'tests');
 }
 
 var configurationJSON = require('./config.json');
@@ -199,7 +199,7 @@ function initializeDatabase(client, callback) {
 
     var firstError;
     var queue = new TaskQueue();
-    commaSeparatedSqlStatements.split(/;\s*/).forEach(function (statement) {
+    commaSeparatedSqlStatements.split(/;\s*(?=CREATE|DROP)/).forEach(function (statement) {
         queue.addTask(function (error, callback) {
             client.query(statement, function (error) {
                 if (error && !firstError)

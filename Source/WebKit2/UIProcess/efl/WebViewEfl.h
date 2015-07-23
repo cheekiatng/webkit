@@ -57,21 +57,21 @@ public:
     void initializeColorPickerClient(const WKColorPickerClientBase*);
 
     WebColorPickerClient& colorPickerClient() { return m_colorPickerClient; }
-    virtual PassRefPtr<WebColorPicker> createColorPicker(WebPageProxy*, const WebCore::Color&, const WebCore::IntRect&) override;
+    virtual RefPtr<WebColorPicker> createColorPicker(WebPageProxy*, const WebCore::Color&, const WebCore::IntRect&) override;
 #endif
 
     void setViewBackgroundColor(const WebCore::Color&);
     WebCore::Color viewBackgroundColor();
 private:
-    WebViewEfl(WebContext*, WebPageGroup*);
+    WebViewEfl(WebProcessPool*, WebPageGroup*);
 
     void setCursor(const WebCore::Cursor&) override;
-    PassRefPtr<WebPopupMenuProxy> createPopupMenuProxy(WebPageProxy*) override;
+    RefPtr<WebPopupMenuProxy> createPopupMenuProxy(WebPageProxy*) override;
     void updateTextInputState() override;
     void handleDownloadRequest(DownloadProxy*) override;
 
 #if ENABLE(CONTEXT_MENUS)
-    PassRefPtr<WebContextMenuProxy> createContextMenuProxy(WebPageProxy*) override;
+    RefPtr<WebContextMenuProxy> createContextMenuProxy(WebPageProxy*) override;
 #endif
 
 #if ENABLE(FULLSCREEN_API)
@@ -85,6 +85,13 @@ private:
 #endif
 
     virtual void didFinishLoadingDataForCustomContentProvider(const String& suggestedFilename, const IPC::DataReference&) override final;
+
+    virtual void didFirstVisuallyNonEmptyLayoutForMainFrame() override final { }
+    virtual void didFinishLoadForMainFrame() override final { }
+    virtual void didSameDocumentNavigationForMainFrame(SameDocumentNavigationType) override final { }
+
+    virtual void refView() override final { }
+    virtual void derefView() override final { }
 
 private:
     EwkView* m_ewkView;

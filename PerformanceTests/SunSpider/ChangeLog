@@ -1,3 +1,43 @@
+2015-03-30  Michael Saboff  <msaboff@apple.com>
+
+        Fix failing v8-deltablue.js for ARM
+        https://bugs.webkit.org/show_bug.cgi?id=138392
+
+        Rubber-stamped by Mark Lam.
+
+        Re-enable this test for ARM32 on iOS as the tests now run without issues.
+
+        * tests/v8-v6/v8-deltablue.js:
+
+2015-02-25  Benjamin Poulain  <bpoulain@apple.com>
+
+        CodeBlock crashes when dumping op_push_name_scope
+        https://bugs.webkit.org/show_bug.cgi?id=141953
+
+        Reviewed by Filip Pizlo.
+
+        * profiler-test.yaml:
+
+2015-01-27  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Win] JSC profiler tests asserts in debug mode
+        https://bugs.webkit.org/show_bug.cgi?id=140931
+
+        Unreviewed gardening, skip failing tests.
+
+        * profiler-test.yaml:
+
+2014-11-04  Michael Saboff  <msaboff@apple.com>
+
+        Disable failing v8-deltablue.js for ARM
+        https://bugs.webkit.org/show_bug.cgi?id=138382
+
+        Reviewed by Geoffrey Garen.
+
+        This test is failing on ARM 32 bit.
+
+        * tests/v8-v6/v8-deltablue.js:
+
 2014-07-08  Gergo Balogh  <gbalogh.u-szeged@partner.samsung.com>
 
         Add option to specify output file location in sunspider.

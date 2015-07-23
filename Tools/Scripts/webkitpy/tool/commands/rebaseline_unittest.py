@@ -27,7 +27,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import unittest2 as unittest
+import unittest
 
 from webkitpy.common.system.outputcapture import OutputCapture
 from webkitpy.common.net.buildbot.buildbot_mock import MockBuilder
@@ -89,10 +89,12 @@ class TestRebaselineTest(_BaseTestCase):
         self.assertMultiLineEqual(command._baseline_directory("Apple Lion Release WK2 (Tests)"), "/mock-checkout/LayoutTests/platform/mac-wk2")
         self.assertMultiLineEqual(command._baseline_directory("Apple MountainLion Release WK1 (Tests)"), "/mock-checkout/LayoutTests/platform/mac-mountainlion")
         self.assertMultiLineEqual(command._baseline_directory("Apple MountainLion Release WK2 (Tests)"), "/mock-checkout/LayoutTests/platform/mac-wk2")
-        self.assertMultiLineEqual(command._baseline_directory("Apple Mavericks Release WK1 (Tests)"), "/mock-checkout/LayoutTests/platform/mac-wk1")
+        self.assertMultiLineEqual(command._baseline_directory("Apple Mavericks Release WK1 (Tests)"), "/mock-checkout/LayoutTests/platform/mac-mavericks")
         self.assertMultiLineEqual(command._baseline_directory("Apple Mavericks Release WK2 (Tests)"), "/mock-checkout/LayoutTests/platform/mac-wk2")
-        self.assertMultiLineEqual(command._baseline_directory("GTK Linux 64-bit Debug (Tests)"), "/mock-checkout/LayoutTests/platform/gtk-wk2")
-        self.assertMultiLineEqual(command._baseline_directory("GTK Linux 64-bit Release (Tests)"), "/mock-checkout/LayoutTests/platform/gtk-wk2")
+        self.assertMultiLineEqual(command._baseline_directory("Apple Yosemite Release WK1 (Tests)"), "/mock-checkout/LayoutTests/platform/mac-yosemite")
+        self.assertMultiLineEqual(command._baseline_directory("Apple Yosemite Release WK2 (Tests)"), "/mock-checkout/LayoutTests/platform/mac-wk2")
+        self.assertMultiLineEqual(command._baseline_directory("GTK Linux 64-bit Debug (Tests)"), "/mock-checkout/LayoutTests/platform/gtk")
+        self.assertMultiLineEqual(command._baseline_directory("GTK Linux 64-bit Release (Tests)"), "/mock-checkout/LayoutTests/platform/gtk")
         self.assertMultiLineEqual(command._baseline_directory("EFL Linux 64-bit Release WK2"), "/mock-checkout/LayoutTests/platform/efl")
 
     def test_rebaseline_updates_expectations_file_noop(self):
@@ -318,7 +320,7 @@ class TestRebaselineExpectations(_BaseTestCase):
         # FIXME: change this to use the test- ports.
         calls = self.tool.executive.calls
         self.assertEqual(len(calls), 1)
-        self.assertEqual(len(calls[0]), 20)
+        self.assertEqual(len(calls[0]), 24)
 
     def test_rebaseline_expectations_noop(self):
         self._zero_out_test_expectations()

@@ -44,7 +44,7 @@ class InjectedBundlePage;
 
 class InjectedBundle {
 public:
-    static InjectedBundle& shared();
+    static InjectedBundle& singleton();
 
     // Initialize the InjectedBundle.
     void initialize(WKBundleRef, WKTypeRef initializationUserData);
@@ -92,22 +92,30 @@ public:
     void setMockGeolocationPosition(double latitude, double longitude, double accuracy, bool providesAltitude, double altitude, bool providesAltitudeAccuracy, double altitudeAccuracy, bool providesHeading, double heading, bool providesSpeed, double speed);
     void setMockGeolocationPositionUnavailableError(WKStringRef errorMessage);
 
+    // MediaStream.
+    void setUserMediaPermission(bool);
+
     // Policy delegate.
     void setCustomPolicyDelegate(bool enabled, bool permissive);
 
     // Page Visibility.
     void setHidden(bool);
 
+    // Cache.
+    void setCacheModel(int);
+
     // Work queue.
     bool shouldProcessWorkQueue() const;
     void processWorkQueue();
     void queueBackNavigation(unsigned howFarBackward);
     void queueForwardNavigation(unsigned howFarForward);
-    void queueLoad(WKStringRef url, WKStringRef target);
+    void queueLoad(WKStringRef url, WKStringRef target, bool shouldOpenExternalURLs = false);
     void queueLoadHTMLString(WKStringRef content, WKStringRef baseURL = 0, WKStringRef unreachableURL = 0);
     void queueReload();
     void queueLoadingScript(WKStringRef script);
     void queueNonLoadingScript(WKStringRef script);
+
+    bool isAllowedHost(WKStringRef);
 
 private:
     InjectedBundle();
@@ -159,6 +167,8 @@ private:
     WKRetainPtr<WKDataRef> m_audioResult;
     WKRetainPtr<WKImageRef> m_pixelResult;
     WKRetainPtr<WKArrayRef> m_repaintRects;
+
+    Vector<String> m_allowedHosts;
 };
 
 } // namespace WTR

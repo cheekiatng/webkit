@@ -28,6 +28,7 @@
 #import "ElementAncestorIterator.h"
 #import "HTMLFieldSetElement.h"
 #import "RenderObject.h"
+#import "Settings.h"
 
 #if HAVE(ACCESSIBILITY)
 
@@ -53,8 +54,11 @@ void AccessibilityObject::overrideAttachmentParent(AccessibilityObject* parent)
             parent = parent->parentObjectUnignored();
         parentWrapper = parent->wrapper();
     }
-    
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     [[wrapper() attachmentView] accessibilitySetOverrideValue:parentWrapper forAttribute:NSAccessibilityParentAttribute];
+#pragma clang diagnostic pop
 }
     
 bool AccessibilityObject::accessibilityIgnoreAttachment() const
@@ -65,9 +69,12 @@ bool AccessibilityObject::accessibilityIgnoreAttachment() const
     if (isAttachment() && (widget = widgetForAttachmentView()) && widget->isFrameView())
         return true;
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     if ([wrapper() attachmentView])
         return [[wrapper() attachmentView] accessibilityIsIgnored];
-    
+#pragma clang diagnostic pop
+
     // Attachments are ignored by default (unless we determine that we should expose them).
     return true;
 }
@@ -77,11 +84,17 @@ AccessibilityObjectInclusion AccessibilityObject::accessibilityPlatformIncludesO
     if (isMenuListPopup() || isMenuListOption())
         return IgnoreObject;
 
+    if (roleValue() == CaptionRole)
+        return IgnoreObject;
+
     // Never expose an unknown object on the Mac. Clients of the AX API will not know what to do with it.
     // Special case is when the unknown object is actually an attachment.
     if (roleValue() == UnknownRole && !isAttachment())
         return IgnoreObject;
     
+    if (roleValue() == InlineRole)
+        return IgnoreObject;
+
     if (RenderObject* renderer = this->renderer()) {
         // The legend element is ignored if it lives inside of a fieldset element that uses it to generate alternative text.
         if (renderer->isLegend()) {
@@ -94,6 +107,20 @@ AccessibilityObjectInclusion AccessibilityObject::accessibilityPlatformIncludesO
     return DefaultBehavior;
 }
     
+bool AccessibilityObject::caretBrowsingEnabled() const
+{
+    Frame* frame = this->frame();
+    return frame && frame->settings().caretBrowsingEnabled();
+}
+
+void AccessibilityObject::setCaretBrowsingEnabled(bool on)
+{
+    Frame* frame = this->frame();
+    if (!frame)
+        return;
+    frame->settings().setCaretBrowsingEnabled(on);
+}
+
 } // WebCore
 
 #endif // HAVE(ACCESSIBILITY)

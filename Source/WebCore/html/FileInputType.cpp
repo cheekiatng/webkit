@@ -47,31 +47,31 @@ using namespace HTMLNames;
 
 class UploadButtonElement final : public HTMLInputElement {
 public:
-    static PassRefPtr<UploadButtonElement> create(Document&);
-    static PassRefPtr<UploadButtonElement> createForMultiple(Document&);
+    static Ref<UploadButtonElement> create(Document&);
+    static Ref<UploadButtonElement> createForMultiple(Document&);
 
 private:
     UploadButtonElement(Document&);
 };
 
-PassRefPtr<UploadButtonElement> UploadButtonElement::create(Document& document)
+Ref<UploadButtonElement> UploadButtonElement::create(Document& document)
 {
-    RefPtr<UploadButtonElement> button = adoptRef(new UploadButtonElement(document));
+    Ref<UploadButtonElement> button = adoptRef(*new UploadButtonElement(document));
     button->setValue(fileButtonChooseFileLabel());
-    return button.release();
+    return button;
 }
 
-PassRefPtr<UploadButtonElement> UploadButtonElement::createForMultiple(Document& document)
+Ref<UploadButtonElement> UploadButtonElement::createForMultiple(Document& document)
 {
-    RefPtr<UploadButtonElement> button = adoptRef(new UploadButtonElement(document));
+    Ref<UploadButtonElement> button = adoptRef(*new UploadButtonElement(document));
     button->setValue(fileButtonChooseMultipleFilesLabel());
-    return button.release();
+    return button;
 }
 
 UploadButtonElement::UploadButtonElement(Document& document)
     : HTMLInputElement(inputTag, document, 0, false)
 {
-    setType(ASCIILiteral("button"));
+    setType(AtomicString("button", AtomicString::ConstructFromLiteral));
     setPseudo(AtomicString("-webkit-file-upload-button", AtomicString::ConstructFromLiteral));
 }
 
@@ -195,7 +195,7 @@ void FileInputType::handleDOMActivateEvent(Event* event)
     event->setDefaultHandled();
 }
 
-RenderPtr<RenderElement> FileInputType::createInputRenderer(PassRef<RenderStyle> style)
+RenderPtr<RenderElement> FileInputType::createInputRenderer(Ref<RenderStyle>&& style)
 {
     return createRenderer<RenderFileUploadControl>(element(), WTF::move(style));
 }
@@ -250,7 +250,7 @@ void FileInputType::setValue(const String&, bool, TextFieldEventBehavior)
 {
     // FIXME: Should we clear the file list, or replace it with a new empty one here? This is observable from JavaScript through custom properties.
     m_fileList->clear();
-    m_icon.clear();
+    m_icon = nullptr;
     element().setNeedsStyleRecalc();
 }
 
@@ -341,7 +341,7 @@ void FileInputType::setFiles(PassRefPtr<FileList> files)
     m_fileList = files;
 
     input->setFormControlValueMatchesRenderer(true);
-    input->setNeedsValidityCheck();
+    input->updateValidity();
 
     Vector<String> paths;
     for (unsigned i = 0; i < m_fileList->length(); ++i)

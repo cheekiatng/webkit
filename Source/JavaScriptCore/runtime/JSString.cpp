@@ -77,7 +77,7 @@ void JSString::visitChildren(JSCell* cell, SlotVisitor& visitor)
     else {
         StringImpl* impl = thisObject->m_value.impl();
         ASSERT(impl);
-        visitor.reportExtraMemoryUsage(thisObject, impl->costDuringGC());
+        visitor.reportExtraMemoryVisited(thisObject, impl->costDuringGC());
     }
 }
 
@@ -161,6 +161,7 @@ void JSRopeString::resolveRopeToAtomicString(ExecState* exec) const
     if (m_length > maxLengthForOnStackResolve) {
         resolveRope(exec);
         m_value = AtomicString(m_value);
+        setIs8Bit(m_value.impl()->is8Bit());
         return;
     }
 
@@ -168,17 +169,19 @@ void JSRopeString::resolveRopeToAtomicString(ExecState* exec) const
         LChar buffer[maxLengthForOnStackResolve];
         resolveRopeInternal8(buffer);
         m_value = AtomicString(buffer, m_length);
+        setIs8Bit(m_value.impl()->is8Bit());
     } else {
         UChar buffer[maxLengthForOnStackResolve];
         resolveRopeInternal16(buffer);
         m_value = AtomicString(buffer, m_length);
+        setIs8Bit(m_value.impl()->is8Bit());
     }
 
     clearFibers();
 
     // If we resolved a string that didn't previously exist, notify the heap that we've grown.
     if (m_value.impl()->hasOneRef())
-        Heap::heap(this)->reportExtraMemoryCost(m_value.impl()->cost());
+        Heap::heap(this)->reportExtraMemoryAllocated(m_value.impl()->cost());
 }
 
 void JSRopeString::clearFibers() const
@@ -187,12 +190,13 @@ void JSRopeString::clearFibers() const
         u[i].number = 0;
 }
 
-AtomicStringImpl* JSRopeString::resolveRopeToExistingAtomicString(ExecState* exec) const
+RefPtr<AtomicStringImpl> JSRopeString::resolveRopeToExistingAtomicString(ExecState* exec) const
 {
     if (m_length > maxLengthForOnStackResolve) {
         resolveRope(exec);
-        if (AtomicStringImpl* existingAtomicString = AtomicString::find(m_value.impl())) {
+        if (RefPtr<AtomicStringImpl> existingAtomicString = AtomicStringImpl::lookUp(m_value.impl())) {
             m_value = *existingAtomicString;
+            setIs8Bit(m_value.impl()->is8Bit());
             clearFibers();
             return existingAtomicString;
         }
@@ -202,16 +206,18 @@ AtomicStringImpl* JSRopeString::resolveRopeToExistingAtomicString(ExecState* exe
     if (is8Bit()) {
         LChar buffer[maxLengthForOnStackResolve];
         resolveRopeInternal8(buffer);
-        if (AtomicStringImpl* existingAtomicString = AtomicString::find(buffer, m_length)) {
+        if (RefPtr<AtomicStringImpl> existingAtomicString = AtomicStringImpl::lookUp(buffer, m_length)) {
             m_value = *existingAtomicString;
+            setIs8Bit(m_value.impl()->is8Bit());
             clearFibers();
             return existingAtomicString;
         }
     } else {
         UChar buffer[maxLengthForOnStackResolve];
         resolveRopeInternal16(buffer);
-        if (AtomicStringImpl* existingAtomicString = AtomicString::find(buffer, m_length)) {
+        if (RefPtr<AtomicStringImpl> existingAtomicString = AtomicStringImpl::lookUp(buffer, m_length)) {
             m_value = *existingAtomicString;
+            setIs8Bit(m_value.impl()->is8Bit());
             clearFibers();
             return existingAtomicString;
         }
@@ -234,7 +240,7 @@ void JSRopeString::resolveRope(ExecState* exec) const
     if (is8Bit()) {
         LChar* buffer;
         if (RefPtr<StringImpl> newImpl = StringImpl::tryCreateUninitialized(m_length, buffer)) {
-            Heap::heap(this)->reportExtraMemoryCost(newImpl->cost());
+            Heap::heap(this)->reportExtraMemoryAllocated(newImpl->cost());
             m_value = newImpl.release();
         } else {
             outOfMemory(exec);
@@ -248,7 +254,7 @@ void JSRopeString::resolveRope(ExecState* exec) const
 
     UChar* buffer;
     if (RefPtr<StringImpl> newImpl = StringImpl::tryCreateUninitialized(m_length, buffer)) {
-        Heap::heap(this)->reportExtraMemoryCost(newImpl->cost());
+        Heap::heap(this)->reportExtraMemoryAllocated(newImpl->cost());
         m_value = newImpl.release();
     } else {
         outOfMemory(exec);
@@ -359,18 +365,6 @@ void JSRopeString::outOfMemory(ExecState* exec) const
         throwOutOfMemoryError(exec);
 }
 
-JSString* JSRopeString::getIndexSlowCase(ExecState* exec, unsigned i)
-{
-    ASSERT(isRope());
-    resolveRope(exec);
-    // Return a safe no-value result, this should never be used, since the excetion will be thrown.
-    if (exec->exception())
-        return jsEmptyString(exec);
-    ASSERT(!isRope());
-    RELEASE_ASSERT(i < m_value.length());
-    return jsSingleCharacterSubstring(exec, m_value, i);
-}
-
 JSValue JSString::toPrimitive(ExecState*, PreferredPrimitiveType) const
 {
     return const_cast<JSString*>(this);
@@ -379,18 +373,13 @@ JSValue JSString::toPrimitive(ExecState*, PreferredPrimitiveType) const
 bool JSString::getPrimitiveNumber(ExecState* exec, double& number, JSValue& result) const
 {
     result = this;
-    number = jsToNumber(value(exec));
+    number = jsToNumber(view(exec));
     return false;
-}
-
-bool JSString::toBoolean() const
-{
-    return m_length;
 }
 
 double JSString::toNumber(ExecState* exec) const
 {
-    return jsToNumber(value(exec));
+    return jsToNumber(view(exec));
 }
 
 inline StringObject* StringObject::create(VM& vm, JSGlobalObject* globalObject, JSString* string)
@@ -419,10 +408,9 @@ bool JSString::getStringPropertyDescriptor(ExecState* exec, PropertyName propert
         return true;
     }
     
-    unsigned i = propertyName.asIndex();
-    if (i < m_length) {
-        ASSERT(i != PropertyName::NotAnIndex); // No need for an explicit check, the above test would always fail!
-        descriptor.setDescriptor(getIndex(exec, i), DontDelete | ReadOnly);
+    Optional<uint32_t> index = parseIndex(propertyName);
+    if (index && index.value() < m_length) {
+        descriptor.setDescriptor(getIndex(exec, index.value()), DontDelete | ReadOnly);
         return true;
     }
     
@@ -431,11 +419,12 @@ bool JSString::getStringPropertyDescriptor(ExecState* exec, PropertyName propert
 
 JSString* jsStringWithCacheSlowCase(VM& vm, StringImpl& stringImpl)
 {
-    auto addResult = vm.stringCache.add(&stringImpl, nullptr);
-    if (addResult.isNewEntry)
-        addResult.iterator->value = jsString(&vm, String(stringImpl));
-    vm.lastCachedString.set(vm, addResult.iterator->value.get());
-    return addResult.iterator->value.get();
+    if (JSString* string = vm.stringCache.get(&stringImpl))
+        return string;
+
+    JSString* string = jsString(&vm, String(stringImpl));
+    vm.lastCachedString.set(vm, string);
+    return string;
 }
 
 } // namespace JSC

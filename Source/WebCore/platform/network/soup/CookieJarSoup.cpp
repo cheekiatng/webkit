@@ -30,7 +30,7 @@
 #include "NetworkingContext.h"
 #include "PlatformCookieJar.h"
 #include "SoupNetworkSession.h"
-#include <wtf/gobject/GRefPtr.h>
+#include <wtf/glib/GRefPtr.h>
 #include <wtf/text/CString.h>
 
 namespace WebCore {
@@ -227,7 +227,7 @@ void deleteAllCookies(const NetworkStorageSession& session)
     }
 }
 
-void deleteAllCookiesModifiedAfterDate(const NetworkStorageSession&, double)
+void deleteAllCookiesModifiedSince(const NetworkStorageSession&, std::chrono::system_clock::time_point)
 {
 }
 

@@ -25,9 +25,7 @@
 #include "config.h"
 #include "SVGMaskElement.h"
 
-#include "Attribute.h"
 #include "RenderSVGResourceMasker.h"
-#include "SVGElementInstance.h"
 #include "SVGNames.h"
 #include "SVGRenderSupport.h"
 #include "SVGUnitTypes.h"
@@ -72,9 +70,9 @@ inline SVGMaskElement::SVGMaskElement(const QualifiedName& tagName, Document& do
     registerAnimatedPropertiesForSVGMaskElement();
 }
 
-PassRefPtr<SVGMaskElement> SVGMaskElement::create(const QualifiedName& tagName, Document& document)
+Ref<SVGMaskElement> SVGMaskElement::create(const QualifiedName& tagName, Document& document)
 {
-    return adoptRef(new SVGMaskElement(tagName, document));
+    return adoptRef(*new SVGMaskElement(tagName, document));
 }
 
 bool SVGMaskElement::isSupportedAttribute(const QualifiedName& attrName)
@@ -96,21 +94,22 @@ bool SVGMaskElement::isSupportedAttribute(const QualifiedName& attrName)
 
 void SVGMaskElement::parseAttribute(const QualifiedName& name, const AtomicString& value)
 {
-    SVGParsingError parseError = NoError;
-
-    if (!isSupportedAttribute(name))
-        SVGElement::parseAttribute(name, value);
-    else if (name == SVGNames::maskUnitsAttr) {
-        SVGUnitTypes::SVGUnitType propertyValue = SVGPropertyTraits<SVGUnitTypes::SVGUnitType>::fromString(value);
+    if (name == SVGNames::maskUnitsAttr) {
+        auto propertyValue = SVGPropertyTraits<SVGUnitTypes::SVGUnitType>::fromString(value);
         if (propertyValue > 0)
             setMaskUnitsBaseValue(propertyValue);
         return;
-    } else if (name == SVGNames::maskContentUnitsAttr) {
-        SVGUnitTypes::SVGUnitType propertyValue = SVGPropertyTraits<SVGUnitTypes::SVGUnitType>::fromString(value);
+    }
+    if (name == SVGNames::maskContentUnitsAttr) {
+        auto propertyValue = SVGPropertyTraits<SVGUnitTypes::SVGUnitType>::fromString(value);
         if (propertyValue > 0)
             setMaskContentUnitsBaseValue(propertyValue);
         return;
-    } else if (name == SVGNames::xAttr)
+    }
+
+    SVGParsingError parseError = NoError;
+
+    if (name == SVGNames::xAttr)
         setXBaseValue(SVGLength::construct(LengthModeWidth, value, parseError));
     else if (name == SVGNames::yAttr)
         setYBaseValue(SVGLength::construct(LengthModeHeight, value, parseError));
@@ -118,13 +117,12 @@ void SVGMaskElement::parseAttribute(const QualifiedName& name, const AtomicStrin
         setWidthBaseValue(SVGLength::construct(LengthModeWidth, value, parseError));
     else if (name == SVGNames::heightAttr)
         setHeightBaseValue(SVGLength::construct(LengthModeHeight, value, parseError));
-    else if (SVGTests::parseAttribute(name, value)
-             || SVGLangSpace::parseAttribute(name, value)
-             || SVGExternalResourcesRequired::parseAttribute(name, value)) {
-    } else
-        ASSERT_NOT_REACHED();
 
     reportAttributeParsingError(parseError, name, value);
+
+    SVGElement::parseAttribute(name, value);
+    SVGTests::parseAttribute(name, value);
+    SVGExternalResourcesRequired::parseAttribute(name, value);
 }
 
 void SVGMaskElement::svgAttributeChanged(const QualifiedName& attrName)
@@ -134,7 +132,7 @@ void SVGMaskElement::svgAttributeChanged(const QualifiedName& attrName)
         return;
     }
 
-    SVGElementInstance::InvalidationGuard invalidationGuard(this);
+    InstanceInvalidationGuard guard(*this);
 
     if (attrName == SVGNames::xAttr
         || attrName == SVGNames::yAttr
@@ -159,7 +157,7 @@ void SVGMaskElement::childrenChanged(const ChildChange& change)
         object->setNeedsLayout();
 }
 
-RenderPtr<RenderElement> SVGMaskElement::createElementRenderer(PassRef<RenderStyle> style)
+RenderPtr<RenderElement> SVGMaskElement::createElementRenderer(Ref<RenderStyle>&& style, const RenderTreePosition&)
 {
     return createRenderer<RenderSVGResourceMasker>(*this, WTF::move(style));
 }

@@ -24,6 +24,9 @@
  */
 
 #include "config.h"
+
+#if WK_HAVE_C_SPI
+
 #include "PlatformUtilities.h"
 #include "PlatformWebView.h"
 #include "Test.h"
@@ -64,7 +67,7 @@ static void setPageLoaderClient(WKPageRef page)
     WKPageLoaderClientV3 loaderClient;
     memset(&loaderClient, 0, sizeof(loaderClient));
 
-    loaderClient.base.version = kWKPageLoaderClientCurrentVersion;
+    loaderClient.base.version = 3;
     loaderClient.didFinishLoadForFrame = didFinishLoadForFrame;
     loaderClient.didLayout = didLayout;
 
@@ -90,3 +93,5 @@ TEST(WebKit2, NewFirstVisuallyNonEmptyLayoutFrames)
 }
 
 } // namespace TestWebKitAPI
+
+#endif

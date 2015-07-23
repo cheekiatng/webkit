@@ -29,10 +29,6 @@
 #include "Arguments.h"
 #include "WebCoreArgumentCoders.h"
 
-#if PLATFORM(IOS)
-#include <WebCore/SelectionRect.h>
-#endif
-
 namespace WebKit {
 
 void EditorState::encode(IPC::ArgumentEncoder& encoder) const
@@ -45,26 +41,17 @@ void EditorState::encode(IPC::ArgumentEncoder& encoder) const
     encoder << isInPasswordField;
     encoder << isInPlugin;
     encoder << hasComposition;
+    encoder << isMissingPostLayoutData;
+
+#if PLATFORM(IOS) || PLATFORM(GTK)
+    if (!isMissingPostLayoutData)
+        m_postLayoutData.encode(encoder);
+#endif
 
 #if PLATFORM(IOS)
-    encoder << isReplaceAllowed;
-    encoder << hasContent;
-    encoder << characterAfterSelection;
-    encoder << characterBeforeSelection;
-    encoder << twoCharacterBeforeSelection;
-    encoder << caretRectAtStart;
-    encoder << caretRectAtEnd;
-    encoder << selectionRects;
-    encoder << selectedTextLength;
-    encoder << wordAtSelection;
     encoder << firstMarkedRect;
     encoder << lastMarkedRect;
     encoder << markedText;
-    encoder << typingAttributes;
-#endif
-
-#if PLATFORM(GTK)
-    encoder << cursorRect;
 #endif
 }
 
@@ -94,10 +81,63 @@ bool EditorState::decode(IPC::ArgumentDecoder& decoder, EditorState& result)
     if (!decoder.decode(result.hasComposition))
         return false;
 
-#if PLATFORM(IOS)
-    if (!decoder.decode(result.isReplaceAllowed))
+    if (!decoder.decode(result.isMissingPostLayoutData))
         return false;
-    if (!decoder.decode(result.hasContent))
+
+#if PLATFORM(IOS) || PLATFORM(GTK)
+    if (!result.isMissingPostLayoutData) {
+        if (!PostLayoutData::decode(decoder, result.postLayoutData()))
+            return false;
+    }
+#endif
+
+#if PLATFORM(IOS)
+    if (!decoder.decode(result.firstMarkedRect))
+        return false;
+    if (!decoder.decode(result.lastMarkedRect))
+        return false;
+    if (!decoder.decode(result.markedText))
+        return false;
+#endif
+
+    return true;
+}
+
+#if PLATFORM(IOS) || PLATFORM(GTK)
+void EditorState::PostLayoutData::encode(IPC::ArgumentEncoder& encoder) const
+{
+    encoder << typingAttributes;
+    encoder << caretRectAtStart;
+#if PLATFORM(IOS)
+    encoder << caretRectAtEnd;
+    encoder << selectionClipRect;
+    encoder << selectionRects;
+    encoder << wordAtSelection;
+    encoder << selectedTextLength;
+    encoder << characterAfterSelection;
+    encoder << characterBeforeSelection;
+    encoder << twoCharacterBeforeSelection;
+    encoder << isReplaceAllowed;
+    encoder << hasContent;
+#endif
+}
+
+bool EditorState::PostLayoutData::decode(IPC::ArgumentDecoder& decoder, PostLayoutData& result)
+{
+    if (!decoder.decode(result.typingAttributes))
+        return false;
+    if (!decoder.decode(result.caretRectAtStart))
+        return false;
+#if PLATFORM(IOS)
+    if (!decoder.decode(result.caretRectAtEnd))
+        return false;
+    if (!decoder.decode(result.selectionClipRect))
+        return false;
+    if (!decoder.decode(result.selectionRects))
+        return false;
+    if (!decoder.decode(result.wordAtSelection))
+        return false;
+    if (!decoder.decode(result.selectedTextLength))
         return false;
     if (!decoder.decode(result.characterAfterSelection))
         return false;
@@ -105,32 +145,14 @@ bool EditorState::decode(IPC::ArgumentDecoder& decoder, EditorState& result)
         return false;
     if (!decoder.decode(result.twoCharacterBeforeSelection))
         return false;
-    if (!decoder.decode(result.caretRectAtStart))
+    if (!decoder.decode(result.isReplaceAllowed))
         return false;
-    if (!decoder.decode(result.caretRectAtEnd))
-        return false;
-    if (!decoder.decode(result.selectionRects))
-        return false;
-    if (!decoder.decode(result.selectedTextLength))
-        return false;
-    if (!decoder.decode(result.wordAtSelection))
-        return false;
-    if (!decoder.decode(result.firstMarkedRect))
-        return false;
-    if (!decoder.decode(result.lastMarkedRect))
-        return false;
-    if (!decoder.decode(result.markedText))
-        return false;
-    if (!decoder.decode(result.typingAttributes))
-        return false;
-#endif
-
-#if PLATFORM(GTK)
-    if (!decoder.decode(result.cursorRect))
+    if (!decoder.decode(result.hasContent))
         return false;
 #endif
 
     return true;
 }
+#endif
 
 }

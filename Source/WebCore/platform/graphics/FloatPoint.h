@@ -31,6 +31,10 @@
 #include "IntPoint.h"
 #include <wtf/MathExtras.h>
 
+#if PLATFORM(MAC) && defined __OBJC__
+#import <Foundation/NSGeometry.h>
+#endif
+
 #if USE(CG)
 typedef struct CGPoint CGPoint;
 #endif
@@ -54,7 +58,7 @@ class FloatPoint {
 public:
     FloatPoint() : m_x(0), m_y(0) { }
     FloatPoint(float x, float y) : m_x(x), m_y(y) { }
-    FloatPoint(const IntPoint&);
+    WEBCORE_EXPORT FloatPoint(const IntPoint&);
     explicit FloatPoint(const FloatSize& size) : m_x(size.width()), m_y(size.height()) { }
 
     static FloatPoint zero() { return FloatPoint(); }
@@ -132,13 +136,13 @@ public:
     }
 
 #if USE(CG)
-    FloatPoint(const CGPoint&);
-    operator CGPoint() const;
+    WEBCORE_EXPORT FloatPoint(const CGPoint&);
+    WEBCORE_EXPORT operator CGPoint() const;
 #endif
 
 #if PLATFORM(MAC) && !defined(NSGEOMETRY_TYPES_SAME_AS_CGGEOMETRY_TYPES)
-    FloatPoint(const NSPoint&);
-    operator NSPoint() const;
+    WEBCORE_EXPORT FloatPoint(const NSPoint&);
+    WEBCORE_EXPORT operator NSPoint() const;
 #endif
 
     FloatPoint matrixTransform(const TransformationMatrix&) const;
@@ -210,6 +214,11 @@ inline float operator*(const FloatPoint& a, const FloatPoint& b)
     return a.dot(b);
 }
 
+inline IntSize flooredIntSize(const FloatPoint& p)
+{
+    return IntSize(clampToInteger(floorf(p.x())), clampToInteger(floorf(p.y())));
+}
+
 inline IntPoint roundedIntPoint(const FloatPoint& p)
 {
     return IntPoint(clampToInteger(roundf(p.x())), clampToInteger(roundf(p.y())));
@@ -220,24 +229,19 @@ inline IntPoint flooredIntPoint(const FloatPoint& p)
     return IntPoint(clampToInteger(floorf(p.x())), clampToInteger(floorf(p.y())));
 }
 
-inline FloatPoint flooredToDevicePixels(const FloatPoint& p, float deviceScaleFactor)
-{
-    return FloatPoint(floorf(p.x() * deviceScaleFactor)  / deviceScaleFactor, floorf(p.y() * deviceScaleFactor)  / deviceScaleFactor);
-}
-
 inline IntPoint ceiledIntPoint(const FloatPoint& p)
 {
     return IntPoint(clampToInteger(ceilf(p.x())), clampToInteger(ceilf(p.y())));
 }
 
-inline FloatPoint ceiledToDevicePixels(const FloatPoint& p, float deviceScaleFactor)
+inline FloatPoint floorPointToDevicePixels(const FloatPoint& p, float deviceScaleFactor)
 {
-    return FloatPoint(ceilf(p.x() * deviceScaleFactor)  / deviceScaleFactor, ceilf(p.y() * deviceScaleFactor)  / deviceScaleFactor);
+    return FloatPoint(floorf(p.x() * deviceScaleFactor)  / deviceScaleFactor, floorf(p.y() * deviceScaleFactor)  / deviceScaleFactor);
 }
 
-inline IntSize flooredIntSize(const FloatPoint& p)
+inline FloatPoint ceilPointToDevicePixels(const FloatPoint& p, float deviceScaleFactor)
 {
-    return IntSize(clampToInteger(floorf(p.x())), clampToInteger(floorf(p.y())));
+    return FloatPoint(ceilf(p.x() * deviceScaleFactor)  / deviceScaleFactor, ceilf(p.y() * deviceScaleFactor)  / deviceScaleFactor);
 }
 
 inline FloatSize toFloatSize(const FloatPoint& a)
@@ -248,6 +252,11 @@ inline FloatSize toFloatSize(const FloatPoint& a)
 inline FloatPoint toFloatPoint(const FloatSize& a)
 {
     return FloatPoint(a.width(), a.height());
+}
+
+inline bool areEssentiallyEqual(const FloatPoint& a, const FloatPoint& b)
+{
+    return WTF::areEssentiallyEqual(a.x(), b.x()) && WTF::areEssentiallyEqual(a.y(), b.y());
 }
 
 }

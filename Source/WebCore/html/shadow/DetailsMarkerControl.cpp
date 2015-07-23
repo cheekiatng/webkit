@@ -39,9 +39,9 @@
 
 namespace WebCore {
 
-PassRefPtr<DetailsMarkerControl> DetailsMarkerControl::create(Document& document)
+Ref<DetailsMarkerControl> DetailsMarkerControl::create(Document& document)
 {
-    return adoptRef(new DetailsMarkerControl(document));
+    return adoptRef(*new DetailsMarkerControl(document));
 }
 
 DetailsMarkerControl::DetailsMarkerControl(Document& document)
@@ -50,14 +50,14 @@ DetailsMarkerControl::DetailsMarkerControl(Document& document)
     setPseudo(AtomicString("-webkit-details-marker", AtomicString::ConstructFromLiteral));
 }
 
-RenderPtr<RenderElement> DetailsMarkerControl::createElementRenderer(PassRef<RenderStyle> style)
+RenderPtr<RenderElement> DetailsMarkerControl::createElementRenderer(Ref<RenderStyle>&& style, const RenderTreePosition&)
 {
     return createRenderer<RenderDetailsMarker>(*this, WTF::move(style));
 }
 
 bool DetailsMarkerControl::rendererIsNeeded(const RenderStyle& style)
 {
-    return toHTMLSummaryElement(shadowHost())->isMainSummary() && HTMLDivElement::rendererIsNeeded(style);
+    return downcast<HTMLSummaryElement>(shadowHost())->isMainSummary() && HTMLDivElement::rendererIsNeeded(style);
 }
 
 }

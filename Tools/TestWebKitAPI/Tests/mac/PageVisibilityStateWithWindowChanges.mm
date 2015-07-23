@@ -31,15 +31,12 @@
 #import <WebKit/WKViewPrivate.h>
 #import <wtf/RetainPtr.h>
 
-// https://bugs.webkit.org/show_bug.cgi?id=130463
-#if __MAC_OS_X_VERSION_MIN_REQUIRED != 1090
-
 static bool isWaitingForPageSignalToContinue = false;
 static bool didGetPageSignalToContinue = false;
 
 // WebKit1 WebUIDelegate
 
-@interface PageVisibilityStateDelegate : NSObject
+@interface PageVisibilityStateDelegate : NSObject <WebUIDelegate>
 @end
 
 @implementation PageVisibilityStateDelegate
@@ -179,5 +176,3 @@ TEST_F(PageVisibilityStateWithWindowChanges, WebKit2)
 }
 
 } // namespace TestWebKitAPI
-
-#endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012, 2013, 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2012-2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,6 +29,7 @@
 #if ENABLE(DFG_JIT)
 
 #include "DFGAbstractInterpreterInlines.h"
+#include "DFGArgumentsUtilities.h"
 #include "DFGBasicBlock.h"
 #include "DFGGraph.h"
 #include "DFGInPlaceAbstractState.h"
@@ -86,6 +87,7 @@ private:
             
             Node* node = block->at(indexInBlock);
 
+            bool alreadyHandled = false;
             bool eliminated = false;
                     
             switch (node->op()) {
@@ -96,16 +98,6 @@ private:
                 break;
             }
                 
-            case CheckArgumentsNotCreated: {
-                if (!isEmptySpeculation(
-                        m_state.variables().operand(
-                            m_graph.argumentsRegisterFor(node->origin.semantic)).m_type))
-                    break;
-                node->convertToPhantom();
-                eliminated = true;
-                break;
-            }
-                    
             case CheckStructure:
             case ArrayifyToStructure: {
                 AbstractValue& value = m_state.forNode(node->child1());
@@ -116,9 +108,68 @@ private:
                     set = node->structureSet();
                 if (value.m_structure.isSubsetOf(set)) {
                     m_interpreter.execute(indexInBlock); // Catch the fact that we may filter on cell.
-                    node->convertToPhantom();
+                    node->remove();
                     eliminated = true;
                     break;
+                }
+                break;
+            }
+                
+            case GetIndexedPropertyStorage: {
+                JSArrayBufferView* view = m_graph.tryGetFoldableView(
+                    m_state.forNode(node->child1()).m_value, node->arrayMode());
+                if (!view)
+                    break;
+                
+                if (view->mode() == FastTypedArray) {
+                    // FIXME: It would be awesome to be able to fold the property storage for
+                    // these GC-allocated typed arrays. For now it doesn't matter because the
+                    // most common use-cases for constant typed arrays involve large arrays with
+                    // aliased buffer views.
+                    // https://bugs.webkit.org/show_bug.cgi?id=125425
+                    break;
+                }
+                
+                m_interpreter.execute(indexInBlock);
+                eliminated = true;
+                
+                m_insertionSet.insertCheck(indexInBlock, node->origin, node->children);
+                node->convertToConstantStoragePointer(view->vector());
+                break;
+            }
+                
+            case CheckStructureImmediate: {
+                AbstractValue& value = m_state.forNode(node->child1());
+                StructureSet& set = node->structureSet();
+                
+                if (value.value()) {
+                    if (Structure* structure = jsDynamicCast<Structure*>(value.value())) {
+                        if (set.contains(structure)) {
+                            m_interpreter.execute(indexInBlock);
+                            node->remove();
+                            eliminated = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (PhiChildren* phiChildren = m_interpreter.phiChildren()) {
+                    bool allGood = true;
+                    phiChildren->forAllTransitiveIncomingValues(
+                        node,
+                        [&] (Node* incoming) {
+                            if (Structure* structure = incoming->dynamicCastConstant<Structure*>()) {
+                                if (set.contains(structure))
+                                    return;
+                            }
+                            allGood = false;
+                        });
+                    if (allGood) {
+                        m_interpreter.execute(indexInBlock);
+                        node->remove();
+                        eliminated = true;
+                        break;
+                    }
                 }
                 break;
             }
@@ -127,7 +178,7 @@ private:
             case Arrayify: {
                 if (!node->arrayMode().alreadyChecked(m_graph, node, m_state.forNode(node->child1())))
                     break;
-                node->convertToPhantom();
+                node->remove();
                 eliminated = true;
                 break;
             }
@@ -136,29 +187,97 @@ private:
                 if (m_state.forNode(node->child1()).m_structure.onlyStructure() != node->transition()->next)
                     break;
                 
-                node->convertToPhantom();
+                node->remove();
                 eliminated = true;
                 break;
             }
                 
-            case CheckFunction: {
-                if (m_state.forNode(node->child1()).value() != node->function()->value())
+            case CheckCell: {
+                if (m_state.forNode(node->child1()).value() != node->cellOperand()->value())
                     break;
-                node->convertToPhantom();
+                node->remove();
                 eliminated = true;
                 break;
             }
-                
+
+            case CheckNotEmpty: {
+                if (m_state.forNode(node->child1()).m_type & SpecEmpty)
+                    break;
+                node->remove();
+                eliminated = true;
+                break;
+            }
+
             case CheckInBounds: {
                 JSValue left = m_state.forNode(node->child1()).value();
                 JSValue right = m_state.forNode(node->child2()).value();
                 if (left && right && left.isInt32() && right.isInt32()
                     && static_cast<uint32_t>(left.asInt32()) < static_cast<uint32_t>(right.asInt32())) {
-                    node->convertToPhantom();
+                    node->remove();
                     eliminated = true;
                     break;
                 }
                 
+                break;
+            }
+                
+            case GetMyArgumentByVal: {
+                JSValue index = m_state.forNode(node->child2()).value();
+                if (!index || !index.isInt32())
+                    break;
+                
+                Node* arguments = node->child1().node();
+                InlineCallFrame* inlineCallFrame = arguments->origin.semantic.inlineCallFrame;
+                
+                // Don't try to do anything if the index is known to be outside our static bounds. Note
+                // that our static bounds are usually strictly larger than the dynamic bounds. The
+                // exception is something like this, assuming foo() is not inlined:
+                //
+                // function foo() { return arguments[5]; }
+                //
+                // Here the static bound on number of arguments is 0, and we're accessing index 5. We
+                // will not strength-reduce this to GetStack because GetStack is otherwise assumed by the
+                // compiler to access those variables that are statically accounted for; for example if
+                // we emitted a GetStack on arg6 we would have out-of-bounds access crashes anywhere that
+                // uses an Operands<> map. There is not much cost to continuing to use a
+                // GetMyArgumentByVal in such statically-out-of-bounds accesses; we just lose CFA unless
+                // GCSE removes the access entirely.
+                if (inlineCallFrame) {
+                    if (index.asUInt32() >= inlineCallFrame->arguments.size() - 1)
+                        break;
+                } else {
+                    if (index.asUInt32() >= m_state.variables().numberOfArguments() - 1)
+                        break;
+                }
+                
+                m_interpreter.execute(indexInBlock); // Push CFA over this node after we get the state before.
+                
+                StackAccessData* data;
+                if (inlineCallFrame) {
+                    data = m_graph.m_stackAccessData.add(
+                        VirtualRegister(
+                            inlineCallFrame->stackOffset +
+                            CallFrame::argumentOffset(index.asInt32())),
+                        FlushedJSValue);
+                } else {
+                    data = m_graph.m_stackAccessData.add(
+                        virtualRegisterForArgument(index.asInt32() + 1), FlushedJSValue);
+                }
+                
+                if (inlineCallFrame && !inlineCallFrame->isVarargs()
+                    && index.asUInt32() < inlineCallFrame->arguments.size() - 1) {
+                    node->convertToGetStack(data);
+                    eliminated = true;
+                    break;
+                }
+                
+                Node* length = emitCodeToGetArgumentsArrayLength(
+                    m_insertionSet, arguments, indexInBlock, node->origin);
+                m_insertionSet.insertNode(
+                    indexInBlock, SpecNone, CheckInBounds, node->origin,
+                    node->child2(), Edge(length, Int32Use));
+                node->convertToGetStack(data);
+                eliminated = true;
                 break;
             }
                 
@@ -173,7 +292,7 @@ private:
                 AbstractValue baseValue = m_state.forNode(base);
                 
                 m_interpreter.execute(indexInBlock); // Push CFA over this node after we get the state before.
-                eliminated = true; // Don't allow the default constant folder to do things to this.
+                alreadyHandled = true; // Don't allow the default constant folder to do things to this.
                 
                 for (unsigned i = 0; i < data.variants.size(); ++i) {
                     GetByIdVariant& variant = data.variants[i];
@@ -181,6 +300,7 @@ private:
                     if (variant.structureSet().isEmpty()) {
                         data.variants[i--] = data.variants.last();
                         data.variants.removeLast();
+                        changed = true;
                     }
                 }
                 
@@ -189,6 +309,7 @@ private:
                 
                 emitGetByOffset(
                     indexInBlock, node, baseValue, data.variants[0], data.identifierNumber);
+                changed = true;
                 break;
             }
                 
@@ -200,7 +321,7 @@ private:
                 AbstractValue baseValue = m_state.forNode(base);
 
                 m_interpreter.execute(indexInBlock); // Push CFA over this node after we get the state before.
-                eliminated = true; // Don't allow the default constant folder to do things to this.
+                alreadyHandled = true; // Don't allow the default constant folder to do things to this.
                 
 
                 for (unsigned i = 0; i < data.variants.size(); ++i) {
@@ -210,6 +331,7 @@ private:
                     if (variant.oldStructure().isEmpty()) {
                         data.variants[i--] = data.variants.last();
                         data.variants.removeLast();
+                        changed = true;
                         continue;
                     }
                     
@@ -218,6 +340,7 @@ private:
                         variant = PutByIdVariant::replace(
                             variant.oldStructure(),
                             variant.offset());
+                        changed = true;
                     }
                 }
 
@@ -226,6 +349,7 @@ private:
                 
                 emitPutByOffset(
                     indexInBlock, node, baseValue, data.variants[0], data.identifierNumber);
+                changed = true;
                 break;
             }
         
@@ -238,14 +362,14 @@ private:
                 AbstractValue baseValue = m_state.forNode(child);
 
                 m_interpreter.execute(indexInBlock); // Push CFA over this node after we get the state before.
-                eliminated = true; // Don't allow the default constant folder to do things to this.
+                alreadyHandled = true; // Don't allow the default constant folder to do things to this.
 
                 if (baseValue.m_structure.isTop() || baseValue.m_structure.isClobbered()
                     || (node->child1().useKind() == UntypedUse || (baseValue.m_type & ~SpecCell)))
                     break;
                 
                 GetByIdStatus status = GetByIdStatus::computeFor(
-                    vm(), baseValue.m_structure.set(), m_graph.identifiers()[identifierNumber]);
+                    baseValue.m_structure.set(), m_graph.identifiers()[identifierNumber]);
                 if (!status.isSimple())
                     break;
                 
@@ -260,6 +384,7 @@ private:
                 
                 if (status.numVariants() == 1) {
                     emitGetByOffset(indexInBlock, node, baseValue, status[0], identifierNumber);
+                    changed = true;
                     break;
                 }
                 
@@ -270,6 +395,7 @@ private:
                 data->variants = status.variants();
                 data->identifierNumber = identifierNumber;
                 node->convertToMultiGetByOffset(data);
+                changed = true;
                 break;
             }
                 
@@ -286,13 +412,12 @@ private:
                 AbstractValue baseValue = m_state.forNode(child);
 
                 m_interpreter.execute(indexInBlock); // Push CFA over this node after we get the state before.
-                eliminated = true; // Don't allow the default constant folder to do things to this.
+                alreadyHandled = true; // Don't allow the default constant folder to do things to this.
 
                 if (baseValue.m_structure.isTop() || baseValue.m_structure.isClobbered())
                     break;
                 
                 PutByIdStatus status = PutByIdStatus::computeFor(
-                    vm(),
                     m_graph.globalObjectFor(origin.semantic),
                     baseValue.m_structure.set(),
                     m_graph.identifiers()[identifierNumber],
@@ -300,6 +425,13 @@ private:
                 
                 if (!status.isSimple())
                     break;
+                
+                ASSERT(status.numVariants());
+                
+                if (status.numVariants() > 1 && !isFTL(m_graph.m_plan.mode))
+                    break;
+                
+                changed = true;
                 
                 for (unsigned i = status.numVariants(); i--;)
                     addChecks(origin, indexInBlock, status[i].constantChecks());
@@ -309,8 +441,7 @@ private:
                     break;
                 }
                 
-                if (!isFTL(m_graph.m_plan.mode))
-                    break;
+                ASSERT(isFTL(m_graph.m_plan.mode));
 
                 MultiPutByOffsetData* data = m_graph.m_multiPutByOffsetData.add();
                 data->variants = status.variants();
@@ -320,50 +451,41 @@ private:
             }
 
             case ToPrimitive: {
-                if (m_state.forNode(node->child1()).m_type & ~(SpecFullNumber | SpecBoolean | SpecString))
+                if (m_state.forNode(node->child1()).m_type & ~(SpecFullNumber | SpecBoolean | SpecString | SpecSymbol))
                     break;
                 
                 node->convertToIdentity();
+                changed = true;
                 break;
             }
                 
-            case GetMyArgumentByVal: {
-                InlineCallFrame* inlineCallFrame = node->origin.semantic.inlineCallFrame;
-                JSValue value = m_state.forNode(node->child1()).m_value;
-                if (inlineCallFrame && value && value.isInt32()) {
-                    int32_t index = value.asInt32();
-                    if (index >= 0
-                        && static_cast<size_t>(index + 1) < inlineCallFrame->arguments.size()) {
-                        // Roll the interpreter over this.
-                        m_interpreter.execute(indexInBlock);
-                        eliminated = true;
-                        
-                        int operand =
-                            inlineCallFrame->stackOffset +
-                            m_graph.baselineCodeBlockFor(inlineCallFrame)->argumentIndexAfterCapture(index);
-                        
-                        m_insertionSet.insertNode(
-                            indexInBlock, SpecNone, CheckArgumentsNotCreated, node->origin);
-                        m_insertionSet.insertNode(
-                            indexInBlock, SpecNone, Phantom, node->origin, node->children);
-                        
-                        node->convertToGetLocalUnlinked(VirtualRegister(operand));
+            case Check: {
+                alreadyHandled = true;
+                m_interpreter.execute(indexInBlock);
+                for (unsigned i = 0; i < AdjacencyList::Size; ++i) {
+                    Edge edge = node->children.child(i);
+                    if (!edge)
                         break;
+                    if (edge.isProved() || edge.willNotHaveCheck()) {
+                        node->children.removeEdge(i--);
+                        changed = true;
                     }
                 }
-                
                 break;
             }
-
+                
             default:
                 break;
             }
-                
+            
             if (eliminated) {
                 changed = true;
                 continue;
             }
                 
+            if (alreadyHandled)
+                continue;
+            
             m_interpreter.execute(indexInBlock);
             if (!m_state.isValid()) {
                 // If we invalidated then we shouldn't attempt to constant-fold. Here's an
@@ -389,14 +511,16 @@ private:
             if (!*value)
                 continue;
             
-            NodeOrigin origin = node->origin;
-            AdjacencyList children = node->children;
-            
-            m_graph.convertToConstant(node, value);
-            if (!children.isEmpty()) {
+            if (node->op() == GetLocal) {
+                // Need to preserve bytecode liveness in ThreadedCPS form. This wouldn't be necessary
+                // if it wasn't for https://bugs.webkit.org/show_bug.cgi?id=144086.
                 m_insertionSet.insertNode(
-                    indexInBlock, SpecNone, Phantom, origin, children);
-            }
+                    indexInBlock, SpecNone, PhantomLocal, node->origin,
+                    OpInfo(node->variableAccessData()));
+                m_graph.dethread();
+            } else
+                m_insertionSet.insertCheck(indexInBlock, node->origin, node->children);
+            m_graph.convertToConstant(node, value);
             
             changed = true;
         }
@@ -410,7 +534,6 @@ private:
     {
         NodeOrigin origin = node->origin;
         Edge childEdge = node->child1();
-        Node* child = childEdge.node();
 
         addBaseCheck(indexInBlock, node, baseValue, variant.structureSet());
         
@@ -425,7 +548,7 @@ private:
         }
         
         if (variant.alternateBase()) {
-            child = m_insertionSet.insertConstant(indexInBlock, origin, variant.alternateBase());
+            Node* child = m_insertionSet.insertConstant(indexInBlock, origin, variant.alternateBase());
             childEdge = Edge(child, KnownCellUse);
         } else
             childEdge.setUseKind(KnownCellUse);
@@ -439,12 +562,11 @@ private:
                 indexInBlock, SpecNone, GetButterfly, origin, childEdge));
         }
         
-        node->convertToGetByOffset(m_graph.m_storageAccessData.size(), propertyStorage);
+        StorageAccessData& data = *m_graph.m_storageAccessData.add();
+        data.offset = variant.offset();
+        data.identifierNumber = identifierNumber;
         
-        StorageAccessData storageAccessData;
-        storageAccessData.offset = variant.offset();
-        storageAccessData.identifierNumber = identifierNumber;
-        m_graph.m_storageAccessData.append(storageAccessData);
+        node->convertToGetByOffset(data, propertyStorage);
     }
 
     void emitPutByOffset(unsigned indexInBlock, Node* node, const AbstractValue& baseValue, const PutByIdVariant& variant, unsigned identifierNumber)
@@ -475,7 +597,6 @@ private:
             Node* allocatePropertyStorage = m_insertionSet.insertNode(
                 indexInBlock, SpecNone, AllocatePropertyStorage,
                 origin, OpInfo(transition), childEdge);
-            m_insertionSet.insertNode(indexInBlock, SpecNone, StoreBarrier, origin, Edge(node->child1().node(), KnownCellUse));
             propertyStorage = Edge(allocatePropertyStorage);
         } else {
             ASSERT(variant.oldStructureForTransition()->outOfLineCapacity());
@@ -487,25 +608,22 @@ private:
                 OpInfo(transition), childEdge,
                 Edge(m_insertionSet.insertNode(
                     indexInBlock, SpecNone, GetButterfly, origin, childEdge)));
-            m_insertionSet.insertNode(indexInBlock, SpecNone, StoreBarrier, origin, Edge(node->child1().node(), KnownCellUse));
             propertyStorage = Edge(reallocatePropertyStorage);
         }
 
+        StorageAccessData& data = *m_graph.m_storageAccessData.add();
+        data.offset = variant.offset();
+        data.identifierNumber = identifierNumber;
+        
+        node->convertToPutByOffset(data, propertyStorage);
+
         if (variant.kind() == PutByIdVariant::Transition) {
-            Node* putStructure = m_graph.addNode(SpecNone, PutStructure, origin, OpInfo(transition), childEdge);
-            m_insertionSet.insertNode(indexInBlock, SpecNone, StoreBarrier, origin, Edge(node->child1().node(), KnownCellUse));
-            m_insertionSet.insert(indexInBlock, putStructure);
+            // FIXME: PutStructure goes last until we fix either
+            // https://bugs.webkit.org/show_bug.cgi?id=142921 or
+            // https://bugs.webkit.org/show_bug.cgi?id=142924.
+            m_insertionSet.insertNode(
+                indexInBlock + 1, SpecNone, PutStructure, origin, OpInfo(transition), childEdge);
         }
-
-        node->convertToPutByOffset(m_graph.m_storageAccessData.size(), propertyStorage);
-        m_insertionSet.insertNode(
-            indexInBlock, SpecNone, StoreBarrier, origin, 
-            Edge(node->child2().node(), KnownCellUse));
-
-        StorageAccessData storageAccessData;
-        storageAccessData.offset = variant.offset();
-        storageAccessData.identifierNumber = identifierNumber;
-        m_graph.m_storageAccessData.append(storageAccessData);
     }
     
     void addBaseCheck(
@@ -521,10 +639,8 @@ private:
             return;
         }
         
-        if (baseValue.m_type & ~SpecCell) {
-            m_insertionSet.insertNode(
-                indexInBlock, SpecNone, Phantom, node->origin, node->child1());
-        }
+        if (baseValue.m_type & ~SpecCell)
+            m_insertionSet.insertCheck(indexInBlock, node->origin, node->child1());
     }
     
     void addChecks(
@@ -538,8 +654,10 @@ private:
 
     void addStructureTransitionCheck(NodeOrigin origin, unsigned indexInBlock, JSCell* cell, Structure* structure)
     {
-        if (m_graph.watchpoints().consider(cell->structure()))
+        if (m_graph.registerStructure(cell->structure()) == StructureRegisteredAndWatched)
             return;
+        
+        m_graph.registerStructure(structure);
 
         Node* weakConstant = m_insertionSet.insertNode(
             indexInBlock, speculationFromValue(cell), JSConstant, origin,
@@ -562,7 +680,7 @@ private:
             case JSConstant:
             case DoubleConstant:
             case Int52Constant:
-                node->convertToPhantom();
+                node->remove();
                 break;
             default:
                 DFG_CRASH(m_graph, node, "Bad Upsilon phi() pointer");

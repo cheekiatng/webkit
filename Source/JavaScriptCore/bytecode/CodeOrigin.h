@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011, 2012, 2013, 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2011-2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,7 +28,6 @@
 
 #include "CodeBlockHash.h"
 #include "CodeSpecializationKind.h"
-#include "JSFunction.h"
 #include "ValueRecovery.h"
 #include "WriteBarrier.h"
 #include <wtf/BitVector.h>
@@ -121,6 +120,8 @@ struct InlineCallFrame {
     enum Kind {
         Call,
         Construct,
+        CallVarargs,
+        ConstructVarargs,
         
         // For these, the stackOffset incorporates the argument count plus the true return PC
         // slot.
@@ -140,29 +141,58 @@ struct InlineCallFrame {
         return Call;
     }
     
+    static Kind varargsKindFor(CodeSpecializationKind kind)
+    {
+        switch (kind) {
+        case CodeForCall:
+            return CallVarargs;
+        case CodeForConstruct:
+            return ConstructVarargs;
+        }
+        RELEASE_ASSERT_NOT_REACHED();
+        return Call;
+    }
+    
     static CodeSpecializationKind specializationKindFor(Kind kind)
     {
         switch (kind) {
         case Call:
+        case CallVarargs:
         case GetterCall:
         case SetterCall:
             return CodeForCall;
         case Construct:
+        case ConstructVarargs:
             return CodeForConstruct;
         }
         RELEASE_ASSERT_NOT_REACHED();
         return CodeForCall;
     }
     
+    static bool isVarargs(Kind kind)
+    {
+        switch (kind) {
+        case CallVarargs:
+        case ConstructVarargs:
+            return true;
+        default:
+            return false;
+        }
+    }
+    bool isVarargs() const
+    {
+        return isVarargs(static_cast<Kind>(kind));
+    }
+    
     Vector<ValueRecovery> arguments; // Includes 'this'.
     WriteBarrier<ScriptExecutable> executable;
     ValueRecovery calleeRecovery;
     CodeOrigin caller;
-    BitVector capturedVars; // Indexed by the machine call frame's variable numbering.
-    signed stackOffset : 30;
-    Kind kind : 2;
+
+    signed stackOffset : 28;
+    unsigned kind : 3; // real type is Kind
     bool isClosureCall : 1; // If false then we know that callee/scope are constants and the DFG won't treat them as variables, i.e. they have to be recovered manually.
-    VirtualRegister argumentsRegister; // This is only set if the code uses arguments. The unmodified arguments register follows the unmodifiedArgumentsRegister() convention (see CodeBlock.h).
+    VirtualRegister argumentCountRegister; // Only set when we inline a varargs call.
     
     // There is really no good notion of a "default" set of values for
     // InlineCallFrame's fields. This constructor is here just to reduce confusion if
@@ -174,19 +204,10 @@ struct InlineCallFrame {
     {
     }
     
-    CodeSpecializationKind specializationKind() const { return specializationKindFor(kind); }
+    CodeSpecializationKind specializationKind() const { return specializationKindFor(static_cast<Kind>(kind)); }
 
-    JSFunction* calleeConstant() const
-    {
-        if (calleeRecovery.isConstant())
-            return jsCast<JSFunction*>(calleeRecovery.constant());
-        return 0;
-    }
-
-    void visitAggregate(SlotVisitor& visitor)
-    {
-        visitor.append(&executable);
-    }
+    JSFunction* calleeConstant() const;
+    void visitAggregate(SlotVisitor&);
     
     // Get the callee given a machine call frame to which this InlineCallFrame belongs.
     JSFunction* calleeForCallFrame(ExecState*) const;
@@ -197,6 +218,12 @@ struct InlineCallFrame {
     
     CodeBlock* baselineCodeBlock() const;
     
+    void setStackOffset(signed offset)
+    {
+        stackOffset = offset;
+        RELEASE_ASSERT(static_cast<signed>(stackOffset) == offset);
+    }
+
     ptrdiff_t callerFrameOffset() const { return stackOffset * sizeof(Register) + CallFrame::callerFrameOffset(); }
     ptrdiff_t returnPCOffset() const { return stackOffset * sizeof(Register) + CallFrame::returnPCOffset(); }
 

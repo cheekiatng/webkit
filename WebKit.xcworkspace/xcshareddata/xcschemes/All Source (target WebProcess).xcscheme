@@ -9,7 +9,7 @@
             ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
             <ActionContent
                title = "Run Script"
-               scriptText = "&quot;$SRCROOT/../../Tools/Scripts/copy-webkitlibraries-to-product-directory&quot;">
+               scriptText = "&quot;$SRCROOT/../../Tools/Scripts/copy-webkitlibraries-to-product-directory&quot; --wksi --llvm">
                <EnvironmentBuildable>
                   <BuildableReference
                      BuildableIdentifier = "primary"
@@ -91,6 +91,20 @@
                BuildableName = "All"
                BlueprintName = "All"
                ReferencedContainer = "container:Source/WebCore/WebCore.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "A54C2256148B23DF00373FA3"
+               BuildableName = "WebInspectorUI.framework"
+               BlueprintName = "WebInspectorUI"
+               ReferencedContainer = "container:Source/WebInspectorUI/WebInspectorUI.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry

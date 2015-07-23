@@ -33,7 +33,7 @@
 #import <WebKit/WebPreferenceKeysPrivate.h>
 #import <WebKit/WebViewPrivate.h>
 
-@interface WK1BrowserWindowController ()
+@interface WK1BrowserWindowController () <WebFrameLoadDelegate, WebPolicyDelegate, WebResourceLoadDelegate, WebUIDelegate>
 @end
 
 @implementation WK1BrowserWindowController
@@ -50,6 +50,12 @@
 
     [[WebPreferences standardPreferences] setFullScreenEnabled:YES];
     [[WebPreferences standardPreferences] setDeveloperExtrasEnabled:YES];
+    [[WebPreferences standardPreferences] setImageControlsEnabled:YES];
+    [[WebPreferences standardPreferences] setServiceControlsEnabled:YES];
+
+    [_webView _listenForLayoutMilestones:WebDidFirstLayout | WebDidFirstVisuallyNonEmptyLayout | WebDidHitRelevantRepaintedObjectsAreaThreshold];
+
+    [self didChangeSettings];
 
     [containerView addSubview:_webView];
 }
@@ -94,6 +100,11 @@
         [containerView addSubview:_webView];
         [_webView release];
     }
+}
+
+- (IBAction)setScale:(id)sender
+{
+    
 }
 
 - (IBAction)reload:(id)sender
@@ -162,7 +173,7 @@
 
 - (void)windowWillClose:(NSNotification *)notification
 {
-    [(BrowserAppDelegate *)[NSApp delegate] browserWindowWillClose:self.window];
+    [(BrowserAppDelegate *)[[NSApplication sharedApplication] delegate] browserWindowWillClose:self.window];
     [self autorelease];
 }
 
@@ -220,6 +231,11 @@
     _zoomTextOnly = !_zoomTextOnly;
 }
 
+- (IBAction)toggleShrinkToFit:(id)sender
+{
+
+}
+
 - (IBAction)find:(id)sender
 {
 }
@@ -228,13 +244,20 @@
 {
 }
 
+- (NSURL *)currentURL
+{
+    return _webView.mainFrame.dataSource.request.URL;
+}
+
 - (void)didChangeSettings
 {
     SettingsController *settings = [SettingsController shared];
 
     [[WebPreferences standardPreferences] setSubpixelCSSOMElementMetricsEnabled:settings.subPixelCSSOMMetricsEnabled];
     [[WebPreferences standardPreferences] setShowDebugBorders:settings.layerBordersVisible];
+    [[WebPreferences standardPreferences] setSimpleLineLayoutDebugBordersEnabled:settings.simpleLineLayoutDebugBordersEnabled];
     [[WebPreferences standardPreferences] setShowRepaintCounter:settings.layerBordersVisible];
+    [[WebPreferences standardPreferences] setSuppressesIncrementalRendering:settings.incrementalRenderingSuppressed];
 
     BOOL useTransparentWindows = settings.useTransparentWindows;
     if (useTransparentWindows != !self.window.isOpaque) {
@@ -257,6 +280,18 @@
     }
 }
 
+- (void)webView:(WebView *)sender didLayout:(WebLayoutMilestones)milestones
+{
+    if (milestones & WebDidFirstLayout)
+        LOG(@"layout milestone: %@", @"first layout");
+
+    if (milestones & WebDidFirstVisuallyNonEmptyLayout)
+        LOG(@"layout milestone: %@", @"first non-empty layout");
+
+    if (milestones & WebDidHitRelevantRepaintedObjectsAreaThreshold)
+        LOG(@"layout milestone: %@", @"relevant repainted objects area threshold");
+}
+
 - (void)webView:(WebView *)webView decidePolicyForNavigationAction:(NSDictionary *)actionInformation request:(NSURLRequest *)request frame:(WebFrame *)frame decisionListener:(id<WebPolicyDecisionListener>)listener
 {
     [listener use];
@@ -267,6 +302,16 @@
 {
 }
 
+- (void)updateTitle:(NSString *)title
+{
+    if (!title) {
+        NSURL *url = _webView.mainFrame.dataSource.request.URL;
+        title = url.lastPathComponent;
+    }
+    
+    [self.window setTitle:[title stringByAppendingString:@" [WK1]"]];
+}
+
 - (void)webView:(WebView *)sender didCommitLoadForFrame:(WebFrame *)frame
 {
     if (frame != [sender mainFrame])
@@ -274,6 +319,8 @@
 
     NSURL *committedURL = [[[frame dataSource] request] URL];
     [urlText setStringValue:[committedURL absoluteString]];
+
+    [self updateTitle:nil];
 }
 
 - (void)webView:(WebView *)sender didReceiveTitle:(NSString *)title forFrame:(WebFrame *)frame
@@ -281,7 +328,7 @@
     if (frame != [sender mainFrame])
         return;
 
-    [self.window setTitle:[title stringByAppendingString:@" [WK1]"]];
+    [self updateTitle:title];
 }
 
 - (void)webView:(WebView *)sender runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WebFrame *)frame

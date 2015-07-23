@@ -43,6 +43,8 @@ public:
     {
     }
     
+    Graph& graph() { return m_graph; }
+    
     Node* insert(const Insertion& insertion)
     {
         ASSERT(!m_insertions.size() || m_insertions.last().index() <= insertion.index());
@@ -113,7 +115,36 @@ public:
     {
         return insertConstantForUse(index, NodeOrigin(origin), value, useKind);
     }
-
+    
+    Edge insertBottomConstantForUse(size_t index, NodeOrigin origin, UseKind useKind)
+    {
+        if (isDouble(useKind))
+            return insertConstantForUse(index, origin, jsNumber(PNaN), useKind);
+        if (useKind == Int52RepUse)
+            return insertConstantForUse(index, origin, jsNumber(0), useKind);
+        return insertConstantForUse(index, origin, jsUndefined(), useKind);
+    }
+    
+    Node* insertCheck(size_t index, NodeOrigin origin, AdjacencyList children)
+    {
+        children = children.justChecks();
+        if (children.isEmpty())
+            return nullptr;
+        return insertNode(index, SpecNone, Check, origin, children);
+    }
+    
+    Node* insertCheck(size_t index, Node* node)
+    {
+        return insertCheck(index, node->origin, node->children);
+    }
+    
+    Node* insertCheck(size_t index, NodeOrigin origin, Edge edge)
+    {
+        if (edge.willHaveCheck())
+            return insertNode(index, SpecNone, Check, origin, edge);
+        return nullptr;
+    }
+    
     void execute(BasicBlock* block)
     {
         executeInsertions(*block, m_insertions);

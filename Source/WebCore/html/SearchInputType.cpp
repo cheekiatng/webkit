@@ -48,15 +48,15 @@ SearchInputType::SearchInputType(HTMLInputElement& element)
     : BaseTextInputType(element)
     , m_resultsButton(nullptr)
     , m_cancelButton(nullptr)
-    , m_searchEventTimer(this, &SearchInputType::searchEventTimerFired)
+    , m_searchEventTimer(*this, &SearchInputType::searchEventTimerFired)
 {
 }
 
 void SearchInputType::addSearchResult()
 {
 #if !PLATFORM(IOS)
-    if (RenderObject* renderer = element().renderer())
-        toRenderSearchField(renderer)->addSearchResult();
+    if (auto* renderer = element().renderer())
+        downcast<RenderSearchField>(*renderer).addSearchResult();
 #endif
 }
 
@@ -76,7 +76,7 @@ void SearchInputType::maxResultsAttributeChanged()
         updateResultButtonPseudoType(*m_resultsButton, element().maxResults());
 }
 
-RenderPtr<RenderElement> SearchInputType::createInputRenderer(PassRef<RenderStyle> style)
+RenderPtr<RenderElement> SearchInputType::createInputRenderer(Ref<RenderStyle>&& style)
 {
     return createRenderer<RenderSearchField>(element(), WTF::move(style));
 }
@@ -84,11 +84,6 @@ RenderPtr<RenderElement> SearchInputType::createInputRenderer(PassRef<RenderStyl
 const AtomicString& SearchInputType::formControlType() const
 {
     return InputTypeNames::search();
-}
-
-bool SearchInputType::shouldRespectSpeechAttribute()
-{
-    return true;
 }
 
 bool SearchInputType::isSearchField() const
@@ -178,26 +173,26 @@ void SearchInputType::stopSearchEventTimer()
     m_searchEventTimer.stop();
 }
 
-void SearchInputType::searchEventTimerFired(Timer<SearchInputType>*)
+void SearchInputType::searchEventTimerFired()
 {
     element().onSearch();
 }
 
 bool SearchInputType::searchEventsShouldBeDispatched() const
 {
-    return element().hasAttribute(incrementalAttr);
+    return element().fastHasAttribute(incrementalAttr);
 }
 
-void SearchInputType::didSetValueByUserEdit(ValueChangeState state)
+void SearchInputType::didSetValueByUserEdit()
 {
-    if (m_cancelButton)
-        toRenderSearchField(element().renderer())->updateCancelButtonVisibility();
+    if (m_cancelButton && element().renderer())
+        downcast<RenderSearchField>(*element().renderer()).updateCancelButtonVisibility();
 
     // If the incremental attribute is set, then dispatch the search event
     if (searchEventsShouldBeDispatched())
         startSearchEventTimer();
 
-    TextFieldInputType::didSetValueByUserEdit(state);
+    TextFieldInputType::didSetValueByUserEdit();
 }
 
 bool SearchInputType::sizeShouldIncludeDecoration(int, int& preferredSize) const

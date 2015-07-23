@@ -74,7 +74,7 @@ static inline CGContextRef scratchContext()
 }
 
 Path::Path()
-    : m_path(0)
+    : m_path(nullptr)
 {
 }
 
@@ -182,12 +182,23 @@ bool Path::strokeContains(StrokeStyleApplier* applier, const FloatPoint& point) 
 
 void Path::translate(const FloatSize& size)
 {
-    CGAffineTransform translation = CGAffineTransformMake(1, 0, 0, 1, size.width(), size.height());
-    CGMutablePathRef newPath = CGPathCreateMutable();
-    // FIXME: This is potentially wasteful to allocate an empty path only to create a transformed copy.
-    CGPathAddPath(newPath, &translation, ensurePlatformPath());
+    transform(AffineTransform(1, 0, 0, 1, size.width(), size.height()));
+}
+
+void Path::transform(const AffineTransform& transform)
+{
+    if (transform.isIdentity() || isEmpty())
+        return;
+
+    CGAffineTransform transformCG = transform;
+#if PLATFORM(WIN)
+    CGMutablePathRef path = CGPathCreateMutable();
+    CGPathAddPath(path, &transformCG, m_path);
+#else
+    CGMutablePathRef path = CGPathCreateMutableCopyByTransformingPath(m_path, &transformCG);
+#endif
     CGPathRelease(m_path);
-    m_path = newPath;
+    m_path = path;
 }
 
 FloatRect Path::boundingRect() const
@@ -195,8 +206,7 @@ FloatRect Path::boundingRect() const
     if (isNull())
         return CGRectZero;
 
-    // CGPathGetBoundingBox includes the path's control points, CGPathGetPathBoundingBox
-    // does not, but only exists on 10.6 and above.
+    // CGPathGetBoundingBox includes the path's control points, CGPathGetPathBoundingBox does not.
 
     CGRect bound = CGPathGetPathBoundingBox(m_path);
     return CGRectIsNull(bound) ? CGRectZero : bound;
@@ -275,7 +285,7 @@ void Path::platformAddPathForRoundedRect(const FloatRect& rect, const FloatSize&
             radiusWidth = rectWidth / 2 - std::numeric_limits<CGFloat>::epsilon();
         if (rectHeight < 2 * radiusHeight)
             radiusHeight = rectHeight / 2 - std::numeric_limits<CGFloat>::epsilon();
-        wkCGPathAddRoundedRect(ensurePlatformPath(), 0, rectToDraw, radiusWidth, radiusHeight);
+        CGPathAddRoundedRect(ensurePlatformPath(), nullptr, rectToDraw, radiusWidth, radiusHeight);
         return;
     }
 #endif
@@ -292,16 +302,25 @@ void Path::closeSubpath()
     CGPathCloseSubpath(m_path);
 }
 
-void Path::addArc(const FloatPoint& p, float r, float sa, float ea, bool clockwise)
+void Path::addArc(const FloatPoint& p, float radius, float startAngle, float endAngle, bool clockwise)
 {
     // Workaround for <rdar://problem/5189233> CGPathAddArc hangs or crashes when passed inf as start or end angle
-    if (std::isfinite(sa) && std::isfinite(ea))
-        CGPathAddArc(ensurePlatformPath(), 0, p.x(), p.y(), r, sa, ea, clockwise);
+    if (std::isfinite(startAngle) && std::isfinite(endAngle))
+        CGPathAddArc(ensurePlatformPath(), nullptr, p.x(), p.y(), radius, startAngle, endAngle, clockwise);
 }
 
 void Path::addRect(const FloatRect& r)
 {
     CGPathAddRect(ensurePlatformPath(), 0, r);
+}
+
+void Path::addEllipse(FloatPoint p, float radiusX, float radiusY, float rotation, float startAngle, float endAngle, bool anticlockwise)
+{
+    AffineTransform transform;
+    transform.translate(p.x(), p.y()).rotate(rad2deg(rotation)).scale(radiusX, radiusY);
+
+    CGAffineTransform cgTransform = transform;
+    CGPathAddArc(ensurePlatformPath(), &cgTransform, 0, 0, 1, startAngle, endAngle, anticlockwise);
 }
 
 void Path::addEllipse(const FloatRect& r)
@@ -325,7 +344,7 @@ void Path::addPath(const Path& path, const AffineTransform& transform)
         return;
     }
     CGPathRef pathCopy = CGPathCreateCopy(path.platformPath());
-    CGPathAddPath(ensurePlatformPath(), &transformCG, path.platformPath());
+    CGPathAddPath(ensurePlatformPath(), &transformCG, pathCopy);
     CGPathRelease(pathCopy);
 }
 
@@ -398,18 +417,6 @@ void Path::apply(void* info, PathApplierFunction function) const
     pinfo.info = info;
     pinfo.function = function;
     CGPathApply(m_path, &pinfo, CGPathApplierToPathApplier);
-}
-
-void Path::transform(const AffineTransform& transform)
-{
-    if (transform.isIdentity() || isEmpty())
-        return;
-
-    CGMutablePathRef path = CGPathCreateMutable();
-    CGAffineTransform transformCG = transform;
-    CGPathAddPath(path, &transformCG, m_path);
-    CGPathRelease(m_path);
-    m_path = path;
 }
 
 }

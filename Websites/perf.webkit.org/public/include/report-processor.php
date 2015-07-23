@@ -39,16 +39,42 @@ class ReportProcessor {
         array_key_exists('buildTime', $report) or $this->exit_with_error('MissingBuildTime');
 
         $builder_info = array('name' => $report['builderName']);
-        if (!$existing_report_id)
-            $builder_info['password_hash'] = hash('sha256', $report['builderPassword']);
+        $slave_name = array_get($report, 'slaveName', NULL);
+        $slave_id = NULL;
+        if (!$existing_report_id) {
+            $hash = NULL;
+            if ($slave_name && array_key_exists('slavePassword', $report)) {
+                $hash = hash('sha256', $report['slavePassword']);
+                $slave = $this->db->select_first_row('build_slaves', 'slave', array('name' => $slave_name, 'password_hash' => $hash));
+                if ($slave)
+                    $slave_id = $slave['slave_id'];
+            } else if (array_key_exists('builderPassword', $report))
+                $hash = hash('sha256', $report['builderPassword']);
+
+            if (!$hash)
+                $this->exit_with_error('BuilderNotFound');
+            if (!$slave_id)
+                $builder_info['password_hash'] = $hash;
+        }
+
         if (array_key_exists('builderPassword', $report))
             unset($report['builderPassword']);
+        if (array_key_exists('slavePassword', $report))
+            unset($report['slavePassword']);
 
-        $matched_builder = $this->db->select_first_row('builders', 'builder', $builder_info);
-        if (!$matched_builder)
-            $this->exit_with_error('BuilderNotFound', array('name' => $builder_info['name']));
+        $builder_id = NULL;
+        if ($slave_id)
+            $builder_id = $this->db->select_or_insert_row('builders', 'builder', $builder_info);
+        else {
+            $builder = $this->db->select_first_row('builders', 'builder', $builder_info);
+            if (!$builder)
+                $this->exit_with_error('BuilderNotFound', array('name' => $builder_info['name']));
+            $builder_id = $builder['builder_id'];
+            if ($slave_name)
+                $slave_id = $this->db->select_or_insert_row('build_slaves', 'slave', array('name' => $slave_name));
+        }
 
-        $build_data = $this->construct_build_data($report, $matched_builder);
+        $build_data = $this->construct_build_data($report, $builder_id, $slave_id);
         if (!$existing_report_id)
             $this->store_report($report, $build_data);
 
@@ -62,49 +88,76 @@ class ReportProcessor {
         if (!$platform_id)
             $this->exit_with_error('FailedToInsertPlatform', array('name' => $report['platform']));
 
-        $build_id = $this->resolve_build_id($build_data, array_get($report, 'revisions', array()));
+        // FIXME: Deprecate and unsupport "jobId".
+        $build_id = $this->resolve_build_id($build_data, array_get($report, 'revisions', array()),
+            array_get($report, 'jobId', array_get($report, 'buildRequest')));
 
         $this->runs->commit($platform_id, $build_id);
     }
 
-    private function construct_build_data($report, $builder) {
+    private function construct_build_data($report, $builder_id, $slave_id) {
         array_key_exists('buildNumber', $report) or $this->exit_with_error('MissingBuildNumber');
         array_key_exists('buildTime', $report) or $this->exit_with_error('MissingBuildTime');
 
-        return array('builder' => $builder['builder_id'], 'number' => $report['buildNumber'], 'time' => $report['buildTime']);
+        return array('builder' => $builder_id, 'slave' => $slave_id, 'number' => $report['buildNumber'], 'time' => $report['buildTime']);
     }
 
     private function store_report($report, $build_data) {
         assert(!$this->report_id);
-        $this->report_id = $this->db->insert_row('reports', 'report', array('builder' => $build_data['builder'], 'build_number' => $build_data['number'],
+        $this->report_id = $this->db->insert_row('reports', 'report', array(
+            'builder' => $build_data['builder'],
+            'slave' => $build_data['slave'],
+            'build_number' => $build_data['number'],
             'content' => json_encode($report)));
         if (!$this->report_id)
             $this->exit_with_error('FailedToStoreRunReport');
     }
 
-    private function resolve_build_id($build_data, $revisions) {
+    private function resolve_build_id($build_data, $revisions, $build_request_id) {
         // FIXME: This code has a race condition. See <rdar://problem/15876303>.
-        $results = $this->db->query_and_fetch_all("SELECT build_id FROM builds WHERE build_builder = $1 AND build_number = $2 AND build_time <= $3 AND build_time + interval '1 day' > $3",
+        $results = $this->db->query_and_fetch_all("SELECT build_id, build_slave FROM builds
+            WHERE build_builder = $1 AND build_number = $2 AND build_time <= $3 AND build_time + interval '1 day' > $3",
             array($build_data['builder'], $build_data['number'], $build_data['time']));
-        if ($results)
-            $build_id = $results[0]['build_id'];
-        else
+        if ($results) {
+            $first_result = $results[0];
+            if ($first_result['build_slave'] != $build_data['slave'])
+                $this->exit_with_error('MismatchingBuildSlave', array('storedBuild' => $results, 'reportedBuildData' => $build_data));
+            $build_id = $first_result['build_id'];
+        } else
             $build_id = $this->db->insert_row('builds', 'build', $build_data);
         if (!$build_id)
             $this->exit_with_error('FailedToInsertBuild', $build_data);
+
+        if ($build_request_id) {
+            if ($this->db->update_row('build_requests', 'request', array('id' => $build_request_id), array('status' => 'completed', 'build' => $build_id))
+                != $build_request_id)
+                $this->exit_with_error('FailedToUpdateBuildRequest', array('buildRequest' => $build_request_id, 'build' => $build_id));
+        }
+
 
         foreach ($revisions as $repository_name => $revision_data) {
             $repository_id = $this->db->select_or_insert_row('repositories', 'repository', array('name' => $repository_name));
             if (!$repository_id)
                 $this->exit_with_error('FailedToInsertRepository', array('name' => $repository_name));
 
-            $revision_data = array('repository' => $repository_id, 'build' => $build_id, 'value' => $revision_data['revision'],
-                'time' => array_get($revision_data, 'timestamp'));
-            $revision_row = $this->db->select_or_insert_row('build_revisions', 'revision', array('repository' => $repository_id, 'build' => $build_id), $revision_data, '*');
-            if (!$revision_row)
-                $this->exit_with_error('FailedToInsertRevision', $revision_data);
-            if ($revision_row['revision_value'] != $revision_data['value'])
-                $this->exit_with_error('MismatchingRevisionData', array('existing' => $revision_row, 'new' => $revision_data));
+            $commit_data = array('repository' => $repository_id, 'revision' => $revision_data['revision'], 'time' => array_get($revision_data, 'timestamp'));
+
+            $mismatching_commit = $this->db->query_and_fetch_all('SELECT * FROM build_commits, commits
+                WHERE build_commit = commit_id AND commit_build = $1 AND commit_repository = $2 AND commit_revision != $3 LIMIT 1',
+                array($build_id, $repository_id, $revision_data['revision']));
+            if ($mismatching_commit)
+                $this->exit_with_error('MismatchingCommitRevision', array('build' => $build_id, 'existing' => $mismatching_commit, 'new' => $commit_data));
+
+            $commit_row = $this->db->select_or_insert_row('commits', 'commit',
+                array('repository' => $repository_id, 'revision' => $revision_data['revision']), $commit_data, '*');
+            if (!$commit_row)
+                $this->exit_with_error('FailedToRecordCommit', $commit_data);
+            if (abs($commit_row['commit_time'] - $commit_data['time']) > 1.0)
+                $this->exit_with_error('MismatchingCommitTime', array('existing' => $commit_row, 'new' => $commit_data));
+
+            if (!$this->db->select_or_insert_row('build_commits', null,
+                array('commit_build' => $build_id, 'build_commit' => $commit_row['commit_id']), null, '*'))
+                $this->exit_with_error('FailedToRelateCommitToBuild', array('commit' => $commit_row, 'build' => $build_id));
         }
 
         return $build_id;
@@ -386,8 +439,9 @@ class TestRunsGenerator {
             }
         }
 
-        $this->db->query_and_get_affected_rows("UPDATE reports SET report_committed_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
-            WHERE report_id = $1", array($this->report_id));
+        $this->db->query_and_get_affected_rows("UPDATE reports
+            SET (report_committed_at, report_build) = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC', $2)
+            WHERE report_id = $1", array($this->report_id, $build_id));
 
         $this->db->commit_transaction() or $this->exit_with_error('FailedToCommitTransaction');
     }

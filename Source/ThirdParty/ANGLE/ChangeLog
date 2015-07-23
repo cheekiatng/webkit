@@ -1,3 +1,516 @@
+2015-07-03  Dan Bernstein  <mitz@apple.com>
+
+        [Xcode] Update some build settings as recommended by Xcode 7
+        https://bugs.webkit.org/show_bug.cgi?id=146597
+
+        Reviewed by Sam Weinig.
+
+        * ANGLE.xcodeproj/project.pbxproj: Enabled CLANG_WARN_BOOL_CONVERSION,
+        CLANG_WARN_ENUM_CONVERSION, CLANG_WARN_INT_CONVERSION, ENABLE_STRICT_OBJC_MSGSEND and
+        GCC_NO_COMMON_BLOCKS.
+
+        * Configurations/Base.xcconfig: Updated LastUpgradeCheck.
+
+2015-07-03  Per Arne Vollan  <peavo@outlook.com>
+
+        [WinCairo][WebGL] Enable HLSL.
+        https://bugs.webkit.org/show_bug.cgi?id=146559
+
+        Reviewed by Alex Christensen.
+
+        High Level Shader Language needs to be enabled for WebGL to work on Windows.
+
+        * ANGLE.vcxproj/translatorCommon.props:
+        * ANGLE.vcxproj/translator_hlsl.vcxproj:
+        * ANGLE.vcxproj/translator_hlsl.vcxproj.filters:
+
+2015-07-01  Alex Christensen  <achristensen@webkit.org>
+
+        Re-enable WebGL on WinCairo
+        https://bugs.webkit.org/show_bug.cgi?id=146537
+
+        Reviewed by Csaba Osztrogonác.
+
+        * ANGLE.vcxproj/DirectX32.props:
+        * ANGLE.vcxproj/DirectX64.props:
+        * ANGLE.vcxproj/libGLESv2Common.props:
+        Update DirectX directories to use the Windows SDK instead of the June 2010 DirectX SDK.
+
+2015-07-01  Alex Christensen  <achristensen@webkit.org>
+
+        Fix ANGLE Windows build after r186169.
+        https://bugs.webkit.org/show_bug.cgi?id=146532
+
+        Reviewed by Brent Fulgham.
+
+        * ANGLE.vcxproj/libEGL.vcxproj:
+        * ANGLE.vcxproj/libEGL.vcxproj.filters:
+        * ANGLE.vcxproj/libGLESv2.vcxproj:
+        * ANGLE.vcxproj/libGLESv2.vcxproj.filters:
+        * ANGLE.vcxproj/libGLESv2Common.props:
+        * ANGLE.vcxproj/translator_common.vcxproj:
+        * ANGLE.vcxproj/translator_common.vcxproj.filters:
+        * ANGLE.vcxproj/translator_glsl.vcxproj:
+        * ANGLE.vcxproj/translator_glsl.vcxproj.filters:
+        * ANGLE.vcxproj/translator_hlsl.vcxproj:
+        * ANGLE.vcxproj/translator_hlsl.vcxproj.filters:
+        Update Windows build to build new files.
+
+2015-06-30  Alex Christensen  <achristensen@webkit.org>
+
+        Update ANGLE to b11e2483742db884bd0af41f78f528240577356b.
+        https://bugs.webkit.org/show_bug.cgi?id=145010
+
+        Reviewed by Dean Jackson.
+
+        Huge list of source changes omitted.
+        ROLL DEPS!
+
+2015-05-26  Dan Bernstein  <mitz@apple.com>
+
+        <rdar://problem/21104551> Update build settings
+
+        Reviewed by Anders Carlsson.
+
+        * Configurations/Base.xcconfig:
+        * Configurations/DebugRelease.xcconfig:
+
+2015-05-19  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        REGRESSION(r181571): Build broken when USE(OPENGL_ES_2) is defined.
+        https://bugs.webkit.org/show_bug.cgi?id=145156
+
+        Reviewed by Alex Christensen.
+
+        * include/GLES2/gl2softlinking.h: Revert r181589. Vertex Array Objects are not in GLESv2.
+
+2015-05-11  Brent Fulgham  <bfulgham@apple.com>
+
+        [Win] Move Windows build target to Windows 7 (or newer)
+        https://bugs.webkit.org/show_bug.cgi?id=144890
+        <rdar://problem/20707307>
+
+        Reviewed by Anders Carlsson.
+
+        Update linked SDK and minimal Windows level to be compatible with
+        Windows 7 or newer.
+
+        * ANGLE.vcxproj/libEGL.vcxproj:
+        * ANGLE.vcxproj/libGLESv2.vcxproj:
+        * ANGLE.vcxproj/preprocessor.vcxproj:
+        * ANGLE.vcxproj/translator_common.vcxproj:
+        * ANGLE.vcxproj/translator_glsl.vcxproj:
+        * ANGLE.vcxproj/translator_hlsl.vcxproj:
+
+2015-05-07  Dan Bernstein  <mitz@apple.com>
+
+        <rdar://problem/19317140> [Xcode] Remove usage of AspenFamily.xcconfig in Source/
+        https://bugs.webkit.org/show_bug.cgi?id=144727
+
+        Reviewed by Darin Adler.
+
+        * Configurations/Base.xcconfig: Don’t include AspenFamily.xcconfig, and define
+        INSTALL_PATH_PREFIX and LD_DYLIB_INSTALL_NAME for the iOS 8.x Simulator.
+
+2015-04-01  Alex Christensen  <achristensen@webkit.org>
+
+        Progress towards CMake on Windows and Mac.
+        https://bugs.webkit.org/show_bug.cgi?id=143293
+
+        Reviewed by Filip Pizlo.
+
+        * include/GLES2/gl2.h:
+        Temporarily disabled WebGL on Windows CMake builds.
+
+2015-03-17  Zan Dobersek  <zdobersek@igalia.com>
+
+        [CMake] Use a forwarding header for ANGLE's ShaderLang.h to avoid picking up ANGLE's EGL headers
+        https://bugs.webkit.org/show_bug.cgi?id=142530
+
+        Reviewed by Darin Adler.
+
+        * ANGLE/ShaderLang.h: Added. Includes include/GLSLANG/ShaderLang.h. Used in WebCore
+        so we can avoid using ANGLE's EGL headers and use the system-default headers instead.
+
+2015-03-16  Roger Fong  <roger_fong@apple.com>
+
+        [Win] Unreviewed build fix after r181571.
+
+        * include/GLES2/gl2softlinking.h:
+
+2015-03-12  Brent Fulgham  <bfulgham@apple.com>
+
+        [Win] Unreviewed build fix (part 2).
+
+        * ANGLE.vcxproj/libGLESv2Common.props: Missed a directory separator.
+
+2015-03-12  Brent Fulgham  <bfulgham@apple.com>
+
+        [Win] Unreviewed build fix for some DirectX SDK Installs
+
+        * ANGLE.vcxproj/libGLESv2Common.props: Correct path for Lib and
+        Include paths based on problems others have had building WebKit
+        under different Windows and DirectX revisions.
+
+2015-02-20  Alexey Proskuryakov  <ap@apple.com>
+
+        Remove svn:keywords property.
+
+        As far as I can tell, the property had no effect on any of these files, but also,
+        when it has effect it's likely harmful.
+
+        * ANGLE.txt: Removed property svn:keywords.
+        * src/common/RefCountObject.cpp: Removed property svn:keywords.
+        * src/common/RefCountObject.h: Removed property svn:keywords.
+        * src/compiler/translator/BaseTypes.h: Removed property svn:keywords.
+        * src/compiler/translator/BuiltInFunctionEmulator.cpp: Removed property svn:keywords.
+        * src/compiler/translator/BuiltInFunctionEmulator.h: Removed property svn:keywords.
+        * src/compiler/translator/CodeGen.cpp: Removed property svn:keywords.
+        * src/compiler/translator/Common.h: Removed property svn:keywords.
+        * src/compiler/translator/Compiler.cpp: Removed property svn:keywords.
+        * src/compiler/translator/ConstantUnion.h: Removed property svn:keywords.
+        * src/compiler/translator/DetectCallDepth.cpp: Removed property svn:keywords.
+        * src/compiler/translator/DetectCallDepth.h: Removed property svn:keywords.
+        * src/compiler/translator/DetectDiscontinuity.cpp: Removed property svn:keywords.
+        * src/compiler/translator/DetectDiscontinuity.h: Removed property svn:keywords.
+        * src/compiler/translator/Diagnostics.cpp: Removed property svn:keywords.
+        * src/compiler/translator/Diagnostics.h: Removed property svn:keywords.
+        * src/compiler/translator/DirectiveHandler.cpp: Removed property svn:keywords.
+        * src/compiler/translator/DirectiveHandler.h: Removed property svn:keywords.
+        * src/compiler/translator/ExtensionBehavior.h: Removed property svn:keywords.
+        * src/compiler/translator/ForLoopUnroll.cpp: Removed property svn:keywords.
+        * src/compiler/translator/ForLoopUnroll.h: Removed property svn:keywords.
+        * src/compiler/translator/HashNames.h: Removed property svn:keywords.
+        * src/compiler/translator/InfoSink.cpp: Removed property svn:keywords.
+        * src/compiler/translator/InfoSink.h: Removed property svn:keywords.
+        * src/compiler/translator/Initialize.cpp: Removed property svn:keywords.
+        * src/compiler/translator/Initialize.h: Removed property svn:keywords.
+        * src/compiler/translator/InitializeDll.cpp: Removed property svn:keywords.
+        * src/compiler/translator/InitializeDll.h: Removed property svn:keywords.
+        * src/compiler/translator/InitializeGlobals.h: Removed property svn:keywords.
+        * src/compiler/translator/InitializeParseContext.cpp: Removed property svn:keywords.
+        * src/compiler/translator/InitializeParseContext.h: Removed property svn:keywords.
+        * src/compiler/translator/InitializeVariables.cpp: Removed property svn:keywords.
+        * src/compiler/translator/InitializeVariables.h: Removed property svn:keywords.
+        * src/compiler/translator/IntermTraverse.cpp: Removed property svn:keywords.
+        * src/compiler/translator/Intermediate.cpp: Removed property svn:keywords.
+        * src/compiler/translator/MMap.h: Removed property svn:keywords.
+        * src/compiler/translator/NodeSearch.h: Removed property svn:keywords.
+        * src/compiler/translator/OutputESSL.cpp: Removed property svn:keywords.
+        * src/compiler/translator/OutputESSL.h: Removed property svn:keywords.
+        * src/compiler/translator/OutputGLSL.cpp: Removed property svn:keywords.
+        * src/compiler/translator/OutputGLSL.h: Removed property svn:keywords.
+        * src/compiler/translator/OutputGLSLBase.cpp: Removed property svn:keywords.
+        * src/compiler/translator/OutputGLSLBase.h: Removed property svn:keywords.
+        * src/compiler/translator/OutputHLSL.cpp: Removed property svn:keywords.
+        * src/compiler/translator/OutputHLSL.h: Removed property svn:keywords.
+        * src/compiler/translator/ParseContext.cpp: Removed property svn:keywords.
+        * src/compiler/translator/ParseContext.h: Removed property svn:keywords.
+        * src/compiler/translator/PoolAlloc.cpp: Removed property svn:keywords.
+        * src/compiler/translator/PoolAlloc.h: Removed property svn:keywords.
+        * src/compiler/translator/Pragma.h: Removed property svn:keywords.
+        * src/compiler/translator/QualifierAlive.cpp: Removed property svn:keywords.
+        * src/compiler/translator/QualifierAlive.h: Removed property svn:keywords.
+        * src/compiler/translator/RemoveTree.cpp: Removed property svn:keywords.
+        * src/compiler/translator/RemoveTree.h: Removed property svn:keywords.
+        * src/compiler/translator/RenameFunction.h: Removed property svn:keywords.
+        * src/compiler/translator/RewriteElseBlocks.cpp: Removed property svn:keywords.
+        * src/compiler/translator/RewriteElseBlocks.h: Removed property svn:keywords.
+        * src/compiler/translator/SearchSymbol.cpp: Removed property svn:keywords.
+        * src/compiler/translator/SearchSymbol.h: Removed property svn:keywords.
+        * src/compiler/translator/ShHandle.h: Removed property svn:keywords.
+        * src/compiler/translator/ShaderLang.cpp: Removed property svn:keywords.
+        * src/compiler/translator/SymbolTable.cpp: Removed property svn:keywords.
+        * src/compiler/translator/SymbolTable.h: Removed property svn:keywords.
+        * src/compiler/translator/TranslatorESSL.cpp: Removed property svn:keywords.
+        * src/compiler/translator/TranslatorESSL.h: Removed property svn:keywords.
+        * src/compiler/translator/TranslatorGLSL.cpp: Removed property svn:keywords.
+        * src/compiler/translator/TranslatorGLSL.h: Removed property svn:keywords.
+        * src/compiler/translator/TranslatorHLSL.cpp: Removed property svn:keywords.
+        * src/compiler/translator/TranslatorHLSL.h: Removed property svn:keywords.
+        * src/compiler/translator/Types.h: Removed property svn:keywords.
+        * src/compiler/translator/UnfoldShortCircuit.cpp: Removed property svn:keywords.
+        * src/compiler/translator/UnfoldShortCircuit.h: Removed property svn:keywords.
+        * src/compiler/translator/UnfoldShortCircuitAST.cpp: Removed property svn:keywords.
+        * src/compiler/translator/UnfoldShortCircuitAST.h: Removed property svn:keywords.
+        * src/compiler/translator/ValidateLimitations.cpp: Removed property svn:keywords.
+        * src/compiler/translator/ValidateLimitations.h: Removed property svn:keywords.
+        * src/compiler/translator/VariableInfo.cpp: Removed property svn:keywords.
+        * src/compiler/translator/VariableInfo.h: Removed property svn:keywords.
+        * src/compiler/translator/VariablePacker.cpp: Removed property svn:keywords.
+        * src/compiler/translator/VariablePacker.h: Removed property svn:keywords.
+        * src/compiler/translator/VersionGLSL.cpp: Removed property svn:keywords.
+        * src/compiler/translator/VersionGLSL.h: Removed property svn:keywords.
+        * src/compiler/translator/compilerdebug.cpp: Removed property svn:keywords.
+        * src/compiler/translator/compilerdebug.h: Removed property svn:keywords.
+        * src/compiler/translator/depgraph/DependencyGraph.cpp: Removed property svn:keywords.
+        * src/compiler/translator/depgraph/DependencyGraph.h: Removed property svn:keywords.
+        * src/compiler/translator/depgraph/DependencyGraphBuilder.cpp: Removed property svn:keywords.
+        * src/compiler/translator/depgraph/DependencyGraphBuilder.h: Removed property svn:keywords.
+        * src/compiler/translator/depgraph/DependencyGraphOutput.cpp: Removed property svn:keywords.
+        * src/compiler/translator/depgraph/DependencyGraphOutput.h: Removed property svn:keywords.
+        * src/compiler/translator/depgraph/DependencyGraphTraverse.cpp: Removed property svn:keywords.
+        * src/compiler/translator/generate_parser.sh: Removed property svn:keywords.
+        * src/compiler/translator/glslang.h: Removed property svn:keywords.
+        * src/compiler/translator/glslang_lex.cpp: Removed property svn:keywords.
+        * src/compiler/translator/glslang_tab.cpp: Removed property svn:keywords.
+        * src/compiler/translator/glslang_tab.h: Removed property svn:keywords.
+        * src/compiler/translator/intermOut.cpp: Removed property svn:keywords.
+        * src/compiler/translator/intermediate.h: Removed property svn:keywords.
+        * src/compiler/translator/localintermediate.h: Removed property svn:keywords.
+        * src/compiler/translator/osinclude.h: Removed property svn:keywords.
+        * src/compiler/translator/ossource_posix.cpp: Removed property svn:keywords.
+        * src/compiler/translator/ossource_win.cpp: Removed property svn:keywords.
+        * src/compiler/translator/parseConst.cpp: Removed property svn:keywords.
+        * src/compiler/translator/timing/RestrictFragmentShaderTiming.cpp: Removed property svn:keywords.
+        * src/compiler/translator/timing/RestrictFragmentShaderTiming.h: Removed property svn:keywords.
+        * src/compiler/translator/timing/RestrictVertexShaderTiming.cpp: Removed property svn:keywords.
+        * src/compiler/translator/timing/RestrictVertexShaderTiming.h: Removed property svn:keywords.
+        * src/compiler/translator/util.cpp: Removed property svn:keywords.
+        * src/compiler/translator/util.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/BufferStorage11.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/BufferStorage11.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/Fence11.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/Fence11.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/Image11.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/Image11.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/IndexBuffer11.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/IndexBuffer11.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/InputLayoutCache.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/InputLayoutCache.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/Query11.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/Query11.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/RenderStateCache.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/RenderStateCache.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/RenderTarget11.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/RenderTarget11.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/Renderer11.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/Renderer11.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/ShaderExecutable11.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/ShaderExecutable11.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/SwapChain11.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/SwapChain11.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/TextureStorage11.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/TextureStorage11.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/VertexBuffer11.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/VertexBuffer11.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/renderer11_utils.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d11/renderer11_utils.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/BufferStorage9.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/BufferStorage9.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/Fence9.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/Fence9.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/Image9.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/Image9.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/IndexBuffer9.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/IndexBuffer9.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/Query9.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/Query9.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/RenderTarget9.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/RenderTarget9.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/Renderer9.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/Renderer9.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/ShaderExecutable9.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/ShaderExecutable9.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/SwapChain9.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/SwapChain9.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/TextureStorage9.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/TextureStorage9.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/VertexBuffer9.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/VertexBuffer9.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/VertexDeclarationCache.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/VertexDeclarationCache.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/renderer9_utils.cpp: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/renderer9_utils.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/shaders/compiled/componentmaskps.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/shaders/compiled/flipyvs.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/shaders/compiled/luminanceps.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/shaders/compiled/passthroughps.h: Removed property svn:keywords.
+        * src/libGLESv2/renderer/d3d9/shaders/compiled/standardvs.h: Removed property svn:keywords.
+
+2015-01-28  Dana Burkart  <dburkart@apple.com>
+
+        Move ASan flag settings from DebugRelease.xcconfig to Base.xcconfig
+        https://bugs.webkit.org/show_bug.cgi?id=136765
+
+        Reviewed by Alexey Proskuryakov.
+
+        * Configurations/Base.xcconfig:
+        * Configurations/DebugRelease.xcconfig:
+
+2014-12-26  Dan Bernstein  <mitz@apple.com>
+
+        <rdar://problem/19348208> REGRESSION (r177027): iOS builds use the wrong toolchain
+        https://bugs.webkit.org/show_bug.cgi?id=139950
+
+        Reviewed by David Kilzer.
+
+        * Configurations/Base.xcconfig: Only define TOOLCHAINS when building for OS X, doing so
+        in a manner that works with Xcode 5.1.1.
+
+2014-12-24  Dan Bernstein  <mitz@apple.com>
+
+        ANGLE extern symbols are not hidden by default, but should be
+        https://bugs.webkit.org/show_bug.cgi?id=139936
+
+        Reviewed by Mark Rowe.
+
+        * Configurations/Base.xcconfig: Changed GCC_SYMBOLS_PRIVATE_EXTERN to YES.
+
+2014-12-24  Dan Bernstein  <mitz@apple.com>
+
+        Removed the Derived Sources target.
+
+        It has been empty since r159533.
+
+        * ANGLE.xcodeproj/project.pbxproj:
+
+2014-12-09  David Kilzer  <ddkilzer@apple.com>
+
+        Switch from using PLATFORM_NAME to SDK selectors in ANGLE, bmalloc, gtest, JavaScriptCore, WTF
+        <http://webkit.org/b/139212>
+
+        Reviewed by Joseph Pecoraro.
+
+        * Configurations/Base.xcconfig:
+        - Only set GCC_ENABLE_OBJC_GC, GCC_MODEL_TUNING and TOOLCHAINS
+          on OS X.
+        * Configurations/DebugRelease.xcconfig:
+        - Only set MACOSX_DEPLOYMENT_TARGET and SDKROOT on OS X.
+
+2014-10-30  Dana Burkart  <dburkart@apple.com>
+
+        <rdar://problem/18821260> Prepare for the mysterious future
+
+        Reviewed by Lucas Forschler.
+
+        * Configurations/Base.xcconfig:
+        * Configurations/DebugRelease.xcconfig:
+
+2014-10-08  Brent Fulgham  <bfulgham@apple.com>
+
+        [Win] Use proper v120 target for 64-bit builds.
+
+        * ANGLE.vcxproj/libEGL.vcxproj:
+
+2014-09-29  peavo@outlook.com  <peavo@outlook.com>
+
+        [WinCairo] D3D11 is not used by default.
+        https://bugs.webkit.org/show_bug.cgi?id=137215
+
+        Reviewed by Alex Christensen.
+
+        ANGLE_DEFAULT_D3D11 needs to be defined for D3D11 to be used as default.
+
+        * ANGLE.vcxproj/libGLESv2Common.props:
+
+2014-09-19  Daniel Bates  <dabates@apple.com>
+
+        Always assume internal SDK when building configuration Production
+        https://bugs.webkit.org/show_bug.cgi?id=136925
+        <rdar://problem/18362399>
+
+        Reviewed by Dan Bernstein.
+
+        * Configurations/Base.xcconfig:
+
+2014-09-10  Roger Fong  <roger_fong@apple.com>
+
+        Check for varying packing restrictions per program instead of per shader.
+        https://bugs.webkit.org/show_bug.cgi?id=136585.
+        <rdar://problem/16308409>.
+
+        Reviewed by Dean Jackson.
+
+        Remove varying packing restrictions checks from ANGLE.
+        * src/compiler/translator/Compiler.cpp:
+        (TCompiler::compile):
+        (TCompiler::enforcePackingRestrictions):
+        * src/compiler/translator/ShHandle.h:
+
+2014-09-06  Darin Adler  <darin@apple.com>
+
+        Make updates suggested by new version of Xcode
+        https://bugs.webkit.org/show_bug.cgi?id=136603
+
+        Reviewed by Mark Rowe.
+
+        * ANGLE.xcodeproj/project.pbxproj: Updated LastUpgradeCheck.
+
+        * Configurations/ANGLE.xcconfig: Added CLANG_WARN_BOOL_CONVERSION,
+        CLANG_WARN_ENUM_CONVERSION, CLANG_WARN_INT_CONVERSION, COMBINE_HIDPI_IMAGES,
+        and ENABLE_STRICT_OBJC_MSGSEND as suggested by Xcode upgrade check.
+
+2014-09-06  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r173335.
+        https://bugs.webkit.org/show_bug.cgi?id=136597
+
+        Broke webgl/1.0.2/conformance/glsl/misc/shader-varying-
+        packing-restrictions.html (Requested by ap on #webkit).
+
+        Reverted changeset:
+
+        "Remove statically used varyings from packing restrictions
+        check."
+        https://bugs.webkit.org/show_bug.cgi?id=136585
+        http://trac.webkit.org/changeset/173335
+
+2014-09-05  Roger Fong  <roger_fong@apple.com>
+
+        Remove statically used varyings from packing restrictions check.
+        https://bugs.webkit.org/show_bug.cgi?id=136585.
+        <rdar://problem/16308409>
+
+        Reviewed by Dean Jackson.
+
+        * src/compiler/translator/Compiler.cpp:
+        (TCompiler::enforcePackingRestrictions):
+
+2014-08-29  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Unreviwed, remove empty directories.
+
+        * src/compiler/depgraph: Removed.
+        * src/compiler/timing: Removed.
+        * src/libGLESv2/renderer/shaders: Removed.
+        * src/libGLESv2/renderer/shaders/compiled: Removed.
+
+2014-08-11  Andy Estes  <aestes@apple.com>
+
+        [iOS] Get rid of iOS.xcconfig
+        https://bugs.webkit.org/show_bug.cgi?id=135809
+
+        Reviewed by Joseph Pecoraro.
+
+        All iOS.xcconfig did was include AspenFamily.xcconfig, so there's no need for the indirection.
+
+        * ANGLE.xcodeproj/project.pbxproj:
+        * Configurations/Base.xcconfig:
+        * Configurations/iOS.xcconfig: Removed.
+
+2014-08-07  Brent Fulgham  <bfulgham@apple.com>
+
+        [Win] Unreviewed gardening.
+
+        DebugSuffix targets should use our debugsuffix property sheet, and
+        will therefore build to the proper output location with the proper
+        suffix tags.
+
+        Also, we must use the WebKit_Libraries environment variable, not a set
+        of relative paths to the property sheets.
+
+        * ANGLE.vcxproj/libEGL.vcxproj: Use 'debugsuffix.props' sheet.
+        * ANGLE.vcxproj/libGLESv2.vcxproj: Ditto.
+        * ANGLE.vcxproj/preprocessor.vcxproj: Ditto.
+        * ANGLE.vcxproj/translator_common.vcxproj: Ditto.
+        * ANGLE.vcxproj/translator_glsl.vcxproj: Ditto.
+        * ANGLE.vcxproj/translator_hlsl.vcxproj: Ditto.
+        * ANGLE.vcxproj/libEGLCommon.props: Use $(DebugSuffix) endings.
+        * ANGLE.vcxproj/libGLESv2Common.props: Ditto.
+        * ANGLE.vcxproj/translatorCommon.props: Output to 'lib' folder,
+        not 'bin' folder. These are libraries!
+
 2014-08-02  Brent Fulgham  <bfulgham@apple.com>
 
         [Win] Unreviewed build fix.

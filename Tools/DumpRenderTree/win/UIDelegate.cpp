@@ -206,7 +206,7 @@ HRESULT UIDelegate::hasCustomMenuImplementation(BOOL* hasCustomMenus)
     return S_OK;
 }
 
-HRESULT UIDelegate::trackCustomPopupMenu(IWebView* /*sender*/, OLE_HANDLE /*menu*/, LPPOINT /*point*/)
+HRESULT UIDelegate::trackCustomPopupMenu(IWebView* /*sender*/, HMENU /*menu*/, LPPOINT /*point*/)
 {
     // Do nothing
     return S_OK;
@@ -291,12 +291,12 @@ HRESULT UIDelegate::webViewFooterHeight(IWebView* /*webView*/, float* result)
     return E_NOTIMPL;
 }
 
-HRESULT UIDelegate::drawHeaderInRect(IWebView* /*webView*/, RECT* /*rect*/, OLE_HANDLE /*drawingContext*/)
+HRESULT UIDelegate::drawHeaderInRect(IWebView* /*webView*/, RECT* /*rect*/, ULONG_PTR /*drawingContext*/)
 {
     return E_NOTIMPL;
 }
 
-HRESULT UIDelegate::drawFooterInRect(IWebView* /*webView*/, RECT* /*rect*/, OLE_HANDLE /*drawingContext*/, UINT /*pageIndex*/, UINT /*pageCount*/)
+HRESULT UIDelegate::drawFooterInRect(IWebView* /*webView*/, RECT* /*rect*/, ULONG_PTR /*drawingContext*/, UINT /*pageIndex*/, UINT /*pageCount*/)
 {
     return E_NOTIMPL;
 }
@@ -367,15 +367,19 @@ HRESULT UIDelegate::webViewFrame(IWebView* /*sender*/, RECT* frame)
 
 HRESULT UIDelegate::runJavaScriptAlertPanelWithMessage(IWebView* /*sender*/, BSTR message)
 {
-    printf("ALERT: %S\n", message ? message : L"");
-    fflush(stdout);
+    if (!done) {
+        printf("ALERT: %S\n", message ? message : L"");
+        fflush(stdout);
+    }
 
     return S_OK;
 }
 
 HRESULT UIDelegate::runJavaScriptConfirmPanelWithMessage(IWebView* /*sender*/, BSTR message, BOOL* result)
 {
-    printf("CONFIRM: %S\n", message ? message : L"");
+    if (!done)
+        printf("CONFIRM: %S\n", message ? message : L"");
+
     *result = TRUE;
 
     return S_OK;
@@ -383,7 +387,9 @@ HRESULT UIDelegate::runJavaScriptConfirmPanelWithMessage(IWebView* /*sender*/, B
 
 HRESULT UIDelegate::runJavaScriptTextInputPanelWithPrompt(IWebView* /*sender*/, BSTR message, BSTR defaultText, BSTR* result)
 {
-    printf("PROMPT: %S, default text: %S\n", message ? message : L"", defaultText ? defaultText : L"");
+    if (!done)
+        printf("PROMPT: %S, default text: %S\n", message ? message : L"", defaultText ? defaultText : L"");
+
     *result = SysAllocString(defaultText);
 
     return S_OK;
@@ -393,19 +399,27 @@ HRESULT UIDelegate::runBeforeUnloadConfirmPanelWithMessage(IWebView* /*sender*/,
 {
     if (!result)
         return E_POINTER;
-    printf("CONFIRM NAVIGATION: %S\n", message ? message : L"");
+
+    if (!done)
+        printf("CONFIRM NAVIGATION: %S\n", message ? message : L"");
+
     *result = !gTestRunner->shouldStayOnPageAfterHandlingBeforeUnload();
+
     return S_OK;
 }
 
 HRESULT UIDelegate::webViewAddMessageToConsole(IWebView* /*sender*/, BSTR message, int lineNumber, BSTR url, BOOL isError)
 {
+    if (done)
+        return S_OK;
+
     wstring newMessage;
     if (message) {
         newMessage = message;
-        size_t fileProtocol = newMessage.find(L"file://");
+        const std::wstring fileURL(L"file://");
+        size_t fileProtocol = newMessage.find(fileURL);
         if (fileProtocol != wstring::npos)
-            newMessage = newMessage.substr(0, fileProtocol) + lastPathComponent(newMessage.substr(fileProtocol));
+            newMessage = newMessage.substr(0, fileProtocol) + lastPathComponent(newMessage.substr(fileProtocol + fileURL.size()));
     }
 
     printf("CONSOLE MESSAGE: ");
@@ -452,7 +466,7 @@ HRESULT UIDelegate::createWebViewWithRequest(IWebView* /*sender*/, IWebURLReques
 HRESULT UIDelegate::webViewClose(IWebView* sender)
 {
     HWND hostWindow;
-    sender->hostWindow(reinterpret_cast<OLE_HANDLE*>(&hostWindow));
+    sender->hostWindow(&hostWindow);
     DestroyWindow(hostWindow);
     return S_OK;
 }
@@ -460,7 +474,7 @@ HRESULT UIDelegate::webViewClose(IWebView* sender)
 HRESULT UIDelegate::webViewFocus(IWebView* sender)
 {
     HWND hostWindow;
-    sender->hostWindow(reinterpret_cast<OLE_HANDLE*>(&hostWindow));
+    sender->hostWindow(&hostWindow);
     SetForegroundWindow(hostWindow);
     return S_OK; 
 }
@@ -487,7 +501,7 @@ HRESULT UIDelegate::exceededDatabaseQuota(IWebView* sender, IWebFrame* frame, IW
     origin->port(&port);
 
     if (!done && gTestRunner->dumpDatabaseCallbacks())
-        printf("UI DELEGATE DATABASE CALLBACK: exceededDatabaseQuotaForSecurityOrigin:{%S, %S, %i} database:%S\n", protocol, host, port, databaseIdentifier);
+        printf("UI DELEGATE DATABASE CALLBACK: exceededDatabaseQuotaForSecurityOrigin:{%s, %s, %i} database:%S\n", static_cast<const char*>(protocol), static_cast<const char*>(host), port, databaseIdentifier);
 
     unsigned long long defaultQuota = 5 * 1024 * 1024;
     double testDefaultQuota = gTestRunner->databaseDefaultQuota();
@@ -510,8 +524,8 @@ HRESULT UIDelegate::exceededDatabaseQuota(IWebView* sender, IWebFrame* frame, IW
         origin->setQuota(defaultQuota);
         return S_OK;
     }
-    VARIANT var;
-    detailsBag->Read(WebDatabaseUsageKey, &var, 0);
+    _variant_t var;
+    detailsBag->Read(WebDatabaseUsageKey, &var.GetVARIANT(), nullptr);
     unsigned long long expectedSize = V_UI8(&var);
     unsigned long long newQuota = defaultQuota;
 
@@ -540,7 +554,7 @@ HRESULT UIDelegate::webViewClosing(IWebView* /*sender*/)
     return E_NOTIMPL;
 }
 
-HRESULT UIDelegate::webViewSetCursor(IWebView* /*sender*/, OLE_HANDLE /*cursor*/)
+HRESULT UIDelegate::webViewSetCursor(IWebView* /*sender*/, HCURSOR /*cursor*/)
 {
     return E_NOTIMPL;
 }
@@ -568,7 +582,7 @@ HRESULT UIDelegate::createWebViewWithRequest(IWebView* /*sender*/, IWebURLReques
     return E_NOTIMPL;
 }
 
-HRESULT UIDelegate::drawBackground(IWebView* /*sender*/, OLE_HANDLE hdc, const RECT* dirtyRect)
+HRESULT UIDelegate::drawBackground(IWebView* /*sender*/, HDC /*hdc*/, const RECT* /*dirtyRect*/)
 {
     return E_NOTIMPL;
 }

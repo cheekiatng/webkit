@@ -46,6 +46,7 @@ protected:
 
     static constexpr double defaultTimeoutSeconds = 10.0;
     bool m_multipleProcesses;
+    bool m_withExtension;
 
     bool loadUrlSync(const char* url, double timeoutSeconds = defaultTimeoutSeconds);
     bool waitUntilLoadFinished(double timeoutSeconds = defaultTimeoutSeconds);
@@ -63,8 +64,8 @@ protected:
     void multiDown(int id, int x, int y);
     void multiUp(int id, int x, int y);
     void multiMove(int id, int x, int y);
-    void keyDown(char* keyname, char* key, char* string, char* modifier);
-    void keyUp(char* keyname, char* key, char* string);
+    void keyDown(const char* keyname, const char* key, const char* string, const char* modifier);
+    void keyUp(const char* keyname, const char* key, const char* string);
 
 private:
     Evas_Object* m_webView;

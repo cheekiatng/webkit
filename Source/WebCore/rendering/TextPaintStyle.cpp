@@ -26,11 +26,14 @@
 #include "config.h"
 #include "TextPaintStyle.h"
 
+#include "FocusController.h"
 #include "Frame.h"
 #include "GraphicsContext.h"
+#include "Page.h"
 #include "PaintInfo.h"
 #include "RenderStyle.h"
 #include "RenderText.h"
+#include "RenderTheme.h"
 #include "RenderView.h"
 #include "Settings.h"
 
@@ -71,7 +74,7 @@ static Color adjustColorForVisibilityOnBackground(Color textColor, Color backgro
     return textColor.light();
 }
 
-TextPaintStyle computeTextPaintStyle(const RenderText& renderer, const RenderStyle& lineStyle, const PaintInfo& paintInfo)
+TextPaintStyle computeTextPaintStyle(const Frame& frame, const RenderStyle& lineStyle, const PaintInfo& paintInfo)
 {
     TextPaintStyle paintStyle(lineStyle.colorSpace());
 
@@ -86,13 +89,22 @@ TextPaintStyle computeTextPaintStyle(const RenderText& renderer, const RenderSty
         paintStyle.emphasisMarkColor = paintInfo.forcedTextColor();
         return paintStyle;
     }
+
+    if (lineStyle.insideDefaultButton()) {
+        Page* page = frame.page();
+        if (page && page->focusController().isActive()) {
+            paintStyle.fillColor = page->theme().systemColor(CSSValueActivebuttontext);
+            return paintStyle;
+        }
+    }
+
     paintStyle.fillColor = lineStyle.visitedDependentColor(CSSPropertyWebkitTextFillColor);
 
     bool forceBackgroundToWhite = false;
-    if (renderer.document().printing()) {
+    if (frame.document() && frame.document()->printing()) {
         if (lineStyle.printColorAdjust() == PrintColorAdjustEconomy)
             forceBackgroundToWhite = true;
-        if (renderer.frame().settings().shouldPrintBackgrounds())
+        if (frame.settings().shouldPrintBackgrounds())
             forceBackgroundToWhite = false;
     }
 

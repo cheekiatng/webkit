@@ -29,21 +29,28 @@ WebInspector.DOMTreeContentView = function(representedObject)
 
     WebInspector.ContentView.call(this, representedObject);
 
-    this._compositingBordersButtonNavigationItem = new WebInspector.ActivateButtonNavigationItem("layer-borders", WebInspector.UIString("Show compositing borders"), WebInspector.UIString("Hide compositing borders"), "Images/LayerBorders.svg", 16, 16);
+    this._compositingBordersButtonNavigationItem = new WebInspector.ActivateButtonNavigationItem("layer-borders", WebInspector.UIString("Show compositing borders"), WebInspector.UIString("Hide compositing borders"), "Images/LayerBorders.svg", 13, 13);
     this._compositingBordersButtonNavigationItem.addEventListener(WebInspector.ButtonNavigationItem.Event.Clicked, this._toggleCompositingBorders, this);
     this._compositingBordersButtonNavigationItem.enabled = !!PageAgent.getCompositingBordersVisible;
 
+    WebInspector.showPaintRectsSetting.addEventListener(WebInspector.Setting.Event.Changed, this._showPaintRectsSettingChanged, this);
+    this._paintFlashingButtonNavigationItem = new WebInspector.ActivateButtonNavigationItem("paint-flashing", WebInspector.UIString("Enable paint flashing"), WebInspector.UIString("Disable paint flashing"), "Images/PaintFlashing.svg", 16, 16);
+    this._paintFlashingButtonNavigationItem.addEventListener(WebInspector.ButtonNavigationItem.Event.Clicked, this._togglePaintFlashing, this);
+    this._paintFlashingButtonNavigationItem.enabled = !!PageAgent.setShowPaintRects;
+    this._paintFlashingButtonNavigationItem.activated = PageAgent.setShowPaintRects && WebInspector.showPaintRectsSetting.value;
+
     WebInspector.showShadowDOMSetting.addEventListener(WebInspector.Setting.Event.Changed, this._showShadowDOMSettingChanged, this);
-    this._showsShadowDOMButtonNavigationItem = new WebInspector.ActivateButtonNavigationItem("shows-shadow-DOM", WebInspector.UIString("Show shadow DOM nodes"), WebInspector.UIString("Hide shadow DOM nodes"), "Images/ShadowDOM.svg", 16, 16);
+    this._showsShadowDOMButtonNavigationItem = new WebInspector.ActivateButtonNavigationItem("shows-shadow-DOM", WebInspector.UIString("Show shadow DOM nodes"), WebInspector.UIString("Hide shadow DOM nodes"), "Images/ShadowDOM.svg", 13, 13);
     this._showsShadowDOMButtonNavigationItem.addEventListener(WebInspector.ButtonNavigationItem.Event.Clicked, this._toggleShowsShadowDOMSetting, this);
     this._showShadowDOMSettingChanged();
 
-    this.element.classList.add(WebInspector.DOMTreeContentView.StyleClassName);
+    this.element.classList.add("dom-tree");
     this.element.addEventListener("click", this._mouseWasClicked.bind(this), false);
 
-    this._domTreeOutline = new WebInspector.DOMTreeOutline(true, true, false);
+    this._domTreeOutline = new WebInspector.DOMTreeOutline(true, true, true);
     this._domTreeOutline.addEventListener(WebInspector.DOMTreeOutline.Event.SelectedNodeChanged, this._selectedNodeDidChange, this);
     this._domTreeOutline.wireToDomAgent();
+    this._domTreeOutline.editable = true;
     this.element.appendChild(this._domTreeOutline.element);
 
     WebInspector.domTreeManager.addEventListener(WebInspector.DOMTreeManager.Event.AttributeModified, this._domNodeChanged, this);
@@ -55,8 +62,6 @@ WebInspector.DOMTreeContentView = function(representedObject)
     this._numberOfSearchResults = null;
 };
 
-WebInspector.DOMTreeContentView.StyleClassName = "dom-tree";
-
 WebInspector.DOMTreeContentView.prototype = {
     constructor: WebInspector.DOMTreeContentView,
     __proto__: WebInspector.ContentView.prototype,
@@ -65,7 +70,7 @@ WebInspector.DOMTreeContentView.prototype = {
 
     get navigationItems()
     {
-        return [this._showsShadowDOMButtonNavigationItem, this._compositingBordersButtonNavigationItem];
+        return [this._showsShadowDOMButtonNavigationItem, this._compositingBordersButtonNavigationItem, this._paintFlashingButtonNavigationItem];
     },
 
     get domTreeOutline()
@@ -97,6 +102,8 @@ WebInspector.DOMTreeContentView.prototype = {
 
     closed: function()
     {
+        WebInspector.showPaintRectsSetting.removeEventListener(null, null, this);
+        WebInspector.showShadowDOMSetting.removeEventListener(null, null, this);
         WebInspector.domTreeManager.removeEventListener(null, null, this);
 
         this._domTreeOutline.close();
@@ -116,12 +123,24 @@ WebInspector.DOMTreeContentView.prototype = {
             }
 
             var pathComponent = new WebInspector.DOMTreeElementPathComponent(treeElement, treeElement.representedObject);
-            pathComponent.addEventListener(WebInspector.HierarchicalPathComponent.Event.SiblingWasSelected, this._pathComponentSelected, this);
+            pathComponent.addEventListener(WebInspector.HierarchicalPathComponent.Event.Clicked, this._pathComponentSelected, this);
             pathComponents.unshift(pathComponent);
             treeElement = treeElement.parent;
         }
 
         return pathComponents;
+    },
+
+    restoreFromCookie: function(cookie)
+    {
+        if (!cookie || !cookie.nodeToSelect)
+            return;
+
+        this.selectAndRevealDOMNode(cookie.nodeToSelect);
+
+        // Because nodeToSelect is ephemeral, we don't want to keep
+        // it around in the back-forward history entries.
+        cookie.nodeToSelect = undefined;
     },
 
     selectAndRevealDOMNode: function(domNode, preventFocusChange)
@@ -187,8 +206,10 @@ WebInspector.DOMTreeContentView.prototype = {
         if (this._searchQuery === query)
             return;
 
-        if (this._searchIdentifier)
+        if (this._searchIdentifier) {
             DOMAgent.discardSearchResults(this._searchIdentifier);
+            this._hideSearchHighlights();
+        }
 
         this._searchQuery = query;
         this._searchIdentifier = null;
@@ -204,6 +225,8 @@ WebInspector.DOMTreeContentView.prototype = {
             this._numberOfSearchResults = resultsCount;
 
             this.dispatchEventToListeners(WebInspector.ContentView.Event.NumberOfSearchResultsDidChange);
+
+            this._showSearchHighlights();
 
             if (this._automaticallyRevealFirstSearchResult)
                 this.revealNextSearchResult();
@@ -226,8 +249,10 @@ WebInspector.DOMTreeContentView.prototype = {
 
     searchCleared: function()
     {
-        if (this._searchIdentifier)
+        if (this._searchIdentifier) {
             DOMAgent.discardSearchResults(this._searchIdentifier);
+            this._hideSearchHighlights();
+        }
 
         this._searchQuery = null;
         this._searchIdentifier = null;
@@ -286,6 +311,10 @@ WebInspector.DOMTreeContentView.prototype = {
                 return;
 
             this._domTreeOutline.selectDOMNode(domNode, changeFocus);
+
+            var selectedTreeElement = this._domTreeOutline.selectedTreeElement;
+            if (selectedTreeElement)
+                selectedTreeElement.emphasizeSearchHighlight();
         }
 
         DOMAgent.getSearchResults(this._searchIdentifier, index, index + 1, revealResult.bind(this));
@@ -318,6 +347,7 @@ WebInspector.DOMTreeContentView.prototype = {
         {
             if (!WebInspector.domTreeManager.restoreSelectedNodeIsAllowed)
                 return;
+
             selectNode.call(this, WebInspector.domTreeManager.nodeForId(nodeId));
         }
 
@@ -405,6 +435,11 @@ WebInspector.DOMTreeContentView.prototype = {
         PageAgent.setCompositingBordersVisible(activated);
     },
 
+    _togglePaintFlashing: function(event)
+    {
+        WebInspector.showPaintRectsSetting.value = !WebInspector.showPaintRectsSetting.value;
+    },
+
     _updateCompositingBordersButtonToMatchPageSettings: function()
     {
         if (!PageAgent.getCompositingBordersVisible)
@@ -416,7 +451,17 @@ WebInspector.DOMTreeContentView.prototype = {
         // in a different way than just using the navigation bar button.
         PageAgent.getCompositingBordersVisible(function(error, compositingBordersVisible) {
             button.activated = error ? false : compositingBordersVisible;
+            button.enabled = error !== "unsupported";
         });
+    },
+
+    _showPaintRectsSettingChanged: function(event)
+    {
+        console.assert(PageAgent.setShowPaintRects);
+
+        this._paintFlashingButtonNavigationItem.activated = WebInspector.showPaintRectsSetting.value;
+
+        PageAgent.setShowPaintRects(this._paintFlashingButtonNavigationItem.activated);
     },
 
     _showShadowDOMSettingChanged: function(event)
@@ -427,5 +472,52 @@ WebInspector.DOMTreeContentView.prototype = {
     _toggleShowsShadowDOMSetting: function(event)
     {
         WebInspector.showShadowDOMSetting.value = !WebInspector.showShadowDOMSetting.value;
+    },
+
+    _showSearchHighlights: function()
+    {
+        console.assert(this._searchIdentifier);
+
+        this._searchResultNodes = [];
+
+        var searchIdentifier = this._searchIdentifier;
+
+        DOMAgent.getSearchResults(this._searchIdentifier, 0, this._numberOfSearchResults, function(error, nodeIdentifiers) {
+            if (error)
+                return;
+
+            if (this._searchIdentifier !== searchIdentifier)
+                return;
+
+            console.assert(nodeIdentifiers.length === this._numberOfSearchResults);
+
+            for (var i = 0; i < nodeIdentifiers.length; ++i) {
+                var domNode = WebInspector.domTreeManager.nodeForId(nodeIdentifiers[i]);
+                console.assert(domNode);
+                if (!domNode)
+                    continue;
+
+                this._searchResultNodes.push(domNode);
+
+                var treeElement = this._domTreeOutline.findTreeElement(domNode);
+                console.assert(treeElement);
+                if (treeElement)
+                    treeElement.highlightSearchResults(this._searchQuery);
+            }
+        }.bind(this));
+    },
+
+    _hideSearchHighlights: function()
+    {
+        if (!this._searchResultNodes)
+            return;
+
+        for (var domNode of this._searchResultNodes) {
+            var treeElement = this._domTreeOutline.findTreeElement(domNode);
+            if (treeElement)
+                treeElement.hideSearchHighlights();
+        }
+
+        delete this._searchResultNodes;
     }
 };

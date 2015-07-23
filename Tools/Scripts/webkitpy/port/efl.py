@@ -29,9 +29,11 @@
 
 import os
 
+from webkitpy.common.system import path
 from webkitpy.layout_tests.models.test_configuration import TestConfiguration
 from webkitpy.port.base import Port
 from webkitpy.port.pulseaudio_sanitizer import PulseAudioSanitizer
+from webkitpy.port.xorgdriver import XorgDriver
 from webkitpy.port.xvfbdriver import XvfbDriver
 from webkitpy.port.linux_get_crash_log import GDBCrashLogGenerator
 
@@ -42,9 +44,9 @@ class EflPort(Port):
     def __init__(self, *args, **kwargs):
         super(EflPort, self).__init__(*args, **kwargs)
 
-        self._jhbuild_wrapper_path = [self.path_from_webkit_base('Tools', 'jhbuild', 'jhbuild-wrapper'), '--efl', 'run']
+        self._jhbuild_wrapper = [self.path_from_webkit_base('Tools', 'jhbuild', 'jhbuild-wrapper'), '--efl', 'run']
 
-        self.set_option_default('wrapper', ' '.join(self._jhbuild_wrapper_path))
+        self.set_option_default('wrapper', ' '.join(self._jhbuild_wrapper))
         self.webprocess_cmd_prefix = self.get_option('webprocess_cmd_prefix')
 
         self._pulseaudio_sanitizer = PulseAudioSanitizer()
@@ -64,8 +66,11 @@ class EflPort(Port):
         if not 'DISPLAY' in os.environ:
             del env['DISPLAY']
 
+        if 'ACCESSIBILITY_EAIL_LIBRARY_PATH' in os.environ:
+            env['ACCESSIBILITY_EAIL_LIBRARY_PATH'] = os.environ['ACCESSIBILITY_EAIL_LIBRARY_PATH']
+
         env['TEST_RUNNER_INJECTED_BUNDLE_FILENAME'] = self._build_path('lib', 'libTestRunnerInjectedBundle.so')
-        env['TEST_RUNNER_PLUGIN_PATH'] = self._build_path('lib')
+        env['TEST_RUNNER_PLUGIN_PATH'] = self._build_path('lib', 'plugins')
 
         # Silence GIO warnings about using the "memory" GSettings backend.
         env['GSETTINGS_BACKEND'] = 'memory'
@@ -74,6 +79,9 @@ class EflPort(Port):
             env['WEB_PROCESS_CMD_PREFIX'] = self.webprocess_cmd_prefix
 
         return env
+
+    def supports_per_test_timeout(self):
+        return True
 
     def default_timeout_ms(self):
         # Tests run considerably slower under gdb
@@ -90,8 +98,8 @@ class EflPort(Port):
         return [TestConfiguration(version=self._version, architecture='x86', build_type=build_type) for build_type in self.ALL_BUILD_TYPES]
 
     def _driver_class(self):
-        if os.environ.get("DISABLE_XVFB_DRIVER"):
-            return Port._driver_class(self)
+        if os.environ.get("USE_NATIVE_XDISPLAY"):
+            return XorgDriver
         return XvfbDriver
 
     def _path_to_driver(self):
@@ -101,7 +109,7 @@ class EflPort(Port):
         return self._build_path('bin', 'ImageDiff')
 
     def _image_diff_command(self, *args, **kwargs):
-        return self._jhbuild_wrapper_path + super(EflPort, self)._image_diff_command(*args, **kwargs)
+        return self._jhbuild_wrapper + super(EflPort, self)._image_diff_command(*args, **kwargs)
 
     def _path_to_webcore_library(self):
         static_path = self._build_path('lib', 'libwebcore_efl.a')
@@ -122,12 +130,7 @@ class EflPort(Port):
         return list(reversed([self._filesystem.join(self._webkit_baseline_path(p), 'TestExpectations') for p in self._search_paths()]))
 
     def show_results_html_file(self, results_filename):
-        # FIXME: We should find a way to share this implmentation with Gtk,
-        # or teach run-launcher how to call run-safari and move this down to WebKitPort.
-        run_launcher_args = ["file://%s" % results_filename]
-        # FIXME: old-run-webkit-tests also added ["-graphicssystem", "raster", "-style", "windows"]
-        # FIXME: old-run-webkit-tests converted results_filename path for cygwin.
-        self._run_script("run-launcher", run_launcher_args)
+        self._run_script("run-minibrowser", [path.abspath_to_uri(self.host.platform, results_filename)])
 
     def check_sys_deps(self, needs_http):
         return super(EflPort, self).check_sys_deps(needs_http) and self._driver_class().check_driver(self)
@@ -135,10 +138,6 @@ class EflPort(Port):
     def build_webkit_command(self, build_style=None):
         command = super(EflPort, self).build_webkit_command(build_style)
         command.extend(["--efl", "--update-efl"])
-        if self.get_option('webkit_test_runner'):
-            command.append("--no-webkit1")
-        else:
-            command.append("--no-webkit2")
         command.append(super(EflPort, self).make_args())
         return command
 

@@ -28,15 +28,14 @@
 #include <wtf/CryptographicallyRandomNumber.h>
 #include <wtf/HashTable.h>
 #include <wtf/MathExtras.h>
-#include <wtf/PassOwnPtr.h>
 #include <wtf/Vector.h>
-#include <wtf/text/StringImpl.h>
+#include <wtf/text/AtomicStringImpl.h>
 
 
 #define DUMP_PROPERTYMAP_STATS 0
 #define DUMP_PROPERTYMAP_COLLISIONS 0
 
-#define PROPERTY_MAP_DELETED_ENTRY_KEY ((StringImpl*)1)
+#define PROPERTY_MAP_DELETED_ENTRY_KEY ((UniquedStringImpl*)1)
 
 namespace JSC {
 
@@ -78,20 +77,7 @@ inline unsigned nextPowerOf2(unsigned v)
     return v;
 }
 
-struct PropertyMapEntry {
-    StringImpl* key;
-    PropertyOffset offset;
-    unsigned attributes;
-
-    PropertyMapEntry(StringImpl* key, PropertyOffset offset, unsigned attributes)
-        : key(key)
-        , offset(offset)
-        , attributes(attributes)
-    {
-    }
-};
-
-class PropertyTable : public JSCell {
+class PropertyTable final : public JSCell {
 
     // This is the implementation for 'iterator' and 'const_iterator',
     // used for iterating over the table in insertion order.
@@ -134,8 +120,10 @@ class PropertyTable : public JSCell {
     };
 
 public:
+    typedef JSCell Base;
+    static const unsigned StructureFlags = Base::StructureFlags | StructureIsImmortal;
+
     static const bool needsDestruction = true;
-    static const bool hasImmortalStructure = true;
     static void destroy(JSCell*);
 
     DECLARE_EXPORT_INFO;
@@ -145,7 +133,7 @@ public:
         return Structure::create(vm, globalObject, prototype, TypeInfo(CellType, StructureFlags), info());
     }
 
-    typedef StringImpl* KeyType;
+    typedef UniquedStringImpl* KeyType;
     typedef PropertyMapEntry ValueType;
 
     // The in order iterator provides overloaded * and -> to access the Value at the current position.
@@ -171,7 +159,6 @@ public:
 
     // Find a value in the table.
     find_iterator find(const KeyType&);
-    find_iterator findWithString(const KeyType&);
     ValueType* get(const KeyType&);
     // Add a value to the table
     enum EffectOnPropertyOffset { PropertyOffsetMayChange, PropertyOffsetMustNotChange };
@@ -204,9 +191,6 @@ public:
     size_t sizeInMemory();
     void checkConsistency();
 #endif
-
-protected:
-    static const unsigned StructureFlags = StructureIsImmortal;
 
 private:
     PropertyTable(VM&, unsigned initialCapacity);
@@ -257,7 +241,7 @@ private:
     unsigned* m_index;
     unsigned m_keyCount;
     unsigned m_deletedCount;
-    OwnPtr< Vector<PropertyOffset>> m_deletedOffsets;
+    std::unique_ptr<Vector<PropertyOffset>> m_deletedOffsets;
 
     static const unsigned MinimumTableSize = 16;
     static const unsigned EmptyEntryIndex = 0;
@@ -286,8 +270,8 @@ inline PropertyTable::const_iterator PropertyTable::end() const
 inline PropertyTable::find_iterator PropertyTable::find(const KeyType& key)
 {
     ASSERT(key);
-    ASSERT(key->isAtomic() || key->isEmptyUnique());
-    unsigned hash = key->existingHash();
+    ASSERT(key->isAtomic() || key->isSymbol());
+    unsigned hash = IdentifierRepHash::hash(key);
     unsigned step = 0;
 
 #if DUMP_PROPERTYMAP_STATS
@@ -302,7 +286,7 @@ inline PropertyTable::find_iterator PropertyTable::find(const KeyType& key)
             return std::make_pair(&table()[entryIndex - 1], hash & m_indexMask);
 
         if (!step)
-            step = WTF::doubleHash(key->existingHash()) | 1;
+            step = WTF::doubleHash(IdentifierRepHash::hash(key)) | 1;
 
 #if DUMP_PROPERTYMAP_STATS
         ++propertyMapHashTableStats->numCollisions;
@@ -310,7 +294,7 @@ inline PropertyTable::find_iterator PropertyTable::find(const KeyType& key)
 
 #if DUMP_PROPERTYMAP_COLLISIONS
         dataLog("PropertyTable collision for ", key, " (", hash, ") with step ", step, "\n");
-        dataLog("Collided with ", table()[entryIndex - 1].key, "(", table()[entryIndex - 1].key->existingHash(), ")\n");
+        dataLog("Collided with ", table()[entryIndex - 1].key, "(", IdentifierRepHash::hash(table()[entryIndex - 1].key), ")\n");
 #endif
 
         hash += step;
@@ -320,12 +304,12 @@ inline PropertyTable::find_iterator PropertyTable::find(const KeyType& key)
 inline PropertyTable::ValueType* PropertyTable::get(const KeyType& key)
 {
     ASSERT(key);
-    ASSERT(key->isAtomic() || key->isEmptyUnique());
+    ASSERT(key->isAtomic() || key->isSymbol());
 
     if (!m_keyCount)
         return nullptr;
 
-    unsigned hash = key->existingHash();
+    unsigned hash = IdentifierRepHash::hash(key);
     unsigned step = 0;
 
 #if DUMP_PROPERTYMAP_STATS
@@ -344,36 +328,7 @@ inline PropertyTable::ValueType* PropertyTable::get(const KeyType& key)
 #endif
 
         if (!step)
-            step = WTF::doubleHash(key->existingHash()) | 1;
-        hash += step;
-    }
-}
-
-inline PropertyTable::find_iterator PropertyTable::findWithString(const KeyType& key)
-{
-    ASSERT(key);
-    ASSERT(!key->isAtomic() && !key->hasHash());
-    unsigned hash = key->hash();
-    unsigned step = 0;
-
-#if DUMP_PROPERTYMAP_STATS
-    ++propertyMapHashTableStats->numLookups;
-#endif
-
-    while (true) {
-        unsigned entryIndex = m_index[hash & m_indexMask];
-        if (entryIndex == EmptyEntryIndex)
-            return std::make_pair((ValueType*)0, hash & m_indexMask);
-        const KeyType& keyInMap = table()[entryIndex - 1].key;
-        if (equal(key, keyInMap) && keyInMap->isAtomic())
-            return std::make_pair(&table()[entryIndex - 1], hash & m_indexMask);
-
-#if DUMP_PROPERTYMAP_STATS
-        ++propertyMapHashTableStats->numLookupProbing;
-#endif
-
-        if (!step)
-            step = WTF::doubleHash(key->existingHash()) | 1;
+            step = WTF::doubleHash(IdentifierRepHash::hash(key)) | 1;
         hash += step;
     }
 }
@@ -464,7 +419,7 @@ inline unsigned PropertyTable::propertyStorageSize() const
 
 inline void PropertyTable::clearDeletedOffsets()
 {
-    m_deletedOffsets.clear();
+    m_deletedOffsets = nullptr;
 }
 
 inline bool PropertyTable::hasDeletedOffset()
@@ -482,7 +437,7 @@ inline PropertyOffset PropertyTable::getDeletedOffset()
 inline void PropertyTable::addDeletedOffset(PropertyOffset offset)
 {
     if (!m_deletedOffsets)
-        m_deletedOffsets = adoptPtr(new Vector<PropertyOffset>);
+        m_deletedOffsets = std::make_unique<Vector<PropertyOffset>>();
     m_deletedOffsets->append(offset);
 }
 

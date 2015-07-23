@@ -188,19 +188,6 @@ td, th {
     left: 5px;
 }
 
-#dashboard .unit {
-    display: none;
-}
-
-#charts .unit {
-    font-size: small;
-    width: 50px;
-    text-align: center;
-    position: absolute;
-    bottom: 10px;
-    left: 245px;
-}
-
 #charts .arrow {
     width: 20px;
     height: 40px;
@@ -530,7 +517,6 @@ td, th {
             section.addClass(status.class);
             section.find('.status tbody').html(buildLabelWithLinks(results.lastResult().build()));
             section.find('.summaryTable tbody').html(summaryRows);
-            section.find('.unit').html(results.unit());
             if (results.smallerIsBetter()) {
                 section.find('.arrow .downwardArrowHead').show();
                 section.find('.arrow .upwardArrowHead').hide();
@@ -634,8 +620,9 @@ td, th {
                     + ' around ' + result.build().formattedTime();
                 var revisions = result.build().formattedRevisions(resultToCompare.build());
 
-                for (var trackerName in bugTrackers) {
-                    var repositories = bugTrackers[trackerName].repositories;
+                for (var trackerId in bugTrackers) {
+                    var tracker = bugTrackers[trackerId];
+                    var repositories = tracker.repositories;
                     var description = 'Platform: ' + result.build().platform().name + '\n\n';
                     for (var i = 0; i < repositories.length; ++i) {
                         var repositoryName = repositories[i];
@@ -648,13 +635,13 @@ td, th {
                             description += revision.label;
                         description += '\n';
                     }
-                    var url = bugTrackers[trackerName].newBugUrl
+                    var url = tracker.newBugUrl
                         .replace(/\$title/g, encodeURIComponent(title))
                         .replace(/\$description/g, encodeURIComponent(description))
                         .replace(/\$link/g, encodeURIComponent(location.href));
                     if (newBugUrls)
                         newBugUrls += ',';
-                    newBugUrls += ' <a href="' + url + '" target="_blank">' + trackerName + '</a>';
+                    newBugUrls += ' <a href="' + url + '" target="_blank">' + tracker.name + '</a>';
                 }
                 newBugUrls = 'File:' + newBugUrls;
             }
@@ -839,7 +826,8 @@ function fetchTest(repositories, builders, filename, platform, metric, callback)
         return runs;
     }
 
-    $.getJSON('api/runs/' + filename, function (data) {
+    $.getJSON('api/runs/' + filename + '?cache=true', function (response) {
+        var data = response.configurations;
         callback(createRunAndResults(data.current), createRunAndResults(data.baseline), createRunAndResults(data.target));
     });
 }

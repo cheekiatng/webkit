@@ -24,10 +24,13 @@
  */
 
 .hierarchical-path-component {
-    display: -webkit-flex;
+    display: flex;
     position: relative;
     height: 20px;
     min-width: 32px;
+
+    font-size: 11px;
+    font-family: -apple-system, sans-serif;
 }
 
 .hierarchical-path-component.show-selector-arrows {
@@ -67,12 +70,12 @@
 }
 
 .hierarchical-path-component > .title {
-    display: -webkit-flex;
-    -webkit-flex: 1;
+    display: flex;
+    flex: 1;
 
     vertical-align: top;
 
-    text-shadow: rgba(255, 255, 255, 0.5) 0 1px 0;
+    text-shadow: hsla(0, 0%, 100%, 0.5) 0 1px 0;
     line-height: 20px;
     height: 20px;
 

@@ -29,6 +29,7 @@
 import re
 import sys
 
+from webkitpy.common.system.executive import Executive
 
 class PlatformInfo(object):
     """This class provides a consistent (and mockable) interpretation of
@@ -118,6 +119,18 @@ class PlatformInfo(object):
         except:
             return sys.maxint
 
+    def xcode_sdk_version(self, sdk_name):
+        if self.is_mac():
+            # Assumes that xcrun does not write to standard output on failure (e.g. SDK does not exist).
+            return self._executive.run_command(["xcrun", "--sdk", sdk_name, "--show-sdk-version"], return_stderr=False, error_handler=Executive.ignore_error).rstrip()
+        return ''
+
+    def xcode_simctl_list(self):
+        if not self.is_mac():
+            return ()
+        output = self._executive.run_command(['xcrun', 'simctl', 'list'], return_stderr=False)
+        return (line for line in output.splitlines())
+
     def _determine_os_name(self, sys_platform):
         if sys_platform == 'darwin':
             return 'mac'
@@ -129,6 +142,8 @@ class PlatformInfo(object):
             return 'freebsd'
         if sys_platform.startswith('openbsd'):
             return 'openbsd'
+        if sys_platform.startswith('haiku'):
+            return 'haiku'
         raise AssertionError('unrecognized platform string "%s"' % sys_platform)
 
     def _determine_mac_version(self, mac_version_string):
@@ -139,6 +154,8 @@ class PlatformInfo(object):
             7: 'lion',
             8: 'mountainlion',
             9: 'mavericks',
+            10: 'yosemite',
+            11: 'elcapitan',
         }
         assert release_version >= min(version_strings.keys())
         return version_strings.get(release_version, 'future')

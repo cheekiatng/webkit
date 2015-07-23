@@ -146,11 +146,33 @@
     -webkit-grid-row: span 3;
 }
 
-/* Grid element flow. */
-.gridAutoFlowStack {
-    -webkit-grid-auto-flow: stack;
+.autoRowFirstColumnSpanning2 {
+    background-color: maroon;
+    -webkit-grid-column: 1 / span 2;
+    -webkit-grid-row: auto;
 }
 
+.autoRowSecondColumnSpanning2 {
+    background-color: olive;
+    -webkit-grid-column: 2 / span 2;
+    -webkit-grid-row: auto;
+}
+
+.firstRowSpanning2AutoColumn {
+    background-color: maroon;
+    -webkit-grid-column: auto;
+    -webkit-grid-row: 1 / span 2;
+    height: 100%;
+}
+
+.secondRowSpanning2AutoColumn {
+    background-color: olive;
+    -webkit-grid-column: auto;
+    -webkit-grid-row: 2 / span 2;
+    height: 100%;
+}
+
+/* Grid element flow. */
 .gridAutoFlowColumnSparse {
     -webkit-grid-auto-flow: column;
 }
@@ -199,4 +221,8 @@
 
 .directionRTL {
     direction: rtl;
+}
+
+.directionLTR {
+    direction: ltr;
 }

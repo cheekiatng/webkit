@@ -24,8 +24,8 @@
 #include <gtk/gtk.h>
 #include <webkit2/webkit2.h>
 #include <wtf/HashMap.h>
-#include <wtf/gobject/GRefPtr.h>
-#include <wtf/gobject/GUniquePtr.h>
+#include <wtf/glib/GRefPtr.h>
+#include <wtf/glib/GUniquePtr.h>
 #include <wtf/text/StringHash.h>
 
 static WebKitTestServer* kServer;
@@ -34,6 +34,89 @@ static void testWebContextDefault(Test* test, gconstpointer)
 {
     // Check there's a single instance of the default web context.
     g_assert(webkit_web_context_get_default() == webkit_web_context_get_default());
+    g_assert(webkit_web_context_get_default() != test->m_webContext.get());
+}
+
+static void testWebContextConfiguration(WebViewTest* test, gconstpointer)
+{
+    WebKitWebsiteDataManager* manager = webkit_web_context_get_website_data_manager(test->m_webContext.get());
+    g_assert(WEBKIT_IS_WEBSITE_DATA_MANAGER(manager));
+    test->assertObjectIsDeletedWhenTestFinishes(G_OBJECT(manager));
+
+    // Base directories are not used by TestMain.
+    g_assert(!webkit_website_data_manager_get_base_data_directory(manager));
+    g_assert(!webkit_website_data_manager_get_base_cache_directory(manager));
+
+    GUniquePtr<char> localStorageDirectory(g_build_filename(Test::dataDirectory(), "local-storage", nullptr));
+    g_assert_cmpstr(localStorageDirectory.get(), ==, webkit_website_data_manager_get_local_storage_directory(manager));
+    g_assert(g_file_test(localStorageDirectory.get(), G_FILE_TEST_IS_DIR));
+
+    test->loadURI(kServer->getURIForPath("/empty").data());
+    test->waitUntilLoadFinished();
+    test->runJavaScriptAndWaitUntilFinished("window.indexedDB.open('TestDatabase');", nullptr);
+    GUniquePtr<char> indexedDBDirectory(g_build_filename(Test::dataDirectory(), "indexeddb", nullptr));
+    g_assert_cmpstr(indexedDBDirectory.get(), ==, webkit_website_data_manager_get_indexeddb_directory(manager));
+    g_assert(g_file_test(indexedDBDirectory.get(), G_FILE_TEST_IS_DIR));
+
+    test->loadURI(kServer->getURIForPath("/appcache").data());
+    test->waitUntilLoadFinished();
+    GUniquePtr<char> applicationCacheDirectory(g_build_filename(Test::dataDirectory(), "appcache", nullptr));
+    g_assert_cmpstr(applicationCacheDirectory.get(), ==, webkit_website_data_manager_get_offline_application_cache_directory(manager));
+    GUniquePtr<char> applicationCacheDatabase(g_build_filename(applicationCacheDirectory.get(), "ApplicationCache.db", nullptr));
+    unsigned triesCount = 4;
+    while (!g_file_test(applicationCacheDatabase.get(), G_FILE_TEST_IS_REGULAR) && --triesCount)
+        test->wait(0.25);
+    g_assert(triesCount);
+
+
+    GUniquePtr<char> webSQLDirectory(g_build_filename(Test::dataDirectory(), "websql", nullptr));
+    g_assert_cmpstr(webSQLDirectory.get(), ==, webkit_website_data_manager_get_websql_directory(manager));
+    test->runJavaScriptAndWaitUntilFinished("db = openDatabase(\"TestDatabase\", \"1.0\", \"TestDatabase\", 1);", nullptr);
+    g_assert(g_file_test(webSQLDirectory.get(), G_FILE_TEST_IS_DIR));
+
+    GUniquePtr<char> diskCacheDirectory(g_build_filename(Test::dataDirectory(), "disk-cache", nullptr));
+    g_assert_cmpstr(diskCacheDirectory.get(), ==, webkit_website_data_manager_get_disk_cache_directory(manager));
+    g_assert(g_file_test(diskCacheDirectory.get(), G_FILE_TEST_IS_DIR));
+
+    // The default context should have a different manager with different configuration.
+    WebKitWebsiteDataManager* defaultManager = webkit_web_context_get_website_data_manager(webkit_web_context_get_default());
+    g_assert(WEBKIT_IS_WEBSITE_DATA_MANAGER(defaultManager));
+    g_assert(manager != defaultManager);
+    g_assert_cmpstr(webkit_website_data_manager_get_local_storage_directory(manager), !=, webkit_website_data_manager_get_local_storage_directory(defaultManager));
+    g_assert_cmpstr(webkit_website_data_manager_get_indexeddb_directory(manager), !=, webkit_website_data_manager_get_indexeddb_directory(defaultManager));
+    g_assert_cmpstr(webkit_website_data_manager_get_disk_cache_directory(manager), !=, webkit_website_data_manager_get_disk_cache_directory(defaultManager));
+    g_assert_cmpstr(webkit_website_data_manager_get_offline_application_cache_directory(manager), !=, webkit_website_data_manager_get_offline_application_cache_directory(defaultManager));
+    g_assert_cmpstr(webkit_website_data_manager_get_websql_directory(manager), !=, webkit_website_data_manager_get_websql_directory(defaultManager));
+
+    // Using Test::dataDirectory() we get the default configuration but for a differrent prefix.
+    GRefPtr<WebKitWebsiteDataManager> baseDataManager = adoptGRef(webkit_website_data_manager_new("base-data-directory", Test::dataDirectory(), "base-cache-directory", Test::dataDirectory(), nullptr));
+    g_assert(WEBKIT_IS_WEBSITE_DATA_MANAGER(baseDataManager.get()));
+
+    localStorageDirectory.reset(g_build_filename(Test::dataDirectory(), "localstorage", nullptr));
+    g_assert_cmpstr(webkit_website_data_manager_get_local_storage_directory(baseDataManager.get()), ==, localStorageDirectory.get());
+
+    indexedDBDirectory.reset(g_build_filename(Test::dataDirectory(), "databases", "indexeddb", nullptr));
+    g_assert_cmpstr(webkit_website_data_manager_get_indexeddb_directory(baseDataManager.get()), ==, indexedDBDirectory.get());
+
+    applicationCacheDirectory.reset(g_build_filename(Test::dataDirectory(), "applications", nullptr));
+    g_assert_cmpstr(webkit_website_data_manager_get_offline_application_cache_directory(baseDataManager.get()), ==, applicationCacheDirectory.get());
+
+    webSQLDirectory.reset(g_build_filename(Test::dataDirectory(), "databases", nullptr));
+    g_assert_cmpstr(webkit_website_data_manager_get_websql_directory(baseDataManager.get()), ==, webSQLDirectory.get());
+
+    g_assert_cmpstr(webkit_website_data_manager_get_disk_cache_directory(baseDataManager.get()), ==, Test::dataDirectory());
+
+    // Any specific configuration provided takes precedence over base dirs.
+    indexedDBDirectory.reset(g_build_filename(Test::dataDirectory(), "mycustomindexeddb", nullptr));
+    applicationCacheDirectory.reset(g_build_filename(Test::dataDirectory(), "mycustomappcache", nullptr));
+    baseDataManager = adoptGRef(webkit_website_data_manager_new("base-data-directory", Test::dataDirectory(), "base-cache-directory", Test::dataDirectory(),
+        "indexeddb-directory", indexedDBDirectory.get(), "offline-application-cache-directory", applicationCacheDirectory.get(), nullptr));
+    g_assert_cmpstr(webkit_website_data_manager_get_indexeddb_directory(baseDataManager.get()), ==, indexedDBDirectory.get());
+    g_assert_cmpstr(webkit_website_data_manager_get_offline_application_cache_directory(baseDataManager.get()), ==, applicationCacheDirectory.get());
+    // The resutl should be the same as previous manager.
+    g_assert_cmpstr(webkit_website_data_manager_get_local_storage_directory(baseDataManager.get()), ==, localStorageDirectory.get());
+    g_assert_cmpstr(webkit_website_data_manager_get_websql_directory(baseDataManager.get()), ==, webSQLDirectory.get());
+    g_assert_cmpstr(webkit_website_data_manager_get_disk_cache_directory(baseDataManager.get()), ==, Test::dataDirectory());
 }
 
 class PluginsTest: public Test {
@@ -41,11 +124,10 @@ public:
     MAKE_GLIB_TEST_FIXTURE(PluginsTest);
 
     PluginsTest()
-        : m_context(webkit_web_context_get_default())
-        , m_mainLoop(g_main_loop_new(0, TRUE))
-        , m_plugins(0)
+        : m_mainLoop(g_main_loop_new(nullptr, TRUE))
+        , m_plugins(nullptr)
     {
-        webkit_web_context_set_additional_plugins_directory(m_context, WEBKIT_TEST_PLUGIN_DIR);
+        webkit_web_context_set_additional_plugins_directory(m_webContext.get(), WEBKIT_TEST_PLUGIN_DIR);
     }
 
     ~PluginsTest()
@@ -56,19 +138,18 @@ public:
 
     static void getPluginsAsyncReadyCallback(GObject*, GAsyncResult* result, PluginsTest* test)
     {
-        test->m_plugins = webkit_web_context_get_plugins_finish(test->m_context, result, 0);
+        test->m_plugins = webkit_web_context_get_plugins_finish(test->m_webContext.get(), result, nullptr);
         g_main_loop_quit(test->m_mainLoop);
     }
 
     GList* getPlugins()
     {
         g_list_free_full(m_plugins, g_object_unref);
-        webkit_web_context_get_plugins(m_context, 0, reinterpret_cast<GAsyncReadyCallback>(getPluginsAsyncReadyCallback), this);
+        webkit_web_context_get_plugins(m_webContext.get(), nullptr, reinterpret_cast<GAsyncReadyCallback>(getPluginsAsyncReadyCallback), this);
         g_main_loop_run(m_mainLoop);
         return m_plugins;
     }
 
-    WebKitWebContext* m_context;
     GMainLoop* m_mainLoop;
     GList* m_plugins;
 };
@@ -177,7 +258,7 @@ public:
     void registerURISchemeHandler(const char* scheme, const char* reply, int replyLength, const char* mimeType)
     {
         m_handlersMap.set(String::fromUTF8(scheme), URISchemeHandler(reply, replyLength, mimeType));
-        webkit_web_context_register_uri_scheme(webkit_web_context_get_default(), scheme, uriSchemeRequestCallback, this, 0);
+        webkit_web_context_register_uri_scheme(m_webContext.get(), scheme, uriSchemeRequestCallback, this, 0);
     }
 
     GRefPtr<WebKitURISchemeRequest> m_uriSchemeRequest;
@@ -198,6 +279,16 @@ static void testWebContextURIScheme(URISchemeTest* test, gconstpointer)
     test->loadURI("echo:hello-world");
     test->waitUntilLoadFinished();
     GUniquePtr<char> echoHTML(g_strdup_printf(kEchoHTMLFormat, webkit_uri_scheme_request_get_path(test->m_uriSchemeRequest.get())));
+    mainResourceDataSize = 0;
+    mainResourceData = test->mainResourceData(mainResourceDataSize);
+    g_assert_cmpint(mainResourceDataSize, ==, strlen(echoHTML.get()));
+    g_assert(!strncmp(mainResourceData, echoHTML.get(), mainResourceDataSize));
+
+    test->loadURI("echo:with#fragment");
+    test->waitUntilLoadFinished();
+    g_assert_cmpstr(webkit_uri_scheme_request_get_path(test->m_uriSchemeRequest.get()), ==, "with");
+    g_assert_cmpstr(webkit_uri_scheme_request_get_uri(test->m_uriSchemeRequest.get()), ==, "echo:with#fragment");
+    echoHTML.reset(g_strdup_printf(kEchoHTMLFormat, webkit_uri_scheme_request_get_path(test->m_uriSchemeRequest.get())));
     mainResourceDataSize = 0;
     mainResourceData = test->mainResourceData(mainResourceDataSize);
     g_assert_cmpint(mainResourceDataSize, ==, strlen(echoHTML.get()));
@@ -236,7 +327,7 @@ static void testWebContextURIScheme(URISchemeTest* test, gconstpointer)
 
 static void testWebContextSpellChecker(Test* test, gconstpointer)
 {
-    WebKitWebContext* webContext = webkit_web_context_get_default();
+    WebKitWebContext* webContext = test->m_webContext.get();
 
     // Check what happens if no spell checking language has been set.
     const gchar* const* currentLanguage = webkit_web_context_get_spell_checking_languages(webContext);
@@ -302,7 +393,7 @@ static void testWebContextLanguages(WebViewTest* test, gconstpointer)
     g_ptr_array_add(languages.get(), const_cast<gpointer>(static_cast<const void*>("ES_es")));
     g_ptr_array_add(languages.get(), const_cast<gpointer>(static_cast<const void*>("dE")));
     g_ptr_array_add(languages.get(), 0);
-    webkit_web_context_set_preferred_languages(webkit_web_context_get_default(), reinterpret_cast<const char* const*>(languages->pdata));
+    webkit_web_context_set_preferred_languages(test->m_webContext.get(), reinterpret_cast<const char* const*>(languages->pdata));
 
     static const char* expectedLanguages = "en, es-es;q=0.90, de;q=0.80";
     test->loadURI(kServer->getURIForPath("/").data());
@@ -325,6 +416,25 @@ static void serverCallback(SoupServer* server, SoupMessage* message, const char*
         soup_message_set_status(message, SOUP_STATUS_OK);
         soup_message_body_append(message->response_body, SOUP_MEMORY_COPY, acceptLanguage, strlen(acceptLanguage));
         soup_message_body_complete(message->response_body);
+    } else if (g_str_equal(path, "/empty")) {
+        const char* emptyHTML = "<html><body></body></html>";
+        soup_message_body_append(message->response_body, SOUP_MEMORY_STATIC, emptyHTML, strlen(emptyHTML));
+        soup_message_body_complete(message->response_body);
+        soup_message_set_status(message, SOUP_STATUS_OK);
+    } else if (g_str_equal(path, "/appcache")) {
+        const char* appcacheHTML = "<html manifest=appcache.manifest><body></body></html>";
+        soup_message_body_append(message->response_body, SOUP_MEMORY_STATIC, appcacheHTML, strlen(appcacheHTML));
+        soup_message_body_complete(message->response_body);
+        soup_message_set_status(message, SOUP_STATUS_OK);
+    } else if (g_str_equal(path, "/appcache.manifest")) {
+        const char* appcacheManifest = "CACHE MANIFEST\nCACHE:\nappcache/foo.txt\n";
+        soup_message_body_append(message->response_body, SOUP_MEMORY_STATIC, appcacheManifest, strlen(appcacheManifest));
+        soup_message_body_complete(message->response_body);
+        soup_message_set_status(message, SOUP_STATUS_OK);
+    } else if (g_str_equal(path, "/appcache/foo.txt")) {
+        soup_message_body_append(message->response_body, SOUP_MEMORY_STATIC, "foo", 3);
+        soup_message_body_complete(message->response_body);
+        soup_message_set_status(message, SOUP_STATUS_OK);
     } else
         soup_message_set_status(message, SOUP_STATUS_NOT_FOUND);
 }
@@ -343,7 +453,7 @@ public:
     };
 
     SecurityPolicyTest()
-        : m_manager(webkit_web_context_get_security_manager(webkit_web_context_get_default()))
+        : m_manager(webkit_web_context_get_security_manager(m_webContext.get()))
     {
     }
 
@@ -406,17 +516,52 @@ static void testWebContextSecurityPolicy(SecurityPolicyTest* test, gconstpointer
         | SecurityPolicyTest::CORSEnabled | SecurityPolicyTest::EmptyDocument);
 }
 
+static void testWebContextSecurityFileXHR(WebViewTest* test, gconstpointer)
+{
+    GUniquePtr<char> fileURL(g_strdup_printf("file://%s/simple.html", Test::getResourcesDir(Test::WebKit2Resources).data()));
+    test->loadURI(fileURL.get());
+    test->waitUntilLoadFinished();
+
+    GUniquePtr<char> jsonURL(g_strdup_printf("file://%s/simple.json", Test::getResourcesDir().data()));
+    GUniquePtr<char> xhr(g_strdup_printf("var xhr = new XMLHttpRequest; xhr.open(\"GET\", \"%s\"); xhr.send();", jsonURL.get()));
+
+    // By default file access is not allowed, this will fail with a cross-origin error.
+    GUniqueOutPtr<GError> error;
+    WebKitJavascriptResult* javascriptResult = test->runJavaScriptAndWaitUntilFinished(xhr.get(), &error.outPtr());
+    g_assert(!javascriptResult);
+    g_assert_error(error.get(), WEBKIT_JAVASCRIPT_ERROR, WEBKIT_JAVASCRIPT_ERROR_SCRIPT_FAILED);
+
+    // Allow file access from file URLs.
+    webkit_settings_set_allow_file_access_from_file_urls(webkit_web_view_get_settings(test->m_webView), TRUE);
+    test->loadURI(fileURL.get());
+    test->waitUntilLoadFinished();
+    javascriptResult = test->runJavaScriptAndWaitUntilFinished(xhr.get(), &error.outPtr());
+    g_assert(javascriptResult);
+    g_assert(!error);
+
+    // It isn't still possible to load file from an HTTP URL.
+    test->loadURI(kServer->getURIForPath("/").data());
+    test->waitUntilLoadFinished();
+    javascriptResult = test->runJavaScriptAndWaitUntilFinished(xhr.get(), &error.outPtr());
+    g_assert(!javascriptResult);
+    g_assert_error(error.get(), WEBKIT_JAVASCRIPT_ERROR, WEBKIT_JAVASCRIPT_ERROR_SCRIPT_FAILED);
+
+    webkit_settings_set_allow_file_access_from_file_urls(webkit_web_view_get_settings(test->m_webView), FALSE);
+}
+
 void beforeAll()
 {
     kServer = new WebKitTestServer();
     kServer->run(serverCallback);
 
     Test::add("WebKitWebContext", "default-context", testWebContextDefault);
+    WebViewTest::add("WebKitWebContext", "configuration", testWebContextConfiguration);
     PluginsTest::add("WebKitWebContext", "get-plugins", testWebContextGetPlugins);
     URISchemeTest::add("WebKitWebContext", "uri-scheme", testWebContextURIScheme);
     Test::add("WebKitWebContext", "spell-checker", testWebContextSpellChecker);
     WebViewTest::add("WebKitWebContext", "languages", testWebContextLanguages);
     SecurityPolicyTest::add("WebKitSecurityManager", "security-policy", testWebContextSecurityPolicy);
+    WebViewTest::add("WebKitSecurityManager", "file-xhr", testWebContextSecurityFileXHR);
 }
 
 void afterAll()

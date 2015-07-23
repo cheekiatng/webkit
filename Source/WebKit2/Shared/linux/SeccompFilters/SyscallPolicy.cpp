@@ -28,6 +28,7 @@
 
 #if ENABLE(SECCOMP_FILTERS)
 
+#include "PluginSearchPath.h"
 #include "WebProcessCreationParameters.h"
 #include <libgen.h>
 #include <string.h>
@@ -96,21 +97,38 @@ bool SyscallPolicy::hasPermissionForPath(const char* path, Permission permission
     free(basePath);
     free(canonicalPath);
 
-    return (permission & policy->value) == permission;
+    if ((permission & policy->value) == permission)
+        return true;
+
+    // Don't warn if the file doesn't exist at all.
+    if (!access(path, F_OK) || errno != ENOENT)
+        fprintf(stderr, "Blocked impermissible %s access to %s\n", SyscallPolicy::permissionToString(permission), path);
+    return false;
+}
+
+static String canonicalizeFileName(const String& path)
+{
+    char* canonicalizedPath = canonicalize_file_name(path.utf8().data());
+    if (canonicalizedPath) {
+        String result = String::fromUTF8(canonicalizedPath);
+        free(canonicalizedPath);
+        return result;
+    }
+    return path;
 }
 
 void SyscallPolicy::addFilePermission(const String& path, Permission permission)
 {
     ASSERT(!path.isEmpty() && path.startsWith('/')  && !path.endsWith('/') && !path.contains("//"));
 
-    m_filePermission.set(path, permission);
+    m_filePermission.set(canonicalizeFileName(path), permission);
 }
 
 void SyscallPolicy::addDirectoryPermission(const String& path, Permission permission)
 {
     ASSERT(path.startsWith('/') && !path.contains("//") && (path.length() == 1 || !path.endsWith('/')));
 
-    m_directoryPermission.set(path, permission);
+    m_directoryPermission.set(canonicalizeFileName(path), permission);
 }
 
 void SyscallPolicy::addDefaultWebProcessPolicy(const WebProcessCreationParameters& parameters)
@@ -118,10 +136,8 @@ void SyscallPolicy::addDefaultWebProcessPolicy(const WebProcessCreationParameter
     // Directories settings coming from the UIProcess.
     if (!parameters.applicationCacheDirectory.isEmpty())
         addDirectoryPermission(removeTrailingSlash(parameters.applicationCacheDirectory), ReadAndWrite);
-    if (!parameters.databaseDirectory.isEmpty())
-        addDirectoryPermission(removeTrailingSlash(parameters.databaseDirectory), ReadAndWrite);
-    if (!parameters.localStorageDirectory.isEmpty())
-        addDirectoryPermission(removeTrailingSlash(parameters.localStorageDirectory), ReadAndWrite);
+    if (!parameters.webSQLDatabaseDirectory.isEmpty())
+        addDirectoryPermission(removeTrailingSlash(parameters.webSQLDatabaseDirectory), ReadAndWrite);
     if (!parameters.diskCacheDirectory.isEmpty())
         addDirectoryPermission(removeTrailingSlash(parameters.diskCacheDirectory), ReadAndWrite);
     if (!parameters.cookieStorageDirectory.isEmpty())
@@ -137,8 +153,20 @@ void SyscallPolicy::addDefaultWebProcessPolicy(const WebProcessCreationParameter
 
     // Shared libraries, plugins and fonts.
     addDirectoryPermission(ASCIILiteral("/lib"), Read);
+    addDirectoryPermission(ASCIILiteral("/lib32"), Read);
+    addDirectoryPermission(ASCIILiteral("/lib64"), Read);
     addDirectoryPermission(ASCIILiteral("/usr/lib"), Read);
+    addDirectoryPermission(ASCIILiteral("/usr/lib32"), Read);
+    addDirectoryPermission(ASCIILiteral("/usr/lib64"), Read);
     addDirectoryPermission(ASCIILiteral("/usr/share"), Read);
+
+    // Support for alternative install prefixes, e.g. /usr/local.
+    addDirectoryPermission(ASCIILiteral(DATADIR), Read);
+    addDirectoryPermission(ASCIILiteral(LIBDIR), Read);
+
+    // Plugin search path
+    for (String& path : pluginsDirectories())
+        addDirectoryPermission(path, Read);
 
     // SSL Certificates.
     addDirectoryPermission(ASCIILiteral("/etc/ssl/certs"), Read);
@@ -188,13 +216,78 @@ void SyscallPolicy::addDefaultWebProcessPolicy(const WebProcessCreationParameter
     // Needed by D-Bus.
     addFilePermission(ASCIILiteral("/var/lib/dbus/machine-id"), Read);
 
+    // Needed by at-spi2.
+    // FIXME This is too permissive: https://bugs.webkit.org/show_bug.cgi?id=143004
+    addDirectoryPermission("/run/user/" + String::number(getuid()), ReadAndWrite);
+
+    // Needed by WebKit's memory pressure handler
+    addFilePermission(ASCIILiteral("/sys/fs/cgroup/memory/memory.pressure_level"), Read);
+    addFilePermission(ASCIILiteral("/sys/fs/cgroup/memory/cgroup.event_control"), Read);
+
     char* homeDir = getenv("HOME");
     if (homeDir) {
         // X11 connection token.
         addFilePermission(String::fromUTF8(homeDir) + "/.Xauthority", Read);
-        // MIME type resolution.
-        addDirectoryPermission(String::fromUTF8(homeDir) +  "/.local/share/mime", Read);
     }
+
+    // MIME type resolution.
+    char* dataHomeDir = getenv("XDG_DATA_HOME");
+    if (dataHomeDir)
+        addDirectoryPermission(String::fromUTF8(dataHomeDir) + "/mime", Read);
+    else if (homeDir)
+        addDirectoryPermission(String::fromUTF8(homeDir) + "/.local/share/mime", Read);
+
+#if ENABLE(WEBGL) || ENABLE(ACCELERATED_2D_CANVAS)
+    // Needed on most non-Debian distros by libxshmfence <= 1.1, or newer
+    // libxshmfence with older kernels (linux <= 3.16), for DRI3 shared memory.
+    // FIXME Try removing this permission when we can rely on a newer libxshmfence.
+    // See http://code.google.com/p/chromium/issues/detail?id=415681
+    addDirectoryPermission(ASCIILiteral("/var/tmp"), ReadAndWrite);
+
+    // Optional Mesa DRI configuration file
+    addFilePermission(ASCIILiteral("/etc/drirc"), Read);
+    if (homeDir)
+        addFilePermission(String::fromUTF8(homeDir) + "/.drirc", Read);
+
+    // Mesa uses udev.
+    addDirectoryPermission(ASCIILiteral("/etc/udev"), Read);
+    addDirectoryPermission(ASCIILiteral("/run/udev"), Read);
+    addDirectoryPermission(ASCIILiteral("/sys/bus"), Read);
+    addDirectoryPermission(ASCIILiteral("/sys/class"), Read);
+    addDirectoryPermission(ASCIILiteral("/sys/devices"), Read);
+#endif
+
+    // Needed by NVIDIA proprietary graphics driver
+    if (homeDir)
+        addDirectoryPermission(String::fromUTF8(homeDir) + "/.nv", ReadAndWrite);
+
+#if ENABLE(DEVELOPER_MODE) && defined(SOURCE_DIR)
+    // Developers using build-webkit expect some libraries to be loaded
+    // from the build root directory and they also need access to layout test
+    // files.
+    char* sourceDir = canonicalize_file_name(SOURCE_DIR);
+    if (sourceDir) {
+        addDirectoryPermission(String::fromUTF8(sourceDir), SyscallPolicy::ReadAndWrite);
+        free(sourceDir);
+    }
+#endif
+}
+
+const char* SyscallPolicy::permissionToString(Permission permission)
+{
+    switch (permission) {
+    case Read:
+        return "read";
+    case Write:
+        return "write";
+    case ReadAndWrite:
+        return "read/write";
+    case NotAllowed:
+        return "disallowed";
+    }
+
+    ASSERT_NOT_REACHED();
+    return "unknown action";
 }
 
 } // namespace WebKit

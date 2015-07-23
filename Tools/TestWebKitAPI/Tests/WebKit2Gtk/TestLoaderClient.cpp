@@ -82,6 +82,13 @@ static void testLoadAlternateHTML(LoadTrackingTest* test, gconstpointer)
     assertNormalLoadHappened(test->m_loadEvents);
 }
 
+static void testLoadAlternateHTMLForLocalPage(LoadTrackingTest* test, gconstpointer)
+{
+    test->loadAlternateHTML("<html><body>Alternate page</body></html>", "file:///not/actually/loaded.html", 0);
+    test->waitUntilLoadFinished();
+    assertNormalLoadHappened(test->m_loadEvents);
+}
+
 static void testLoadPlainText(LoadTrackingTest* test, gconstpointer)
 {
     test->loadPlainText("Hello WebKit-GTK+");
@@ -315,7 +322,8 @@ public:
 
     WebPageURITest()
     {
-        GRefPtr<GDBusProxy> proxy = adoptGRef(bus->createProxy("org.webkit.gtk.WebExtensionTest",
+        GUniquePtr<char> extensionBusName(g_strdup_printf("org.webkit.gtk.WebExtensionTest%u", Test::s_webExtensionID));
+        GRefPtr<GDBusProxy> proxy = adoptGRef(bus->createProxy(extensionBusName.get(),
             "/org/webkit/gtk/WebExtensionTest", "org.webkit.gtk.WebExtensionTest", m_mainLoop));
         m_uriChangedSignalID = g_dbus_connection_signal_subscribe(
             g_dbus_proxy_get_connection(proxy.get()),
@@ -396,6 +404,39 @@ static void testURIRequestHTTPHeaders(WebViewTest* test, gconstpointer)
     g_assert(!strncmp(mainResourceData, "1", mainResourceDataSize));
 }
 
+static void testURIResponseHTTPHeaders(WebViewTest* test, gconstpointer)
+{
+    test->loadHtml("<html><body>No HTTP headers</body></html>", "file:///");
+    test->waitUntilLoadFinished();
+    WebKitWebResource* resource = webkit_web_view_get_main_resource(test->m_webView);
+    g_assert(WEBKIT_IS_WEB_RESOURCE(resource));
+    WebKitURIResponse* response = webkit_web_resource_get_response(resource);
+    g_assert(WEBKIT_IS_URI_RESPONSE(response));
+    g_assert(!webkit_uri_response_get_http_headers(response));
+
+    test->loadURI(kServer->getURIForPath("/headers").data());
+    test->waitUntilLoadFinished();
+    resource = webkit_web_view_get_main_resource(test->m_webView);
+    g_assert(WEBKIT_IS_WEB_RESOURCE(resource));
+    response = webkit_web_resource_get_response(resource);
+    g_assert(WEBKIT_IS_URI_RESPONSE(response));
+    SoupMessageHeaders* headers = webkit_uri_response_get_http_headers(response);
+    g_assert(headers);
+    g_assert_cmpstr(soup_message_headers_get_one(headers, "Foo"), ==, "bar");
+}
+
+static void testRedirectToDataURI(WebViewTest* test, gconstpointer)
+{
+    test->loadURI(kServer->getURIForPath("/redirect-to-data").data());
+    test->waitUntilLoadFinished();
+
+    static const char* expectedData = "data-uri";
+    size_t mainResourceDataSize = 0;
+    const char* mainResourceData = test->mainResourceData(mainResourceDataSize);
+    g_assert_cmpint(mainResourceDataSize, ==, strlen(expectedData));
+    g_assert(!strncmp(mainResourceData, expectedData, mainResourceDataSize));
+}
+
 static void serverCallback(SoupServer* server, SoupMessage* message, const char* path, GHashTable*, SoupClientContext*, gpointer)
 {
     static const char* responseString = "<html><body>Testing!Testing!Testing!Testing!Testing!Testing!Testing!"
@@ -433,6 +474,12 @@ static void serverCallback(SoupServer* server, SoupMessage* message, const char*
         else
             soup_message_body_append(message->response_body, SOUP_MEMORY_STATIC, kDNTHeaderNotPresent, strlen(kDNTHeaderNotPresent));
         soup_message_set_status(message, SOUP_STATUS_OK);
+    } else if (g_str_equal(path, "/headers")) {
+        soup_message_headers_append(message->response_headers, "Foo", "bar");
+        soup_message_body_append(message->response_body, SOUP_MEMORY_STATIC, responseString, strlen(responseString));
+    } else if (g_str_equal(path, "/redirect-to-data")) {
+        soup_message_set_status(message, SOUP_STATUS_MOVED_PERMANENTLY);
+        soup_message_headers_append(message->response_headers, "Location", "data:text/plain;charset=utf-8,data-uri");
     } else
         soup_message_set_status(message, SOUP_STATUS_NOT_FOUND);
 
@@ -441,7 +488,6 @@ static void serverCallback(SoupServer* server, SoupMessage* message, const char*
 
 void beforeAll()
 {
-    webkit_web_context_set_web_extensions_directory(webkit_web_context_get_default(), WEBKIT_TEST_WEB_EXTENSIONS_DIR);
     bus = new WebKitTestBus();
     if (!bus->run())
         return;
@@ -453,6 +499,7 @@ void beforeAll()
     LoadTrackingTest::add("WebKitWebView", "loading-error", testLoadingError);
     LoadTrackingTest::add("WebKitWebView", "load-html", testLoadHtml);
     LoadTrackingTest::add("WebKitWebView", "load-alternate-html", testLoadAlternateHTML);
+    LoadTrackingTest::add("WebKitWebView", "load-alternate-html-for-local-page", testLoadAlternateHTMLForLocalPage);
     LoadTrackingTest::add("WebKitWebView", "load-plain-text", testLoadPlainText);
     LoadTrackingTest::add("WebKitWebView", "load-bytes", testLoadBytes);
     LoadTrackingTest::add("WebKitWebView", "load-request", testLoadRequest);
@@ -469,6 +516,8 @@ void beforeAll()
     ViewIsLoadingTest::add("WebKitWebView", "is-loading", testWebViewIsLoading);
     WebPageURITest::add("WebKitWebPage", "get-uri", testWebPageURI);
     WebViewTest::add("WebKitURIRequest", "http-headers", testURIRequestHTTPHeaders);
+    WebViewTest::add("WebKitURIResponse", "http-headers", testURIResponseHTTPHeaders);
+    WebViewTest::add("WebKitWebPage", "redirect-to-data-uri", testRedirectToDataURI);
 }
 
 void afterAll()

@@ -33,18 +33,12 @@
 #include <WebCore/AXObjectCache.h>
 #include <mach/mach_error.h>
 #include <mach/vm_map.h>
+#include <sys/mman.h>
 #include <wtf/RunLoop.h>
-#include <xpc/xpc.h>
+#include <wtf/spi/darwin/XPCSPI.h>
 
 #if PLATFORM(IOS)
 #include "ProcessAssertion.h"
-#endif
-
-#if __has_include(<xpc/private.h>)
-#include <xpc/private.h>
-#else
-extern "C" void xpc_connection_get_audit_token(xpc_connection_t, audit_token_t*);
-extern "C" void xpc_connection_kill(xpc_connection_t, int);
 #endif
 
 #if __has_include(<HIServices/AccessibilityPriv.h>)
@@ -75,13 +69,13 @@ enum {
 //    to ensure it has a chance to terminate cleanly.
 class ConnectionTerminationWatchdog {
 public:
-    static void createConnectionTerminationWatchdog(XPCPtr<xpc_connection_t>& xpcConnection, double intervalInSeconds)
+    static void createConnectionTerminationWatchdog(OSObjectPtr<xpc_connection_t>& xpcConnection, double intervalInSeconds)
     {
         new ConnectionTerminationWatchdog(xpcConnection, intervalInSeconds);
     }
     
 private:
-    ConnectionTerminationWatchdog(XPCPtr<xpc_connection_t>& xpcConnection, double intervalInSeconds)
+    ConnectionTerminationWatchdog(OSObjectPtr<xpc_connection_t>& xpcConnection, double intervalInSeconds)
         : m_xpcConnection(xpcConnection)
         , m_watchdogTimer(RunLoop::main(), this, &ConnectionTerminationWatchdog::watchdogTimerFired)
 #if PLATFORM(IOS)
@@ -93,13 +87,11 @@ private:
     
     void watchdogTimerFired()
     {
-#if PLATFORM(IOS) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090)
         xpc_connection_kill(m_xpcConnection.get(), SIGKILL);
-#endif
         delete this;
     }
 
-    XPCPtr<xpc_connection_t> m_xpcConnection;
+    OSObjectPtr<xpc_connection_t> m_xpcConnection;
     RunLoop::Timer<ConnectionTerminationWatchdog> m_watchdogTimer;
 #if PLATFORM(IOS)
     std::unique_ptr<WebKit::ProcessAndUIAssertion> m_assertion;
@@ -127,7 +119,7 @@ void Connection::platformInvalidate()
     m_receivePortDataAvailableSource = 0;
     m_receivePort = MACH_PORT_NULL;
 
-#if !PLATFORM(IOS)
+#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED <= 101000
     if (m_exceptionPort) {
         dispatch_source_cancel(m_exceptionPortDataAvailableSource);
         dispatch_release(m_exceptionPortDataAvailableSource);
@@ -147,7 +139,7 @@ void Connection::terminateSoon(double intervalInSeconds)
     
 void Connection::platformInitialize(Identifier identifier)
 {
-#if !PLATFORM(IOS)
+#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED <= 101000
     m_exceptionPort = MACH_PORT_NULL;
     m_exceptionPortDataAvailableSource = nullptr;
 #endif
@@ -194,7 +186,7 @@ bool Connection::open()
 
 #if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
         mach_port_set_attributes(mach_task_self(), m_receivePort, MACH_PORT_DENAP_RECEIVER, (mach_port_info_t)0, 0);
-#elif PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090
+#elif PLATFORM(MAC)
         mach_port_set_attributes(mach_task_self(), m_receivePort, MACH_PORT_IMPORTANCE_RECEIVER, (mach_port_info_t)0, 0);
 #endif
 
@@ -214,14 +206,13 @@ bool Connection::open()
 
     // Register the data available handler.
     RefPtr<Connection> connection(this);
-    m_receivePortDataAvailableSource = createDataAvailableSource(m_receivePort, *m_connectionQueue, [connection] {
+    m_receivePortDataAvailableSource = createDataAvailableSource(m_receivePort, m_connectionQueue, [connection] {
         connection->receiveSourceEventHandler();
     });
 
-#if !PLATFORM(IOS)
-    // If we have an exception port, register the data available handler and send over the port to the other end.
+#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED <= 101000
     if (m_exceptionPort) {
-        m_exceptionPortDataAvailableSource = createDataAvailableSource(m_exceptionPort, *m_connectionQueue, [connection] {
+        m_exceptionPortDataAvailableSource = createDataAvailableSource(m_exceptionPort, m_connectionQueue, [connection] {
             connection->exceptionSourceEventHandler();
         });
 
@@ -238,7 +229,7 @@ bool Connection::open()
 
         if (m_deadNameSource)
             dispatch_resume(m_deadNameSource);
-#if !PLATFORM(IOS)
+#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED <= 101000
         if (m_exceptionPortDataAvailableSource)
             dispatch_resume(m_exceptionPortDataAvailableSource);
 #endif
@@ -291,8 +282,11 @@ bool Connection::sendOutgoingMessage(std::unique_ptr<MessageEncoder> encoder)
 
     char stackBuffer[inlineMessageMaxSize];
     char* buffer = &stackBuffer[0];
-    if (messageSize > inlineMessageMaxSize)
+    if (messageSize > inlineMessageMaxSize) {
         buffer = (char*)mmap(0, messageSize, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+        if (buffer == MAP_FAILED)
+            return false;
+    }
 
     bool isComplex = (numberOfPortDescriptors + numberOfOOLMemoryDescriptors > 0);
 
@@ -368,7 +362,11 @@ bool Connection::sendOutgoingMessage(std::unique_ptr<MessageEncoder> encoder)
 void Connection::initializeDeadNameSource()
 {
     m_deadNameSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_MACH_SEND, m_sendPort, 0, m_connectionQueue->dispatchQueue());
-    dispatch_source_set_event_handler(m_deadNameSource, bind(&Connection::connectionDidClose, this));
+
+    RefPtr<Connection> connection(this);
+    dispatch_source_set_event_handler(m_deadNameSource, [connection] {
+        connection->connectionDidClose();
+    });
 
     mach_port_t sendPort = m_sendPort;
     dispatch_source_set_cancel_handler(m_deadNameSource, ^{
@@ -477,7 +475,7 @@ void Connection::receiveSourceEventHandler()
     std::unique_ptr<MessageDecoder> decoder = createMessageDecoder(header);
     ASSERT(decoder);
 
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090
+#if PLATFORM(MAC)
     decoder->setImportanceAssertion(std::make_unique<ImportanceAssertion>(header));
 #endif
 
@@ -511,7 +509,14 @@ void Connection::receiveSourceEventHandler()
     if (decoder->messageReceiverName() == "IPC" && decoder->messageName() == "SetExceptionPort") {
         if (m_isServer) {
             // Server connections aren't supposed to have their exception ports overriden. Treat this as an invalid message.
-            m_clientRunLoop.dispatch(bind(&Connection::dispatchDidReceiveInvalidMessage, this, decoder->messageReceiverName().toString(), decoder->messageName().toString()));
+            RefPtr<Connection> protectedThis(this);
+            StringReference messageReceiverName = decoder->messageReceiverName();
+            StringCapture capturedMessageReceiverName(String(messageReceiverName.data(), messageReceiverName.size()));
+            StringReference messageName = decoder->messageName();
+            StringCapture capturedMessageName(String(messageName.data(), messageName.size()));
+            RunLoop::main().dispatch([protectedThis, capturedMessageReceiverName, capturedMessageName] {
+                protectedThis->dispatchDidReceiveInvalidMessage(capturedMessageReceiverName.string().utf8(), capturedMessageName.string().utf8());
+            });
             return;
         }
         MachPort exceptionPort;
@@ -526,7 +531,7 @@ void Connection::receiveSourceEventHandler()
     processIncomingMessage(WTF::move(decoder));
 }    
 
-#if !PLATFORM(IOS)
+#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED <= 101000
 void Connection::exceptionSourceEventHandler()
 {
     ReceiveBuffer buffer;
@@ -587,12 +592,10 @@ bool Connection::getAuditToken(audit_token_t& auditToken)
 
 bool Connection::kill()
 {
-#if PLATFORM(IOS) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090)
     if (m_xpcConnection) {
         xpc_connection_kill(m_xpcConnection.get(), SIGKILL);
         return true;
     }
-#endif
 
     return false;
 }
@@ -611,6 +614,14 @@ void Connection::didReceiveSyncReply(unsigned flags)
     if ((flags & InformPlatformProcessWillSuspend) && WebCore::AXObjectCache::accessibilityEnabled())
         _AXUIElementNotifyProcessSuspendStatus(AXSuspendStatusRunning);
 #endif
-}    
+}
+
+pid_t Connection::remoteProcessID() const
+{
+    if (!m_xpcConnection)
+        return 0;
+
+    return xpc_connection_get_pid(m_xpcConnection.get());
+}
     
 } // namespace IPC

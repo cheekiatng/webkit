@@ -6,14 +6,17 @@ describe("/admin/regenerate-manifest", function () {
             httpGet('/data/manifest', function (response) {
                 assert.equal(response.statusCode, 200);
                 var manifest = JSON.parse(response.responseText);
+                delete manifest.defaultDashboard;
+                delete manifest.dashboards;
+                delete manifest.elapsedTime;
                 assert.deepEqual(manifest, {
-                    all: [],
-                    bugTrackers: [],
-                    builders: [],
-                    dashboard: [],
-                    metrics: [],
-                    repositories: [],
-                    tests: []});
+                    all: {},
+                    bugTrackers: {},
+                    builders: {},
+                    dashboard: {},
+                    metrics: {},
+                    repositories: {},
+                    tests: {}});
                 notifyDone();
             });
         });
@@ -27,7 +30,8 @@ describe("/admin/regenerate-manifest", function () {
                 httpGet('/data/manifest', function (response) {
                     assert.equal(response.statusCode, 200);
                     var manifest = JSON.parse(response.responseText);
-                    assert.deepEqual(manifest['bugTrackers'], { 'Bugzilla': { newBugUrl: 'bugs.webkit.org', repositories: null } });
+                    assert.deepEqual(manifest['bugTrackers'],
+                        {1: {name: 'Bugzilla', bugUrl: null, newBugUrl: 'bugs.webkit.org', repositories: null}});
                     notifyDone();
                 });
             });
@@ -45,11 +49,11 @@ describe("/admin/regenerate-manifest", function () {
                             assert.equal(response.statusCode, 200);
                             var manifest = JSON.parse(response.responseText);
                             assert.deepEqual(manifest['repositories'], {
-                                'WebKit': { url: 'trac.webkit.org', blameUrl: null },
-                                'Chromium': { url: null, blameUrl: 'SomeBlameURL' }
+                                1: { name: 'WebKit', url: 'trac.webkit.org', blameUrl: null, hasReportedCommits: false },
+                                2: { name: 'Chromium', url: null, blameUrl: 'SomeBlameURL', hasReportedCommits: false }
                             });
-                            assert.deepEqual(manifest['bugTrackers']['Bugzilla'], { newBugUrl: null, repositories: ['WebKit'] });
-                            assert.deepEqual(manifest['bugTrackers']['Issue Tracker'], { newBugUrl: null, repositories: ['WebKit', 'Chromium'] });
+                            assert.deepEqual(manifest['bugTrackers'][3], {name: 'Bugzilla', bugUrl: null, newBugUrl: null, repositories: ['1']});
+                            assert.deepEqual(manifest['bugTrackers'][4], {name: 'Issue Tracker', bugUrl: null, newBugUrl: null, repositories: ['1', '2']});
                             notifyDone();
                         });
                     });

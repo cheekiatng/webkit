@@ -26,8 +26,9 @@
 #include "config.h"
 #include "DebuggerScope.h"
 
-#include "JSActivation.h"
+#include "JSLexicalEnvironment.h"
 #include "JSCInlines.h"
+#include "JSNameScope.h"
 #include "JSWithScope.h"
 
 namespace JSC {
@@ -74,7 +75,28 @@ bool DebuggerScope::getOwnPropertySlot(JSObject* object, ExecState* exec, Proper
     if (!scope->isValid())
         return false;
     JSObject* thisObject = JSScope::objectAtScope(scope->jsScope());
-    return thisObject->methodTable()->getOwnPropertySlot(thisObject, exec, propertyName, slot);
+    slot.setThisValue(JSValue(thisObject));
+
+    // By default, JSObject::getPropertySlot() will look in the DebuggerScope's prototype
+    // chain and not the wrapped scope, and JSObject::getPropertySlot() cannot be overridden
+    // to behave differently for the DebuggerScope.
+    //
+    // Instead, we'll treat all properties in the wrapped scope and its prototype chain as
+    // the own properties of the DebuggerScope. This is fine because the WebInspector
+    // does not presently need to distinguish between what's owned at each level in the
+    // prototype chain. Hence, we'll invoke getPropertySlot() on the wrapped scope here
+    // instead of getOwnPropertySlot().
+    bool result = thisObject->getPropertySlot(exec, propertyName, slot);
+    if (result && slot.isValue() && slot.getValue(exec, propertyName) == jsTDZValue()) {
+        // FIXME:
+        // We hit a scope property that has the TDZ empty value.
+        // Currently, we just lie to the inspector and claim that this property is undefined.
+        // This is not ideal and we should fix it.
+        // https://bugs.webkit.org/show_bug.cgi?id=144977
+        slot.setValue(slot.slotBase(), DontEnum, jsUndefined());
+        return true;
+    }
+    return result;
 }
 
 void DebuggerScope::put(JSCell* cell, ExecState* exec, PropertyName propertyName, JSValue value, PutPropertySlot& slot)
@@ -84,6 +106,7 @@ void DebuggerScope::put(JSCell* cell, ExecState* exec, PropertyName propertyName
     if (!scope->isValid())
         return;
     JSObject* thisObject = JSScope::objectAtScope(scope->jsScope());
+    slot.setThisValue(JSValue(thisObject));
     thisObject->methodTable()->put(thisObject, exec, propertyName, value, slot);
 }
 
@@ -130,14 +153,26 @@ DebuggerScope* DebuggerScope::next()
 
 void DebuggerScope::invalidateChain()
 {
+    if (!isValid())
+        return;
+
     DebuggerScope* scope = this;
     while (scope) {
-        ASSERT(scope->isValid());
         DebuggerScope* nextScope = scope->m_next.get();
         scope->m_next.clear();
-        scope->m_scope.clear();
+        scope->m_scope.clear(); // This also marks this scope as invalid.
         scope = nextScope;
     }
+}
+
+bool DebuggerScope::isCatchScope() const
+{
+    return m_scope->isCatchScopeObject();
+}
+
+bool DebuggerScope::isFunctionNameScope() const
+{
+    return m_scope->isFunctionNameScopeObject();
 }
 
 bool DebuggerScope::isWithScope() const
@@ -150,11 +185,18 @@ bool DebuggerScope::isGlobalScope() const
     return m_scope->isGlobalObject();
 }
 
-bool DebuggerScope::isFunctionScope() const
+bool DebuggerScope::isFunctionOrEvalScope() const
 {
-    // In the current debugger implementation, every function will create an
-    // activation object. Hence, an activation object implies a function scope.
+    // In the current debugger implementation, every function or eval will create an
+    // lexical environment object. Hence, a lexical environment object implies a
+    // function or eval scope.
     return m_scope->isActivationObject();
+}
+
+JSValue DebuggerScope::caughtValue() const
+{
+    ASSERT(isCatchScope());
+    return reinterpret_cast<JSNameScope*>(m_scope.get())->value();
 }
 
 } // namespace JSC

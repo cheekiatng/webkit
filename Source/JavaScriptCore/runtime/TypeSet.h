@@ -26,28 +26,26 @@
 #ifndef TypeSet_h
 #define TypeSet_h
 
-#include "StructureIDTable.h"
-#include <wtf/HashMap.h>
+#include "RuntimeType.h"
+#include "StructureSet.h"
+#include <wtf/HashSet.h>
 #include <wtf/RefCounted.h>
 #include <wtf/text/WTFString.h>
 #include <wtf/Vector.h>
 
+namespace Inspector {
+namespace Protocol  {
+template<typename T> class Array;
+
+namespace Runtime {
+class StructureDescription;
+class TypeSet;
+}
+
+}
+}
+
 namespace JSC {
-
-class JSValue;
-
-enum RuntimeType {
-    TypeNothing            = 0x0,
-    TypeFunction           = 0x1,
-    TypeUndefined          = 0x2,
-    TypeNull               = 0x4,
-    TypeBoolean            = 0x8,
-    TypeMachineInt         = 0x10,
-    TypeNumber             = 0x20,
-    TypeString             = 0x40,
-    TypePrimitive          = 0x80,
-    TypeObject             = 0x100
-};
 
 class StructureShape : public RefCounted<StructureShape> {
     friend class TypeSet;
@@ -55,35 +53,56 @@ class StructureShape : public RefCounted<StructureShape> {
 public:
     StructureShape();
 
-    static PassRefPtr<StructureShape> create() { return adoptRef(new StructureShape); }
+    static Ref<StructureShape> create() { return adoptRef(*new StructureShape); }
     String propertyHash();
     void markAsFinal();
-    void addProperty(RefPtr<StringImpl>);
-    static String leastUpperBound(Vector<RefPtr<StructureShape>>*);
+    void addProperty(UniquedStringImpl&);
     String stringRepresentation();
-    void setConstructorName(String name) { m_constructorName = name; }
+    String toJSONString() const;
+    Ref<Inspector::Protocol::Runtime::StructureDescription> inspectorRepresentation();
+    void setConstructorName(String name) { m_constructorName = (name.isEmpty() ? "Object" : name); }
+    String constructorName() { return m_constructorName; }
+    void setProto(PassRefPtr<StructureShape> shape) { m_proto = shape; }
+    void enterDictionaryMode();
 
 private:
-    HashMap<RefPtr<StringImpl>, bool> m_fields;         
+    static String leastCommonAncestor(const Vector<RefPtr<StructureShape>>);
+    static PassRefPtr<StructureShape> merge(const PassRefPtr<StructureShape>, const PassRefPtr<StructureShape>);
+    bool hasSamePrototypeChain(PassRefPtr<StructureShape>);
+
+    HashSet<RefPtr<UniquedStringImpl>, IdentifierRepHash> m_fields;
+    HashSet<RefPtr<UniquedStringImpl>, IdentifierRepHash> m_optionalFields;
+    RefPtr<StructureShape> m_proto;
     std::unique_ptr<String> m_propertyHash;
     String m_constructorName;
     bool m_final;
+    bool m_isInDictionaryMode;
 };
 
 class TypeSet : public RefCounted<TypeSet> {
 
 public:
-    static PassRefPtr<TypeSet> create() { return adoptRef(new TypeSet); }
+    static Ref<TypeSet> create() { return adoptRef(*new TypeSet); }
     TypeSet();
-    void addTypeForValue(JSValue v, PassRefPtr<StructureShape>, StructureID);
-    static RuntimeType getRuntimeTypeForValue(JSValue);
-    JS_EXPORT_PRIVATE String seenTypes();
+    void addTypeInformation(RuntimeType, PassRefPtr<StructureShape>, Structure*);
+    void invalidateCache();
+    String dumpTypes() const;
+    String displayName() const;
+    Ref<Inspector::Protocol::Array<Inspector::Protocol::Runtime::StructureDescription>> allStructureRepresentations() const;
+    String toJSONString() const;
+    bool isOverflown() const { return m_isOverflown; }
+    String leastCommonAncestor() const;
+    Ref<Inspector::Protocol::Runtime::TypeSet> inspectorTypeSet() const;
+    bool isEmpty() const { return m_seenTypes == TypeNothing; }
+    bool doesTypeConformTo(RuntimeTypeMask test) const;
+    RuntimeTypeMask seenTypes() const { return m_seenTypes; }
+    StructureSet structureSet() const { return m_structureSet; };
 
 private:
-    uint32_t m_seenTypes;
-    void dumpSeenTypes();
-    Vector<RefPtr<StructureShape>>* m_structureHistory;
-    HashMap<StructureID, uint8_t> m_structureIDHistory;
+    RuntimeTypeMask m_seenTypes;
+    bool m_isOverflown;
+    Vector<RefPtr<StructureShape>> m_structureHistory;
+    StructureSet m_structureSet;
 };
 
 } //namespace JSC

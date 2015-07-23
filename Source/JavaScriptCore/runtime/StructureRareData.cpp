@@ -26,7 +26,7 @@
 #include "config.h"
 #include "StructureRareData.h"
 
-#include "JSPropertyNameIterator.h"
+#include "JSPropertyNameEnumerator.h"
 #include "JSString.h"
 #include "JSCInlines.h"
 
@@ -66,7 +66,18 @@ void StructureRareData::visitChildren(JSCell* cell, SlotVisitor& visitor)
     JSCell::visitChildren(thisObject, visitor);
     visitor.append(&thisObject->m_previous);
     visitor.append(&thisObject->m_objectToStringValue);
-    visitor.append(&thisObject->m_enumerationCache);
+    visitor.append(&thisObject->m_cachedPropertyNameEnumerator);
+    visitor.append(&thisObject->m_cachedGenericPropertyNameEnumerator);
+}
+
+JSPropertyNameEnumerator* StructureRareData::cachedPropertyNameEnumerator() const
+{
+    return m_cachedPropertyNameEnumerator.get();
+}
+
+void StructureRareData::setCachedPropertyNameEnumerator(VM& vm, JSPropertyNameEnumerator* enumerator)
+{
+    m_cachedPropertyNameEnumerator.set(vm, this, enumerator);
 }
 
 } // namespace JSC

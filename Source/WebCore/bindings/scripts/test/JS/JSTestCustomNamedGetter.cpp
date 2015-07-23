@@ -132,9 +132,9 @@ void JSTestCustomNamedGetterPrototype::finishCreation(VM& vm)
 
 const ClassInfo JSTestCustomNamedGetter::s_info = { "TestCustomNamedGetter", &Base::s_info, &JSTestCustomNamedGetterTable, CREATE_METHOD_TABLE(JSTestCustomNamedGetter) };
 
-JSTestCustomNamedGetter::JSTestCustomNamedGetter(Structure* structure, JSDOMGlobalObject* globalObject, PassRefPtr<TestCustomNamedGetter> impl)
+JSTestCustomNamedGetter::JSTestCustomNamedGetter(Structure* structure, JSDOMGlobalObject* globalObject, Ref<TestCustomNamedGetter>&& impl)
     : JSDOMWrapper(structure, globalObject)
-    , m_impl(impl.leakRef())
+    , m_impl(&impl.leakRef())
 {
 }
 
@@ -156,12 +156,12 @@ void JSTestCustomNamedGetter::destroy(JSC::JSCell* cell)
 
 JSTestCustomNamedGetter::~JSTestCustomNamedGetter()
 {
-    releaseImplIfNotNull();
+    releaseImpl();
 }
 
 bool JSTestCustomNamedGetter::getOwnPropertySlot(JSObject* object, ExecState* exec, PropertyName propertyName, PropertySlot& slot)
 {
-    JSTestCustomNamedGetter* thisObject = jsCast<JSTestCustomNamedGetter*>(object);
+    auto* thisObject = jsCast<JSTestCustomNamedGetter*>(object);
     ASSERT_GC_OBJECT_INHERITS(thisObject, info());
     if (canGetItemsForName(exec, &thisObject->impl(), propertyName)) {
         slot.setCustom(thisObject, ReadOnly | DontDelete | DontEnum, thisObject->nameGetter);
@@ -172,9 +172,9 @@ bool JSTestCustomNamedGetter::getOwnPropertySlot(JSObject* object, ExecState* ex
 
 bool JSTestCustomNamedGetter::getOwnPropertySlotByIndex(JSObject* object, ExecState* exec, unsigned index, PropertySlot& slot)
 {
-    JSTestCustomNamedGetter* thisObject = jsCast<JSTestCustomNamedGetter*>(object);
+    auto* thisObject = jsCast<JSTestCustomNamedGetter*>(object);
     ASSERT_GC_OBJECT_INHERITS(thisObject, info());
-    PropertyName propertyName = Identifier::from(exec, index);
+    Identifier propertyName = Identifier::from(exec, index);
     if (canGetItemsForName(exec, &thisObject->impl(), propertyName)) {
         slot.setCustom(thisObject, ReadOnly | DontDelete | DontEnum, thisObject->nameGetter);
         return true;
@@ -202,10 +202,10 @@ EncodedJSValue JSC_HOST_CALL jsTestCustomNamedGetterPrototypeFunctionAnotherFunc
     if (UNLIKELY(!castedThis))
         return throwThisTypeError(*exec, "TestCustomNamedGetter", "anotherFunction");
     ASSERT_GC_OBJECT_INHERITS(castedThis, JSTestCustomNamedGetter::info());
-    TestCustomNamedGetter& impl = castedThis->impl();
-    if (exec->argumentCount() < 1)
+    auto& impl = castedThis->impl();
+    if (UNLIKELY(exec->argumentCount() < 1))
         return throwVMError(exec, createNotEnoughArgumentsError(exec));
-    const String& str(exec->argument(0).isEmpty() ? String() : exec->argument(0).toString(exec)->value(exec));
+    String str = exec->argument(0).toString(exec)->value(exec);
     if (UNLIKELY(exec->hadException()))
         return JSValue::encode(jsUndefined());
     impl.anotherFunction(str);
@@ -221,10 +221,9 @@ bool JSTestCustomNamedGetterOwner::isReachableFromOpaqueRoots(JSC::Handle<JSC::U
 
 void JSTestCustomNamedGetterOwner::finalize(JSC::Handle<JSC::Unknown> handle, void* context)
 {
-    JSTestCustomNamedGetter* jsTestCustomNamedGetter = jsCast<JSTestCustomNamedGetter*>(handle.slot()->asCell());
-    DOMWrapperWorld& world = *static_cast<DOMWrapperWorld*>(context);
+    auto* jsTestCustomNamedGetter = jsCast<JSTestCustomNamedGetter*>(handle.slot()->asCell());
+    auto& world = *static_cast<DOMWrapperWorld*>(context);
     uncacheWrapper(world, &jsTestCustomNamedGetter->impl(), jsTestCustomNamedGetter);
-    jsTestCustomNamedGetter->releaseImpl();
 }
 
 #if ENABLE(BINDING_INTEGRITY)
@@ -263,7 +262,7 @@ JSC::JSValue toJS(JSC::ExecState*, JSDOMGlobalObject* globalObject, TestCustomNa
     return createNewWrapper<JSTestCustomNamedGetter>(globalObject, impl);
 }
 
-TestCustomNamedGetter* toTestCustomNamedGetter(JSC::JSValue value)
+TestCustomNamedGetter* JSTestCustomNamedGetter::toWrapped(JSC::JSValue value)
 {
     if (auto* wrapper = jsDynamicCast<JSTestCustomNamedGetter*>(value))
         return &wrapper->impl();

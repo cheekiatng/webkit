@@ -67,10 +67,10 @@ public:
         m_variants.append(variant);
     }
     
-    static GetByIdStatus computeFor(CodeBlock*, StubInfoMap&, unsigned bytecodeIndex, StringImpl* uid);
-    static GetByIdStatus computeFor(VM&, const StructureSet&, StringImpl* uid);
+    static GetByIdStatus computeFor(CodeBlock*, StubInfoMap&, unsigned bytecodeIndex, UniquedStringImpl* uid);
+    static GetByIdStatus computeFor(const StructureSet&, UniquedStringImpl* uid);
     
-    static GetByIdStatus computeFor(CodeBlock* baselineBlock, CodeBlock* dfgBlock, StubInfoMap& baselineMap, StubInfoMap& dfgMap, CodeOrigin, StringImpl* uid);
+    static GetByIdStatus computeFor(CodeBlock* baselineBlock, CodeBlock* dfgBlock, StubInfoMap& baselineMap, StubInfoMap& dfgMap, CodeOrigin, UniquedStringImpl* uid);
     
     State state() const { return m_state; }
     
@@ -92,14 +92,14 @@ public:
     
 private:
 #if ENABLE(DFG_JIT)
-    static bool hasExitSite(const ConcurrentJITLocker&, CodeBlock*, unsigned bytecodeIndex, ExitingJITType = ExitFromAnything);
+    static bool hasExitSite(const ConcurrentJITLocker&, CodeBlock*, unsigned bytecodeIndex);
 #endif
 #if ENABLE(JIT)
     static GetByIdStatus computeForStubInfo(
         const ConcurrentJITLocker&, CodeBlock* profiledBlock, StructureStubInfo*,
-        StringImpl* uid, CallLinkStatus::ExitSiteData);
+        UniquedStringImpl* uid, CallLinkStatus::ExitSiteData);
 #endif
-    static GetByIdStatus computeFromLLInt(CodeBlock*, unsigned bytecodeIndex, StringImpl* uid);
+    static GetByIdStatus computeFromLLInt(CodeBlock*, unsigned bytecodeIndex, UniquedStringImpl* uid);
     
     bool appendVariant(const GetByIdVariant&);
     

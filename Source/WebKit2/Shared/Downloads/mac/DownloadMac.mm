@@ -62,7 +62,10 @@ void Download::start()
     ASSERT(!m_delegate);
 
     m_delegate = adoptNS([[WKDownloadAsDelegate alloc] initWithDownload:this]);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     m_nsURLDownload = adoptNS([[NSURLDownload alloc] initWithRequest:m_request.nsURLRequest(UpdateHTTPBody) delegate:m_delegate.get()]);
+#pragma clang diagnostic pop
 
     // FIXME: Allow this to be changed by the client.
     [m_nsURLDownload setDeletesFileUponFailure:NO];
@@ -84,6 +87,32 @@ void Download::startWithHandle(ResourceHandle* handle, const ResourceResponse& r
     [m_nsURLDownload setDeletesFileUponFailure:NO];
 }
 
+void Download::resume(const IPC::DataReference& resumeData, const String& path, const SandboxExtension::Handle& sandboxExtensionHandle)
+{
+    ASSERT(!m_nsURLDownload);
+    ASSERT(!m_delegate);
+
+    m_sandboxExtension = SandboxExtension::create(sandboxExtensionHandle);
+    if (m_sandboxExtension)
+        m_sandboxExtension->consume();
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    m_delegate = adoptNS([[WKDownloadAsDelegate alloc] initWithDownload:this]);
+#pragma clang diagnostic pop
+
+    auto nsData = adoptNS([[NSData alloc] initWithBytes:resumeData.data() length:resumeData.size()]);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    m_nsURLDownload = adoptNS([[NSURLDownload alloc] initWithResumeData:nsData.get() delegate:m_delegate.get() path:path]);
+#pragma clang diagnostic pop
+
+    m_request = [m_nsURLDownload request];
+
+    // FIXME: Allow this to be changed by the client.
+    [m_nsURLDownload setDeletesFileUponFailure:NO];
+}
+
 void Download::cancel()
 {
     [m_nsURLDownload cancel];
@@ -100,10 +129,6 @@ void Download::platformInvalidate()
     [m_delegate invalidate];
     m_delegate = nullptr;
     m_nsURLDownload = nullptr;
-}
-
-void Download::didDecideDestination(const String& destination, bool allowOverwrite)
-{
 }
 
 void Download::platformDidFinish()
@@ -236,7 +261,7 @@ static void dispatchOnMainThread(void (^block)())
             returnValue = YES;
     });
 
-    return returnValue;;
+    return returnValue;
 }
 
 - (void)download:(NSURLDownload *)download decideDestinationWithSuggestedFilename:(NSString *)filename

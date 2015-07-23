@@ -167,9 +167,9 @@ static inline NSDictionary* dictionaryForViewportArguments(const WebCore::Viewpo
               @"minimum-scale":@(arguments.minZoom),
               @"maximum-scale":@(arguments.maxZoom),
               @"user-scalable":@(arguments.userZoom),
+              @"shrink-to-fit":@(arguments.shrinkToFit),
               @"width":@(arguments.width),
-              @"height":@(arguments.height),
-              @"minimal-ui":@(arguments.minimalUI) };
+              @"height":@(arguments.height) };
 }
 
 FloatSize WebChromeClientIOS::screenSize() const
@@ -249,12 +249,12 @@ bool WebChromeClientIOS::selectItemAlignmentFollowsMenuWritingDirection()
     return true;
 }
 
-PassRefPtr<WebCore::PopupMenu> WebChromeClientIOS::createPopupMenu(WebCore::PopupMenuClient* client) const
+RefPtr<WebCore::PopupMenu> WebChromeClientIOS::createPopupMenu(WebCore::PopupMenuClient* client) const
 {
     return adoptRef(new PopupMenuIOS(client));
 }
 
-PassRefPtr<WebCore::SearchPopupMenu> WebChromeClientIOS::createSearchPopupMenu(WebCore::PopupMenuClient* client) const
+RefPtr<WebCore::SearchPopupMenu> WebChromeClientIOS::createSearchPopupMenu(WebCore::PopupMenuClient* client) const
 {
     return adoptRef(new SearchPopupMenuIOS(client));
 }
@@ -309,16 +309,14 @@ void WebChromeClientIOS::webAppOrientationsUpdated()
 
 void WebChromeClientIOS::focusedElementChanged(Element* element)
 {
-    if (!element)
-        return;
-    if (!isHTMLInputElement(element))
+    if (!is<HTMLInputElement>(element))
         return;
 
-    HTMLInputElement* inputElement = toHTMLInputElement(element);
-    if (!inputElement->isText())
+    HTMLInputElement& inputElement = downcast<HTMLInputElement>(*element);
+    if (!inputElement.isText())
         return;
 
-    CallFormDelegate(webView(), @selector(didFocusTextField:inFrame:), kit(inputElement), kit(inputElement->document().frame()));
+    CallFormDelegate(webView(), @selector(didFocusTextField:inFrame:), kit(&inputElement), kit(inputElement.document().frame()));
 }
 
 void WebChromeClientIOS::showPlaybackTargetPicker(bool hasVideo)

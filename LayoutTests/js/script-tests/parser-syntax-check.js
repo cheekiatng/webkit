@@ -88,6 +88,17 @@ invalid(".l");
 invalid("1.l");
 valid  ("1 .l");
 
+debug ("Octal numbers");
+
+valid  ("'use strict'; 0");
+valid  ("0");
+invalid("'use strict'; 00");
+valid  ("00");
+invalid("'use strict'; 08");
+valid  ("08");
+invalid("'use strict'; 09");
+valid  ("09");
+
 debug  ("Binary and conditional operators");
 
 valid  ("a + + typeof this");
@@ -221,23 +232,25 @@ invalid("throw");
 debug  ("var and const statements");
 
 valid  ("var a, b = null");
-valid  ("const a = 5, b, c");
+valid  ("const a = 5, b = 10, c = 20");
 invalid("var");
 invalid("var = 7");
 invalid("var c (6)");
-valid  ("if (a) var a,b; else const b, c");
+valid  ("if (a) var a,b; else { const b = 1, c = 2; }");
+invalid("if (a) var a,b; else { const b, c }");
 invalid("var 5 = 6");
 valid  ("while (0) var a, b, c=6, d, e, f=5*6, g=f*h, h");
 invalid("var a = if (b) { c }");
 invalid("var a = var b");
-valid  ("const a = b += c, a, a, a = (b - f())");
+invalid("const a = b += c, a, a, a = (b - f())");
 invalid("var a %= b | 5");
 invalid("var (a) = 5");
 invalid("var a = (4, b = 6");
 invalid("const 'l' = 3");
 invalid("var var = 3");
 valid  ("var varr = 3 in 1");
-valid  ("const a, a, a = void 7 - typeof 8, a = 8");
+valid  ("const  a = void 7 - typeof 8, b = 8");
+invalid("const a, a, a = void 7 - typeof 8, a = 8");
 valid  ("const x_x = 6 /= 7 ? e : f");
 invalid("var a = ?");
 invalid("const a = *7");
@@ -280,7 +293,21 @@ valid  ("for (var a = b, b = a ; ; ) break");
 valid  ("for (var a = b, c, d, b = a ; x in b ; ) { break }");
 valid  ("for (var a = b, c, d ; ; 1 in a()) break");
 invalid("for ( ; var a ; ) break");
-invalid("for (const a; ; ) break");
+invalid("for (const x; ; ) break");
+invalid("for (const x = 20, y; ; ) break");
+valid  ("for (const x = 20; ; ) break");
+valid  ("for (const x of []) break");
+valid  ("for (const x in {}) break");
+invalid("for (const x = 20, x = 30; ; ) { const x = 20; break; }");
+valid  ("for (const x = 20; ; ) { const x = 20; break; }");
+valid  ("for (const x of []) { const x = 20; break; }");
+valid  ("for (const x in {}) { const x = 20; break; }");
+invalid("for (const let = 10; ; ) { break; }");
+invalid("for (const let in {}) { break; }");
+invalid("for (const let of []) { break; }");
+invalid("for (let let = 10; ; ) { break; }");
+invalid("for (let let in {}) { break; }");
+invalid("for (let let of []) { break; }");
 invalid("for ( %a ; ; ) { }");
 valid  ("for (a in b) break");
 valid  ("for (a() in b) break");
@@ -417,6 +444,9 @@ valid("for (var [of] in of){}")
 valid("for (var {of} in of){}")
 valid("for ([of] in of){}")
 valid("for ({of} in of){}")
+invalid("for (var of = x of of){}")
+invalid("for (var {of} = x of of){}")
+invalid("for (var [of] = x of of){}")
 
 
 invalid("for (of of of of){}")
@@ -464,6 +494,10 @@ valid("'use strict'; ({1: x}=1)")
 valid("'use strict'; ({1: x}=null)")
 valid("'use strict'; ({a: b}=null)")
 valid("var {1:x}=1")
+valid("var {x}=1")
+valid("var {x, y}=1")
+valid("var [x]=1")
+valid("var [x, y]=1")
 valid("[x]=1")
 valid("var [x]=1")
 valid("({[x]: 1})")
@@ -475,8 +509,22 @@ valid("({a}=1)=1")
 valid("({a:a}=1)=1")
 valid("({a}=1=1)")
 valid("({a:a}=1=1)")
+invalid("var {x}")
+invalid("var {x, y}")
+invalid("var {x} = 20, {x, y}")
+invalid("var {foo:bar, bar:baz}")
+invalid("var [x]")
+invalid("var [x, y]")
+invalid("var [x] = [], [x, y]")
+valid("({get x(){}})")
+valid("({set x(x){}})")
+invalid("({get x(a){}})")
+invalid("({get x(a,b){}})")
+invalid("({set x(){}})")
+invalid("({set x(a,b){}})")
 invalid("({get [x](){}})")
 invalid("({set [x](){}})")
+invalid("({set [x](x){}})")
 invalid("({[...x]: 1})")
 valid("( function(){ return this || eval('this'); }().x = 'y' )");
 invalid("function(){ return this || eval('this'); }().x = 'y'");

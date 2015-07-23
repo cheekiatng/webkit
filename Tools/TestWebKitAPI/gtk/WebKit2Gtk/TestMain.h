@@ -22,8 +22,10 @@
 
 #include <cairo.h>
 #include <glib-object.h>
+#include <webkit2/webkit2.h>
 #include <wtf/HashSet.h>
-#include <wtf/gobject/GUniquePtr.h>
+#include <wtf/glib/GRefPtr.h>
+#include <wtf/glib/GUniquePtr.h>
 #include <wtf/text/CString.h>
 
 #define MAKE_GLIB_TEST_FIXTURE(ClassName) \
@@ -56,8 +58,33 @@ class Test {
 public:
     MAKE_GLIB_TEST_FIXTURE(Test);
 
+    static const char* dataDirectory();
+
+    static void initializeWebExtensionsCallback(WebKitWebContext* context, Test* test)
+    {
+        test->initializeWebExtensions();
+    }
+
+    Test()
+    {
+        GUniquePtr<char> localStorageDirectory(g_build_filename(dataDirectory(), "local-storage", nullptr));
+        GUniquePtr<char> indexedDBDirectory(g_build_filename(dataDirectory(), "indexeddb", nullptr));
+        GUniquePtr<char> diskCacheDirectory(g_build_filename(dataDirectory(), "disk-cache", nullptr));
+        GUniquePtr<char> applicationCacheDirectory(g_build_filename(dataDirectory(), "appcache", nullptr));
+        GUniquePtr<char> webSQLDirectory(g_build_filename(dataDirectory(), "websql", nullptr));
+        GRefPtr<WebKitWebsiteDataManager> websiteDataManager = adoptGRef(webkit_website_data_manager_new(
+            "local-storage-directory", localStorageDirectory.get(), "indexeddb-directory", indexedDBDirectory.get(),
+            "disk-cache-directory", diskCacheDirectory.get(), "offline-application-cache-directory", applicationCacheDirectory.get(),
+            "websql-directory", webSQLDirectory.get(), nullptr));
+
+        m_webContext = adoptGRef(webkit_web_context_new_with_website_data_manager(websiteDataManager.get()));
+        g_signal_connect(m_webContext.get(), "initialize-web-extensions", G_CALLBACK(initializeWebExtensionsCallback), this);
+    }
+
     ~Test()
     {
+        g_signal_handlers_disconnect_matched(m_webContext.get(), G_SIGNAL_MATCH_DATA, 0, 0, nullptr, nullptr, this);
+        m_webContext = nullptr;
         if (m_watchedObjects.isEmpty())
             return;
 
@@ -68,6 +95,12 @@ public:
         g_print("\n");
 
         g_assert(m_watchedObjects.isEmpty());
+    }
+
+    virtual void initializeWebExtensions()
+    {
+        webkit_web_context_set_web_extensions_directory(m_webContext.get(), WEBKIT_TEST_WEB_EXTENSIONS_DIR);
+        webkit_web_context_set_web_extensions_initialization_user_data(m_webContext.get(), g_variant_new_uint32(++s_webExtensionID));
     }
 
     static void objectFinalized(Test* test, GObject* finalizedObject)
@@ -81,10 +114,24 @@ public:
         g_object_weak_ref(object, reinterpret_cast<GWeakNotify>(objectFinalized), this);
     }
 
-    static CString getResourcesDir()
+
+    enum ResourcesDir {
+        WebKit2GTKResources,
+        WebKit2Resources,
+    };
+
+    static CString getResourcesDir(ResourcesDir resourcesDir = WebKit2GTKResources)
     {
-        GUniquePtr<char> resourcesDir(g_build_filename(WEBKIT_SRC_DIR, "Tools", "TestWebKitAPI", "Tests", "WebKit2Gtk", "resources", nullptr));
-        return resourcesDir.get();
+        switch (resourcesDir) {
+        case WebKit2GTKResources: {
+            GUniquePtr<char> resourcesDir(g_build_filename(WEBKIT_SRC_DIR, "Tools", "TestWebKitAPI", "Tests", "WebKit2Gtk", "resources", nullptr));
+            return resourcesDir.get();
+        }
+        case WebKit2Resources: {
+            GUniquePtr<char> resourcesDir(g_build_filename(WEBKIT_SRC_DIR, "Tools", "TestWebKitAPI", "Tests", "WebKit2", nullptr));
+            return resourcesDir.get();
+        }
+        }
     }
 
     void addLogFatalFlag(unsigned flag)
@@ -113,6 +160,8 @@ public:
     }
 
     HashSet<GObject*> m_watchedObjects;
+    GRefPtr<WebKitWebContext> m_webContext;
+    static uint32_t s_webExtensionID;
 };
 
 #endif // TestMain_h

@@ -23,10 +23,11 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#import "CoreSimulatorSPI.h"
 #import "LTRelayController.h"
-
-#import <CoreSimulator/CoreSimulator.h>
 #import <Foundation/Foundation.h>
+
+static LTRelayController *relayController;
 
 void usage()
 {
@@ -96,6 +97,16 @@ NSArray *getDumpToolArguments()
     return dumpToolArguments;
 }
 
+void finish()
+{
+    [relayController finish];
+}
+
+void receivedSignal(int signal)
+{
+    exit(EXIT_SUCCESS);
+}
+
 int main(int argc, const char * argv[])
 {
     @autoreleasepool {
@@ -127,8 +138,13 @@ int main(int argc, const char * argv[])
 
         SimDevice *device = getTestingSimDevice(deviceType, runtime);
 
-        LTRelayController *relayController = [[LTRelayController alloc] initWithDevice:device productDir:productDir appPath:appPath identifierSuffix:suffix dumpToolArguments:dumpToolArguments];
+        relayController = [[LTRelayController alloc] initWithDevice:device productDir:productDir appPath:appPath identifierSuffix:suffix dumpToolArguments:dumpToolArguments];
         [relayController start];
+
+        atexit(finish);
+        signal(SIGINT, receivedSignal);
+        signal(SIGTERM, receivedSignal);
+
         [[NSRunLoop mainRunLoop] run];
     }
     return 0;

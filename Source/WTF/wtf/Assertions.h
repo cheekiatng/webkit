@@ -26,6 +26,8 @@
 #ifndef WTF_Assertions_h
 #define WTF_Assertions_h
 
+#include <wtf/Platform.h>
+
 /*
    no namespaces because this file has to be includable from C and Objective-C
 
@@ -38,7 +40,9 @@
 
 #include <inttypes.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
+#include <wtf/ExportMacros.h>
 
 #ifdef NDEBUG
 /* Disable ASSERT* macros in release mode. */
@@ -111,7 +115,7 @@ extern "C" {
 
    Signals are ignored by the crash reporter on OS X so we must do better.
 */
-#if COMPILER(CLANG) || COMPILER(MSVC)
+#if COMPILER(CLANG) || COMPILER(GCC) || COMPILER(MSVC)
 #define NO_RETURN_DUE_TO_CRASH NO_RETURN
 #else
 #define NO_RETURN_DUE_TO_CRASH
@@ -144,6 +148,8 @@ WTF_EXPORT_PRIVATE void WTFPrintBacktrace(void** stack, int size);
 typedef void (*WTFCrashHookFunction)();
 WTF_EXPORT_PRIVATE void WTFSetCrashHook(WTFCrashHookFunction);
 WTF_EXPORT_PRIVATE void WTFInstallReportBacktraceOnCrashHook();
+
+WTF_EXPORT_PRIVATE bool WTFIsDebuggerAttached();
 
 #ifdef __cplusplus
 }
@@ -196,14 +202,6 @@ extern "C" {
   Expressions inside them are evaluated in debug builds only.
 */
 
-#if OS(WINCE)
-/* FIXME: We include this here only to avoid a conflict with the ASSERT macro. */
-#include <windows.h>
-#undef min
-#undef max
-#undef ERROR
-#endif
-
 #if OS(WINDOWS)
 /* FIXME: Change to use something other than ASSERT to avoid this conflict with the underlying platform */
 #undef ASSERT
@@ -218,7 +216,7 @@ extern "C" {
 
 #define ASSERT_UNUSED(variable, assertion) ((void)variable)
 
-#ifdef ADDRESS_SANITIZER
+#if ENABLE(SECURITY_ASSERTIONS)
 #define ASSERT_WITH_SECURITY_IMPLICATION(assertion) \
     (!(assertion) ? \
         (WTFReportAssertionFailure(__FILE__, __LINE__, WTF_PRETTY_FUNCTION, #assertion), \
@@ -361,21 +359,7 @@ while (0)
 #define LOG_VERBOSE(channel, ...) WTFLogVerbose(__FILE__, __LINE__, WTF_PRETTY_FUNCTION, &JOIN_LOG_CHANNEL_WITH_PREFIX(LOG_CHANNEL_PREFIX, channel), __VA_ARGS__)
 #endif
 
-/* UNREACHABLE_FOR_PLATFORM */
-
-#if COMPILER(CLANG)
-// This would be a macro except that its use of #pragma works best around
-// a function. Hence it uses macro naming convention.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmissing-noreturn"
-static inline void UNREACHABLE_FOR_PLATFORM()
-{
-    CRASH();
-}
-#pragma clang diagnostic pop
-#else
-#define UNREACHABLE_FOR_PLATFORM() ASSERT_NOT_REACHED()
-#endif
+/* RELEASE_ASSERT */
 
 #if ASSERT_DISABLED
 #define RELEASE_ASSERT(assertion) (UNLIKELY(!(assertion)) ? (CRASH()) : (void)0)
@@ -387,30 +371,21 @@ static inline void UNREACHABLE_FOR_PLATFORM()
 #define RELEASE_ASSERT_NOT_REACHED() ASSERT_NOT_REACHED()
 #endif
 
-/* TYPE CAST */
+/* UNREACHABLE_FOR_PLATFORM */
 
-#define TYPE_CASTS_BASE(ToClassName, argumentType, argumentName, pointerPredicate, referencePredicate) \
-inline ToClassName* to##ToClassName(argumentType* argumentName) \
-{ \
-    ASSERT_WITH_SECURITY_IMPLICATION(!argumentName || (pointerPredicate)); \
-    return static_cast<ToClassName*>(argumentName); \
-} \
-inline const ToClassName* to##ToClassName(const argumentType* argumentName) \
-{ \
-    ASSERT_WITH_SECURITY_IMPLICATION(!argumentName || (pointerPredicate)); \
-    return static_cast<const ToClassName*>(argumentName); \
-} \
-inline ToClassName& to##ToClassName(argumentType& argumentName) \
-{ \
-    ASSERT_WITH_SECURITY_IMPLICATION(referencePredicate); \
-    return static_cast<ToClassName&>(argumentName); \
-} \
-inline const ToClassName& to##ToClassName(const argumentType& argumentName) \
-{ \
-    ASSERT_WITH_SECURITY_IMPLICATION(referencePredicate); \
-    return static_cast<const ToClassName&>(argumentName); \
-} \
-void to##ToClassName(const ToClassName*); \
-void to##ToClassName(const ToClassName&);
+#if COMPILER(CLANG)
+// This would be a macro except that its use of #pragma works best around
+// a function. Hence it uses macro naming convention.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
+static inline void UNREACHABLE_FOR_PLATFORM()
+{
+    RELEASE_ASSERT_NOT_REACHED();
+}
+#pragma clang diagnostic pop
+#else
+#define UNREACHABLE_FOR_PLATFORM() RELEASE_ASSERT_NOT_REACHED()
+#endif
+
 
 #endif /* WTF_Assertions_h */

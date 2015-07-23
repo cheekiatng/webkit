@@ -26,7 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
 #include "WebFrameLoaderClient.h"
 
 #include "CFDictionaryPropertyBag.h"
@@ -36,6 +35,9 @@
 #include "EmbeddedWidget.h"
 #include "MarshallingHelpers.h"
 #include "NotImplemented.h"
+#include "PluginDatabase.h"
+#include "PluginPackage.h"
+#include "PluginView.h"
 #include "WebActionPropertyBag.h"
 #include "WebCachedFramePlatformData.h"
 #include "WebChromeClient.h"
@@ -72,9 +74,8 @@
 #include <WebCore/HTMLPlugInElement.h>
 #include <WebCore/HistoryItem.h>
 #include <WebCore/LocalizedStrings.h>
+#include <WebCore/MIMETypeRegistry.h>
 #include <WebCore/Page.h>
-#include <WebCore/PluginPackage.h>
-#include <WebCore/PluginView.h>
 #include <WebCore/PolicyChecker.h>
 #include <WebCore/RenderWidget.h>
 #include <WebCore/ResourceHandle.h>
@@ -106,7 +107,7 @@ public:
 WebFrameLoaderClient::WebFrameLoaderClient(WebFrame* webFrame)
     : m_webFrame(webFrame)
     , m_manualLoader(0)
-    , m_policyListenerPrivate(adoptPtr(new WebFramePolicyListenerPrivate))
+    , m_policyListenerPrivate(std::make_unique<WebFramePolicyListenerPrivate>())
     , m_hasSentResponseToPlugin(false) 
 {
 }
@@ -948,14 +949,14 @@ void WebFrameLoaderClient::prepareForDataSourceReplacement()
     notImplemented();
 }
 
-PassRefPtr<DocumentLoader> WebFrameLoaderClient::createDocumentLoader(const ResourceRequest& request, const SubstituteData& substituteData)
+Ref<DocumentLoader> WebFrameLoaderClient::createDocumentLoader(const ResourceRequest& request, const SubstituteData& substituteData)
 {
-    RefPtr<WebDocumentLoader> loader = WebDocumentLoader::create(request, substituteData);
+    Ref<WebDocumentLoader> loader = WebDocumentLoader::create(request, substituteData);
 
-    COMPtr<WebDataSource> dataSource(AdoptCOM, WebDataSource::createInstance(loader.get()));
+    COMPtr<WebDataSource> dataSource(AdoptCOM, WebDataSource::createInstance(loader.ptr()));
 
     loader->setDataSource(dataSource.get());
-    return loader.release();
+    return WTF::move(loader);
 }
 
 void WebFrameLoaderClient::setTitle(const StringWithDirection& title, const URL& url)
@@ -1045,16 +1046,16 @@ bool WebFrameLoaderClient::canCachePage() const
     return true;
 }
 
-PassRefPtr<Frame> WebFrameLoaderClient::createFrame(const URL& url, const String& name, HTMLFrameOwnerElement* ownerElement,
+RefPtr<Frame> WebFrameLoaderClient::createFrame(const URL& url, const String& name, HTMLFrameOwnerElement* ownerElement,
                             const String& referrer, bool /*allowsScrolling*/, int /*marginWidth*/, int /*marginHeight*/)
 {
     RefPtr<Frame> result = createFrame(url, name, ownerElement, referrer);
     if (!result)
-        return 0;
-    return result.release();
+        return nullptr;
+    return result;
 }
 
-PassRefPtr<Frame> WebFrameLoaderClient::createFrame(const URL& URL, const String& name, HTMLFrameOwnerElement* ownerElement, const String& referrer)
+RefPtr<Frame> WebFrameLoaderClient::createFrame(const URL& URL, const String& name, HTMLFrameOwnerElement* ownerElement, const String& referrer)
 {
     Frame* coreFrame = core(m_webFrame);
     ASSERT(coreFrame);
@@ -1071,14 +1072,38 @@ PassRefPtr<Frame> WebFrameLoaderClient::createFrame(const URL& URL, const String
 
     // The frame's onload handler may have removed it from the document.
     if (!childFrame->tree().parent())
-        return 0;
+        return nullptr;
 
-    return childFrame.release();
+    return childFrame;
 }
 
-ObjectContentType WebFrameLoaderClient::objectContentType(const URL& url, const String& mimeType, bool shouldPreferPlugInsForImages)
+ObjectContentType WebFrameLoaderClient::objectContentType(const URL& url, const String& mimeTypeIn, bool shouldPreferPlugInsForImages)
 {
-    return WebCore::FrameLoader::defaultObjectContentType(url, mimeType, shouldPreferPlugInsForImages);
+    String mimeType = mimeTypeIn;
+
+    if (mimeType.isEmpty())
+        mimeType = mimeTypeFromURL(url);
+
+    if (mimeType.isEmpty()) {
+        String decodedPath = decodeURLEscapeSequences(url.path());
+        mimeType = PluginDatabase::installedPlugins()->MIMETypeForExtension(decodedPath.substring(decodedPath.reverseFind('.') + 1));
+    }
+
+    if (mimeType.isEmpty())
+        return ObjectContentFrame; // Go ahead and hope that we can display the content.
+
+    bool plugInSupportsMIMEType = PluginDatabase::installedPlugins()->isMIMETypeRegistered(mimeType);
+
+    if (MIMETypeRegistry::isSupportedImageMIMEType(mimeType))
+        return shouldPreferPlugInsForImages && plugInSupportsMIMEType ? WebCore::ObjectContentNetscapePlugin : WebCore::ObjectContentImage;
+
+    if (plugInSupportsMIMEType)
+        return WebCore::ObjectContentNetscapePlugin;
+
+    if (MIMETypeRegistry::isSupportedNonImageMIMEType(mimeType))
+        return WebCore::ObjectContentFrame;
+
+    return WebCore::ObjectContentNone;
 }
 
 void WebFrameLoaderClient::dispatchDidFailToStartPlugin(const PluginView* pluginView) const
@@ -1139,7 +1164,7 @@ void WebFrameLoaderClient::dispatchDidFailToStartPlugin(const PluginView* plugin
     resourceLoadDelegate->plugInFailedWithError(webView, error.get(), getWebDataSource(frame->loader().documentLoader()));
 }
 
-PassRefPtr<Widget> WebFrameLoaderClient::createPlugin(const IntSize& pluginSize, HTMLPlugInElement* element, const URL& url, const Vector<String>& paramNames, const Vector<String>& paramValues, const String& mimeType, bool loadManually)
+RefPtr<Widget> WebFrameLoaderClient::createPlugin(const IntSize& pluginSize, HTMLPlugInElement* element, const URL& url, const Vector<String>& paramNames, const Vector<String>& paramValues, const String& mimeType, bool loadManually)
 {
     WebView* webView = m_webFrame->webView();
 
@@ -1167,11 +1192,11 @@ PassRefPtr<Widget> WebFrameLoaderClient::createPlugin(const IntSize& pluginSize,
             COMPtr<IWebEmbeddedView> view;
             HRESULT result = uiPrivate->embeddedViewWithArguments(webView, m_webFrame, argumentsBag.get(), &view);
             if (SUCCEEDED(result)) {
-                OLE_HANDLE parentWindow;
+                HWND parentWindow;
                 HRESULT hr = webView->viewWindow(&parentWindow);
                 ASSERT(SUCCEEDED(hr));
 
-                return EmbeddedWidget::create(view.get(), element, reinterpret_cast<HWND>(parentWindow), pluginSize);
+                return EmbeddedWidget::create(view.get(), element, parentWindow, pluginSize);
             }
         }
     }
@@ -1184,7 +1209,7 @@ PassRefPtr<Widget> WebFrameLoaderClient::createPlugin(const IntSize& pluginSize,
 
     dispatchDidFailToStartPlugin(pluginView.get());
 
-    return 0;
+    return nullptr;
 }
 
 void WebFrameLoaderClient::redirectDataToPlugin(Widget* pluginWidget)
@@ -1271,7 +1296,7 @@ void WebFrameLoaderClient::registerForIconNotification(bool listen)
 
 PassRefPtr<FrameNetworkingContext> WebFrameLoaderClient::createNetworkingContext()
 {
-    return WebFrameNetworkingContext::create(core(m_webFrame), userAgent(m_webFrame->url()));
+    return WebFrameNetworkingContext::create(core(m_webFrame));
 }
 
 bool WebFrameLoaderClient::shouldAlwaysUsePluginDocument(const String& mimeType) const

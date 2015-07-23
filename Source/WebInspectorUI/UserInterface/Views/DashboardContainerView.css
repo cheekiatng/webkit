@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013, 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2013-2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,59 +26,40 @@
 .toolbar .dashboard-container {
     position: relative;
 
-    width: 375px;
-
     border-radius: 4px;
-    background-color: rgb(252, 252, 252);
-
-    box-shadow: rgba(0, 0, 0, 0.15) 0 1px 0, inset white 0 1px 0;
-
-    margin: 4px 10px;
+    margin: 4px;
     overflow: hidden;
 }
 
-body.mac-platform.legacy .toolbar .dashboard-container {
-    border: 1px solid rgb(163, 163, 163);
-    background-color: transparent;
-    box-shadow: rgba(255, 255, 255, 0.45) 0 0px 0;
+body.web .toolbar .dashboard-container {
+    width: 36vw;
+    min-width: 350px;
 }
 
-body.window-inactive .toolbar .dashboard-container {
-    border: 1px solid rgb(220, 220, 220);
-    background-color: rgb(246, 246, 246);
-    box-shadow: none;
-}
-
-body.mac-platform.legacy.window-inactive .toolbar .dashboard-container {
-    border: 1px solid rgb(196, 196, 196);
-    background-image: none;
-    background-color: rgb(239, 239, 239);
-    box-shadow: rgba(255, 255, 255, 0.45) 0 1px 0;
+body.javascript .toolbar .dashboard-container {
+    width: 25vw;
+    min-width: 175px;
 }
 
 .toolbar.collapsed .dashboard-container {
-    width: 175px;
+    min-width: 175px !important;
+    width: 175px !important;
 }
 
-.toolbar.small-size.icon-and-label-vertical .dashboard-container,
-.toolbar.normal-size.icon-and-label-vertical .dashboard-container {
+.toolbar.icon-and-label-vertical:matches(.small-size, .normal-size) .dashboard-container {
     margin-top: 6px;
 }
 
 /* Styles for the extra short style, one row with quite a small y-margin */
 
 .toolbar.label-only .dashboard-container,
-.toolbar.small-size.icon-only .dashboard-container,
-.toolbar.small-size.icon-and-label-vertical .dashboard-container,
-.toolbar.small-size.icon-and-label-horizontal .dashboard-container {
+.toolbar.small-size:matches(.icon-only, .icon-and-label-vertical, .icon-and-label-horizontal) .dashboard-container {
     height: 22px;
 }
 
 /* Styles for the fairly short style, one row with quite a bit of y-margin */
 
-.toolbar.normal-size.icon-only .dashboard-container,
-.toolbar.normal-size.icon-and-label-vertical .dashboard-container,
-.toolbar.normal-size.icon-and-label-horizontal .dashboard-container {
+.toolbar.normal-size:matches(.icon-only, .icon-and-label-vertical, .icon-and-label-horizontal) .dashboard-container {
     height: 30px;
 }
 
@@ -93,27 +74,7 @@ body.mac-platform.legacy.window-inactive .toolbar .dashboard-container {
 
     padding: 0 10px 0 5px;
 
-    background-color: rgb(252, 252, 252);
-    box-shadow: inset white 0 1px 0;
-
     -webkit-animation-duration: 0.4s;
-}
-
-body.window-inactive .toolbar .dashboard {
-    background-color: rgb(246, 246, 246);
-    box-shadow: none;
-}
-
-body.mac-platform.legacy .toolbar .dashboard,
-body.mac-platform.legacy.window-inactive .toolbar .dashboard {
-    background-image: linear-gradient(to bottom, rgba(0, 128, 255, 0), rgba(0, 128, 255, 0.075)),
-        linear-gradient(to right, rgba(0, 0, 0, 0.09), transparent, rgba(0, 0, 0, 0.09)),
-        linear-gradient(to bottom, rgb(240, 244, 251), rgb(250, 253, 255));
-    background-size: 100% 6px, auto, auto;
-    background-position: bottom, center, center;
-    background-repeat: no-repeat;
-    background-color: transparent;
-    box-shadow: none;
 }
 
 .toolbar .dashboard.visible {
@@ -121,7 +82,7 @@ body.mac-platform.legacy.window-inactive .toolbar .dashboard {
 }
 
 .toolbar .dashboard:not(.visible) {
-    opacity: 0;
+    display: none !important;
 }
 
 .toolbar .dashboard.slide-out-up {
@@ -162,10 +123,11 @@ body.mac-platform.legacy.window-inactive .toolbar .dashboard {
 
 .dashboard-container .advance-arrow {
     position: absolute;
-    right: 0px;
-    width: 10px;
-    height: 10px;
-    margin: 4px;
+    right: 0;
+    width: 12px;
+    top: 0;
+    bottom: 0;
+    padding: 4px 0;
     opacity: 0.6;
 
     z-index: 1000;
@@ -175,6 +137,7 @@ body.mac-platform.legacy.window-inactive .toolbar .dashboard {
 
     transition-property: opacity;
     transition-duration: 0.2s;
+    background-clip: content-box;
 }
 
 .dashboard-container .advance-arrow:hover {
@@ -199,10 +162,10 @@ body.mac-platform.legacy.window-inactive .toolbar .dashboard {
 
 .dashboard-container .advance-arrow.advance-forward {
     top: 0;
-    background-position: 0% 0%;
+    background-position: 50% 4px;
 }
 
 .dashboard-container .advance-arrow.advance-backward {
     bottom: 0;
-    background-position: 0% 100%;
+    background-position: 50% -4px;
 }

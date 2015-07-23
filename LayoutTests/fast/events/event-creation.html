@@ -17,6 +17,11 @@
     shouldBeTrue("document.createEvent('HTMLEvents') instanceof window.Event");
     shouldBeTrue("document.createEvent('HTMLEvents').constructor === window.Event");
 
+    // AnimationEvent
+    shouldBeTrue("document.createEvent('AnimationEvent') instanceof window.AnimationEvent");
+    shouldBeTrue("document.createEvent('AnimationEvent') instanceof window.Event");
+    shouldBeTrue("document.createEvent('AnimationEvent').constructor === window.AnimationEvent");
+
     // BeforeLoadEvent
     shouldBeTrue("document.createEvent('BeforeLoadEvent') instanceof window.BeforeLoadEvent");
     shouldBeTrue("document.createEvent('BeforeLoadEvent') instanceof window.Event");
@@ -227,6 +232,12 @@
     // OrientationEvent (Event alternative)
     // shouldBeTrue("document.createEvent('OrientationEvent') instanceof window.Event");
     // shouldBeTrue("document.createEvent('OrientationEvent').constructor === window.Event");
+
+    // #if ENABLE(REQUEST_AUTOCOMPLETE)
+    // AutocompleteErrorEvent
+    // shouldBeTrue("document.createEvent('AutocompleteErrorEvent') instanceof window.AutocompleteErrorEvent");
+    // shouldBeTrue("document.createEvent('AutocompleteErrorEvent') instanceof window.Event");
+    // shouldBeTrue("document.createEvent('AutocompleteErrorEvent').constructor === window.AutocompleteErrorEvent");
 
     // We test both a hard coded set and the automated set below (using enumeration) to ensure that a constructor being removed
     // from the window is caught a regression.

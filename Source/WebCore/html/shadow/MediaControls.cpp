@@ -48,7 +48,7 @@ MediaControls::MediaControls(Document& document)
     , m_volumeSlider(0)
     , m_toggleClosedCaptionsButton(0)
     , m_fullScreenButton(0)
-    , m_hideFullscreenControlsTimer(this, &MediaControls::hideFullscreenControlsTimerFired)
+    , m_hideFullscreenControlsTimer(*this, &MediaControls::hideFullscreenControlsTimerFired)
     , m_isFullscreen(false)
     , m_isMouseOverControls(false)
 {
@@ -330,7 +330,7 @@ void MediaControls::defaultEventHandler(Event* event)
     }
 }
 
-void MediaControls::hideFullscreenControlsTimerFired(Timer<MediaControls>&)
+void MediaControls::hideFullscreenControlsTimerFired()
 {
     if (m_mediaController->paused())
         return;
@@ -366,9 +366,9 @@ void MediaControls::stopHideFullscreenControlsTimer()
 
 bool MediaControls::containsRelatedTarget(Event* event)
 {
-    if (!event->isMouseEvent())
+    if (!is<MouseEvent>(*event))
         return false;
-    EventTarget* relatedTarget = toMouseEvent(event)->relatedTarget();
+    EventTarget* relatedTarget = downcast<MouseEvent>(*event).relatedTarget();
     if (!relatedTarget)
         return false;
     return contains(relatedTarget->toNode());

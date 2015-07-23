@@ -25,22 +25,26 @@
 #include "FrameLoader.h"
 #include "HTMLDocument.h"
 #include "JSCanvasRenderingContext2D.h"
-#if ENABLE(WEBGL)
-#include "JSWebGLRenderingContext.h"
-#endif
 #include "JSDOMWindowCustom.h"
 #include "JSHTMLDocument.h"
 #include "JSLocation.h"
+#include "JSNodeOrString.h"
 #include "JSSVGDocument.h"
-#include "JSTouch.h"
-#include "JSTouchList.h"
 #include "Location.h"
 #include "NodeTraversal.h"
-#include "ScriptController.h"
 #include "SVGDocument.h"
+#include "ScriptController.h"
 #include "TouchList.h"
-
 #include <wtf/GetPtr.h>
+
+#if ENABLE(WEBGL)
+#include "JSWebGLRenderingContextBase.h"
+#endif
+
+#if ENABLE(TOUCH_EVENTS)
+#include "JSTouch.h"
+#include "JSTouchList.h"
+#endif
 
 using namespace JSC;
 
@@ -56,7 +60,7 @@ JSValue JSDocument::location(ExecState* exec) const
     if (JSObject* wrapper = getCachedWrapper(globalObject()->world(), location.get()))
         return wrapper;
 
-    JSLocation* jsLocation = JSLocation::create(getDOMStructure<JSLocation>(exec->vm(), globalObject()), globalObject(), location.get());
+    JSLocation* jsLocation = JSLocation::create(getDOMStructure<JSLocation>(exec->vm(), globalObject()), globalObject(), *location);
     cacheWrapper(globalObject()->world(), location.get(), jsLocation);
     return jsLocation;
 }
@@ -103,13 +107,33 @@ JSValue toJS(ExecState* exec, JSDOMGlobalObject* globalObject, Document* documen
     // back/forward cache.
     if (!document->frame()) {
         size_t nodeCount = 0;
-        for (Node* n = document; n; n = NodeTraversal::next(n))
+        for (Node* n = document; n; n = NodeTraversal::next(*n))
             nodeCount++;
         
-        exec->heap()->reportExtraMemoryCost(nodeCount * sizeof(Node));
+        // FIXME: Adopt reportExtraMemoryVisited, and switch to reportExtraMemoryAllocated.
+        // https://bugs.webkit.org/show_bug.cgi?id=142595
+        exec->heap()->deprecatedReportExtraMemory(nodeCount * sizeof(Node));
     }
 
     return wrapper;
+}
+
+JSValue JSDocument::prepend(ExecState* state)
+{
+    ExceptionCode ec = 0;
+    impl().prepend(toNodeOrStringVector(*state), ec);
+    setDOMException(state, ec);
+
+    return jsUndefined();
+}
+
+JSValue JSDocument::append(ExecState* state)
+{
+    ExceptionCode ec = 0;
+    impl().append(toNodeOrStringVector(*state), ec);
+    setDOMException(state, ec);
+
+    return jsUndefined();
 }
 
 #if ENABLE(TOUCH_EVENTS)
@@ -118,7 +142,7 @@ JSValue JSDocument::createTouchList(ExecState* exec)
     RefPtr<TouchList> touchList = TouchList::create();
 
     for (size_t i = 0; i < exec->argumentCount(); i++)
-        touchList->append(toTouch(exec->argument(i)));
+        touchList->append(JSTouch::toWrapped(exec->argument(i)));
 
     return toJS(exec, globalObject(), touchList.release());
 }

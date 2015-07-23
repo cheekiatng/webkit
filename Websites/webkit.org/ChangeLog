@@ -1,3 +1,315 @@
+2015-07-22  Brent Fulgham  <bfulgham@apple.com>
+
+        Add some images needed for an upcoming blog post.
+
+        * blog-files/backdrop-filters: Added.
+        * blog-files/backdrop-filters/Screen_OSX_Yosemite_Finder-iCloud-WaterBg_1x.jpg: Added.
+        * blog-files/backdrop-filters/Screen_OSX_Yosemite_Finder-iCloud-WaterBg_2x.jpg: Added.
+        * blog-files/backdrop-filters/Screen_V_iOS8_ControlCenter_BlueGradient_1x.jpg: Added.
+        * blog-files/backdrop-filters/Screen_V_iOS8_ControlCenter_BlueGradient_2x.jpg: Added.
+        * blog-files/backdrop-filters/backdrop_correct_1x.jpg: Added.
+        * blog-files/backdrop-filters/backdrop_correct_2x.jpg: Added.
+        * blog-files/backdrop-filters/backdrop_invert_1x.jpg: Added.
+        * blog-files/backdrop-filters/backdrop_invert_2x.jpg: Added.
+        * blog-files/backdrop-filters/backdrop_mixed_1x.jpg: Added.
+        * blog-files/backdrop-filters/backdrop_mixed_2x.jpg: Added.
+
+2015-07-11  Timothy Hatcher  <timothy@apple.com>
+
+        Add some images for a blog post.
+
+        * blog-files/inspector-elements-network-tabs.png: Added.
+        * blog-files/inspector-tab-bar.png: Added.
+        * blog-files/inspector-tab-icons.svg: Added.
+
+2015-06-30  Jonathan Davis  <jond@apple.com>
+
+        Added WebKit feature status page to navigation.
+
+        Reviewed by Timothy Hatcher.
+
+        * nav.inc:
+
+2015-06-24  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Add some images for a blog post.
+
+        * blog-files/console-improvements/array-api.png: Added.
+        * blog-files/console-improvements/collections.png: Added.
+        * blog-files/console-improvements/console-messages.png: Added.
+        * blog-files/console-improvements/interactivity.m4v: Added.
+        * blog-files/console-improvements/iterators.png: Added.
+        * blog-files/console-improvements/localStorage-api.png: Added.
+        * blog-files/console-improvements/object-preview.png: Added.
+        * blog-files/console-improvements/object-tree.png: Added.
+        * blog-files/console-improvements/promises.png: Added.
+        * blog-files/console-improvements/tooltip-1.png: Added.
+        * blog-files/console-improvements/tooltip-2.png: Added.
+
+2015-06-19  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Remove unnecessary svn:executable flags
+        https://bugs.webkit.org/show_bug.cgi?id=146107
+
+        Reviewed by Alexey Proskuryakov.
+
+        * blog-files/inspector/css_as_authored.png: Removed property svn:executable.
+        * blog-files/inspector/css_autocomplete.png: Removed property svn:executable.
+        * blog-files/inspector/css_rule_diff.png: Removed property svn:executable.
+        * blog-files/inspector/css_unknown_properties.png: Removed property svn:executable.
+        * blog-files/inspector/warning_10x10.png: Removed property svn:executable.
+        * demos/regions/pizza-regions-manifesto-regionstyling.html: Removed property svn:executable.
+        * demos/regions/pizza-regions-manifesto.html: Removed property svn:executable.
+        * demos/regions/yellow-pizza.jpg: Removed property svn:executable.
+
+2015-05-20  Jon Davis  <jond@apple.com>
+
+        Upgrading WordPress to 4.2.2 release.
+
+        Rubber-stamped by Timothy Hatcher.
+
+        * Websites/webkit.org/blog/:
+        * Websites/webkit.org/blcd Tog/wp-admin/:
+        * Websites/webkit.org/blog/wp-admin/css/:
+        * Websites/webkit.org/blog/wp-admin/css/colors/:
+        * Websites/webkit.org/blog/wp-admin/images/:
+        * Websites/webkit.org/blog/wp-admin/includes/:
+        * Websites/webkit.org/blog/wp-admin/js/:
+        * Websites/webkit.org/blog/wp-admin/maint/:
+        * Websites/webkit.org/blog/wp-admin/network/:
+        * Websites/webkit.org/blog/wp-admin/user/:
+        * Websites/webkit.org/blog/wp-includes/:
+        * Websites/webkit.org/blog/wp-includes/ID3/:
+        * Websites/webkit.org/blog/wp-includes/SimplePie/:
+        * Websites/webkit.org/blog/wp-includes/Text/:
+        * Websites/webkit.org/blog/wp-includes/certificates/:
+        * Websites/webkit.org/blog/wp-includes/css/:
+        * Websites/webkit.org/blog/wp-includes/fonts/:
+        * Websites/webkit.org/blog/wp-includes/images/:
+        * Websites/webkit.org/blog/wp-includes/js/:
+        * Websites/webkit.org/blog/wp-includes/pomo/:
+        * Websites/webkit.org/blog/wp-includes/theme-compat/:
+
+2015-04-28  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Fix the link noted 'contribute to features' in status.html
+        https://bugs.webkit.org/show_bug.cgi?id=144331
+
+        Reviewed by Csaba Osztrogonác.
+
+        Fix the href of the link to http://www.webkit.org/coding/contributing.html.
+
+        * status.html:
+
+2015-04-28  Ryuan Choi  <ryuan.choi@navercorp.com>
+
+        Add naver to team.html
+        https://bugs.webkit.org/show_bug.cgi?id=144298
+
+        Reviewed by Gyuyoung Kim.
+
+        * team.html:
+
+2015-04-27  Benjamin Poulain  <bpoulain@apple.com>
+
+        Status page: fix the email links
+
+        * status.html:
+
+2015-04-26  Benjamin Poulain  <benjamin@webkit.org>
+
+        Improve the status page
+        https://bugs.webkit.org/show_bug.cgi?id=144248
+
+        Reviewed by Darin Adler.
+
+        * status.html:
+        Lots of minor changes:
+        -Add a page title.
+        -Do not use sync XHR. That was nice for testing but that's eveil
+         and it breaks Firefox.
+        -Start fetching the json files as soon as possible during page load,
+         that server takes forever to respond.
+        -Remove some useless CSS.
+        -Get rid of mustache. That template thing was awesome but it took
+         up to 600ms to fetch the file (plus it is not exactly efficient).
+        -Put both the specifications and the features in the list.
+         They are referencing each other with links. That seems to work pretty well.
+        -Use the keywords for filtering.
+
+2015-04-26  Benjamin Poulain  <benjamin@webkit.org>, Chris Bateman  <chrisb808@gmail.com>
+
+        Start a basic status page on webkit.org
+        https://bugs.webkit.org/show_bug.cgi?id=143940
+
+        Reviewed by Darin Adler.
+
+        * status.html: Added.
+        Nothing fancy, for now just show the "features" list of the two features.json
+
+2015-04-19  Dan Bernstein  <mitz@apple.com>
+
+        Fixed a typo.
+
+        * coding/RefPtr.html:
+
+2015-04-19  Darin Adler  <darin@apple.com>
+
+        Update RefPtr documentation and deprecation
+        https://bugs.webkit.org/show_bug.cgi?id=143936
+
+        Reviewed by Andreas Kling.
+
+        * coding/RefPtr.html: Updated.
+
+2015-03-10  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Fix warning about loading insecure content from secure webkit.org/blog
+        https://bugs.webkit.org/show_bug.cgi?id=142545
+
+        Reviewed by Mark Rowe.
+
+        * blog/wp-content/themes/webkit/footer.php:
+        Use an "https" URL for the subresource, instead of "http".
+
+2015-02-20  Alexey Proskuryakov  <ap@apple.com>
+
+        Remove svn:keywords property.
+
+        As far as I can tell, the property had no effect on any of these files, but also,
+        when it has effect it's likely harmful.
+
+        * demos/srcset/index.html: Removed property svn:keywords.
+        * specs/index.html: Removed property svn:keywords.
+
+2015-02-13  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Unreviewed, remove empty directories.
+
+        * blog/wp-includes/js/codepress: Removed.
+
+2015-02-03  Byungseon Shin  <sun.shin@webkit.org>
+
+        Add LG Electronics to team.html
+        https://bugs.webkit.org/show_bug.cgi?id=141227
+
+        Reviewed by Andreas Kling.
+
+        * team.html:
+
+2015-01-30  Chris Dumez  <cdumez@apple.com>
+
+        Add "Singleton pattern" section to the WebKit coding style
+        https://bugs.webkit.org/show_bug.cgi?id=141040
+
+        Reviewed by Ryosuke Niwa.
+
+        Add "Singleton pattern" section to the WebKit coding style to document
+        what was discussed on webkit-dev:
+        https://lists.webkit.org/pipermail/webkit-dev/2015-January/027199.html
+
+        * coding/coding-style.html:
+
+2015-01-27  Daniel Bates  <dabates@apple.com>
+
+        Update Xcode requirement and add instructions to build, run, and debug WebKit for iOS Simulator
+
+        Reviewed by David Kilzer.
+
+        * building/build.html: Added instructions to build WebKit for iOS Simulator.
+        * building/debug.html: Added some instructions to debug the UIProcess and WebProcess
+        in the iOS Simulator using command line tools. We should look to add Xcode instructions
+        and simplify these steps once we teach debug-safari about the iOS Simulator.
+        * building/run.html: Added remark to run Safari in the iOS Simulator.
+        * building/tools.html: Require Xcode 6.1.1 (for the iOS 8.1 SDK) to build for iOS Simulator.
+        * css/main.css: Define the .ios-instructions class with the same style as other .*-instructions classes.
+
+2014-09-27  Dan Bernstein  <mitz@apple.com>
+
+        WebKit top of tree sources won't build in 10.9 w/ Xcode 6.0.1
+        https://bugs.webkit.org/show_bug.cgi?id=137053
+
+        Reviewed by Mark Rowe.
+
+        * building/build.html: Removed instructions how to work around this bug, now that it’s fixed.
+
+2014-09-26  Alexey Proskuryakov  <ap@apple.com>
+
+        WebKit top of tree sources won't build in 10.9 w/ Xcode 6.0.1
+        https://bugs.webkit.org/show_bug.cgi?id=137053
+
+        Patch by David Gatwood. Reviewed, tweaked and landed by Alexey Proskuryakov.
+
+        Explain that to build from Xcode, one needs to build from command line once first.
+
+        Removed a Windows section that explained how to launch cygwin shell, which was
+        silly given that we then link to a long document explaining further steps.
+
+        * building/build.html:
+
+2014-09-24  Langó László  <llango.u-szeged@partner.samsung.com>
+
+        Update the list of u-szeged contributors.
+
+        Rubber-stamped by Csaba Osztrogonác <ossy@webkit.org>.
+
+        * team.html:
+
+2014-09-18  Dean Jackson  <dino@apple.com>
+
+        Expand the srcset demo to have 3x and 4x images.
+
+        Unreviewed.
+
+        * demos/srcset/image-1x.png:
+        * demos/srcset/image-2x.png:
+        * demos/srcset/image-3x.png: Added.
+        * demos/srcset/image-4x.png: Added.
+        * demos/srcset/index.html:
+
+2014-08-27  Conrad Shultz  <conrad_shultz@apple.com>
+
+        webkit.org is inconsistent in uses of "OS X" vs. "Mac OS X"
+        https://bugs.webkit.org/show_bug.cgi?id=136315
+
+        Reviewed by Mark Rowe.
+
+        * building/checkout.html:
+        * building/debug-mac-uiprocess.html:
+        * building/debug.html:
+        * building/run.html:
+        * building/tools.html:
+        * contact.html:
+        * index.html:
+        * projects/javascript/index.html:
+        * projects/svg/index.html:
+        * quality/bugwriting.html:
+        * quality/crashlogs.html:
+        * quality/leakhunting.html:
+        * quality/lifecycle.html:
+        * quality/testing.html:
+
+2014-08-27  László Langó  <llango.u-szeged@partner.samsung.com>
+
+        http://webkit.org/coding/coding-style.html should mention check-webkit-style.
+        https://bugs.webkit.org/show_bug.cgi?id=31993
+
+        Reviewed by Darin Adler.
+
+        Based on patch by Peter Szanka <h868064@stud.u-szeged.hu>
+
+        * coding/contributing.html:
+        Extend the description of code style guidelines with check-webkit-style in the contributing.html.
+
+2014-08-18  Bem Jones-Bey  <bjonesbe@adobe.com>
+
+        Remove people that have left Adobe from Security Contact list
+        https://bugs.webkit.org/show_bug.cgi?id=135256
+
+        Reviewed by Alexey Proskuryakov.
+
+        * security/security-group-members.html:
+
 2014-08-06  peavo@outlook.com  <peavo@outlook.com>
 
         [Win] Build error when OFFICIAL_BUILD != 1.

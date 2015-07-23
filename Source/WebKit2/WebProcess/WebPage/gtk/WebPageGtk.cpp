@@ -28,6 +28,7 @@
 #include "config.h"
 #include "WebPage.h"
 
+#include "EditorState.h"
 #include "NotImplemented.h"
 #include "WebEvent.h"
 #include "WebPageAccessibilityObject.h"
@@ -37,13 +38,14 @@
 #include <WebCore/EventHandler.h>
 #include <WebCore/FocusController.h>
 #include <WebCore/Frame.h>
+#include <WebCore/FrameView.h>
 #include <WebCore/KeyboardEvent.h>
 #include <WebCore/Page.h>
 #include <WebCore/PasteboardHelper.h>
 #include <WebCore/PlatformKeyboardEvent.h>
 #include <WebCore/Settings.h>
 #include <WebCore/UserAgentGtk.h>
-#include <wtf/gobject/GUniquePtr.h>
+#include <wtf/glib/GUniquePtr.h>
 
 using namespace WebCore;
 
@@ -60,14 +62,46 @@ void WebPage::platformInitialize()
     GUniquePtr<gchar> plugID(atk_plug_get_id(ATK_PLUG(m_accessibilityObject.get())));
     send(Messages::WebPageProxy::BindAccessibilityTree(String(plugID.get())));
 #endif
-
-#if USE(TEXTURE_MAPPER_GL)
-    m_nativeWindowHandle = 0;
-#endif
 }
 
 void WebPage::platformDetach()
 {
+}
+
+void WebPage::platformEditorState(Frame& frame, EditorState& result, IncludePostLayoutDataHint shouldIncludePostLayoutData) const
+{
+    if (shouldIncludePostLayoutData == IncludePostLayoutDataHint::No) {
+        result.isMissingPostLayoutData = true;
+        return;
+    }
+
+    auto& postLayoutData = result.postLayoutData();
+    postLayoutData.caretRectAtStart = frame.selection().absoluteCaretBounds();
+
+    const VisibleSelection& selection = frame.selection().selection();
+    if (selection.isNone())
+        return;
+
+    const Editor& editor = frame.editor();
+    if (selection.isRange()) {
+        if (editor.selectionHasStyle(CSSPropertyFontWeight, "bold") == TrueTriState)
+            postLayoutData.typingAttributes |= AttributeBold;
+        if (editor.selectionHasStyle(CSSPropertyFontStyle, "italic") == TrueTriState)
+            postLayoutData.typingAttributes |= AttributeItalics;
+        if (editor.selectionHasStyle(CSSPropertyWebkitTextDecorationsInEffect, "underline") == TrueTriState)
+            postLayoutData.typingAttributes |= AttributeUnderline;
+        if (editor.selectionHasStyle(CSSPropertyWebkitTextDecorationsInEffect, "line-through") == TrueTriState)
+            postLayoutData.typingAttributes |= AttributeStrikeThrough;
+    } else if (selection.isCaret()) {
+        if (editor.selectionStartHasStyle(CSSPropertyFontWeight, "bold"))
+            postLayoutData.typingAttributes |= AttributeBold;
+        if (editor.selectionStartHasStyle(CSSPropertyFontStyle, "italic"))
+            postLayoutData.typingAttributes |= AttributeItalics;
+        if (editor.selectionStartHasStyle(CSSPropertyWebkitTextDecorationsInEffect, "underline"))
+            postLayoutData.typingAttributes |= AttributeUnderline;
+        if (editor.selectionStartHasStyle(CSSPropertyWebkitTextDecorationsInEffect, "line-through"))
+            postLayoutData.typingAttributes |= AttributeStrikeThrough;
+    }
 }
 
 #if HAVE(ACCESSIBILITY)
@@ -85,23 +119,12 @@ void WebPage::platformPreferencesDidChange(const WebPreferencesStore&)
     notImplemented();
 }
 
-static inline void scroll(Page* page, ScrollDirection direction, ScrollGranularity granularity)
-{
-    page->focusController().focusedOrMainFrame().eventHandler().scrollRecursively(direction, granularity);
-}
-
 bool WebPage::performDefaultBehaviorForKeyEvent(const WebKeyboardEvent& keyboardEvent)
 {
     if (keyboardEvent.type() != WebEvent::KeyDown && keyboardEvent.type() != WebEvent::RawKeyDown)
         return false;
 
     switch (keyboardEvent.windowsVirtualKeyCode()) {
-    case VK_BACK:
-        if (keyboardEvent.shiftKey())
-            m_page->backForward().goForward();
-        else
-            m_page->backForward().goBack();
-        break;
     case VK_SPACE:
         scroll(m_page.get(), keyboardEvent.shiftKey() ? ScrollUp : ScrollDown, ScrollByPage);
         break;
@@ -166,12 +189,6 @@ PassRefPtr<SharedBuffer> WebPage::cachedResponseDataForURL(const URL&)
     return 0;
 }
 
-#if USE(TEXTURE_MAPPER_GL)
-void WebPage::setAcceleratedCompositingWindowId(uint64_t nativeWindowHandle)
-{
-    m_nativeWindowHandle = nativeWindowHandle;
-}
-#endif
 
 String WebPage::platformUserAgent(const URL& url) const
 {
@@ -179,6 +196,24 @@ String WebPage::platformUserAgent(const URL& url) const
         return String();
 
     return WebCore::standardUserAgentForURL(url);
+}
+
+#if HAVE(GTK_GESTURES)
+void WebPage::getCenterForZoomGesture(const IntPoint& centerInViewCoordinates, IntPoint& result)
+{
+    result = mainFrameView()->rootViewToContents(centerInViewCoordinates);
+    double scale = m_page->pageScaleFactor();
+    result.scale(1 / scale, 1 / scale);
+}
+#endif
+
+void WebPage::setInputMethodState(bool enabled)
+{
+    if (m_inputMethodEnabled == enabled)
+        return;
+
+    m_inputMethodEnabled = enabled;
+    send(Messages::WebPageProxy::SetInputMethodState(enabled));
 }
 
 } // namespace WebKit

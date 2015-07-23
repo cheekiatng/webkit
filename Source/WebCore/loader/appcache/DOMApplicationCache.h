@@ -32,7 +32,6 @@
 #include "ScriptWrappable.h"
 #include <wtf/Forward.h>
 #include <wtf/HashMap.h>
-#include <wtf/PassRefPtr.h>
 #include <wtf/RefCounted.h>
 #include <wtf/Vector.h>
 #include <wtf/text/AtomicStringHash.h>
@@ -44,7 +43,7 @@ class URL;
 
 class DOMApplicationCache final : public ScriptWrappable, public RefCounted<DOMApplicationCache>, public EventTargetWithInlineData, public DOMWindowProperty {
 public:
-    static PassRefPtr<DOMApplicationCache> create(Frame* frame) { return adoptRef(new DOMApplicationCache(frame)); }
+    static Ref<DOMApplicationCache> create(Frame* frame) { return adoptRef(*new DOMApplicationCache(frame)); }
     virtual ~DOMApplicationCache() { ASSERT(!m_frame); }
 
     virtual void disconnectFrameForPageCache() override;
@@ -58,17 +57,6 @@ public:
 
     using RefCounted<DOMApplicationCache>::ref;
     using RefCounted<DOMApplicationCache>::deref;
-
-    // Explicitly named attribute event listener helpers
-
-    DEFINE_ATTRIBUTE_EVENT_LISTENER(checking);
-    DEFINE_ATTRIBUTE_EVENT_LISTENER(error);
-    DEFINE_ATTRIBUTE_EVENT_LISTENER(noupdate);
-    DEFINE_ATTRIBUTE_EVENT_LISTENER(downloading);
-    DEFINE_ATTRIBUTE_EVENT_LISTENER(progress);
-    DEFINE_ATTRIBUTE_EVENT_LISTENER(updateready);
-    DEFINE_ATTRIBUTE_EVENT_LISTENER(cached);
-    DEFINE_ATTRIBUTE_EVENT_LISTENER(obsolete);
 
     virtual EventTargetInterface eventTargetInterface() const override { return DOMApplicationCacheEventTargetInterfaceType; }
     virtual ScriptExecutionContext* scriptExecutionContext() const override;

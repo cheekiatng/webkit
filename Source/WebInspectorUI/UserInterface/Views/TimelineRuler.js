@@ -25,17 +25,18 @@
 
 WebInspector.TimelineRuler = function()
 {
-    WebInspector.Object.call(this);
+    // FIXME: Convert this to a WebInspector.Object subclass, and call super().
+    // WebInspector.Object.call(this);
 
     this._element = document.createElement("div");
-    this._element.className = WebInspector.TimelineRuler.StyleClassName;
+    this._element.className = "timeline-ruler";
 
     this._headerElement = document.createElement("div");
-    this._headerElement.className = WebInspector.TimelineRuler.HeaderElementStyleClassName;
+    this._headerElement.className = "header";
     this._element.appendChild(this._headerElement);
 
     this._markersElement = document.createElement("div");
-    this._markersElement.className = WebInspector.TimelineRuler.MarkersElementStyleClassName;
+    this._markersElement.className = "markers";
     this._element.appendChild(this._markersElement);
 
     this._zeroTime = 0;
@@ -48,27 +49,21 @@ WebInspector.TimelineRuler = function()
     this._endTimePinned = false;
     this._allowsClippedLabels = false;
     this._allowsTimeRangeSelection = false;
+    this._minimumSelectionDuration = 0.01;
+    this._formatLabelCallback = null;
+    this._suppressNextTimeRangeSelectionChangedEvent = false;
+    this._timeRangeSelectionChanged = false;
 
     this._markerElementMap = new Map;
-}
+};
 
 WebInspector.TimelineRuler.MinimumLeftDividerSpacing = 48;
 WebInspector.TimelineRuler.MinimumDividerSpacing = 64;
 
-WebInspector.TimelineRuler.StyleClassName = "timeline-ruler";
 WebInspector.TimelineRuler.AllowsTimeRangeSelectionStyleClassName = "allows-time-range-selection";
-WebInspector.TimelineRuler.HeaderElementStyleClassName = "header";
+WebInspector.TimelineRuler.CreatingSelectionStyleClassName = "creating-selection";
 WebInspector.TimelineRuler.DividerElementStyleClassName = "divider";
 WebInspector.TimelineRuler.DividerLabelElementStyleClassName = "label";
-
-WebInspector.TimelineRuler.MarkersElementStyleClassName = "markers";
-WebInspector.TimelineRuler.BaseMarkerElementStyleClassName = "marker";
-WebInspector.TimelineRuler.ShadedAreaElementStyleClassName = "shaded-area";
-WebInspector.TimelineRuler.SelectionDragElementStyleClassName = "selection-drag";
-WebInspector.TimelineRuler.SelectionHandleElementStyleClassName = "selection-handle";
-WebInspector.TimelineRuler.LeftSelectionElementStyleClassName = "left";
-WebInspector.TimelineRuler.RightSelectionElementStyleClassName = "right";
-WebInspector.TimelineRuler.MinimumSelectionTimeRange = 0.01;
 
 WebInspector.TimelineRuler.Event = {
     TimeRangeSelectionChanged: "time-ruler-time-range-selection-changed"
@@ -86,7 +81,7 @@ WebInspector.TimelineRuler.prototype = {
 
     get allowsClippedLabels()
     {
-        return this._allowsClippedLabels
+        return this._allowsClippedLabels;
     },
 
     set allowsClippedLabels(x)
@@ -95,6 +90,18 @@ WebInspector.TimelineRuler.prototype = {
             return;
 
         this._allowsClippedLabels = x || false;
+
+        this._needsLayout();
+    },
+
+    set formatLabelCallback(x)
+    {
+        console.assert(typeof x === "function" || !x, x);
+
+        if (this._formatLabelCallback === x)
+            return;
+
+        this._formatLabelCallback = x || null;
 
         this._needsLayout();
     },
@@ -116,25 +123,25 @@ WebInspector.TimelineRuler.prototype = {
             this._element.addEventListener("mousedown", this._mouseDownEventListener);
 
             this._leftShadedAreaElement = document.createElement("div");
-            this._leftShadedAreaElement.classList.add(WebInspector.TimelineRuler.ShadedAreaElementStyleClassName);
-            this._leftShadedAreaElement.classList.add(WebInspector.TimelineRuler.LeftSelectionElementStyleClassName);
+            this._leftShadedAreaElement.classList.add("shaded-area");
+            this._leftShadedAreaElement.classList.add("left");
 
             this._rightShadedAreaElement = document.createElement("div");
-            this._rightShadedAreaElement.classList.add(WebInspector.TimelineRuler.ShadedAreaElementStyleClassName);
-            this._rightShadedAreaElement.classList.add(WebInspector.TimelineRuler.RightSelectionElementStyleClassName);
+            this._rightShadedAreaElement.classList.add("shaded-area");
+            this._rightShadedAreaElement.classList.add("right");
 
             this._leftSelectionHandleElement = document.createElement("div");
-            this._leftSelectionHandleElement.classList.add(WebInspector.TimelineRuler.SelectionHandleElementStyleClassName);
-            this._leftSelectionHandleElement.classList.add(WebInspector.TimelineRuler.LeftSelectionElementStyleClassName);
+            this._leftSelectionHandleElement.classList.add("selection-handle");
+            this._leftSelectionHandleElement.classList.add("left");
             this._leftSelectionHandleElement.addEventListener("mousedown", this._handleSelectionHandleMouseDown.bind(this));
 
             this._rightSelectionHandleElement = document.createElement("div");
-            this._rightSelectionHandleElement.classList.add(WebInspector.TimelineRuler.SelectionHandleElementStyleClassName);
-            this._rightSelectionHandleElement.classList.add(WebInspector.TimelineRuler.RightSelectionElementStyleClassName);
+            this._rightSelectionHandleElement.classList.add("selection-handle");
+            this._rightSelectionHandleElement.classList.add("right");
             this._rightSelectionHandleElement.addEventListener("mousedown", this._handleSelectionHandleMouseDown.bind(this));
 
             this._selectionDragElement = document.createElement("div");
-            this._selectionDragElement.classList.add(WebInspector.TimelineRuler.SelectionDragElementStyleClassName);
+            this._selectionDragElement.classList.add("selection-drag");
 
             this._needsSelectionLayout();
         } else {
@@ -153,6 +160,16 @@ WebInspector.TimelineRuler.prototype = {
             delete this._rightSelectionHandleElement;
             delete this._selectionDragElement;
         }
+    },
+
+    get minimumSelectionDuration()
+    {
+        return this._minimumSelectionDuration;
+    },
+
+    set minimumSelectionDuration(x)
+    {
+        this._minimumSelectionDuration = x;
     },
 
     get zeroTime()
@@ -248,6 +265,19 @@ WebInspector.TimelineRuler.prototype = {
         this._needsLayout();
     },
 
+    get snapInterval()
+    {
+        return this._snapInterval;
+    },
+
+    set snapInterval(x)
+    {
+        if (this._snapInterval === x)
+            return;
+
+        this._snapInterval = x;
+    },
+
     get selectionStartTime()
     {
         return this._selectionStartTime;
@@ -255,6 +285,7 @@ WebInspector.TimelineRuler.prototype = {
 
     set selectionStartTime(x)
     {
+        x = this._snapValue(x);
         if (this._selectionStartTime === x)
             return;
 
@@ -271,6 +302,7 @@ WebInspector.TimelineRuler.prototype = {
 
     set selectionEndTime(x)
     {
+        x = this._snapValue(x);
         if (this._selectionEndTime === x)
             return;
 
@@ -290,8 +322,7 @@ WebInspector.TimelineRuler.prototype = {
         marker.addEventListener(WebInspector.TimelineMarker.Event.TimeChanged, this._timelineMarkerTimeChanged, this);
 
         var markerElement = document.createElement("div");
-        markerElement.classList.add(WebInspector.TimelineRuler.BaseMarkerElementStyleClassName);
-        markerElement.classList.add(marker.type);
+        markerElement.classList.add(marker.type, "marker");
 
         this._markerElementMap.set(marker, markerElement);
 
@@ -348,6 +379,16 @@ WebInspector.TimelineRuler.prototype = {
         if (!this._endTimePinned)
             ++dividerCount;
 
+        var dividerData = {
+            count: dividerCount,
+            firstTime: firstDividerTime,
+            lastTime: lastDividerTime,
+        };
+
+        if (Object.shallowEqual(dividerData, this._currentDividers))
+            return;
+        this._currentDividers = dividerData;
+
         var markerDividers = this._markersElement.querySelectorAll("." + WebInspector.TimelineRuler.DividerElementStyleClassName);
 
         var dividerElement = this._headerElement.firstChild;
@@ -360,7 +401,6 @@ WebInspector.TimelineRuler.prototype = {
 
                 var labelElement = document.createElement("div");
                 labelElement.className = WebInspector.TimelineRuler.DividerLabelElementStyleClassName;
-                dividerElement._labelElement = labelElement;
                 dividerElement.appendChild(labelElement);
             }
 
@@ -392,7 +432,9 @@ WebInspector.TimelineRuler.prototype = {
             this._updatePositionOfElement(dividerElement, newLeftPosition, visibleWidth);
             this._updatePositionOfElement(markerDividerElement, newLeftPosition, visibleWidth);
 
-            dividerElement._labelElement.textContent = isNaN(dividerTime) ? "" : Number.secondsToString(dividerTime - this._zeroTime, true);
+            console.assert(dividerElement.firstChild.classList.contains(WebInspector.TimelineRuler.DividerLabelElementStyleClassName));
+
+            dividerElement.firstChild.textContent = isNaN(dividerTime) ? "" : this._formatDividerLabelText(dividerTime - this._zeroTime);
             dividerElement = dividerElement.nextSibling;
         }
 
@@ -577,16 +619,36 @@ WebInspector.TimelineRuler.prototype = {
             this._element.appendChild(this._rightSelectionHandleElement);
         }
 
-        if (this._timeRangeSelectionChanged)
-            this._dispatchTimeRangeSelectionChangedEvent();
+        this._dispatchTimeRangeSelectionChangedEvent();
+    },
+
+    _formatDividerLabelText: function(value)
+    {
+        if (this._formatLabelCallback)
+            return this._formatLabelCallback(value);
+
+        return Number.secondsToString(value, true);
+    },
+
+    _snapValue: function(value)
+    {
+        if (!value || !this.snapInterval)
+            return value;
+
+        return Math.round(value / this.snapInterval) * this.snapInterval;
     },
 
     _dispatchTimeRangeSelectionChangedEvent: function()
     {
-        delete this._timeRangeSelectionChanged;
-
-        if (this._suppressTimeRangeSelectionChangedEvent)
+        if (!this._timeRangeSelectionChanged)
             return;
+
+        if (this._suppressNextTimeRangeSelectionChangedEvent) {
+            this._suppressNextTimeRangeSelectionChangedEvent = false;
+            return;
+        }
+
+        this._timeRangeSelectionChanged = false;
 
         this.dispatchEventToListeners(WebInspector.TimelineRuler.Event.TimeRangeSelectionChanged);
     },
@@ -603,12 +665,15 @@ WebInspector.TimelineRuler.prototype = {
             return;
 
         this._selectionIsMove = event.target === this._selectionDragElement;
-        this._suppressTimeRangeSelectionChangedEvent = !this._selectionIsMove;
+        this._rulerBoundingClientRect = this._element.getBoundingClientRect();
 
-        if (this._selectionIsMove)
+        if (this._selectionIsMove) {
             this._lastMousePosition = event.pageX;
-        else
-            this._mouseDownPosition = event.pageX - this._element.totalOffsetLeft;
+            var selectionDragElementRect = this._selectionDragElement.getBoundingClientRect();
+            this._moveSelectionMaximumLeftOffset = this._rulerBoundingClientRect.left + (event.pageX - selectionDragElementRect.left);
+            this._moveSelectionMaximumRightOffset = this._rulerBoundingClientRect.right - (selectionDragElementRect.right - event.pageX);
+        } else
+            this._mouseDownPosition = event.pageX - this._rulerBoundingClientRect.left;
 
         this._mouseMoveEventListener = this._handleMouseMove.bind(this);
         this._mouseUpEventListener = this._handleMouseUp.bind(this);
@@ -625,21 +690,39 @@ WebInspector.TimelineRuler.prototype = {
     {
         console.assert(event.button === 0);
 
+        this._suppressNextTimeRangeSelectionChangedEvent = !this._selectionIsMove;
+
         if (this._selectionIsMove) {
-            var currentMousePosition = event.pageX;
+            var currentMousePosition = Math.max(this._moveSelectionMaximumLeftOffset, Math.min(this._moveSelectionMaximumRightOffset, event.pageX));
 
             var offsetTime = (currentMousePosition - this._lastMousePosition) * this.secondsPerPixel;
             var selectionDuration = this.selectionEndTime - this.selectionStartTime;
+            var oldSelectionStartTime = this.selectionStartTime;
 
             this.selectionStartTime = Math.max(this.startTime, Math.min(this.selectionStartTime + offsetTime, this.endTime - selectionDuration));
             this.selectionEndTime = this.selectionStartTime + selectionDuration;
 
+            if (this.snapInterval) {
+                // When snapping we need to check the mouse position delta relative to the last snap, rather than the
+                // last mouse move. If a snap occurs we adjust for the amount the cursor drifted, so that the mouse
+                // position relative to the selection remains constant.
+                var snapOffset = this.selectionStartTime - oldSelectionStartTime;
+                if (!snapOffset)
+                    return;
+
+                var positionDrift = (offsetTime - snapOffset * this.snapInterval) / this.secondsPerPixel;
+                currentMousePosition -= positionDrift;
+            }
+
             this._lastMousePosition = currentMousePosition;
         } else {
-            var currentMousePosition = event.pageX - this._element.totalOffsetLeft;
+            var currentMousePosition = event.pageX - this._rulerBoundingClientRect.left;
 
             this.selectionStartTime = Math.max(this.startTime, this.startTime + (Math.min(currentMousePosition, this._mouseDownPosition) * this.secondsPerPixel));
             this.selectionEndTime = Math.min(this.startTime + (Math.max(currentMousePosition, this._mouseDownPosition) * this.secondsPerPixel), this.endTime);
+
+            // Turn on col-resize cursor style once dragging begins, rather than on the initial mouse down.
+            this._element.classList.add(WebInspector.TimelineRuler.CreatingSelectionStyleClassName);
         }
 
         this._updateSelection(this._element.clientWidth, this.duration);
@@ -652,19 +735,21 @@ WebInspector.TimelineRuler.prototype = {
     {
         console.assert(event.button === 0);
 
-        if (!this._selectionIsMove && this.selectionEndTime - this.selectionStartTime < WebInspector.TimelineRuler.MinimumSelectionTimeRange) {
-            // The section is smaller than allowed, grow in the direction of the drag to meet the minumum.
-            var currentMousePosition = event.pageX - this._element.totalOffsetLeft;
-            if (currentMousePosition > this._mouseDownPosition) {
-                this.selectionEndTime = Math.min(this.selectionStartTime + WebInspector.TimelineRuler.MinimumSelectionTimeRange, this.endTime);
-                this.selectionStartTime = this.selectionEndTime - WebInspector.TimelineRuler.MinimumSelectionTimeRange;
-            } else {
-                this.selectionStartTime = Math.max(this.startTime, this.selectionEndTime - WebInspector.TimelineRuler.MinimumSelectionTimeRange);
-                this.selectionEndTime = this.selectionStartTime + WebInspector.TimelineRuler.MinimumSelectionTimeRange
+        if (!this._selectionIsMove) {
+            this._element.classList.remove(WebInspector.TimelineRuler.CreatingSelectionStyleClassName);
+
+            if (this.selectionEndTime - this.selectionStartTime < this.minimumSelectionDuration) {
+                // The section is smaller than allowed, grow in the direction of the drag to meet the minumum.
+                var currentMousePosition = event.pageX - this._rulerBoundingClientRect.left;
+                if (currentMousePosition > this._mouseDownPosition) {
+                    this.selectionEndTime = Math.min(this.selectionStartTime + this.minimumSelectionDuration, this.endTime);
+                    this.selectionStartTime = this.selectionEndTime - this.minimumSelectionDuration;
+                } else {
+                    this.selectionStartTime = Math.max(this.startTime, this.selectionEndTime - this.minimumSelectionDuration);
+                    this.selectionEndTime = this.selectionStartTime + this.minimumSelectionDuration;
+                }
             }
         }
-
-        delete this._suppressTimeRangeSelectionChangedEvent;
 
         this._dispatchTimeRangeSelectionChangedEvent();
 
@@ -676,6 +761,9 @@ WebInspector.TimelineRuler.prototype = {
         delete this._mouseDownPosition;
         delete this._lastMousePosition;
         delete this._selectionIsMove;
+        delete this._rulerBoundingClientRect;
+        delete this._moveSelectionMaximumLeftOffset;
+        delete this._moveSelectionMaximumRightOffset;
 
         event.preventDefault();
         event.stopPropagation();
@@ -707,24 +795,26 @@ WebInspector.TimelineRuler.prototype = {
 
         var currentMousePosition = event.pageX - this._element.totalOffsetLeft;
         var currentTime = this.startTime + (currentMousePosition * this.secondsPerPixel);
+        if (this.snapInterval)
+            currentTime = this._snapValue(currentTime);
 
         if (event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
             // Resize the selection on both sides when the Option keys is held down.
             if (this._dragHandleIsStartTime) {
                 var timeDifference = currentTime - this.selectionStartTime;
-                this.selectionStartTime = Math.max(this.startTime, Math.min(currentTime, this.selectionEndTime - WebInspector.TimelineRuler.MinimumSelectionTimeRange));
-                this.selectionEndTime = Math.min(Math.max(this.selectionStartTime + WebInspector.TimelineRuler.MinimumSelectionTimeRange, this.selectionEndTime - timeDifference), this.endTime);
+                this.selectionStartTime = Math.max(this.startTime, Math.min(currentTime, this.selectionEndTime - this.minimumSelectionDuration));
+                this.selectionEndTime = Math.min(Math.max(this.selectionStartTime + this.minimumSelectionDuration, this.selectionEndTime - timeDifference), this.endTime);
             } else {
                 var timeDifference = currentTime - this.selectionEndTime;
-                this.selectionEndTime = Math.min(Math.max(this.selectionStartTime + WebInspector.TimelineRuler.MinimumSelectionTimeRange, currentTime), this.endTime);
-                this.selectionStartTime = Math.max(this.startTime, Math.min(this.selectionStartTime - timeDifference, this.selectionEndTime - WebInspector.TimelineRuler.MinimumSelectionTimeRange));
+                this.selectionEndTime = Math.min(Math.max(this.selectionStartTime + this.minimumSelectionDuration, currentTime), this.endTime);
+                this.selectionStartTime = Math.max(this.startTime, Math.min(this.selectionStartTime - timeDifference, this.selectionEndTime - this.minimumSelectionDuration));
             }
         } else {
             // Resize the selection on side being dragged.
             if (this._dragHandleIsStartTime)
-                this.selectionStartTime = Math.max(this.startTime, Math.min(currentTime, this.selectionEndTime - WebInspector.TimelineRuler.MinimumSelectionTimeRange));
+                this.selectionStartTime = Math.max(this.startTime, Math.min(currentTime, this.selectionEndTime - this.minimumSelectionDuration));
             else
-                this.selectionEndTime = Math.min(Math.max(this.selectionStartTime + WebInspector.TimelineRuler.MinimumSelectionTimeRange, currentTime), this.endTime);
+                this.selectionEndTime = Math.min(Math.max(this.selectionStartTime + this.minimumSelectionDuration, currentTime), this.endTime);
         }
 
         this._updateSelection(this._element.clientWidth, this.duration);
@@ -748,6 +838,6 @@ WebInspector.TimelineRuler.prototype = {
         event.preventDefault();
         event.stopPropagation();
     }
-}
+};
 
 WebInspector.TimelineRuler.prototype.__proto__ = WebInspector.Object.prototype;

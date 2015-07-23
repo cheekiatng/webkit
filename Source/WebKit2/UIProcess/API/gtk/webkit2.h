@@ -38,9 +38,11 @@
 #include <webkit2/WebKitDefines.h>
 #include <webkit2/WebKitDownload.h>
 #include <webkit2/WebKitEditingCommands.h>
+#include <webkit2/WebKitEditorState.h>
 #include <webkit2/WebKitEnumTypes.h>
 #include <webkit2/WebKitError.h>
 #include <webkit2/WebKitFaviconDatabase.h>
+#include <webkit2/WebKitColorChooserRequest.h>
 #include <webkit2/WebKitFileChooserRequest.h>
 #include <webkit2/WebKitFindController.h>
 #include <webkit2/WebKitFormSubmissionRequest.h>
@@ -50,6 +52,8 @@
 #include <webkit2/WebKitMimeInfo.h>
 #include <webkit2/WebKitNavigationAction.h>
 #include <webkit2/WebKitNavigationPolicyDecision.h>
+#include <webkit2/WebKitNotification.h>
+#include <webkit2/WebKitNotificationPermissionRequest.h>
 #include <webkit2/WebKitPermissionRequest.h>
 #include <webkit2/WebKitPlugin.h>
 #include <webkit2/WebKitPrintOperation.h>
@@ -62,12 +66,14 @@
 #include <webkit2/WebKitURISchemeRequest.h>
 #include <webkit2/WebKitUserContent.h>
 #include <webkit2/WebKitUserContentManager.h>
+#include <webkit2/WebKitUserMediaPermissionRequest.h>
 #include <webkit2/WebKitVersion.h>
 #include <webkit2/WebKitWebContext.h>
 #include <webkit2/WebKitWebInspector.h>
 #include <webkit2/WebKitWebResource.h>
 #include <webkit2/WebKitWebView.h>
 #include <webkit2/WebKitWebViewBase.h>
+#include <webkit2/WebKitWebsiteDataManager.h>
 #include <webkit2/WebKitWindowProperties.h>
 
 #undef __WEBKIT2_H_INSIDE__

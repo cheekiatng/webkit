@@ -50,9 +50,15 @@ static void loadChangedCallback(WebKitWebView* webView, WebKitLoadEvent loadEven
         break;
     }
     case WEBKIT_LOAD_FINISHED:
-        g_assert(!webkit_web_view_is_loading(webView));
-        if (!test->m_loadFailed)
+        if (!test->m_loadFailed) {
+            g_assert(!webkit_web_view_is_loading(webView));
             g_assert_cmpstr(test->m_activeURI.data(), ==, webkit_web_view_get_uri(webView));
+        } else if (!g_error_matches(test->m_error.get(), WEBKIT_NETWORK_ERROR, WEBKIT_NETWORK_ERROR_CANCELLED)) {
+            // When a new load is started before the previous one has finished, we receive the load-finished signal
+            // of the ongoing load while we already have a provisional URL for the new load. This is the only case
+            // where isloading is true when the load has finished.
+            g_assert(!webkit_web_view_is_loading(webView));
+        }
         test->loadFinished();
         break;
     default:
@@ -63,24 +69,39 @@ static void loadChangedCallback(WebKitWebView* webView, WebKitLoadEvent loadEven
 static void loadFailedCallback(WebKitWebView* webView, WebKitLoadEvent loadEvent, const char* failingURI, GError* error, LoadTrackingTest* test)
 {
     test->m_loadFailed = true;
+
+    g_assert(error);
     test->m_error.reset(g_error_copy(error));
+
+    if (!g_error_matches(error, WEBKIT_NETWORK_ERROR, WEBKIT_NETWORK_ERROR_CANCELLED)) {
+        // When a new load is started before the previous one has finished, we receive the load-failed signal
+        // of the ongoing load while we already have a provisional URL for the new load. This is the only case
+        // where is-loading is true when the load has failed.
+        g_assert(!webkit_web_view_is_loading(webView));
+    }
 
     switch (loadEvent) {
     case WEBKIT_LOAD_STARTED:
-        g_assert(!webkit_web_view_is_loading(webView));
-        g_assert_cmpstr(test->m_activeURI.data(), ==, webkit_web_view_get_uri(webView));
-        g_assert(error);
+        g_assert_cmpstr(test->m_activeURI.data(), ==, failingURI);
         test->provisionalLoadFailed(failingURI, error);
         break;
     case WEBKIT_LOAD_COMMITTED:
-        g_assert(!webkit_web_view_is_loading(webView));
         g_assert_cmpstr(test->m_activeURI.data(), ==, webkit_web_view_get_uri(webView));
-        g_assert(error);
         test->loadFailed(failingURI, error);
         break;
     default:
         g_assert_not_reached();
     }
+}
+
+static gboolean loadFailedWithTLSErrorsCallback(WebKitWebView* webView, const char* failingURI, GTlsCertificate* certificate, GTlsCertificateFlags tlsErrors, LoadTrackingTest* test)
+{
+    test->m_loadFailed = true;
+    g_assert(!webkit_web_view_is_loading(webView));
+    g_assert_cmpstr(test->m_activeURI.data(), ==, failingURI);
+    g_assert(G_IS_TLS_CERTIFICATE(certificate));
+    g_assert(tlsErrors);
+    return test->loadFailedWithTLSErrors(failingURI, certificate, tlsErrors);
 }
 
 static void estimatedProgressChangedCallback(GObject*, GParamSpec*, LoadTrackingTest* test)
@@ -94,6 +115,7 @@ LoadTrackingTest::LoadTrackingTest()
 {
     g_signal_connect(m_webView, "load-changed", G_CALLBACK(loadChangedCallback), this);
     g_signal_connect(m_webView, "load-failed", G_CALLBACK(loadFailedCallback), this);
+    g_signal_connect(m_webView, "load-failed-with-tls-errors", G_CALLBACK(loadFailedWithTLSErrorsCallback), this);
     g_signal_connect(m_webView, "notify::estimated-load-progress", G_CALLBACK(estimatedProgressChangedCallback), this);
 
     g_assert(!webkit_web_view_get_uri(m_webView));
@@ -141,6 +163,12 @@ void LoadTrackingTest::loadFinished()
 void LoadTrackingTest::loadFailed(const gchar* failingURI, GError* error)
 {
     m_loadEvents.append(LoadFailed);
+}
+
+bool LoadTrackingTest::loadFailedWithTLSErrors(const gchar* /*failingURI*/, GTlsCertificate*, GTlsCertificateFlags)
+{
+    m_loadEvents.append(LoadFailedWithTLSErrors);
+    return false;
 }
 
 void LoadTrackingTest::estimatedProgressChanged()

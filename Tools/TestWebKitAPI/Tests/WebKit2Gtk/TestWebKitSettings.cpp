@@ -35,7 +35,7 @@
 #include "WebKitTestServer.h"
 #include <gtk/gtk.h>
 #include <webkit2/webkit2.h>
-#include <wtf/gobject/GRefPtr.h>
+#include <wtf/glib/GRefPtr.h>
 
 static WebKitTestServer* gServer;
 
@@ -272,6 +272,11 @@ static void testWebKitSettings(Test*, gconstpointer)
     g_assert(!webkit_settings_get_enable_mediasource(settings));
     webkit_settings_set_enable_mediasource(settings, TRUE);
     g_assert(webkit_settings_get_enable_mediasource(settings));
+
+    // File access from file URLs is not allowed by default.
+    g_assert(!webkit_settings_get_allow_file_access_from_file_urls(settings));
+    webkit_settings_set_allow_file_access_from_file_urls(settings, TRUE);
+    g_assert(webkit_settings_get_allow_file_access_from_file_urls(settings));
 
     g_object_unref(G_OBJECT(settings));
 }

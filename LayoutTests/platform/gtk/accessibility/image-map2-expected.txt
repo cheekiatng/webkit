@@ -17,14 +17,14 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: html-id:result, toolkit:WebKitGtk
+AXPlatformAttributes: html-id:result, tag:div, toolkit:WebKitGtk
 ------------
 AXRole: AXLink
 AXParent: AXWebArea
 AXChildren: 0
 AXPosition: { 18.000000, 53.000000 }
 AXSize: { 123.000000, 62.000000 }
-AXTitle: 
+AXTitle: Link1
 AXDescription: Link1
 AXValue: 
 AXFocusable: 0
@@ -37,14 +37,14 @@ AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
 AXURL: http://www.apple.com/
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:link, tag:area, toolkit:WebKitGtk
 ------------
 AXRole: AXLink
 AXParent: AXWebArea
 AXChildren: 0
 AXPosition: { 20.000000, 117.000000 }
 AXSize: { 122.000000, 14.000000 }
-AXTitle: 
+AXTitle: Link2
 AXDescription: Link2
 AXValue: 
 AXFocusable: 0
@@ -57,7 +57,7 @@ AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
 AXURL: http://www.apple.com/
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:link, tag:area, toolkit:WebKitGtk
 ------------
 
 

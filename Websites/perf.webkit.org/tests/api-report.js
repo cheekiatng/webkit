@@ -3,7 +3,27 @@ describe("/api/report", function () {
         "buildNumber": "123",
         "buildTime": "2013-02-28T10:12:03.388304",
         "builderName": "someBuilder",
+        "slaveName": "someSlave",
         "builderPassword": "somePassword",
+        "platform": "Mountain Lion",
+        "tests": {},
+        "revisions": {
+            "OS X": {
+                "revision": "10.8.2 12C60"
+            },
+            "WebKit": {
+                "revision": "141977",
+                "timestamp": "2013-02-06T08:55:20.9Z"
+            }
+        }}];
+
+    var emptySlaveReport = [{
+        "buildNumber": "123",
+        "buildTime": "2013-02-28T10:12:03.388304",
+        "builderName": "someBuilder",
+        "builderPassword": "somePassword",
+        "slaveName": "someSlave",
+        "slavePassword": "otherPassword",
         "platform": "Mountain Lion",
         "tests": {},
         "revisions": {
@@ -19,6 +39,11 @@ describe("/api/report", function () {
     function addBuilder(report, callback) {
         queryAndFetchAll('INSERT INTO builders (builder_name, builder_password_hash) values ($1, $2)',
             [report[0].builderName, sha256(report[0].builderPassword)], callback);
+    }
+
+    function addSlave(report, callback) {
+        queryAndFetchAll('INSERT INTO build_slaves (slave_name, slave_password_hash) values ($1, $2)',
+            [report[0].slaveName, sha256(report[0].slavePassword)], callback);
     }
 
     it("should reject error when builder name is missing", function () {
@@ -53,9 +78,66 @@ describe("/api/report", function () {
         });
     });
 
+    it("should reject a report without a builder password", function () {
+        addBuilder(emptyReport, function () {
+            var report = [{
+                "buildNumber": "123",
+                "buildTime": "2013-02-28T10:12:03.388304",
+                "builderName": "someBuilder",
+                "tests": {},
+                "revisions": {}}];
+            postJSON('/api/report/', report, function (response) {
+                assert.equal(response.statusCode, 200);
+                assert.notEqual(JSON.parse(response.responseText)['status'], 'OK');
+                assert.equal(JSON.parse(response.responseText)['failureStored'], false);
+                assert.equal(JSON.parse(response.responseText)['processedRuns'], 0);
+
+                queryAndFetchAll('SELECT COUNT(*) from reports', [], function (rows) {
+                    assert.equal(rows[0].count, 0);
+                    notifyDone();
+                });
+            });
+        });
+    });
+
     it("should store a report from a valid builder", function () {
         addBuilder(emptyReport, function () {
             postJSON('/api/report/', emptyReport, function (response) {
+                assert.equal(response.statusCode, 200);
+                assert.equal(JSON.parse(response.responseText)['status'], 'OK');
+                assert.equal(JSON.parse(response.responseText)['failureStored'], false);
+                assert.equal(JSON.parse(response.responseText)['processedRuns'], 1);
+                queryAndFetchAll('SELECT COUNT(*) from reports', [], function (rows) {
+                    assert.equal(rows[0].count, 1);
+                    notifyDone();
+                });
+            });
+        });
+    });
+
+    it("should treat the slave password as the builder password if there is no matching slave", function () {
+        addBuilder(emptyReport, function () {
+            emptyReport[0]['slavePassword'] = emptyReport[0]['builderPassword'];
+            delete emptyReport[0]['builderPassword'];
+            postJSON('/api/report/', emptyReport, function (response) {
+                emptyReport[0]['builderPassword'] = emptyReport[0]['slavePassword'];
+                delete emptyReport[0]['slavePassword'];
+
+                assert.equal(response.statusCode, 200);
+                assert.equal(JSON.parse(response.responseText)['status'], 'OK');
+                assert.equal(JSON.parse(response.responseText)['failureStored'], false);
+                assert.equal(JSON.parse(response.responseText)['processedRuns'], 1);
+                queryAndFetchAll('SELECT COUNT(*) from reports', [], function (rows) {
+                    assert.equal(rows[0].count, 1);
+                    notifyDone();
+                });
+            });
+        });
+    });
+
+    it("should store a report from a valid slave", function () {
+        addSlave(emptySlaveReport, function () {
+            postJSON('/api/report/', emptySlaveReport, function (response) {
                 assert.equal(response.statusCode, 200);
                 assert.equal(JSON.parse(response.responseText)['status'], 'OK');
                 assert.equal(JSON.parse(response.responseText)['failureStored'], false);
@@ -75,6 +157,28 @@ describe("/api/report", function () {
                     var storedContent = JSON.parse(rows[0].report_content);
                     assert.equal(storedContent['builderName'], emptyReport[0]['builderName']);
                     assert(!('builderPassword' in storedContent));
+                    notifyDone();
+                });
+            });
+        });
+    });
+
+    it("should add a slave if there isn't one and the report was authenticated by a builder", function () {
+        addBuilder(emptyReport, function () {
+            postJSON('/api/report/', emptyReport, function (response) {
+                queryAndFetchAll('SELECT * from build_slaves', [], function (rows) {
+                    assert.strictEqual(rows[0].slave_name, emptyReport[0].slaveName);
+                    notifyDone();
+                });
+            });
+        });
+    });
+
+    it("should add a builder if there isn't one and the report was authenticated by a slave", function () {
+        addSlave(emptySlaveReport, function () {
+            postJSON('/api/report/', emptySlaveReport, function (response) {
+                queryAndFetchAll('SELECT * from builders', [], function (rows) {
+                    assert.strictEqual(rows[0].builder_name, emptyReport[0].builderName);
                     notifyDone();
                 });
             });
@@ -111,14 +215,14 @@ describe("/api/report", function () {
 
                     var repositoryIdToName = {};
                     rows.forEach(function (row) { repositoryIdToName[row['repository_id']] = row['repository_name']; });
-                    queryAndFetchAll('SELECT * FROM build_revisions', [], function (rows) {
+                    queryAndFetchAll('SELECT * FROM build_commits, commits WHERE build_commit = commit_id', [], function (rows) {
                         var repositoryNameToRevisionRow = {};
                         rows.forEach(function (row) {
-                            repositoryNameToRevisionRow[repositoryIdToName[row['revision_repository']]] = row;
+                            repositoryNameToRevisionRow[repositoryIdToName[row['commit_repository']]] = row;
                         });
-                        assert.equal(repositoryNameToRevisionRow['OS X']['revision_value'], '10.8.2 12C60');
-                        assert.equal(repositoryNameToRevisionRow['WebKit']['revision_value'], '141977');
-                        assert.equal(repositoryNameToRevisionRow['WebKit']['revision_time'].toString(),
+                        assert.equal(repositoryNameToRevisionRow['OS X']['commit_revision'], '10.8.2 12C60');
+                        assert.equal(repositoryNameToRevisionRow['WebKit']['commit_revision'], '141977');
+                        assert.equal(repositoryNameToRevisionRow['WebKit']['commit_time'].toString(),
                             new Date('2013-02-06 08:55:20.9').toString());
                         notifyDone();
                     });
@@ -579,6 +683,75 @@ describe("/api/report", function () {
                         {iteration_run: runId, iteration_order: 1, iteration_group: null, iteration_value: 5, iteration_relative_time: 100},
                         {iteration_run: runId, iteration_order: 2, iteration_group: null, iteration_value: 3, iteration_relative_time: 205}]);
                     notifyDone();
+                });
+            });
+        });
+    });
+
+    var reportsUpdatingDifferentTests = [
+        [{
+            "buildNumber": "123",
+            "buildTime": "2013-02-28T10:12:03",
+            "builderName": "someBuilder",
+            "builderPassword": "somePassword",
+            "platform": "Mountain Lion",
+            "tests": {"test1": {"metrics": {"Time": {"current": 3}}}}
+        }],
+        [{
+            "buildNumber": "124",
+            "buildTime": "2013-02-28T11:31:21",
+            "builderName": "someBuilder",
+            "builderPassword": "somePassword",
+            "platform": "Mountain Lion",
+            "tests": {"test2": {"metrics": {"Time": {"current": 3}}}}
+        }],
+        [{
+            "buildNumber": "125",
+            "buildTime": "2013-02-28T12:45:34",
+            "builderName": "someBuilder",
+            "builderPassword": "somePassword",
+            "platform": "Mountain Lion",
+            "tests": {"test1": {"metrics": {"Time": {"current": 3}}}}
+        }],
+    ];
+
+    function fetchTestConfig(testName, metricName, callback) {
+         queryAndFetchAll('SELECT * FROM tests, test_metrics, test_configurations WHERE test_id = metric_test AND metric_id = config_metric'
+            + ' AND test_name = $1 AND metric_name = $2', [testName, metricName], function (runRows) {
+                assert.equal(runRows.length, 1);
+                callback(runRows[0]);
+            });
+    }
+
+    it("should update the last modified date of test configurations with new runs", function () {
+        addBuilder(reportsUpdatingDifferentTests[0], function () {
+            postJSON('/api/report/', reportsUpdatingDifferentTests[0], function (response) {
+                assert.equal(response.statusCode, 200);
+                fetchTestConfig('test1', 'Time', function (originalConfig) {
+                    postJSON('/api/report/', reportsUpdatingDifferentTests[2], function (response) {
+                        assert.equal(response.statusCode, 200);
+                        fetchTestConfig('test1', 'Time', function (config) {
+                            assert.notEqual(+originalConfig['config_runs_last_modified'], +config['config_runs_last_modified']);
+                            notifyDone();
+                        });
+                    });
+                });
+            });
+        });
+    });
+
+    it("should update the last modified date of unrelated test configurations", function () {
+        addBuilder(reportsUpdatingDifferentTests[0], function () {
+            postJSON('/api/report/', reportsUpdatingDifferentTests[0], function (response) {
+                assert.equal(response.statusCode, 200);
+                fetchTestConfig('test1', 'Time', function (originalConfig) {
+                    postJSON('/api/report/', reportsUpdatingDifferentTests[1], function (response) {
+                        assert.equal(response.statusCode, 200);
+                        fetchTestConfig('test1', 'Time', function (config) {
+                            assert.equal(+originalConfig['config_runs_last_modified'], +config['config_runs_last_modified']);
+                            notifyDone();
+                        });
+                    });
                 });
             });
         });

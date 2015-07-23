@@ -29,7 +29,7 @@ WebInspector.ApplicationCacheFrameContentView = function(representedObject)
 
     WebInspector.ContentView.call(this, representedObject);
 
-    this.element.classList.add(WebInspector.ApplicationCacheFrameContentView.StyleClassName);
+    this.element.classList.add("application-cache-frame");
 
     this.element.classList.add("storage-view");
     this.element.classList.add("table");
@@ -48,8 +48,6 @@ WebInspector.ApplicationCacheFrameContentView = function(representedObject)
     WebInspector.applicationCacheManager.addEventListener(WebInspector.ApplicationCacheManager.Event.FrameManifestStatusChanged, this._updateStatus, this);
 }
 
-WebInspector.ApplicationCacheFrameContentView.StyleClassName = "application-cache-frame";
-
 WebInspector.ApplicationCacheFrameContentView.prototype = {
     constructor: WebInspector.ApplicationCacheFrameContentView,
 
@@ -60,7 +58,7 @@ WebInspector.ApplicationCacheFrameContentView.prototype = {
 
     closed: function()
     {
-        WebInspector.applicationCacheManager.removeEventListener(WebInspector.ApplicationCacheManager.Event.FrameManifestStatusChanged, this._updateStatus, this);
+        WebInspector.applicationCacheManager.removeEventListener(null, null, this);
     },
 
     updateLayout: function()
@@ -214,7 +212,6 @@ WebInspector.ApplicationCacheFrameContentView.prototype = {
                 size: Number.bytesToString(resource.size)
             };
             var node = new WebInspector.DataGridNode(data);
-            node.selectable = true;
             this._dataGrid.appendChild(node);
         }
     },

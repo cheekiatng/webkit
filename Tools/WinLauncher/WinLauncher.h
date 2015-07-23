@@ -23,12 +23,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
+#include "PageLoadTestClient.h"
 #include <WebKit/WebKit.h>
+#include <memory>
 #include <vector>
 
 typedef _com_ptr_t<_com_IIID<IWebFrame, &__uuidof(IWebFrame)>> IWebFramePtr;
 typedef _com_ptr_t<_com_IIID<IWebView, &__uuidof(IWebView)>> IWebViewPtr;
-typedef _com_ptr_t<_com_IIID<IWebViewPrivate, &__uuidof(IWebViewPrivate)>> IWebViewPrivatePtr;
+typedef _com_ptr_t<_com_IIID<IWebViewPrivate2, &__uuidof(IWebViewPrivate2)>> IWebViewPrivatePtr;
 typedef _com_ptr_t<_com_IIID<IWebFrameLoadDelegate, &__uuidof(IWebFrameLoadDelegate)>> IWebFrameLoadDelegatePtr;
 typedef _com_ptr_t<_com_IIID<IWebHistory, &__uuidof(IWebHistory)>> IWebHistoryPtr;
 typedef _com_ptr_t<_com_IIID<IWebHistoryItem, &__uuidof(IWebHistoryItem)>> IWebHistoryItemPtr;
@@ -39,10 +41,12 @@ typedef _com_ptr_t<_com_IIID<IAccessibilityDelegate, &__uuidof(IAccessibilityDel
 typedef _com_ptr_t<_com_IIID<IWebInspector, &__uuidof(IWebInspector)>> IWebInspectorPtr;
 typedef _com_ptr_t<_com_IIID<IWebCoreStatistics, &__uuidof(IWebCoreStatistics)>> IWebCoreStatisticsPtr;
 typedef _com_ptr_t<_com_IIID<IWebCache, &__uuidof(IWebCache)>> IWebCachePtr;
+typedef _com_ptr_t<_com_IIID<IWebResourceLoadDelegate, &__uuidof(IWebResourceLoadDelegate)>> IWebResourceLoadDelegatePtr;
+typedef _com_ptr_t<_com_IIID<IWebDownloadDelegate, &__uuidof(IWebDownloadDelegate)>> IWebDownloadDelegatePtr;
 
 class WinLauncher {
 public:
-    WinLauncher(HWND mainWnd, HWND urlBarWnd, bool useLayeredWebView = false);
+    WinLauncher(HWND mainWnd, HWND urlBarWnd, bool useLayeredWebView = false, bool pageLoadTesting = false);
 
     HRESULT init();
     HRESULT prepareViews(HWND mainWnd, const RECT& clientRect, const BSTR& requestedURL, HWND& viewWnd);
@@ -53,26 +57,43 @@ public:
     void launchInspector();
     void navigateForwardOrBackward(HWND hWnd, UINT menuID);
     void navigateToHistory(HWND hWnd, UINT menuID);
+    void exitProgram();
     bool seedInitialDefaultPreferences();
     bool setToDefaultPreferences();
 
     HRESULT setFrameLoadDelegate(IWebFrameLoadDelegate*);
+    HRESULT setFrameLoadDelegatePrivate(IWebFrameLoadDelegatePrivate*);
     HRESULT setUIDelegate(IWebUIDelegate*);
     HRESULT setAccessibilityDelegate(IAccessibilityDelegate*);
+    HRESULT setResourceLoadDelegate(IWebResourceLoadDelegate*);
+    HRESULT setDownloadDelegate(IWebDownloadDelegatePtr);
 
     IWebPreferencesPtr standardPreferences() { return m_standardPreferences;  }
     IWebPreferencesPrivatePtr privatePreferences() { return m_prefsPrivate; }
     IWebFramePtr mainFrame();
     IWebCoreStatisticsPtr statistics() { return m_statistics; }
     IWebCachePtr webCache() { return m_webCache;  }
+    IWebViewPtr webView() { return m_webView; }
 
     bool hasWebView() const { return !!m_webView; }
     bool usesLayeredWebView() const { return m_useLayeredWebView; }
     bool goBack();
     bool goForward();
 
+    void setUserAgent(UINT menuID);
+    void setUserAgent(_bstr_t& customUAString);
+    _bstr_t userAgent();
+
+    PageLoadTestClient& pageLoadTestClient() { return *m_pageLoadTestClient; }
+
+    void resetZoom();
+    void zoomIn();
+    void zoomOut();
+
 private:
     std::vector<IWebHistoryItemPtr> m_historyItems;
+
+    std::unique_ptr<PageLoadTestClient> m_pageLoadTestClient;
 
     IWebViewPtr m_webView;
     IWebViewPrivatePtr m_webViewPrivate;
@@ -85,6 +106,8 @@ private:
     IWebFrameLoadDelegatePtr m_frameLoadDelegate;
     IWebUIDelegatePtr m_uiDelegate;
     IAccessibilityDelegatePtr m_accessibilityDelegate;
+    IWebResourceLoadDelegatePtr m_resourceLoadDelegate;
+    IWebDownloadDelegatePtr m_downloadDelegate;
 
     IWebCoreStatisticsPtr m_statistics;
     IWebCachePtr m_webCache;

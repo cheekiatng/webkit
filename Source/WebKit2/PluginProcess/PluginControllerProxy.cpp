@@ -41,6 +41,7 @@
 #include "WebCoreArgumentCoders.h"
 #include "WebProcessConnection.h"
 #include <WebCore/GraphicsContext.h>
+#include <WebCore/HTTPHeaderMap.h>
 #include <WebCore/IdentifierRep.h>
 #include <WebCore/NotImplemented.h>
 #include <wtf/TemporaryChange.h>
@@ -59,8 +60,11 @@ PluginControllerProxy::PluginControllerProxy(WebProcessConnection* connection, c
     , m_pluginInstanceID(creationParameters.pluginInstanceID)
     , m_userAgent(creationParameters.userAgent)
     , m_isPrivateBrowsingEnabled(creationParameters.isPrivateBrowsingEnabled)
+    , m_isMuted(creationParameters.isMuted)
     , m_isAcceleratedCompositingEnabled(creationParameters.isAcceleratedCompositingEnabled)
     , m_isInitializing(false)
+    , m_isVisible(false)
+    , m_isWindowVisible(false)
     , m_paintTimer(RunLoop::main(), this, &PluginControllerProxy::paint)
     , m_pluginDestructionProtectCount(0)
     , m_pluginDestroyTimer(RunLoop::main(), this, &PluginControllerProxy::destroy)
@@ -72,6 +76,7 @@ PluginControllerProxy::PluginControllerProxy(WebProcessConnection* connection, c
     , m_contentsScaleFactor(creationParameters.contentsScaleFactor)
     , m_windowNPObject(0)
     , m_pluginElementNPObject(0)
+    , m_visiblityActivity("Plugin is visible.")
 {
 }
 
@@ -92,9 +97,9 @@ void PluginControllerProxy::setInitializationReply(PassRefPtr<Messages::WebProce
     m_initializationReply = reply;
 }
 
-PassRefPtr<Messages::WebProcessConnection::CreatePlugin::DelayedReply> PluginControllerProxy::takeInitializationReply()
+RefPtr<Messages::WebProcessConnection::CreatePlugin::DelayedReply> PluginControllerProxy::takeInitializationReply()
 {
-    return m_initializationReply.release();
+    return m_initializationReply;
 }
 
 bool PluginControllerProxy::initialize(const PluginCreationParameters& creationParameters)
@@ -104,7 +109,7 @@ bool PluginControllerProxy::initialize(const PluginCreationParameters& creationP
     ASSERT(!m_isInitializing);
     m_isInitializing = true; // Cannot use TemporaryChange here, because this object can be deleted before the function returns.
 
-    m_plugin = NetscapePlugin::create(PluginProcess::shared().netscapePluginModule());
+    m_plugin = NetscapePlugin::create(PluginProcess::singleton().netscapePluginModule());
     if (!m_plugin) {
         // This will delete the plug-in controller proxy object.
         m_connection->removePluginControllerProxy(this, 0);
@@ -121,7 +126,7 @@ bool PluginControllerProxy::initialize(const PluginCreationParameters& creationP
         // used as an identifier so it's OK to just get a weak reference.
         Plugin* plugin = m_plugin.get();
         
-        m_plugin = 0;
+        m_plugin = nullptr;
 
         // This will delete the plug-in controller proxy object.
         m_connection->removePluginControllerProxy(this, plugin);
@@ -151,7 +156,7 @@ void PluginControllerProxy::destroy()
     Plugin* plugin = m_plugin.get();
 
     m_plugin->destroyPlugin();
-    m_plugin = 0;
+    m_plugin = nullptr;
 
     platformDestroy();
 
@@ -213,13 +218,6 @@ void PluginControllerProxy::startPaintTimer()
     m_paintTimer.startOneShot(0);
 
     m_waitingForDidUpdate = true;
-}
-
-bool PluginControllerProxy::isPluginVisible()
-{
-    // FIXME: Implement this.
-    notImplemented();
-    return false;
 }
 
 void PluginControllerProxy::invalidate(const IntRect& rect)
@@ -306,6 +304,11 @@ bool PluginControllerProxy::evaluate(NPObject* npObject, const String& scriptStr
     return true;
 }
 
+void PluginControllerProxy::setPluginIsPlayingAudio(bool pluginIsPlayingAudio)
+{
+    m_connection->connection()->send(Messages::PluginProxy::SetPluginIsPlayingAudio(pluginIsPlayingAudio), m_pluginInstanceID);
+}
+
 void PluginControllerProxy::setStatusbarText(const String& statusbarText)
 {
     m_connection->connection()->send(Messages::PluginProxy::SetStatusbarText(statusbarText), m_pluginInstanceID);
@@ -319,12 +322,6 @@ bool PluginControllerProxy::isAcceleratedCompositingEnabled()
 void PluginControllerProxy::pluginProcessCrashed()
 {
     // This should never be called from here.
-    ASSERT_NOT_REACHED();
-}
-
-void PluginControllerProxy::willSendEventToPlugin()
-{
-    // This is only used when running plugins in the web process.
     ASSERT_NOT_REACHED();
 }
 
@@ -429,8 +426,36 @@ void PluginControllerProxy::geometryDidChange(const IntSize& pluginSize, const I
 
 void PluginControllerProxy::visibilityDidChange(bool isVisible)
 {
+    m_isVisible = isVisible;
+    
     ASSERT(m_plugin);
     m_plugin->visibilityDidChange(isVisible);
+
+    updateVisibilityActivity();
+}
+
+void PluginControllerProxy::windowFocusChanged(bool hasFocus)
+{
+    ASSERT(m_plugin);
+    m_plugin->windowFocusChanged(hasFocus);
+}
+
+void PluginControllerProxy::windowVisibilityChanged(bool isVisible)
+{
+    m_isWindowVisible = isVisible;
+
+    ASSERT(m_plugin);
+    m_plugin->windowVisibilityChanged(isVisible);
+
+    updateVisibilityActivity();
+}
+
+void PluginControllerProxy::updateVisibilityActivity()
+{
+    if (m_isVisible && m_isWindowVisible)
+        m_visiblityActivity.start();
+    else
+        m_visiblityActivity.stop();
 }
 
 void PluginControllerProxy::didEvaluateJavaScript(uint64_t requestID, const String& result)
@@ -489,17 +514,9 @@ void PluginControllerProxy::manualStreamDidFail(bool wasCancelled)
     
     m_plugin->manualStreamDidFail(wasCancelled);
 }
-    
-void PluginControllerProxy::handleMouseEvent(const WebMouseEvent& mouseEvent, PassRefPtr<Messages::PluginControllerProxy::HandleMouseEvent::DelayedReply> reply)
-{
-    // Always let the web process think that we've handled this mouse event, even before passing it along to the plug-in.
-    // This is a workaround for 
-    // <rdar://problem/9299901> UI process thinks the page is unresponsive when a plug-in is showing a context menu.
-    // The web process sends a synchronous HandleMouseEvent message and the plug-in process spawns a nested
-    // run loop when showing the context menu, so eventually the unresponsiveness timer kicks in in the UI process.
-    // FIXME: We should come up with a better way to do this.
-    reply->send(true);
 
+void PluginControllerProxy::handleMouseEvent(const WebMouseEvent& mouseEvent)
+{
     m_plugin->handleMouseEvent(mouseEvent);
 }
 
@@ -598,6 +615,15 @@ void PluginControllerProxy::privateBrowsingStateChanged(bool isPrivateBrowsingEn
     m_isPrivateBrowsingEnabled = isPrivateBrowsingEnabled;
 
     m_plugin->privateBrowsingStateChanged(isPrivateBrowsingEnabled);
+}
+
+void PluginControllerProxy::mutedStateChanged(bool isMuted)
+{
+    if (m_isMuted == isMuted)
+        return;
+    
+    m_isMuted = isMuted;
+    m_plugin->mutedStateChanged(isMuted);
 }
 
 void PluginControllerProxy::getFormValue(bool& returnValue, String& formValue)

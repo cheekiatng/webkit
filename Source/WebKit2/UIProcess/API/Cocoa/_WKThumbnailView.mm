@@ -80,6 +80,7 @@ using namespace WebKit;
 - (void)_viewWasUnparented
 {
     [_wkView _setThumbnailView:nil];
+    [_wkView _setIgnoresAllEvents:NO];
 
     self.layer.contents = nil;
     _lastSnapshotScale = NAN;
@@ -97,6 +98,7 @@ using namespace WebKit;
 
     [self _requestSnapshotIfNeeded];
     [_wkView _setThumbnailView:self];
+    [_wkView _setIgnoresAllEvents:YES];
 }
 
 - (void)_requestSnapshotIfNeeded
@@ -117,8 +119,8 @@ using namespace WebKit;
     IntSize bitmapSize = snapshotRect.size();
     bitmapSize.scale(_scale * _webPageProxy->deviceScaleFactor());
     _lastSnapshotScale = _scale;
-    _webPageProxy->takeSnapshot(snapshotRect, bitmapSize, options, [thumbnailView](const ShareableBitmap::Handle& imageHandle, CallbackBase::Error) {
-        RefPtr<ShareableBitmap> bitmap = ShareableBitmap::create(imageHandle, SharedMemory::ReadOnly);
+    _webPageProxy->takeSnapshot(snapshotRect, bitmapSize, options, [thumbnailView](const ShareableBitmap::Handle& imageHandle, WebKit::CallbackBase::Error) {
+        RefPtr<ShareableBitmap> bitmap = ShareableBitmap::create(imageHandle, SharedMemory::Protection::ReadOnly);
         RetainPtr<CGImageRef> cgImage = bitmap ? bitmap->makeCGImage() : nullptr;
         [thumbnailView _didTakeSnapshot:cgImage.get()];
     });

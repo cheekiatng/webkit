@@ -1,17 +1,16 @@
 list(APPEND WebKit2_SOURCES
+    DatabaseProcess/efl/DatabaseProcessMainEfl.cpp
+
     NetworkProcess/efl/NetworkProcessMainEfl.cpp
 
     NetworkProcess/soup/NetworkProcessSoup.cpp
-    NetworkProcess/soup/NetworkResourceLoadSchedulerSoup.cpp
     NetworkProcess/soup/RemoteNetworkingContextSoup.cpp
 
     Platform/IPC/unix/AttachmentUnix.cpp
     Platform/IPC/unix/ConnectionUnix.cpp
 
-    Platform/efl/DispatchQueueEfl.cpp
     Platform/efl/LoggingEfl.cpp
     Platform/efl/ModuleEfl.cpp
-    Platform/efl/WorkQueueEfl.cpp
 
     Platform/unix/SharedMemoryUnix.cpp
 
@@ -23,22 +22,33 @@ list(APPEND WebKit2_SOURCES
 
     Shared/API/c/efl/WKArrayEfl.cpp
 
+    Shared/CoordinatedGraphics/CoordinatedBackingStore.cpp
     Shared/CoordinatedGraphics/CoordinatedGraphicsArgumentCoders.cpp
+    Shared/CoordinatedGraphics/CoordinatedGraphicsScene.cpp
     Shared/CoordinatedGraphics/WebCoordinatedSurface.cpp
 
     Shared/Downloads/efl/DownloadSoupErrorsEfl.cpp
 
     Shared/Downloads/soup/DownloadSoup.cpp
 
+    Shared/Network/CustomProtocols/soup/CustomProtocolManagerImpl.cpp
+    Shared/Network/CustomProtocols/soup/CustomProtocolManagerSoup.cpp
+
     Shared/Plugins/Netscape/x11/NetscapePluginModuleX11.cpp
+
+    Shared/Plugins/unix/PluginSearchPath.cpp
 
     Shared/cairo/ShareableBitmapCairo.cpp
 
+    Shared/efl/NativeContextMenuItemEfl.cpp
     Shared/efl/NativeWebKeyboardEventEfl.cpp
     Shared/efl/NativeWebTouchEventEfl.cpp
     Shared/efl/NativeWebWheelEventEfl.cpp
     Shared/efl/ProcessExecutablePathEfl.cpp
     Shared/efl/WebEventFactory.cpp
+
+    Shared/glib/KeyedDecoder.cpp
+    Shared/glib/KeyedEncoder.cpp
 
     Shared/linux/WebMemorySamplerLinux.cpp
 
@@ -49,11 +59,13 @@ list(APPEND WebKit2_SOURCES
     Shared/linux/SeccompFilters/SigprocmaskSyscall.cpp
     Shared/linux/SeccompFilters/Syscall.cpp
     Shared/linux/SeccompFilters/SyscallPolicy.cpp
+    Shared/linux/SeccompFilters/XDGBaseDirectoryGLib.cpp
 
     Shared/soup/WebCoreArgumentCodersSoup.cpp
 
     Shared/unix/ChildProcessMain.cpp
 
+    UIProcess/BackingStore.cpp
     UIProcess/DefaultUndoController.cpp
 
     UIProcess/API/C/CoordinatedGraphics/WKView.cpp
@@ -67,9 +79,8 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/C/efl/WKPopupMenuListener.cpp
     UIProcess/API/C/efl/WKViewEfl.cpp
 
-    UIProcess/API/C/soup/WKContextSoup.cpp
     UIProcess/API/C/soup/WKCookieManagerSoup.cpp
-    UIProcess/API/C/soup/WKSoupRequestManager.cpp
+    UIProcess/API/C/soup/WKSoupCustomProtocolRequestManager.cpp
 
     UIProcess/API/CoordinatedGraphics/WKCoordinatedScene.cpp
 
@@ -78,6 +89,7 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/efl/EwkView.cpp
     UIProcess/API/efl/GestureRecognizer.cpp
     UIProcess/API/efl/SnapshotImageGL.cpp
+    UIProcess/API/efl/WebAccessibility.cpp
     UIProcess/API/efl/ewk_application_cache_manager.cpp
     UIProcess/API/efl/ewk_auth_request.cpp
     UIProcess/API/efl/ewk_back_forward_list.cpp
@@ -117,11 +129,17 @@ list(APPEND WebKit2_SOURCES
     UIProcess/CoordinatedGraphics/WebView.cpp
     UIProcess/CoordinatedGraphics/WebViewClient.cpp
 
+    UIProcess/Databases/efl/DatabaseProcessProxyEfl.cpp
+
     UIProcess/InspectorServer/efl/WebInspectorServerEfl.cpp
 
     UIProcess/InspectorServer/soup/WebSocketServerSoup.cpp
 
     UIProcess/Launcher/efl/ProcessLauncherEfl.cpp
+
+    UIProcess/Network/CustomProtocols/soup/CustomProtocolManagerProxySoup.cpp
+    UIProcess/Network/CustomProtocols/soup/WebSoupCustomProtocolRequestManager.cpp
+    UIProcess/Network/CustomProtocols/soup/WebSoupCustomProtocolRequestManagerClient.cpp
 
     UIProcess/Network/soup/NetworkProcessProxySoup.cpp
 
@@ -154,26 +172,29 @@ list(APPEND WebKit2_SOURCES
     UIProcess/efl/WebColorPickerClient.cpp
     UIProcess/efl/WebColorPickerEfl.cpp
     UIProcess/efl/WebColorPickerResultListenerProxy.cpp
-    UIProcess/efl/WebContextEfl.cpp
     UIProcess/efl/WebContextMenuProxyEfl.cpp
     UIProcess/efl/WebInspectorProxyEfl.cpp
     UIProcess/efl/WebPageProxyEfl.cpp
     UIProcess/efl/WebPopupItemEfl.cpp
     UIProcess/efl/WebPopupMenuListenerEfl.cpp
     UIProcess/efl/WebPreferencesEfl.cpp
+    UIProcess/efl/WebProcessPoolEfl.cpp
     UIProcess/efl/WebProcessProxyEfl.cpp
     UIProcess/efl/WebUIPopupMenuClient.cpp
     UIProcess/efl/WebViewEfl.cpp
 
-    UIProcess/soup/WebContextSoup.cpp
     UIProcess/soup/WebCookieManagerProxySoup.cpp
-    UIProcess/soup/WebSoupRequestManagerClient.cpp
-    UIProcess/soup/WebSoupRequestManagerProxy.cpp
+    UIProcess/soup/WebProcessPoolSoup.cpp
 
     WebProcess/Cookies/soup/WebCookieManagerSoup.cpp
     WebProcess/Cookies/soup/WebKitSoupCookieJarSqlite.cpp
 
+    WebProcess/InjectedBundle/API/efl/ewk_extension.cpp
+    WebProcess/InjectedBundle/API/efl/ewk_page.cpp
+
     WebProcess/InjectedBundle/efl/InjectedBundleEfl.cpp
+
+    WebProcess/MediaCache/WebMediaKeyStorageManager.cpp
 
     WebProcess/Plugins/Netscape/unix/PluginProxyUnix.cpp
 
@@ -192,26 +213,21 @@ list(APPEND WebKit2_SOURCES
 
     WebProcess/WebPage/atk/WebPageAccessibilityObjectAtk.cpp
 
-    WebProcess/WebPage/efl/WebInspectorEfl.cpp
+    WebProcess/WebPage/efl/WebInspectorUIEfl.cpp
     WebProcess/WebPage/efl/WebPageEfl.cpp
 
+    WebProcess/efl/ExtensionManagerEfl.cpp
     WebProcess/efl/SeccompFiltersWebProcessEfl.cpp
     WebProcess/efl/WebProcessMainEfl.cpp
 
-    WebProcess/soup/WebKitSoupRequestGeneric.cpp
     WebProcess/soup/WebKitSoupRequestInputStream.cpp
     WebProcess/soup/WebProcessSoup.cpp
-    WebProcess/soup/WebSoupRequestManager.cpp
 )
 
 list(APPEND WebKit2_MESSAGES_IN_FILES
     UIProcess/CoordinatedGraphics/CoordinatedLayerTreeHostProxy.messages.in
 
-    UIProcess/soup/WebSoupRequestManagerProxy.messages.in
-
     WebProcess/WebPage/CoordinatedGraphics/CoordinatedLayerTreeHost.messages.in
-
-    WebProcess/soup/WebSoupRequestManager.messages.in
 )
 
 list(APPEND WebKit2_INCLUDE_DIRECTORIES
@@ -219,14 +235,18 @@ list(APPEND WebKit2_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/platform/graphics/cairo"
     "${WEBCORE_DIR}/platform/graphics/efl"
     "${WEBCORE_DIR}/platform/graphics/opentype"
+    "${WEBCORE_DIR}/platform/graphics/x11"
     "${WEBCORE_DIR}/platform/network/soup"
     "${WEBCORE_DIR}/platform/text/enchant"
+    "${WEBKIT2_DIR}/DatabaseProcess/unix"
     "${WEBKIT2_DIR}/NetworkProcess/efl"
     "${WEBKIT2_DIR}/NetworkProcess/unix"
     "${WEBKIT2_DIR}/Platform/efl"
     "${WEBKIT2_DIR}/Shared/API/c/efl"
     "${WEBKIT2_DIR}/Shared/CoordinatedGraphics"
     "${WEBKIT2_DIR}/Shared/Downloads/soup"
+    "${WEBKIT2_DIR}/Shared/Network/CustomProtocols/soup"
+    "${WEBKIT2_DIR}/Shared/Plugins/unix"
     "${WEBKIT2_DIR}/Shared/efl"
     "${WEBKIT2_DIR}/Shared/soup"
     "${WEBKIT2_DIR}/Shared/unix"
@@ -243,11 +263,17 @@ list(APPEND WebKit2_INCLUDE_DIRECTORIES
     "${WEBKIT2_DIR}/WebProcess/efl"
     "${WEBKIT2_DIR}/WebProcess/soup"
     "${WEBKIT2_DIR}/WebProcess/unix"
+    "${WEBKIT2_DIR}/WebProcess/InjectedBundle/API/efl"
     "${WEBKIT2_DIR}/WebProcess/WebCoreSupport/efl"
     "${WEBKIT2_DIR}/WebProcess/WebCoreSupport/soup"
     "${WEBKIT2_DIR}/WebProcess/WebPage/CoordinatedGraphics"
-    "${WTF_DIR}/wtf/efl/"
-    "${WTF_DIR}/wtf/gobject"
+    "${WTF_DIR}/wtf/efl"
+    "${WTF_DIR}/wtf/glib"
+    "${WTF_DIR}"
+    "${WEBKIT2_DIR}"
+)
+
+list(APPEND WebKit2_SYSTEM_INCLUDE_DIRECTORIES
     ${CAIRO_INCLUDE_DIRS}
     ${ECORE_EVAS_INCLUDE_DIRS}
     ${ECORE_IMF_EVAS_INCLUDE_DIRS}
@@ -259,17 +285,16 @@ list(APPEND WebKit2_INCLUDE_DIRECTORIES
     ${EINA_INCLUDE_DIRS}
     ${EO_INCLUDE_DIRS}
     ${EVAS_INCLUDE_DIRS}
+    ${GLIB_INCLUDE_DIRS}
     ${HARFBUZZ_INCLUDE_DIRS}
     ${LIBSOUP_INCLUDE_DIRS}
     ${LIBXML2_INCLUDE_DIR}
     ${LIBXSLT_INCLUDE_DIRS}
     ${SQLITE_INCLUDE_DIRS}
-    ${GLIB_INCLUDE_DIRS}
-    ${LIBSOUP_INCLUDE_DIRS}
-    ${WTF_DIR}
 )
 
 list(APPEND WebKit2_LIBRARIES
+    WTF
     ${CAIRO_LIBRARIES}
     ${CMAKE_DL_LIBS}
     ${ECORE_EVAS_LIBRARIES}
@@ -302,6 +327,10 @@ list(APPEND NetworkProcess_SOURCES
     NetworkProcess/EntryPoint/unix/NetworkProcessMain.cpp
 )
 
+list(APPEND DatabaseProcess_SOURCES
+    DatabaseProcess/EntryPoint/unix/DatabaseProcessMain.cpp
+)
+
 list(APPEND WebProcess_LIBRARIES
     ${CAIRO_LIBRARIES}
     ${ECORE_IMF_EVAS_LIBRARIES}
@@ -319,13 +348,13 @@ if (ENABLE_SECCOMP_FILTERS)
     list(APPEND WebKit2_LIBRARIES
         ${LIBSECCOMP_LIBRARIES}
     )
-    list(APPEND WebKit2_INCLUDE_DIRECTORIES
+    list(APPEND WebKit2_SYSTEM_INCLUDE_DIRECTORIES
         ${LIBSECCOMP_INCLUDE_DIRS}
     )
 
     # If building with jhbuild, add the root build directory to the
     # filesystem access policy.
-    if (IS_DIRECTORY ${CMAKE_SOURCE_DIR}/WebKitBuild/Dependencies)
+    if (DEVELOPER_MODE AND IS_DIRECTORY ${CMAKE_SOURCE_DIR}/WebKitBuild/DependenciesEFL)
         add_definitions(-DSOURCE_DIR=\"${CMAKE_SOURCE_DIR}\")
     endif ()
 endif ()
@@ -333,28 +362,23 @@ endif ()
 if (ENABLE_ECORE_X)
     list(APPEND WebProcess_LIBRARIES
         ${ECORE_X_LIBRARIES}
-        ${X11_Xext_LIB}
     )
     list(APPEND WebKit2_LIBRARIES
         ${ECORE_X_LIBRARIES}
+        ${X11_Xext_LIB}
     )
 endif ()
 
-add_custom_target(forwarding-headerEfl
-    COMMAND ${PERL_EXECUTABLE} ${WEBKIT2_DIR}/Scripts/generate-forwarding-headers.pl ${WEBKIT2_DIR} ${DERIVED_SOURCES_WEBKIT2_DIR}/include efl
-    COMMAND ${PERL_EXECUTABLE} ${WEBKIT2_DIR}/Scripts/generate-forwarding-headers.pl ${WEBKIT2_DIR} ${DERIVED_SOURCES_WEBKIT2_DIR}/include CoordinatedGraphics
-)
-
-add_custom_target(forwarding-headerSoup
-    COMMAND ${PERL_EXECUTABLE} ${WEBKIT2_DIR}/Scripts/generate-forwarding-headers.pl ${WEBKIT2_DIR} ${DERIVED_SOURCES_WEBKIT2_DIR}/include soup
+add_custom_target(forwarding-headersEflForWebKit2
+    COMMAND ${PERL_EXECUTABLE} ${WEBKIT2_DIR}/Scripts/generate-forwarding-headers.pl --include-path ${WEBKIT2_DIR} --output ${DERIVED_SOURCES_WEBKIT2_DIR}/include --platform efl --platform CoordinatedGraphics --platform soup
 )
 
 set(WEBKIT2_EXTRA_DEPENDENCIES
-     forwarding-headerEfl
-     forwarding-headerSoup
+     forwarding-headersEflForWebKit2
 )
 
 configure_file(efl/ewebkit2.pc.in ${CMAKE_BINARY_DIR}/WebKit2/efl/ewebkit2.pc @ONLY)
+configure_file(efl/ewebkit2-extension.pc.in ${CMAKE_BINARY_DIR}/WebKit2/efl/ewebkit2-extension.pc @ONLY)
 configure_file(efl/EWebKit2Config.cmake.in ${CMAKE_BINARY_DIR}/WebKit2/efl/EWebKit2Config.cmake @ONLY)
 configure_file(efl/EWebKit2ConfigVersion.cmake.in ${CMAKE_BINARY_DIR}/WebKit2/efl/EWebKit2ConfigVersion.cmake @ONLY)
 configure_file(UIProcess/API/efl/EWebKit2.h.in ${DERIVED_SOURCES_WEBKIT2_DIR}/include/EWebKit2.h)
@@ -376,6 +400,7 @@ set(EWebKit2_HEADERS
     "${CMAKE_CURRENT_SOURCE_DIR}/UIProcess/API/efl/ewk_favicon_database.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/UIProcess/API/efl/ewk_file_chooser_request.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/UIProcess/API/efl/ewk_form_submission_request.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/UIProcess/API/efl/ewk_intro.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/UIProcess/API/efl/ewk_main.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/UIProcess/API/efl/ewk_navigation_data.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/UIProcess/API/efl/ewk_navigation_policy_decision.h"
@@ -395,13 +420,28 @@ set(EWebKit2_HEADERS
     "${CMAKE_CURRENT_SOURCE_DIR}/UIProcess/API/efl/ewk_window_features.h"
 )
 
+set(EWebKit2_Extension_HEADERS
+    "${CMAKE_CURRENT_SOURCE_DIR}/WebProcess/InjectedBundle/API/efl/EWebKit_Extension.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/WebProcess/InjectedBundle/API/efl/ewk_extension.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/WebProcess/InjectedBundle/API/efl/ewk_page.h"
+)
+
+install(FILES ${EWebKit2_HEADERS} DESTINATION ${HEADER_INSTALL_DIR})
+install(FILES ${EWebKit2_Extension_HEADERS} DESTINATION ${HEADER_INSTALL_DIR}/extension)
+
 install(FILES ${CMAKE_BINARY_DIR}/WebKit2/efl/ewebkit2.pc DESTINATION lib/pkgconfig)
+install(FILES ${CMAKE_BINARY_DIR}/WebKit2/efl/ewebkit2-extension.pc DESTINATION lib/pkgconfig)
 install(FILES
         ${CMAKE_BINARY_DIR}/WebKit2/efl/EWebKit2Config.cmake
         ${CMAKE_BINARY_DIR}/WebKit2/efl/EWebKit2ConfigVersion.cmake
         DESTINATION lib/cmake/EWebKit2)
 
-install(FILES ${EWebKit2_HEADERS} DESTINATION include/${WebKit2_OUTPUT_NAME}-${PROJECT_VERSION_MAJOR})
+set(EWEBKIT_EXTENSION_MANAGER_INSTALL_DIR "${LIB_INSTALL_DIR}/${WebKit2_OUTPUT_NAME}-${PROJECT_VERSION_MAJOR}/" CACHE PATH "Absolute path to install injected bundle which controls the extension library")
+
+add_library(ewebkit_extension_manager SHARED "${WEBKIT2_DIR}/WebProcess/efl/WebInjectedBundleMainEfl.cpp")
+target_link_libraries(ewebkit_extension_manager WebKit2)
+
+install(TARGETS ewebkit_extension_manager DESTINATION "${EWEBKIT_EXTENSION_MANAGER_INSTALL_DIR}")
 
 if (ENABLE_PLUGIN_PROCESS)
     list(APPEND PluginProcess_INCLUDE_DIRECTORIES
@@ -440,18 +480,29 @@ set(EWK2UnitTests_LIBRARIES
     gtest
 )
 
+if (ENABLE_ECORE_X)
+    list(APPEND EWK2UnitTests_LIBRARIES
+        ${ECORE_X_LIBRARIES}
+    )
+endif ()
+
 set(WEBKIT2_EFL_TEST_DIR "${WEBKIT2_DIR}/UIProcess/API/efl/tests")
 set(TEST_RESOURCES_DIR ${WEBKIT2_EFL_TEST_DIR}/resources)
-set(TEST_INJECTED_BUNDLE_DIR ${WEBKIT2_EFL_TEST_DIR}/InjectedBundle)
+set(TEST_EXTENSIONS_DIR ${WEBKIT2_EFL_TEST_DIR}/extensions)
 set(WEBKIT2_EFL_TEST_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/TestWebKitAPI/EWebKit2)
 
 add_definitions(-DTEST_RESOURCES_DIR=\"${TEST_RESOURCES_DIR}\"
     -DTEST_LIB_DIR=\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}\"
     -DGTEST_LINKED_AS_SHARED_LIBRARY=1
+    -DLIBDIR=\"${LIB_INSTALL_DIR}\"
     -DLIBEXECDIR=\"${EXEC_INSTALL_DIR}\"
+    -DDATADIR=\"${CMAKE_INSTALL_PREFIX}/share\"
+    -DEXTENSIONMANAGERDIR=\"${CMAKE_INSTALL_PREFIX}/${EWEBKIT_EXTENSION_MANAGER_INSTALL_DIR}\"
     -DWEBPROCESSNAME=\"WebProcess\"
     -DPLUGINPROCESSNAME=\"PluginProcess\"
     -DNETWORKPROCESSNAME=\"NetworkProcess\"
+    -DEXTENSIONMANAGERNAME=\"libewebkit_extension_manager.so\"
+    -DGTEST_HAS_RTTI=0
 )
 
 add_library(ewk2UnitTestUtils
@@ -466,6 +517,7 @@ target_link_libraries(ewk2UnitTestUtils ${EWK2UnitTests_LIBRARIES})
 # The "ewk" on the test name needs to be suffixed with "2", otherwise it
 # will clash with tests from the WebKit 1 test suite.
 set(EWK2UnitTests_BINARIES
+    test_ewk2_accessibility
     test_ewk2_application_cache_manager
     test_ewk2_auth_request
     test_ewk2_back_forward_list
@@ -474,15 +526,20 @@ set(EWK2UnitTests_BINARIES
     test_ewk2_context_history_callbacks
     test_ewk2_cookie_manager
     test_ewk2_database_manager
+    test_ewk2_download_job
     test_ewk2_eina_shared_string
     test_ewk2_favicon_database
     test_ewk2_file_chooser_request
+    test_ewk2_javascript_binding
     test_ewk2_object
+    test_ewk2_page
     test_ewk2_page_group
     test_ewk2_popup_menu
     test_ewk2_settings
     test_ewk2_ssl
     test_ewk2_storage_manager
+    test_ewk2_text_checker
+    test_ewk2_view
     test_ewk2_window_features
 )
 
@@ -490,9 +547,6 @@ set(EWK2UnitTests_BINARIES
 #
 # webkit.org/b/107422: test_ewk2_auth_request
 # webkit.org/b/132980: test_ewk2_context_menu
-# webkit.org/b/132981: test_ewk2_download_job
-# webkit.org/b/132982: test_ewk2_text_checker
-# webkit.org/b/132983: test_ewk2_view
 
 if (ENABLE_API_TESTS)
     foreach (testName ${EWK2UnitTests_BINARIES})
@@ -503,12 +557,12 @@ if (ENABLE_API_TESTS)
         target_link_libraries(${testName} ${EWK2UnitTests_LIBRARIES} ewk2UnitTestUtils)
     endforeach ()
 
-    add_library(ewk2UnitTestInjectedBundleSample SHARED ${TEST_INJECTED_BUNDLE_DIR}/injected_bundle_sample.cpp)
-    target_link_libraries(ewk2UnitTestInjectedBundleSample WebKit2)
+    add_library(ewk2UnitTestExtensionSample SHARED ${TEST_EXTENSIONS_DIR}/extension_sample.cpp)
+    target_link_libraries(ewk2UnitTestExtensionSample ${EINA_LIBRARIES} WebKit2)
 endif ()
 
 if (ENABLE_SPELLCHECK)
-    list(APPEND WebKit2_INCLUDE_DIRECTORIES
+    list(APPEND WebKit2_SYSTEM_INCLUDE_DIRECTORIES
         ${ENCHANT_INCLUDE_DIRS}
     )
     list(APPEND WebKit2_LIBRARIES
@@ -519,9 +573,17 @@ endif ()
 if (ENABLE_ACCESSIBILITY)
     list(APPEND WebKit2_INCLUDE_DIRECTORIES
         "${WEBKIT2_DIR}/WebProcess/WebPage/atk"
+    )
+    list(APPEND WebKit2_SYSTEM_INCLUDE_DIRECTORIES
         ${ATK_INCLUDE_DIRS}
     )
     list(APPEND WebKit2_LIBRARIES
         ${ATK_LIBRARIES}
+    )
+endif ()
+
+if (ENABLE_BATTERY_STATUS)
+    list(APPEND WebKit2_LIBRARIES
+        ${ELDBUS_LIBRARIES}
     )
 endif ()

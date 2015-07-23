@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2014, 2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,6 +29,7 @@
 #if ENABLE(DFG_JIT)
 
 #include "DFGAbstractHeap.h"
+#include "DFGLazyNode.h"
 #include "DFGNode.h"
 
 namespace JSC { namespace DFG {
@@ -36,29 +37,27 @@ namespace JSC { namespace DFG {
 enum LocationKind {
     InvalidLocationKind,
     
-    AllocationProfileWatchpointLoc,
     ArrayLengthLoc,
     ButterflyLoc,
     CheckHasInstanceLoc,
-    ClosureRegistersLoc,
     ClosureVariableLoc,
+    DirectArgumentsLoc,
     GetterLoc,
     GlobalVariableLoc,
+    HasIndexedPropertyLoc,
     IndexedPropertyLoc,
     IndexedPropertyStorageLoc,
     InstanceOfLoc,
     InvalidationPointLoc,
     IsFunctionLoc,
-    IsObjectLoc,
-    MyArgumentByValLoc,
-    MyArgumentsLengthLoc,
+    IsObjectOrNullLoc,
     NamedPropertyLoc,
     SetterLoc,
-    SkipTopScopeLoc,
-    TypeOfLoc,
+    StructureLoc,
     TypedArrayByteOffsetLoc,
     VarInjectionWatchpointLoc,
-    VariableLoc
+    StackLoc,
+    StackPayloadLoc
 };
 
 class HeapLocation {
@@ -66,7 +65,7 @@ public:
     HeapLocation(
         LocationKind kind = InvalidLocationKind,
         AbstractHeap heap = AbstractHeap(),
-        Node* base = nullptr, Node* index = nullptr)
+        Node* base = nullptr, LazyNode index = LazyNode())
         : m_kind(kind)
         , m_heap(heap)
         , m_base(base)
@@ -75,6 +74,11 @@ public:
         ASSERT((kind == InvalidLocationKind) == !heap);
         ASSERT(!!m_heap || !m_base);
         ASSERT(m_base || !m_index);
+    }
+
+    HeapLocation(LocationKind kind, AbstractHeap heap, Node* base, Node* index)
+        : HeapLocation(kind, heap, base, LazyNode(index))
+    {
     }
     
     HeapLocation(LocationKind kind, AbstractHeap heap, Edge base, Edge index = Edge())
@@ -95,11 +99,11 @@ public:
     LocationKind kind() const { return m_kind; }
     AbstractHeap heap() const { return m_heap; }
     Node* base() const { return m_base; }
-    Node* index() const { return m_index; }
+    LazyNode index() const { return m_index; }
     
     unsigned hash() const
     {
-        return m_kind + m_heap.hash() + WTF::PtrHash<Node*>::hash(m_index) + m_kind;
+        return m_kind + m_heap.hash() + m_index.hash() + m_kind;
     }
     
     bool operator==(const HeapLocation& other) const
@@ -121,7 +125,7 @@ private:
     LocationKind m_kind;
     AbstractHeap m_heap;
     Node* m_base;
-    Node* m_index;
+    LazyNode m_index;
 };
 
 struct HeapLocationHash {
@@ -150,7 +154,7 @@ template<> struct HashTraits<JSC::DFG::HeapLocation> : SimpleClassHashTraits<JSC
 
 namespace JSC { namespace DFG {
 
-typedef HashMap<HeapLocation, Node*> ImpureMap;
+typedef HashMap<HeapLocation, LazyNode> ImpureMap;
 
 } } // namespace JSC::DFG
 

@@ -22,50 +22,37 @@
 #include "WebProcessTest.h"
 #include <gio/gio.h>
 #include <webkit2/webkit-web-extension.h>
-#include <wtf/gobject/GUniquePtr.h>
+#include <wtf/glib/GUniquePtr.h>
 
 class WebKitDOMNodeTest : public WebProcessTest {
 public:
-    static PassOwnPtr<WebProcessTest> create() { return adoptPtr(new WebKitDOMNodeTest()); }
+    static std::unique_ptr<WebProcessTest> create() { return std::unique_ptr<WebKitDOMNodeTest>(new WebKitDOMNodeTest()); }
 
 private:
-    guint64 webPageFromArgs(GVariant* args)
+    bool testHierarchyNavigation(WebKitWebPage* page)
     {
-        GVariantIter iter;
-        g_variant_iter_init(&iter, args);
-
-        const char* key;
-        GVariant* value;
-        while (g_variant_iter_loop(&iter, "{&sv}", &key, &value)) {
-            if (!strcmp(key, "pageID") && g_variant_classify(value) == G_VARIANT_CLASS_UINT64)
-                return g_variant_get_uint64(value);
-        }
-
-        g_assert_not_reached();
-        return 0;
-    }
-
-    bool testHierarchyNavigation(WebKitWebExtension* extension, GVariant* args)
-    {
-        WebKitWebPage* page = webkit_web_extension_get_page(extension, webPageFromArgs(args));
-        g_assert(WEBKIT_IS_WEB_PAGE(page));
         WebKitDOMDocument* document = webkit_web_page_get_dom_document(page);
         g_assert(WEBKIT_DOM_IS_DOCUMENT(document));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(document));
 
         WebKitDOMHTMLHeadElement* head = webkit_dom_document_get_head(document);
         g_assert(WEBKIT_DOM_IS_HTML_HEAD_ELEMENT(head));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(head));
 
         // Title, head's child.
         g_assert(webkit_dom_node_has_child_nodes(WEBKIT_DOM_NODE(head)));
         GRefPtr<WebKitDOMNodeList> list = adoptGRef(webkit_dom_node_get_child_nodes(WEBKIT_DOM_NODE(head)));
         g_assert(WEBKIT_DOM_IS_NODE_LIST(list.get()));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(list.get()));
         g_assert_cmpint(webkit_dom_node_list_get_length(list.get()), ==, 1);
         WebKitDOMNode* node = webkit_dom_node_list_item(list.get(), 0);
         g_assert(WEBKIT_DOM_IS_HTML_TITLE_ELEMENT(node));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(node));
 
         // Body, Head sibling.
         node = webkit_dom_node_get_next_sibling(WEBKIT_DOM_NODE(head));
         g_assert(WEBKIT_DOM_IS_HTML_BODY_ELEMENT(node));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(node));
         WebKitDOMHTMLBodyElement* body = WEBKIT_DOM_HTML_BODY_ELEMENT(node);
 
         // There is no third sibling
@@ -74,10 +61,13 @@ private:
         // Body's previous sibling is Head.
         node = webkit_dom_node_get_previous_sibling(WEBKIT_DOM_NODE(body));
         g_assert(WEBKIT_DOM_IS_HTML_HEAD_ELEMENT(node));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(node));
 
         // Body has 3 children.
         g_assert(webkit_dom_node_has_child_nodes(WEBKIT_DOM_NODE(body)));
         list = adoptGRef(webkit_dom_node_get_child_nodes(WEBKIT_DOM_NODE(body)));
+        g_assert(WEBKIT_DOM_IS_NODE_LIST(list.get()));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(list.get()));
         unsigned long length = webkit_dom_node_list_get_length(list.get());
         g_assert_cmpint(length, ==, 3);
 
@@ -85,6 +75,7 @@ private:
         for (unsigned long i = 0; i < length; i++) {
             node = webkit_dom_node_list_item(list.get(), i);
             g_assert(WEBKIT_DOM_IS_HTML_PARAGRAPH_ELEMENT(node));
+            assertObjectIsDeletedWhenTestFinishes(G_OBJECT(node));
         }
 
         // Go backwards
@@ -95,96 +86,115 @@ private:
         return true;
     }
 
-    bool testInsertion(WebKitWebExtension* extension, GVariant* args)
+    bool testInsertion(WebKitWebPage* page)
     {
-        WebKitWebPage* page = webkit_web_extension_get_page(extension, webPageFromArgs(args));
-        g_assert(WEBKIT_IS_WEB_PAGE(page));
         WebKitDOMDocument* document = webkit_web_page_get_dom_document(page);
         g_assert(WEBKIT_DOM_IS_DOCUMENT(document));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(document));
 
         WebKitDOMHTMLElement* body = webkit_dom_document_get_body(document);
         g_assert(WEBKIT_DOM_IS_HTML_ELEMENT(body));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(body));
 
         // Body shouldn't have any children at this point.
         g_assert(!webkit_dom_node_has_child_nodes(WEBKIT_DOM_NODE(body)));
 
+        // The value of a non-existent attribute should be null, not an empty string
+        g_assert(!webkit_dom_html_body_element_get_background(WEBKIT_DOM_HTML_BODY_ELEMENT(body)));
+
         // Insert one P element.
         WebKitDOMElement* p = webkit_dom_document_create_element(document, "P", 0);
         g_assert(WEBKIT_DOM_IS_HTML_ELEMENT(p));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(p));
         webkit_dom_node_append_child(WEBKIT_DOM_NODE(body), WEBKIT_DOM_NODE(p), 0);
 
         // Now it should have one, the same that we inserted.
         g_assert(webkit_dom_node_has_child_nodes(WEBKIT_DOM_NODE(body)));
         GRefPtr<WebKitDOMNodeList> list = adoptGRef(webkit_dom_node_get_child_nodes(WEBKIT_DOM_NODE(body)));
         g_assert(WEBKIT_DOM_IS_NODE_LIST(list.get()));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(list.get()));
         g_assert_cmpint(webkit_dom_node_list_get_length(list.get()), ==, 1);
         WebKitDOMNode* node = webkit_dom_node_list_item(list.get(), 0);
         g_assert(WEBKIT_DOM_IS_HTML_ELEMENT(node));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(node));
         g_assert(webkit_dom_node_is_same_node(WEBKIT_DOM_NODE(p), node));
 
         // Replace the P tag with a DIV tag.
         WebKitDOMElement* div = webkit_dom_document_create_element(document, "DIV", 0);
         g_assert(WEBKIT_DOM_IS_HTML_ELEMENT(div));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(div));
         webkit_dom_node_replace_child(WEBKIT_DOM_NODE(body), WEBKIT_DOM_NODE(div), WEBKIT_DOM_NODE(p), 0);
         g_assert(webkit_dom_node_has_child_nodes(WEBKIT_DOM_NODE(body)));
         list = adoptGRef(webkit_dom_node_get_child_nodes(WEBKIT_DOM_NODE(body)));
         g_assert(WEBKIT_DOM_IS_NODE_LIST(list.get()));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(list.get()));
         g_assert_cmpint(webkit_dom_node_list_get_length(list.get()), ==, 1);
         node = webkit_dom_node_list_item(list.get(), 0);
         g_assert(WEBKIT_DOM_IS_HTML_ELEMENT(node));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(node));
         g_assert(webkit_dom_node_is_same_node(WEBKIT_DOM_NODE(div), node));
 
         // Now remove the tag.
         webkit_dom_node_remove_child(WEBKIT_DOM_NODE(body), node, 0);
         list = adoptGRef(webkit_dom_node_get_child_nodes(WEBKIT_DOM_NODE(body)));
         g_assert(WEBKIT_DOM_IS_NODE_LIST(list.get()));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(list.get()));
         g_assert_cmpint(webkit_dom_node_list_get_length(list.get()), ==, 0);
 
         // Test insert before. If refChild is null, insert newChild as last element of parent.
         div = webkit_dom_document_create_element(document, "DIV", 0);
         g_assert(WEBKIT_DOM_IS_HTML_ELEMENT(div));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(div));
         webkit_dom_node_insert_before(WEBKIT_DOM_NODE(body), WEBKIT_DOM_NODE(div), 0, 0);
         g_assert(webkit_dom_node_has_child_nodes(WEBKIT_DOM_NODE(body)));
         list = adoptGRef(webkit_dom_node_get_child_nodes(WEBKIT_DOM_NODE(body)));
         g_assert(WEBKIT_DOM_IS_NODE_LIST(list.get()));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(list.get()));
         g_assert_cmpint(webkit_dom_node_list_get_length(list.get()), ==, 1);
         node = webkit_dom_node_list_item(list.get(), 0);
         g_assert(WEBKIT_DOM_IS_HTML_ELEMENT(node));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(node));
         g_assert(webkit_dom_node_is_same_node(WEBKIT_DOM_NODE(div), node));
 
         // Now insert a 'p' before 'div'.
         p = webkit_dom_document_create_element(document, "P", 0);
         g_assert(WEBKIT_DOM_IS_HTML_ELEMENT(p));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(p));
         webkit_dom_node_insert_before(WEBKIT_DOM_NODE(body), WEBKIT_DOM_NODE(p), WEBKIT_DOM_NODE(div), 0);
         g_assert(webkit_dom_node_has_child_nodes(WEBKIT_DOM_NODE(body)));
         list = adoptGRef(webkit_dom_node_get_child_nodes(WEBKIT_DOM_NODE(body)));
         g_assert(WEBKIT_DOM_IS_NODE_LIST(list.get()));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(list.get()));
         g_assert_cmpint(webkit_dom_node_list_get_length(list.get()), ==, 2);
         node = webkit_dom_node_list_item(list.get(), 0);
         g_assert(WEBKIT_DOM_IS_HTML_ELEMENT(node));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(node));
         g_assert(webkit_dom_node_is_same_node(WEBKIT_DOM_NODE(p), node));
         node = webkit_dom_node_list_item(list.get(), 1);
         g_assert(WEBKIT_DOM_IS_HTML_ELEMENT(node));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(node));
         g_assert(webkit_dom_node_is_same_node(WEBKIT_DOM_NODE(div), node));
 
         return true;
     }
 
-    bool testTagNames(WebKitWebExtension* extension, GVariant* args)
+    bool testTagNames(WebKitWebPage* page)
     {
         static const char* expectedTagNames[] = { "HTML", "HEAD", "BODY", "VIDEO", "SOURCE", "VIDEO", "SOURCE", "INPUT" };
 
-        WebKitWebPage* page = webkit_web_extension_get_page(extension, webPageFromArgs(args));
-        g_assert(WEBKIT_IS_WEB_PAGE(page));
         WebKitDOMDocument* document = webkit_web_page_get_dom_document(page);
         g_assert(WEBKIT_DOM_IS_DOCUMENT(document));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(document));
 
-        WebKitDOMNodeList* list = webkit_dom_document_get_elements_by_tag_name(document, "*");
-        gulong nodeCount = webkit_dom_node_list_get_length(list);
+        GRefPtr<WebKitDOMNodeList> list = adoptGRef(webkit_dom_document_get_elements_by_tag_name(document, "*"));
+        g_assert(WEBKIT_DOM_IS_NODE_LIST(list.get()));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(list.get()));
+        gulong nodeCount = webkit_dom_node_list_get_length(list.get());
         g_assert_cmpuint(nodeCount, ==, G_N_ELEMENTS(expectedTagNames));
         for (unsigned i = 0; i < nodeCount; i++) {
-            WebKitDOMNode* node = webkit_dom_node_list_item(list, i);
+            WebKitDOMNode* node = webkit_dom_node_list_item(list.get(), i);
             g_assert(WEBKIT_DOM_IS_NODE(node));
+            assertObjectIsDeletedWhenTestFinishes(G_OBJECT(node));
             GUniquePtr<char> tagName(webkit_dom_node_get_node_name(node));
             g_assert_cmpstr(tagName.get(), ==, expectedTagNames[i]);
         }
@@ -192,14 +202,60 @@ private:
         return true;
     }
 
-    virtual bool runTest(const char* testName, WebKitWebExtension* extension, GVariant* args)
+    bool testDOMCache(WebKitWebPage* page)
+    {
+        WebKitDOMDocument* document = webkit_web_page_get_dom_document(page);
+        g_assert(WEBKIT_DOM_IS_DOCUMENT(document));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(document));
+
+        // DOM objects already in the document should be automatically handled by the cache.
+        WebKitDOMElement* div = webkit_dom_document_get_element_by_id(document, "container");
+        g_assert(WEBKIT_DOM_IS_HTML_ELEMENT(div));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(div));
+
+        // Get the same elment twice should return the same pointer.
+        g_assert(div == webkit_dom_document_get_element_by_id(document, "container"));
+
+        // A new DOM object created that is derived from Node should be automatically handled by the cache.
+        WebKitDOMElement* p = webkit_dom_document_create_element(document, "P", nullptr);
+        g_assert(WEBKIT_DOM_IS_HTML_PARAGRAPH_ELEMENT(p));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(p));
+
+        // A new DOM object created that isn't derived from Node should be manually handled.
+        GRefPtr<WebKitDOMNodeIterator> iter = adoptGRef(webkit_dom_document_create_node_iterator(document, WEBKIT_DOM_NODE(div), WEBKIT_DOM_NODE_FILTER_SHOW_ALL, nullptr, FALSE, nullptr));
+        g_assert(WEBKIT_DOM_IS_NODE_ITERATOR(iter.get()));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(iter.get()));
+
+        // We can also manually handle a DOM object handled by the cache.
+        GRefPtr<WebKitDOMElement> p2 = adoptGRef(webkit_dom_document_create_element(document, "P", nullptr));
+        g_assert(WEBKIT_DOM_IS_HTML_PARAGRAPH_ELEMENT(p2.get()));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(p2.get()));
+
+        // Manually handling a DOM object owned by the cache shouldn't crash when the cache has more than one reference.
+        GRefPtr<WebKitDOMElement> p3 = adoptGRef(webkit_dom_document_create_element(document, "P", nullptr));
+        g_assert(WEBKIT_DOM_IS_HTML_PARAGRAPH_ELEMENT(p3.get()));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(p3.get()));
+        webkit_dom_node_append_child(WEBKIT_DOM_NODE(div), WEBKIT_DOM_NODE(p3.get()), nullptr);
+
+        // DOM objects removed from the document are also correctly handled by the cache.
+        WebKitDOMElement* a = webkit_dom_document_create_element(document, "A", nullptr);
+        g_assert(WEBKIT_DOM_IS_ELEMENT(a));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(a));
+        webkit_dom_node_remove_child(WEBKIT_DOM_NODE(div), WEBKIT_DOM_NODE(a), nullptr);
+
+        return true;
+    }
+
+    bool runTest(const char* testName, WebKitWebPage* page) override
     {
         if (!strcmp(testName, "hierarchy-navigation"))
-            return testHierarchyNavigation(extension, args);
+            return testHierarchyNavigation(page);
         if (!strcmp(testName, "insertion"))
-            return testInsertion(extension, args);
+            return testInsertion(page);
         if (!strcmp(testName, "tag-names"))
-            return testTagNames(extension, args);
+            return testTagNames(page);
+        if (!strcmp(testName, "dom-cache"))
+            return testDOMCache(page);
 
         g_assert_not_reached();
         return false;
@@ -211,6 +267,7 @@ static void __attribute__((constructor)) registerTests()
     REGISTER_TEST(WebKitDOMNodeTest, "WebKitDOMNode/hierarchy-navigation");
     REGISTER_TEST(WebKitDOMNodeTest, "WebKitDOMNode/insertion");
     REGISTER_TEST(WebKitDOMNodeTest, "WebKitDOMNode/tag-names");
+    REGISTER_TEST(WebKitDOMNodeTest, "WebKitDOMNode/dom-cache");
 }
 
 

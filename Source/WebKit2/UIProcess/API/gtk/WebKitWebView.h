@@ -32,6 +32,8 @@
 #include <webkit2/WebKitAuthenticationRequest.h>
 #include <webkit2/WebKitBackForwardList.h>
 #include <webkit2/WebKitDefines.h>
+#include <webkit2/WebKitColorChooserRequest.h>
+#include <webkit2/WebKitEditorState.h>
 #include <webkit2/WebKitFileChooserRequest.h>
 #include <webkit2/WebKitFindController.h>
 #include <webkit2/WebKitFormSubmissionRequest.h>
@@ -39,6 +41,7 @@
 #include <webkit2/WebKitHitTestResult.h>
 #include <webkit2/WebKitJavascriptResult.h>
 #include <webkit2/WebKitNavigationAction.h>
+#include <webkit2/WebKitNotification.h>
 #include <webkit2/WebKitPermissionRequest.h>
 #include <webkit2/WebKitPolicyDecision.h>
 #include <webkit2/WebKitScriptDialog.h>
@@ -155,6 +158,8 @@ typedef enum {
  * @WEBKIT_SNAPSHOT_OPTIONS_NONE: Do not include any special options.
  * @WEBKIT_SNAPSHOT_OPTIONS_INCLUDE_SELECTION_HIGHLIGHTING: Whether to include in the
  * snapshot the highlight of the selected content.
+ * @WEBKIT_SNAPSHOT_OPTIONS_TRANSPARENT_BACKGROUND: Do not fill the background with white before
+ * rendering the snapshot. Since 2.8
  *
  * Enum values used to specify options when taking a snapshot
  * from a #WebKitWebView.
@@ -162,6 +167,7 @@ typedef enum {
 typedef enum {
   WEBKIT_SNAPSHOT_OPTIONS_NONE = 0,
   WEBKIT_SNAPSHOT_OPTIONS_INCLUDE_SELECTION_HIGHLIGHTING = 1 << 0,
+  WEBKIT_SNAPSHOT_OPTIONS_TRANSPARENT_BACKGROUND = 1 << 1,
 } WebKitSnapshotOptions;
 
 /**
@@ -235,15 +241,18 @@ struct _WebKitWebViewClass {
     gboolean   (* authenticate)                (WebKitWebView               *web_view,
                                                 WebKitAuthenticationRequest *request);
     gboolean   (* load_failed_with_tls_errors) (WebKitWebView               *web_view,
+                                                const gchar                 *failing_uri,
                                                 GTlsCertificate             *certificate,
-                                                GTlsCertificateFlags         errors,
-                                                const gchar                 *host);
+                                                GTlsCertificateFlags         errors);
+    gboolean   (* show_notification)           (WebKitWebView               *web_view,
+                                                WebKitNotification          *notification);
+    gboolean   (* run_color_chooser)           (WebKitWebView               *web_view,
+                                                WebKitColorChooserRequest   *request);
+
     void (*_webkit_reserved0) (void);
     void (*_webkit_reserved1) (void);
     void (*_webkit_reserved2) (void);
     void (*_webkit_reserved3) (void);
-    void (*_webkit_reserved4) (void);
-    void (*_webkit_reserved5) (void);
 };
 
 WEBKIT_API GType
@@ -300,6 +309,9 @@ webkit_web_view_stop_loading                         (WebKitWebView             
 
 WEBKIT_API gboolean
 webkit_web_view_is_loading                           (WebKitWebView             *web_view);
+
+WEBKIT_API gboolean
+webkit_web_view_is_playing_audio                     (WebKitWebView             *web_view);
 
 WEBKIT_API guint64
 webkit_web_view_get_page_id                          (WebKitWebView             *web_view);
@@ -378,6 +390,11 @@ webkit_web_view_can_execute_editing_command_finish   (WebKitWebView             
 WEBKIT_API void
 webkit_web_view_execute_editing_command              (WebKitWebView             *web_view,
                                                       const gchar               *command);
+
+WEBKIT_API void
+webkit_web_view_execute_editing_command_with_argument(WebKitWebView             *web_view,
+                                                      const char                *command,
+                                                      const char                *argument);
 
 WEBKIT_API WebKitFindController *
 webkit_web_view_get_find_controller                  (WebKitWebView             *web_view);
@@ -466,6 +483,24 @@ webkit_web_view_get_snapshot_finish                  (WebKitWebView             
 
 WEBKIT_API WebKitUserContentManager *
 webkit_web_view_get_user_content_manager             (WebKitWebView             *web_view);
+
+WEBKIT_API void
+webkit_web_view_set_background_color                 (WebKitWebView             *web_view,
+                                                      const GdkRGBA             *rgba);
+
+WEBKIT_API void
+webkit_web_view_get_background_color                 (WebKitWebView             *web_view,
+                                                      GdkRGBA                   *rgba);
+
+WEBKIT_API gboolean
+webkit_web_view_is_editable                          (WebKitWebView             *web_view);
+
+WEBKIT_API void
+webkit_web_view_set_editable                         (WebKitWebView             *web_view,
+                                                      gboolean                  editable);
+
+WEBKIT_API WebKitEditorState *
+webkit_web_view_get_editor_state                     (WebKitWebView             *web_view);
 
 G_END_DECLS
 

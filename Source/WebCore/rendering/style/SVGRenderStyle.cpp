@@ -43,7 +43,7 @@ static const SVGRenderStyle& defaultSVGStyle()
     return *style.get().get();
 }
 
-PassRef<SVGRenderStyle> SVGRenderStyle::createDefaultStyle()
+Ref<SVGRenderStyle> SVGRenderStyle::createDefaultStyle()
 {
     return adoptRef(*new SVGRenderStyle(CreateDefault));
 }
@@ -92,7 +92,7 @@ inline SVGRenderStyle::SVGRenderStyle(const SVGRenderStyle& other)
 {
 }
 
-PassRef<SVGRenderStyle> SVGRenderStyle::copy() const
+Ref<SVGRenderStyle> SVGRenderStyle::copy() const
 {
     return adoptRef(*new SVGRenderStyle(*this));
 }
@@ -148,7 +148,7 @@ void SVGRenderStyle::copyNonInheritedFrom(const SVGRenderStyle* other)
     resources = other->resources;
 }
 
-Vector<PaintType> SVGRenderStyle::paintTypesForPaintOrder() const
+Vector<PaintType, 3> SVGRenderStyle::paintTypesForPaintOrder() const
 {
     Vector<PaintType, 3> paintOrder;
     switch (this->paintOrder()) {

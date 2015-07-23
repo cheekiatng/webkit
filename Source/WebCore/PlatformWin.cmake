@@ -10,6 +10,8 @@ list(APPEND WebCore_INCLUDE_DIRECTORIES
 list(APPEND WebCore_SOURCES
     accessibility/win/AccessibilityObjectWin.cpp
 
+    editing/win/EditorWin.cpp
+
     html/HTMLSelectElementWin.cpp
 
     page/win/DragControllerWin.cpp
@@ -19,11 +21,13 @@ list(APPEND WebCore_SOURCES
     platform/Cursor.cpp
     platform/LocalizedStrings.cpp
     platform/PlatformStrategies.cpp
+    platform/VNodeTracker.cpp
+
+    platform/audio/PlatformMediaSessionManager.cpp
 
     platform/graphics/opentype/OpenTypeUtilities.cpp
 
     platform/graphics/win/DIBPixelData.cpp
-    platform/graphics/win/GDIExtras.cpp
     platform/graphics/win/IconWin.cpp
     platform/graphics/win/ImageWin.cpp
     platform/graphics/win/IntPointWin.cpp
@@ -47,6 +51,7 @@ list(APPEND WebCore_SOURCES
     platform/win/LanguageWin.cpp
     platform/win/LocalizedStringsWin.cpp
     platform/win/LoggingWin.cpp
+    platform/win/MemoryPressureHandlerWin.cpp
     platform/win/MIMETypeRegistryWin.cpp
     platform/win/PasteboardWin.cpp
     platform/win/PlatformMouseEventWin.cpp
@@ -63,25 +68,28 @@ list(APPEND WebCore_SOURCES
     platform/win/WebCoreInstanceHandle.cpp
     platform/win/WheelEventWin.cpp
     platform/win/WidgetWin.cpp
-
-    plugins/PluginDatabase.cpp
-    plugins/PluginPackage.cpp
-
-    plugins/win/PluginDatabaseWin.cpp
 )
 
-if (ENABLE_NETSCAPE_PLUGIN_API)
-    list(APPEND WebCore_SOURCES
-        plugins/PluginView.cpp
-        plugins/npapi.cpp
+list(APPEND WebCore_SOURCES
+    "${DERIVED_SOURCES_WEBCORE_DIR}/WebCoreHeaderDetection.h"
+)
 
-        plugins/win/PluginMessageThrottlerWin.cpp
-        plugins/win/PluginPackageWin.cpp
-        plugins/win/PluginViewWin.cpp
-    )
-else ()
-    list(APPEND WebCore_SOURCES
-        plugins/PluginPackageNone.cpp
-        plugins/PluginViewNone.cpp
-    )
+if (${WTF_PLATFORM_WIN_CAIRO})
+    include(PlatformWinCairo.cmake)
 endif ()
+
+set(WebCore_FORWARDING_HEADERS_DIRECTORIES
+    Modules/indexeddb
+
+    bridge/c
+)
+
+WEBKIT_CREATE_FORWARDING_HEADERS(WebCore DIRECTORIES ${WebCore_FORWARDING_HEADERS_DIRECTORIES})
+
+# FIXME: This should test if AVF headers are available.
+# https://bugs.webkit.org/show_bug.cgi?id=135861
+add_custom_command(
+    OUTPUT "${DERIVED_SOURCES_WEBCORE_DIR}/WebCoreHeaderDetection.h"
+    WORKING_DIRECTORY "${DERIVED_SOURCES_WEBCORE_DIR}"
+    COMMAND echo /* Identifying AVFoundation Support */ > WebCoreHeaderDetection.h
+    VERBATIM)

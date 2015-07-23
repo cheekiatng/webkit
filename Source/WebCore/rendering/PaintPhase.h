@@ -49,7 +49,8 @@ enum PaintPhase {
     PaintPhaseSelection,
     PaintPhaseCollapsedTableBorders,
     PaintPhaseTextClip,
-    PaintPhaseMask
+    PaintPhaseMask,
+    PaintPhaseClippingMask
 };
 
 enum PaintBehaviorFlags {
@@ -61,6 +62,7 @@ enum PaintBehaviorFlags {
     PaintBehaviorRenderingSVGMask = 1 << 4,
     PaintBehaviorSkipRootBackground = 1 << 5,
     PaintBehaviorRootBackgroundOnly = 1 << 6,
+    PaintBehaviorSelectionAndBackgroundsOnly = 1 << 7,
 };
 
 typedef unsigned PaintBehavior;

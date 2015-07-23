@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011, 2012, 2013, 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2011-2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,7 +39,11 @@
 #include "DumpContext.h"
 #include "StructureSet.h"
 
-namespace JSC { namespace DFG {
+namespace JSC {
+
+class TrackedReferences;
+
+namespace DFG {
 
 class Graph;
 struct Node;
@@ -193,28 +197,26 @@ struct AbstractValue {
         return result;
     }
     
-    void setOSREntryValue(Graph&, const FrozenValue&);
-    
     void set(Graph&, const FrozenValue&, StructureClobberState);
     void set(Graph&, Structure*);
     void set(Graph&, const StructureSet&);
     
+    // Set this value to represent the given set of types as precisely as possible.
+    void setType(Graph&, SpeculatedType);
+    
+    // As above, but only valid for non-cell types.
     void setType(SpeculatedType type)
     {
-        if (type & SpecCell) {
-            m_structure.makeTop();
-            m_arrayModes = ALL_ARRAY_MODES;
-        } else {
-            m_structure.clear();
-            m_arrayModes = 0;
-        }
+        RELEASE_ASSERT(!(type & SpecCell));
+        m_structure.clear();
+        m_arrayModes = 0;
         m_type = type;
         m_value = JSValue();
         checkConsistency();
     }
     
-    void fixTypeForRepresentation(NodeFlags representation);
-    void fixTypeForRepresentation(Node*);
+    void fixTypeForRepresentation(Graph&, NodeFlags representation, Node* = nullptr);
+    void fixTypeForRepresentation(Graph&, Node*);
     
     bool operator==(const AbstractValue& other) const
     {
@@ -253,6 +255,8 @@ struct AbstractValue {
         ASSERT(result == (*this != oldMe));
         return result;
     }
+    
+    bool mergeOSREntryValue(Graph&, JSValue);
     
     void merge(SpeculatedType type)
     {
@@ -321,14 +325,16 @@ struct AbstractValue {
     
 #if ASSERT_DISABLED
     void checkConsistency() const { }
-    void assertIsWatched(Graph&) const { }
+    void assertIsRegistered(Graph&) const { }
 #else
     void checkConsistency() const;
-    void assertIsWatched(Graph&) const;
+    void assertIsRegistered(Graph&) const;
 #endif
     
     void dumpInContext(PrintStream&, DumpContext*) const;
     void dump(PrintStream&) const;
+    
+    void validateReferences(const TrackedReferences&);
     
     // This is a proven constraint on the structures that this value can have right
     // now. The structure of the current value must belong to this set. The set may
@@ -346,18 +352,16 @@ struct AbstractValue {
     
     // This is a proven constraint on the possible types that this value can have
     // now or any time in the future, unless it is reassigned. This field is
-    // impervious to side-effects unless the side-effect can reassign the value
-    // (for example if we're talking about a captured variable). The relationship
-    // between this field, and the structure fields above, is as follows. The
-    // fields above constraint the structures that a cell may have, but they say
-    // nothing about whether or not the value is known to be a cell. More formally,
-    // the m_structure is itself an abstract value that consists of the
-    // union of the set of all non-cell values and the set of cell values that have
-    // the given structure. This abstract value is then the intersection of the
-    // m_structure and the set of values whose type is m_type. So, for
-    // example if m_type is SpecFinal|SpecInt32 and m_structure is
-    // [0x12345] then this abstract value corresponds to the set of all integers
-    // unified with the set of all objects with structure 0x12345.
+    // impervious to side-effects. The relationship between this field, and the
+    // structure fields above, is as follows. The fields above constraint the
+    // structures that a cell may have, but they say nothing about whether or not
+    // the value is known to be a cell. More formally, the m_structure is itself an
+    // abstract value that consists of the union of the set of all non-cell values
+    // and the set of cell values that have the given structure. This abstract
+    // value is then the intersection of the m_structure and the set of values
+    // whose type is m_type. So, for example if m_type is SpecFinal|SpecInt32 and
+    // m_structure is [0x12345] then this abstract value corresponds to the set of
+    // all integers unified with the set of all objects with structure 0x12345.
     SpeculatedType m_type;
     
     // This is a proven constraint on the possible indexing types that this value

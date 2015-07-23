@@ -57,6 +57,7 @@ function createTests() {
     result.push(function(jsonObject){
         return jsonObject.stringify(new Boolean(true));
     });
+
     result.push(function(jsonObject){
         var value = new Number(1);
         value.valueOf = function() { return 2; }
@@ -99,6 +100,10 @@ function createTests() {
         return jsonObject.stringify({toJSON: Date.prototype.toJSON, toISOString: function(){ throw "An exception"; }});
     });
     result[result.length - 1].throws = true;
+    result.push(function(jsonObject){
+        return jsonObject.stringify(new Date(NaN));
+    });
+    result[result.length - 1].expected = 'null';;
     result.push(function(jsonObject){
         var d = new Date(0);
         d.toISOString = null;
@@ -306,9 +311,22 @@ function createTests() {
     result.push(function(jsonObject){
         return jsonObject.stringify(complexObjectWithProto, null, 4);
     });
+    var clientRect = document.body.getBoundingClientRect();
+    result.push(function(jsonObject){
+            return jsonObject.stringify(clientRect);
+    });
+    result[result.length - 1].expected = JSON.stringify({top : clientRect.top, right : clientRect.right, bottom: clientRect.bottom, left : clientRect.left, width : clientRect.width, height : clientRect.height });
     result.push(function(jsonObject){
         return jsonObject.stringify(objectWithSideEffectGetter);
     });
+    result[result.length - 1].expected = JSON.stringify({});
+    result.push(function(jsonObject){
+        return jsonObject.stringify(objectWithSideEffectGetter);
+    });
+    result.push(function(jsonObject){
+        return jsonObject.stringify(objectWithSideEffectGetterAndProto);
+    });
+    result[result.length - 1].expected = JSON.stringify({});
     result.push(function(jsonObject){
         return jsonObject.stringify(objectWithSideEffectGetterAndProto);
     });

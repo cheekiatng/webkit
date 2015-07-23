@@ -26,10 +26,15 @@
 .timeline-ruler {
     position: relative;
     pointer-events: none;
+    z-index: 1;
 }
 
 .timeline-ruler.allows-time-range-selection {
     pointer-events: all;
+}
+
+.timeline-ruler.allows-time-range-selection.creating-selection {
+    cursor: col-resize;
 }
 
 .timeline-ruler > * {
@@ -37,13 +42,17 @@
 }
 
 .timeline-ruler > .header {
-    border-bottom: 1px solid rgb(200, 200, 200);
+    border-bottom: 1px solid hsl(0, 0%, 70%);
 
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 22px;
+    height: 29px;
+}
+
+body.window-inactive .timeline-ruler > .header {
+    border-bottom-color: hsl(0, 0%, 85%);
 }
 
 .timeline-ruler > .header > .divider {
@@ -52,15 +61,19 @@
     top: 0;
     bottom: 0;
     -webkit-transform: translateX(-1px);
-    background-image: linear-gradient(to bottom, rgba(200, 200, 200, 0), rgba(200, 200, 200, 1) 85%);
+    background-image: linear-gradient(to bottom, hsla(0, 0%, 70%, 0), hsla(0, 0%, 70%, 2) 85%);
+}
+
+body.window-inactive .timeline-ruler > .header > .divider {
+    background-image: linear-gradient(to bottom, hsla(0, 0%, 85%, 0), hsla(0, 0%, 85%, 1) 85%);
 }
 
 .timeline-ruler > .header > .divider > .label {
     position: absolute;
-    top: 5px;
+    top: 8px;
     right: 5px;
     font-size: 9px;
-    color: rgb(128, 128, 128);
+    color: hsl(0, 0%, 50%);
     white-space: nowrap;
 }
 
@@ -79,7 +92,7 @@
     top: 1px;
     bottom: 0;
     -webkit-transform: translateX(-1px);
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: hsla(0, 0%, 0%, 0.05);
 }
 
 .timeline-ruler > .markers > .marker {
@@ -91,7 +104,7 @@
 
     border-left-width: 1px;
     border-left-style: dashed;
-    border-left-color: rgba(128, 128, 128, 0.5);
+    border-left-color: hsla(0, 0%, 50%, 0.5);
 }
 
 .timeline-ruler > .markers > .marker.current-time {
@@ -114,21 +127,21 @@
 }
 
 .timeline-ruler > .markers > .marker.load-event {
-    border-left-color: rgba(255, 0, 0, 0.5);
+    border-left-color: hsla(0, 100%, 50%, 0.5);
 }
 
 .timeline-ruler > .markers > .marker.dom-content-event {
-    border-left-color: rgba(0, 0, 255, 0.5);
+    border-left-color: hsla(240, 100%, 50%, 0.5);
 }
 
 .timeline-ruler > .markers > .marker.timestamp {
-    border-left-color: rgba(0, 110, 0, 0.5);
+    border-left-color: hsla(119, 100%, 21%, 0.5);
 }
 
 .timeline-ruler > .selection-drag {
     position: absolute;
     top: 0;
-    height: 22px;
+    height: 29px;
     cursor: -webkit-grab;
     pointer-events: all;
 }
@@ -141,9 +154,9 @@
     position: absolute;
     top: 0;
     width: 8px;
-    height: 21px;
+    height: 28px;
     border-radius: 5px;
-    background-color: rgb(164, 164, 164);
+    background-color: hsl(0, 0%, 64%);
     border: 1px solid white;
     cursor: col-resize;
     pointer-events: all;
@@ -162,7 +175,7 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: hsla(0, 0%, 0%, 0.1);
     z-index: 15;
 }
 

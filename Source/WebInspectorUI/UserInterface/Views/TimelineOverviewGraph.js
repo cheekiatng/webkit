@@ -40,16 +40,20 @@ WebInspector.TimelineOverviewGraph = function(timeline)
         if (timelineType === WebInspector.TimelineRecord.Type.Script)
             return new WebInspector.ScriptTimelineOverviewGraph(timeline);
 
+        if (timelineType === WebInspector.TimelineRecord.Type.RenderingFrame)
+            return new WebInspector.RenderingFrameTimelineOverviewGraph(timeline);
+
         throw Error("Can't make a graph for an unknown timeline.");
     }
 
     // Concrete object instantiation.
     console.assert(this.constructor !== WebInspector.TimelineOverviewGraph && this instanceof WebInspector.TimelineOverviewGraph);
 
-    WebInspector.Object.call(this);
+    // FIXME: Convert this to a WebInspector.Object subclass, and call super().
+    // WebInspector.Object.call(this);
 
     this.element = document.createElement("div");
-    this.element.classList.add(WebInspector.TimelineOverviewGraph.StyleClassName);
+    this.element.classList.add("timeline-overview-graph");
 
     this._zeroTime = 0;
     this._startTime = 0;
@@ -57,8 +61,6 @@ WebInspector.TimelineOverviewGraph = function(timeline)
     this._currentTime = 0;
     this._timelineOverview = null;
 };
-
-WebInspector.TimelineOverviewGraph.StyleClassName = "timeline-overview-graph";
 
 WebInspector.TimelineOverviewGraph.prototype = {
     constructor: WebInspector.TimelineOverviewGraph,
@@ -139,6 +141,22 @@ WebInspector.TimelineOverviewGraph.prototype = {
         this._timelineOverview = x;
     },
 
+    get visible()
+    {
+        return this._visible;
+    },
+
+    shown: function()
+    {
+        this._visible = true;
+        this.updateLayout();
+    },
+
+    hidden: function()
+    {
+        this._visible = false;
+    },
+
     reset: function()
     {
         // Implemented by sub-classes if needed.
@@ -165,6 +183,9 @@ WebInspector.TimelineOverviewGraph.prototype = {
 
     needsLayout: function()
     {
+        if (!this._visible)
+            return;
+
         if (this._scheduledLayoutUpdateIdentifier)
             return;
 

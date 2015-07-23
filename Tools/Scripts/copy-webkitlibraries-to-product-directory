@@ -33,13 +33,13 @@ use webkitdirs;
 my $showHelp = 0;
 my $llvm = 0;
 my $wksi = 0;
+my $clean = 0;
 my $llvmIncludePackage = "";
 my $llvmLibraryPackage = "";
 my $useFullLibPaths = 0;
 my $preferSystemLLVMOverDrops = 0;
 my $llvmSubdirectoryName = "llvm";
 my $llvmPrefix = "/usr/local/LLVMForJavaScriptCore";
-my $sdkName = ""; # Ideally we only use this for build commands, rather than deciding policies about what needs to get copied or built and where it needs to be placed.
 my $osxVersion;
 my $force = 0;
 
@@ -49,13 +49,16 @@ Usage: $programName [options]
   --help                        Show this help message
   --[no-]llvm                   Toggle copying LLVM drops (default: $llvm)
   --[no-]wksi                   Toggle copying WebKitSystemInterface drops (default: $wksi)
+  --clean                       Clean the libraries (default: $clean)
   --use-llvm-includes=<path>    Get the LLVM inludes package from <path>
   --use-llvm-libraries=<path>   Get the LLVM libraries package from <path>
   --[no-]use-full-lib-paths     Toggle using full library paths
   --[no-]prefer-system-llvm     Toggle preferring the system LLVM over the binary drops (default: $preferSystemLLVMOverDrops)
   --llvm-subdirectory=<name>    Set the name of the LLVM subdirectory to search for (default: $llvmSubdirectoryName)
   --llvm-prefix=<path>          Set the prefix into which LLVM is installed (default: $llvmPrefix)
-  --sdk-name=<name>             Set the name of the Xcode SDK to use.
+  --sdk=<sdk>                   Use a specific Xcode SDK
+  --device                      Use the current iphoneos.internal SDK (iOS only)
+  --simulator                   Use the current iphonesimulator SDK (iOS only)
   --osx-version=<version>       Set the OS X version to use when deciding what to copy.
   --[no-]force                  Toggle forcing the copy - i.e. ignoring timestamps (default: $force)
 EOF
@@ -64,13 +67,13 @@ GetOptions(
     'help' => \$showHelp,
     'llvm!' => \$llvm,
     'wksi!' => \$wksi,
+    'clean' => \$clean,
     'use-llvm-includes=s' => \$llvmIncludePackage,
     'use-llvm-libraries=s' => \$llvmLibraryPackage,
     'use-full-lib-paths!' => \$useFullLibPaths,
     'prefer-system-llvm!' => \$preferSystemLLVMOverDrops,
     'llvm-subdirectory=s' => \$llvmSubdirectoryName,
     'llvm-prefix=s' => \$llvmPrefix,
-    'sdk-name=s' => \$sdkName,
     'osx-version=s' => \$osxVersion,
     'force!' => \$force
 );
@@ -79,6 +82,8 @@ if ($showHelp) {
    print STDERR $usage;
    exit 1;
 }
+
+determineXcodeSDK();
 
 my $productDir = shift @ARGV;
 if ($productDir) {
@@ -94,12 +99,15 @@ if (!$osxVersion) {
 
 chdirWebKit();
 
-my $xcrunOptions = "";
-if ($sdkName ne "") {
-    $xcrunOptions .= " -sdk $sdkName";
+sub executeRanlib($)
+{
+    my ($library) = @_;
+    my @args;
+    push @args, ("-sdk", xcodeSDK()) if xcodeSDK();
+    push @args, "ranlib";
+    push @args, "-no_warning_for_no_symbols" if isIOSWebKit();
+    system("xcrun", @args, $library) == 0 or die;
 }
-my $ranlib = `xcrun $xcrunOptions -find ranlib`;
-chomp $ranlib;
 
 sub unpackIfNecessary
 {
@@ -111,7 +119,7 @@ sub unpackIfNecessary
             foreach my $library (`tar -tf $package`) {
                 chomp $library;
                 print "   Ranlib $library\n";
-                (system($ranlib, $targetDir . "/" . $library) == 0) or die;
+                executeRanlib($targetDir . "/" . $library);
             }
         }
         return 1;
@@ -134,29 +142,45 @@ if ($wksi) {
     my $libraryDir = $useFullLibPaths ? "$productDir/usr/local/lib" : $productDir;
     (system("mkdir", "-p", $libraryDir) == 0) or die;
 
-    my @librariesToCopy = (
-        "libWebKitSystemInterfaceMountainLion.a",
-        "libWebKitSystemInterfaceMavericks.a",
-    );
-    
-    foreach my $libName (@librariesToCopy) {
-        my $srcLib = "WebKitLibraries/" . $libName;
-        my $lib = "$libraryDir/" . $libName;
-        if ($force || !-e $lib || -M $lib > -M $srcLib) {
-            print "Updating $lib\n";
-            (system("ditto", $srcLib, $lib) == 0) or die;
-            (system($ranlib, $lib) == 0) or die;
+    my @librariesToCopy;
+    if (isIOSWebKit()) {
+        push(@librariesToCopy, (
+            "libWebKitSystemInterfaceIOSDevice8.1.a",
+            "libWebKitSystemInterfaceIOSSimulator8.1.a",
+            "libWebKitSystemInterfaceIOSDevice8.2.a",
+            "libWebKitSystemInterfaceIOSSimulator8.2.a",
+            "libWebKitSystemInterfaceIOSDevice8.3.a",
+            "libWebKitSystemInterfaceIOSSimulator8.3.a",
+            "libWebKitSystemInterfaceIOSDevice8.4.a",
+            "libWebKitSystemInterfaceIOSSimulator8.4.a",
+        ));
+    } else {
+        push(@librariesToCopy, (
+            "libWebKitSystemInterfaceMavericks.a",
+            "libWebKitSystemInterfaceYosemite.a"
+        ));
+    }
+
+    foreach my $libraryName (@librariesToCopy) {
+        my $sourceLibrary = "WebKitLibraries/" . $libraryName;
+        my $targetLibrary = "$libraryDir/" . $libraryName;
+        if ($force || !-e $targetLibrary || -M $targetLibrary > -M $sourceLibrary) {
+            print "Updating $targetLibrary\n";
+            (system("ditto", $sourceLibrary, $targetLibrary) == 0) or die;
+            executeRanlib($targetLibrary);
         }
     }
     
     dittoHeaders("WebKitLibraries/WebKitSystemInterface.h", "$productDir/usr/local/include/WebKitSystemInterface.h");
+    dittoHeaders("WebKitLibraries/WebKitSystemInterfaceIOS.h", "$productDir/usr/local/include/WebKitSystemInterfaceIOS.h") if isIOSWebKit();
 }
 
 if ($llvm) {
     (system("mkdir", "-p", "$productDir$llvmPrefix/include") == 0) or die;
 
     my $libraryDir = $useFullLibPaths ? "$productDir$llvmPrefix/lib" : $productDir;
-    (system("mkdir", "-p", $libraryDir) == 0) or die;
+    # Always create a directory at the full library path, because the JavaScriptCore build emits a warning if it's not there.
+    (system("mkdir", "-p", "$productDir$llvmPrefix/lib") == 0) or die;
 
     # Determine where to get LLVM binaries and headers.
     my $useOwnLLVM = 0;
@@ -179,12 +203,12 @@ if ($llvm) {
     } elsif ($preferSystemLLVMOverDrops) {
         # Don't fall through to drop detection.
         print "Using system LLVM.\n";
-    } elsif ($osxVersion eq "10.8") {
-        $llvmLibraryPackage = "WebKitLibraries/LLVMLibrariesMountainLion.tar.bz2";
-        $llvmIncludePackage = "WebKitLibraries/LLVMIncludesMountainLion.tar.bz2";
     } elsif ($osxVersion eq "10.9") {
         $llvmLibraryPackage = "WebKitLibraries/LLVMLibrariesMavericks.tar.bz2";
         $llvmIncludePackage = "WebKitLibraries/LLVMIncludesMavericks.tar.bz2";
+    } elsif ($osxVersion eq "10.10") {
+        $llvmLibraryPackage = "WebKitLibraries/LLVMLibrariesYosemite.tar.bz2";
+        $llvmIncludePackage = "WebKitLibraries/LLVMIncludesYosemite.tar.bz2";
     } else {
         print "Don't know where to find LLVM!\n";
         print "\n";
@@ -218,11 +242,20 @@ if ($llvm) {
     my $shouldUpdateLLVMLibraryToken = 0;
 
     if ($useOwnLLVM) {
+        my $sdkArg;
+        if (xcodeSDK()) {
+            $sdkArg = "--sdk " . xcodeSDK();
+        } else {
+            $sdkArg = "";
+        }
+        my $sdkRoot = `xcrun $sdkArg --show-sdk-path`;
+        chomp $sdkRoot;
+    
         if (!-e "$ownLLVMDirectory/wkLLVMBuild/Makefile.config") {
             print("Configuring LLVM.\n");
             (system("mkdir -p $ownLLVMDirectory/wkLLVMBuild"));
             my $flags = "--enable-optimized=yes --enable-backtraces=no --enable-targets=x86_64 --enable-libcpp=yes --enable-zlib=no --enable-terminfo=no --enable-crash-overrides=no";
-            (system("(cd $ownLLVMDirectory/wkLLVMBuild && ../configure $flags)") == 0) or die;
+            (system("(cd $ownLLVMDirectory/wkLLVMBuild && SDKROOT=$sdkRoot ../configure $flags)") == 0) or die;
         }
 
         print("Building LLVM.\n");
@@ -235,7 +268,7 @@ if ($llvm) {
             print "Detected binaries directory; prepending to path: $binariesPath\n";
             $pathCommand = "PATH=\\\$PWD/$binariesDirectory:\\\$PATH";
         }
-        my $makeCommand = "env -i bash -l -c \"$pathCommand make -j `sysctl -n hw.activecpu`\"";
+        my $makeCommand = "env -i bash -l -c \"$pathCommand SDKROOT=$sdkRoot make -j `sysctl -n hw.activecpu`\"";
         print $makeCommand . "\n";
         (system($makeCommand) == 0) or die;
         $ENV{"PATH"} = $oldPath;
@@ -273,7 +306,7 @@ if ($llvm) {
                 || !fileContentsEquals($ranlibToken, $sourceLibrary)
                 || -M $ranlibToken > -M $sourceLibrary) {
                 print "   Ranlib $filename\n";
-                (system($ranlib, $targetLibrary) == 0) or die;
+                executeRanlib($targetLibrary);
                 (open my $fileHandle, ">", $ranlibToken) or die;
                 print {$fileHandle} "$sourceLibrary";
                 close $fileHandle;
@@ -302,3 +335,15 @@ if ($llvm) {
     }
 }
 
+if ($clean) {
+    print "Cleaning.\n";    
+    (system("rm", "-rf", "$productDir/usr/local/include/WebKitSystemInterface.h") == 0) or die;
+    if (isIOSWebKit()) {
+        (system("rm", "-rf", "$productDir/usr/local/include/WebKitSystemInterfaceIOS.h") == 0) or die;
+    }
+    (system("rm", "-rf", "$productDir$llvmPrefix") == 0) or die;
+    unlink glob "$productDir/libWebKitSystemInterface*" or die if glob "$productDir/libWebKitSystemInterface*";
+    unlink glob "$productDir/usr/local/lib/libWebKitSystemInterface*" or die if glob "$productDir/usr/local/lib/libWebKitSystemInterface*";
+    unlink glob "$productDir/libLLVM*" or die if glob "$productDir/libLLVM*";
+    unlink glob "$productDir/libLTO*" or die if glob "$productDir/libLTO*";
+}

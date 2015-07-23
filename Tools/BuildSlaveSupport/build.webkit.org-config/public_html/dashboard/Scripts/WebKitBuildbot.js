@@ -26,19 +26,32 @@
 WebKitBuildbot = function()
 {
     const queueInfo = {
-        "Apple MountainLion Release (Build)": {platform: Dashboard.Platform.MacOSXMountainLion, builder: true, architecture: Buildbot.BuildArchitecture.SixtyFourBit},
-        "Apple MountainLion Release (32-bit Build)": {platform: Dashboard.Platform.MacOSXMountainLion, builder: true, architecture: Buildbot.BuildArchitecture.ThirtyTwoBit},
-        "Apple MountainLion Debug (Build)": {platform: Dashboard.Platform.MacOSXMountainLion, debug: true, builder: true, architecture: Buildbot.BuildArchitecture.SixtyFourBit},
-        "Apple MountainLion Release WK1 (Tests)": {platform: Dashboard.Platform.MacOSXMountainLion, tester: true, testCategory: Buildbot.TestCategory.WebKit1},
-        "Apple MountainLion Debug WK1 (Tests)": {platform: Dashboard.Platform.MacOSXMountainLion, debug: true, tester: true, testCategory: Buildbot.TestCategory.WebKit1},
-        "Apple MountainLion Release WK2 (Tests)": {platform: Dashboard.Platform.MacOSXMountainLion, tester: true, testCategory: Buildbot.TestCategory.WebKit2},
-        "Apple MountainLion Debug WK2 (Tests)": {platform: Dashboard.Platform.MacOSXMountainLion, debug: true, tester: true, testCategory: Buildbot.TestCategory.WebKit2},
         "Apple Mavericks Debug (Build)": {platform: Dashboard.Platform.MacOSXMavericks, debug: true, builder: true, architecture: Buildbot.BuildArchitecture.SixtyFourBit},
         "Apple Mavericks Release (Build)": {platform: Dashboard.Platform.MacOSXMavericks, debug: false, builder: true, architecture: Buildbot.BuildArchitecture.SixtyFourBit},
         "Apple Mavericks Debug WK1 (Tests)": {platform: Dashboard.Platform.MacOSXMavericks, debug: true, tester: true, testCategory: Buildbot.TestCategory.WebKit1},
         "Apple Mavericks Debug WK2 (Tests)": {platform: Dashboard.Platform.MacOSXMavericks, debug: true, tester: true, testCategory: Buildbot.TestCategory.WebKit2},
         "Apple Mavericks Release WK1 (Tests)": {platform: Dashboard.Platform.MacOSXMavericks, debug: false, tester: true, testCategory: Buildbot.TestCategory.WebKit1},
         "Apple Mavericks Release WK2 (Tests)": {platform: Dashboard.Platform.MacOSXMavericks, debug: false, tester: true, testCategory: Buildbot.TestCategory.WebKit2},
+        "Apple Mavericks Release WK2 (Perf)": {platform: Dashboard.Platform.MacOSXMavericks, debug: false, performance: true, heading: "Performance"},
+        "Apple Mavericks JSC": {platform: Dashboard.Platform.MacOSXMavericks, heading: "JavaScript", combinedQueues: {
+            "Apple Mavericks 32-bit JSC (BuildAndTest)": {heading: "32-bit JSC (BuildAndTest)"},
+            "Apple Mavericks LLINT CLoop (BuildAndTest)": {heading: "LLINT CLoop (BuildAndTest)"},
+        }},
+        "Apple Yosemite Debug (Build)": {platform: Dashboard.Platform.MacOSXYosemite, debug: true, builder: true, architecture: Buildbot.BuildArchitecture.SixtyFourBit},
+        "Apple Yosemite Release (Build)": {platform: Dashboard.Platform.MacOSXYosemite, debug: false, builder: true, architecture: Buildbot.BuildArchitecture.SixtyFourBit},
+        "Apple Yosemite Release (32-bit Build)": {platform: Dashboard.Platform.MacOSXYosemite, builder: true, architecture: Buildbot.BuildArchitecture.ThirtyTwoBit},
+        "Apple Yosemite Debug WK1 (Tests)": {platform: Dashboard.Platform.MacOSXYosemite, debug: true, tester: true, testCategory: Buildbot.TestCategory.WebKit1},
+        "Apple Yosemite Debug WK2 (Tests)": {platform: Dashboard.Platform.MacOSXYosemite, debug: true, tester: true, testCategory: Buildbot.TestCategory.WebKit2},
+        "Apple Yosemite Release WK1 (Tests)": {platform: Dashboard.Platform.MacOSXYosemite, debug: false, tester: true, testCategory: Buildbot.TestCategory.WebKit1},
+        "Apple Yosemite Release WK2 (Tests)": {platform: Dashboard.Platform.MacOSXYosemite, debug: false, tester: true, testCategory: Buildbot.TestCategory.WebKit2},
+        "Apple Yosemite Release WK2 (Perf)": {platform: Dashboard.Platform.MacOSXYosemite, debug: false, performance: true, heading: "Performance"},
+        "Apple Yosemite (Leaks)": {platform: Dashboard.Platform.MacOSXYosemite, debug: true, leaks: true},
+        "Apple Yosemite JSC": {platform: Dashboard.Platform.MacOSXYosemite, heading: "JavaScript", combinedQueues: {
+            "Apple Yosemite 32-bit JSC (BuildAndTest)": {heading: "32-bit JSC (BuildAndTest)"},
+            "Apple Yosemite LLINT CLoop (BuildAndTest)": {heading: "LLINT CLoop (BuildAndTest)"},
+            "Apple Yosemite Debug JSC (Tests)": {heading: "Debug JSC (Tests)"},
+            "Apple Yosemite Release JSC (Tests)": {heading: "Release JSC (Tests)"},
+        }},
         "Apple Win Debug (Build)": {platform: Dashboard.Platform.Windows7, debug: true, builder: true, architecture: Buildbot.BuildArchitecture.ThirtyTwoBit},
         "Apple Win Release (Build)": {platform: Dashboard.Platform.Windows7, builder: true, architecture: Buildbot.BuildArchitecture.ThirtyTwoBit},
         "Apple Win 7 Debug (Tests)": {platform: Dashboard.Platform.Windows7, debug: true, tester: true, testCategory: Buildbot.TestCategory.WebKit1},
@@ -47,10 +60,12 @@ WebKitBuildbot = function()
         "GTK Linux 64-bit Release (Tests)": {platform: Dashboard.Platform.LinuxGTK, debug: false, tester: true, testCategory: Buildbot.TestCategory.WebKit2},
         "GTK Linux 64-bit Debug (Build)": {platform: Dashboard.Platform.LinuxGTK, debug: true, builder: true, architecture: Buildbot.BuildArchitecture.SixtyFourBit},
         "GTK Linux 64-bit Debug (Tests)": {platform: Dashboard.Platform.LinuxGTK, debug: true, tester: true, testCategory: Buildbot.TestCategory.WebKit2},
-        "EFL Linux 64-bit Release WK2": {platform: Dashboard.Platform.LinuxEFL, tester: true, testCategory: Buildbot.TestCategory.WebKit2}
+        "GTK Linux 64-bit Release (Perf)": {platform: Dashboard.Platform.LinuxGTK, debug: false, performance: true, heading: "Performance"},
+        "EFL Linux 64-bit Release WK2": {platform: Dashboard.Platform.LinuxEFL, tester: true, testCategory: Buildbot.TestCategory.WebKit2},
+        "EFL Linux 64-bit Release WK2 (Perf)": {platform: Dashboard.Platform.LinuxEFL, performance: true, heading: "Performance"}
     };
 
-    Buildbot.call(this, "http://build.webkit.org/", queueInfo);
+    Buildbot.call(this, "https://build.webkit.org/", queueInfo);
 };
 
 BaseObject.addConstructorFunctions(WebKitBuildbot);
@@ -58,6 +73,12 @@ BaseObject.addConstructorFunctions(WebKitBuildbot);
 WebKitBuildbot.prototype = {
     constructor: WebKitBuildbot,
     __proto__: Buildbot.prototype,
+    performanceDashboardURL:  "https://perf.webkit.org",
+
+    get defaultBranches()
+    {
+        return { openSource: "trunk" };
+    },
 
     layoutTestResultsDirectoryURLForIteration: function(iteration)
     {

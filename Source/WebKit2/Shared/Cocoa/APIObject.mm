@@ -33,6 +33,7 @@
 #import "WKBrowsingContextControllerInternal.h"
 #import "WKBrowsingContextGroupInternal.h"
 #import "WKConnectionInternal.h"
+#import "WKFrameInfoInternal.h"
 #import "WKNSArray.h"
 #import "WKNSData.h"
 #import "WKNSDictionary.h"
@@ -41,8 +42,15 @@
 #import "WKNSURL.h"
 #import "WKNSURLAuthenticationChallenge.h"
 #import "WKNSURLRequest.h"
+#import "WKNavigationActionInternal.h"
 #import "WKNavigationDataInternal.h"
+#import "WKNavigationInternal.h"
+#import "WKNavigationResponseInternal.h"
+#import "WKPreferencesInternal.h"
 #import "WKProcessPoolInternal.h"
+#import "WKSecurityOriginInternal.h"
+#import "WKUserContentControllerInternal.h"
+#import "WKUserScriptInternal.h"
 #import "WKWebProcessPlugInBrowserContextControllerInternal.h"
 #import "WKWebProcessPlugInFrameInternal.h"
 #import "WKWebProcessPlugInHitTestResultInternal.h"
@@ -50,20 +58,26 @@
 #import "WKWebProcessPlugInNodeHandleInternal.h"
 #import "WKWebProcessPlugInPageGroupInternal.h"
 #import "WKWebProcessPlugInScriptWorldInternal.h"
+#import "WKWebsiteDataRecordInternal.h"
+#import "WKWebsiteDataStoreInternal.h"
 #import "_WKDownloadInternal.h"
 #import "_WKFrameHandleInternal.h"
-#import "_WKWebsiteDataStoreInternal.h"
+#import "_WKProcessPoolConfigurationInternal.h"
+#import "_WKUserContentExtensionStoreInternal.h"
+#import "_WKUserContentFilterInternal.h"
+#import "_WKVisitedLinkProviderInternal.h"
+#import <objc/objc-auto.h>
 
 namespace API {
 
 void Object::ref()
 {
-    [wrapper() retain];
+    CFRetain(wrapper());
 }
 
 void Object::deref()
 {
-    [wrapper() release];
+    CFRelease(wrapper());
 }
 
 void* Object::newObject(size_t size, Type type)
@@ -103,8 +117,16 @@ void* Object::newObject(size_t size, Type type)
         wrapper = NSAllocateObject([WKConnection self], size, nullptr);
         break;
 
-    case Type::Context:
+    case Type::Preferences:
+        wrapper = [WKPreferences alloc];
+        break;
+
+    case Type::ProcessPool:
         wrapper = [WKProcessPool alloc];
+        break;
+
+    case Type::ProcessPoolConfiguration:
+        wrapper = [_WKProcessPoolConfiguration alloc];
         break;
 
     case Type::Data:
@@ -127,18 +149,34 @@ void* Object::newObject(size_t size, Type type)
         wrapper = [_WKFrameHandle alloc];
         break;
 
+    case Type::FrameInfo:
+        wrapper = [WKFrameInfo alloc];
+        break;
+
+    case Type::Navigation:
+        wrapper = [WKNavigation alloc];
+        break;
+
+    case Type::NavigationAction:
+        wrapper = [WKNavigationAction alloc];
+        break;
+
     case Type::NavigationData:
         wrapper = [WKNavigationData alloc];
+        break;
+
+    case Type::NavigationResponse:
+        wrapper = [WKNavigationResponse alloc];
         break;
 
     case Type::PageGroup:
         wrapper = [WKBrowsingContextGroup alloc];
         break;
 
-    case Type::Session:
-        wrapper = [_WKWebsiteDataStore alloc];
+    case Type::SecurityOrigin:
+        wrapper = [WKSecurityOrigin alloc];
         break;
-            
+
     case Type::String:
         wrapper = NSAllocateObject([WKNSString class], size, nullptr);
         break;
@@ -149,6 +187,34 @@ void* Object::newObject(size_t size, Type type)
 
     case Type::URLRequest:
         wrapper = NSAllocateObject([WKNSURLRequest class], size, nullptr);
+        break;
+
+    case Type::UserContentController:
+        wrapper = [WKUserContentController alloc];
+        break;
+
+    case Type::UserContentExtension:
+        wrapper = [_WKUserContentFilter alloc];
+        break;
+
+    case Type::UserContentExtensionStore:
+        wrapper = [_WKUserContentExtensionStore alloc];
+        break;
+
+    case Type::UserScript:
+        wrapper = [WKUserScript alloc];
+        break;
+
+    case Type::VisitedLinkProvider:
+        wrapper = [_WKVisitedLinkProvider alloc];
+        break;
+
+    case Type::WebsiteDataRecord:
+        wrapper = [WKWebsiteDataRecord alloc];
+        break;
+
+    case Type::WebsiteDataStore:
+        wrapper = [WKWebsiteDataStore alloc];
         break;
 
     case Type::BundleFrame:
@@ -179,7 +245,31 @@ void* Object::newObject(size_t size, Type type)
     Object& object = wrapper._apiObject;
     object.m_wrapper = wrapper;
 
+#if PLATFORM(MAC)
+    if (objc_collectingEnabled())
+        object.ref();
+#endif
+
     return &object;
+}
+
+void* Object::wrap(API::Object* object)
+{
+    if (!object)
+        return nullptr;
+
+    return static_cast<void*>(object->wrapper());
+}
+
+API::Object* Object::unwrap(void* object)
+{
+    if (!object)
+        return nullptr;
+
+    ASSERT([(id)object conformsToProtocol:@protocol(WKObject)]);
+    ASSERT([(id)object respondsToSelector:@selector(_apiObject)]);
+
+    return &static_cast<id <WKObject>>(object)._apiObject;
 }
 
 } // namespace API

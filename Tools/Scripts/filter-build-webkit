@@ -142,7 +142,7 @@ for (my $previousLine = "", my $line = <>; $line; $previousLine = $line, $line =
         printLine($line, STYLE_PLAIN);
     } elsif ($line =~ /\*\* BUILD SUCCEEDED \*\*/) {
         printLine("Build Succeeded", STYLE_SUCCESS);
-    } elsif ($line =~ /^(\e\[1m)?(PhaseScriptExecution|ClCompile|CompileC|Distributed-CompileC|Ld|PBXCp|CpResource|CopyPNGFile|CopyTiffFile|CpHeader|Processing|ProcessInfoPlistFile|ProcessPCH|ProcessPCH\+\+|Touch|Libtool|CopyStringsFile|Mig|CreateUniversalBinary|Analyze|AnalyzeShallow|ProcessProductPackaging|CodeSign|SymLink|Updating|CompileXIB|StripNIB|CopyPlistFile|GenerateDSYMFile|ExternalBuildToolExecution)(\e\[0m)? ("[^"]+"|(\\|(?<=\\)\s|\S)+)?/) {
+    } elsif ($line =~ /^(\e\[1m)?(PhaseScriptExecution|ClCompile|CompileC|Distributed-CompileC|Ld|PBXCp|CpResource|CopyPNGFile|CopyTiffFile|CpHeader|Preprocess|Processing|ProcessInfoPlistFile|ProcessPCH|ProcessPCH\+\+|Touch|Libtool|CopyStringsFile|Mig|CreateUniversalBinary|Analyze|AnalyzeShallow|ProcessProductPackaging|CodeSign|SymLink|Updating|CompileDTraceScript|CompileXIB|StripNIB|CopyPlistFile|GenerateDSYMFile|ExternalBuildToolExecution)(\e\[0m)? ("[^"]+"|(\\|(?<=\\)\s|\S)+)?/) {
         my ($command, $path) = ($2, basename($4));
         $path =~ s/("|\\|\.[ah]$)//g;
         printLine("$command $path", STYLE_PLAIN);
@@ -259,6 +259,7 @@ sub shouldIgnoreLine($$)
     return 1 if $line =~ / xcodebuild\[[0-9]+:[0-9a-f]+\]\s+DVTAssertions: Warning in .*XCClangResultsPostprocessor.m/;
     return 1 if $line =~ /^(Details|Object|Method|Function|Thread):/;
     return 1 if $line =~ /^Please file a bug at /;
+    return 1 if $line =~ /created by an unsupported XCDependencyGraph build$/;
 
     if ($platform eq "win") {
         return 1 if $line =~ /^\s*(touch|perl|cat|rm -f|bison|del|flex|python|\/usr\/bin\/g\+\+|gperf|echo|sed|if \[ \-f|WebCore\/generate-export-file) /;

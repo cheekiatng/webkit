@@ -90,8 +90,6 @@ shouldBe("Math.ceil(1)", "1");
 shouldBe("Math.ceil(-1)", "-1");
 shouldBe("Math.ceil(1.1)", "2");
 shouldBe("Math.ceil(-1.1)", "-1");
-shouldBe("Math.ceil(Number.MIN_VALUE)", "1");
-shouldBe("Math.ceil(-Number.MIN_VALUE)", "-0");
 shouldBe("Math.ceil(Number.MAX_VALUE)", "Number.MAX_VALUE");
 shouldBe("Math.ceil(-Number.MAX_VALUE)", "-Number.MAX_VALUE");
 shouldBe("Math.ceil(Infinity)", "Infinity");
@@ -117,8 +115,6 @@ shouldBe("Math.floor(1)", "1");
 shouldBe("Math.floor(-1)", "-1");
 shouldBe("Math.floor(1.1)", "1");
 shouldBe("Math.floor(-1.1)", "-2");
-shouldBe("Math.floor(Number.MIN_VALUE)", "0");
-shouldBe("Math.floor(-Number.MIN_VALUE)", "-1");
 shouldBe("Math.floor(Number.MAX_VALUE)", "Number.MAX_VALUE");
 shouldBe("Math.floor(-Number.MAX_VALUE)", "-Number.MAX_VALUE");
 shouldBe("Math.floor(Infinity)", "Infinity");
@@ -148,6 +144,8 @@ sideEffect = 0;
 shouldThrow("Math.hypot({valueOf:function(){throw \"error1\"}}, {valueOf:function(){sideEffect = 1}})", "'error1'");
 shouldBe('sideEffect', '0');
 shouldBe("Math.hypot(3, 4, 'foo')", "NaN");
+
+shouldBe("Math.imul.length", "2");
 
 shouldBe("Math.log(NaN)", "NaN");
 shouldBe("Math.log(0)", "-Infinity");

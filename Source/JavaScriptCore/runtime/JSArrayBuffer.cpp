@@ -119,7 +119,7 @@ void JSArrayBuffer::getOwnNonIndexPropertyNames(
 {
     JSArrayBuffer* thisObject = jsCast<JSArrayBuffer*>(object);
     
-    if (mode == IncludeDontEnumProperties)
+    if (mode.includeDontEnumProperties())
         array.add(exec->propertyNames().byteLength);
     
     Base::getOwnNonIndexPropertyNames(thisObject, exec, array, mode);

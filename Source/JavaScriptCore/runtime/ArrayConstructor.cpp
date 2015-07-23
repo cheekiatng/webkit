@@ -51,6 +51,8 @@ const ClassInfo ArrayConstructor::s_info = { "Function", &InternalFunction::s_in
 /* Source for ArrayConstructor.lut.h
 @begin arrayConstructorTable
   isArray   arrayConstructorIsArray     DontEnum|Function 1
+  of        arrayConstructorOf          DontEnum|Function 0
+  from      arrayConstructorFrom        DontEnum|Function 0
 @end
 */
 

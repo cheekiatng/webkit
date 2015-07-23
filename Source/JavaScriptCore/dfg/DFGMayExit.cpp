@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2014, 2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,7 +45,30 @@ public:
     
     void operator()(Node*, Edge edge)
     {
-        m_result |= edge.willHaveCheck();
+        if (edge.willHaveCheck()) {
+            m_result = true;
+            return;
+        }
+
+        switch (edge.useKind()) {
+        // These are shady because nodes that have these use kinds will typically exit for
+        // unrelated reasons. For example CompareEq doesn't usually exit, but if it uses ObjectUse
+        // then it will.
+        case ObjectUse:
+        case ObjectOrOtherUse:
+            m_result = true;
+            break;
+            
+        // These are shady because they check the structure even if the type of the child node
+        // passes the StringObject type filter.
+        case StringObjectUse:
+        case StringOrStringObjectUse:
+            m_result = true;
+            break;
+            
+        default:
+            break;
+        }
     }
     
     bool result() const { return m_result; }
@@ -59,6 +82,9 @@ private:
 bool mayExit(Graph& graph, Node* node)
 {
     switch (node->op()) {
+    // This is a carefully curated list of nodes that definitely do not exit. We try to be very
+    // conservative when maintaining this list, because adding new node types to it doesn't
+    // generally make things a lot better but it might introduce insanely subtle bugs.
     case SetArgument:
     case JSConstant:
     case DoubleConstant:
@@ -68,13 +94,28 @@ bool mayExit(Graph& graph, Node* node)
     case Flush:
     case Phantom:
     case Check:
-    case HardPhantom:
     case GetLocal:
     case LoopHint:
-    case PhantomArguments:
     case Phi:
     case Upsilon:
     case ZombieHint:
+    case BottomValue:
+    case PutHint:
+    case PhantomNewObject:
+    case PutStack:
+    case KillStack:
+    case GetStack:
+    case GetCallee:
+    case GetArgumentCount:
+    case GetScope:
+    case PhantomLocal:
+    case CountExecution:
+    case Jump:
+    case Branch:
+    case Unreachable:
+    case DoubleRep:
+    case Int52Rep:
+    case ValueRep:
         break;
         
     default:

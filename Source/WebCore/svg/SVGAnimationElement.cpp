@@ -26,7 +26,6 @@
 #include "config.h"
 #include "SVGAnimationElement.h"
 
-#include "Attribute.h"
 #include "CSSComputedStyleDeclaration.h"
 #include "CSSParser.h"
 #include "CSSPropertyNames.h"
@@ -35,7 +34,6 @@
 #include "RenderObject.h"
 #include "SVGAnimateElement.h"
 #include "SVGElement.h"
-#include "SVGElementInstance.h"
 #include "SVGNames.h"
 #include "SVGParserUtilities.h"
 #include <wtf/MathExtras.h>
@@ -164,18 +162,13 @@ bool SVGAnimationElement::isSupportedAttribute(const QualifiedName& attrName)
 
 void SVGAnimationElement::parseAttribute(const QualifiedName& name, const AtomicString& value)
 {
-    if (!isSupportedAttribute(name)) {
-        SVGSMILElement::parseAttribute(name, value);
-        return;
-    }
-
     if (name == SVGNames::valuesAttr) {
         // Per the SMIL specification, leading and trailing white space,
         // and white space before and after semicolon separators, is allowed and will be ignored.
         // http://www.w3.org/TR/SVG11/animate.html#ValuesAttribute
         value.string().split(';', m_values);
-        for (unsigned i = 0; i < m_values.size(); ++i)
-            m_values[i] = m_values[i].stripWhiteSpace();
+        for (auto& value : m_values)
+            value = value.stripWhiteSpace();
 
         updateAnimationMode();
         return;
@@ -215,12 +208,9 @@ void SVGAnimationElement::parseAttribute(const QualifiedName& name, const Atomic
         return;
     }
 
-    if (SVGTests::parseAttribute(name, value))
-        return;
-    if (SVGExternalResourcesRequired::parseAttribute(name, value))
-        return;
-
-    ASSERT_NOT_REACHED();
+    SVGSMILElement::parseAttribute(name, value);
+    SVGTests::parseAttribute(name, value);
+    SVGExternalResourcesRequired::parseAttribute(name, value);
 }
 
 void SVGAnimationElement::svgAttributeChanged(const QualifiedName& attrName)
@@ -507,13 +497,10 @@ void SVGAnimationElement::currentValuesForValuesAnimation(float percent, float& 
     }
 
     CalcMode calcMode = this->calcMode();
-    if (hasTagName(SVGNames::animateTag) || hasTagName(SVGNames::animateColorTag)) {
-        AnimatedPropertyType attributeType = toSVGAnimateElement(this)->determineAnimatedPropertyType(targetElement());
-        // Fall back to discrete animations for Strings.
-        if (attributeType == AnimatedBoolean
-            || attributeType == AnimatedEnumeration
-            || attributeType == AnimatedPreserveAspectRatio
-            || attributeType == AnimatedString)
+    if (is<SVGAnimateElement>(*this) || is<SVGAnimateColorElement>(*this)) {
+        ASSERT(targetElement());
+        AnimatedPropertyType type = downcast<SVGAnimateElementBase>(*this).determineAnimatedPropertyType(*targetElement());
+        if (type == AnimatedBoolean || type == AnimatedEnumeration || type == AnimatedPreserveAspectRatio || type == AnimatedString)
             calcMode = CalcModeDiscrete;
     }
     if (!m_keyPoints.isEmpty() && calcMode != CalcModePaced)
@@ -583,6 +570,9 @@ void SVGAnimationElement::startedActiveInterval()
     String to = toValue();
     String by = byValue();
     if (animationMode == NoAnimation)
+        return;
+    if ((animationMode == FromToAnimation || animationMode == FromByAnimation || animationMode == ToAnimation || animationMode == ByAnimation)
+        && (fastHasAttribute(SVGNames::keyPointsAttr) && fastHasAttribute(SVGNames::keyTimesAttr) && (m_keyTimes.size() < 2 || m_keyTimes.size() != m_keyPoints.size())))
         return;
     if (animationMode == FromToAnimation)
         m_animationValid = calculateFromAndToValues(from, to);
@@ -660,8 +650,8 @@ void SVGAnimationElement::adjustForInheritance(SVGElement* targetElement, const 
     if (!parent || !parent->isSVGElement())
         return;
 
-    SVGElement* svgParent = toSVGElement(parent);
-    computeCSSPropertyValue(svgParent, cssPropertyID(attributeName.localName()), value);
+    SVGElement& svgParent = downcast<SVGElement>(*parent);
+    computeCSSPropertyValue(&svgParent, cssPropertyID(attributeName.localName()), value);
 }
 
 static bool inheritsFromProperty(SVGElement*, const QualifiedName& attributeName, const String& value)
@@ -684,17 +674,16 @@ void SVGAnimationElement::determinePropertyValueTypes(const String& from, const 
     if (inheritsFromProperty(targetElement, attributeName, to))
         m_toPropertyValueType = InheritValue;
 }
+void SVGAnimationElement::resetAnimatedPropertyType()
+{
+    m_lastValuesAnimationFrom = String();
+    m_lastValuesAnimationTo = String();
+}
 
 void SVGAnimationElement::setTargetElement(SVGElement* target)
 {
     SVGSMILElement::setTargetElement(target);
     checkInvalidCSSAttributeType(target);
-}
-
-void SVGAnimationElement::setAttributeName(const QualifiedName& attributeName)
-{
-    SVGSMILElement::setAttributeName(attributeName);
-    checkInvalidCSSAttributeType(targetElement());
 }
 
 void SVGAnimationElement::checkInvalidCSSAttributeType(SVGElement* target)

@@ -96,6 +96,8 @@ HRESULT FrameLoadDelegate::QueryInterface(REFIID riid, void** ppvObject)
         *ppvObject = static_cast<IWebFrameLoadDelegatePrivate*>(this);
     else if (IsEqualGUID(riid, IID_IWebFrameLoadDelegatePrivate2))
         *ppvObject = static_cast<IWebFrameLoadDelegatePrivate2*>(this);
+    else if (IsEqualGUID(riid, IID_IWebNotificationObserver))
+        *ppvObject = static_cast<IWebNotificationObserver*>(this);
     else
         return E_NOINTERFACE;
 
@@ -139,6 +141,14 @@ HRESULT FrameLoadDelegate::didReceiveServerRedirectForProvisionalLoadForFrame(IW
     return S_OK;
 }
 
+HRESULT FrameLoadDelegate::didChangeLocationWithinPageForFrame(IWebView* , IWebFrame* frame)
+{
+    if (!done && gTestRunner->dumpFrameLoadCallbacks())
+        printf("%s - didChangeLocationWithinPageForFrame\n", descriptionSuitableForTestResult(frame).c_str());
+
+    return S_OK;
+}
+
 HRESULT FrameLoadDelegate::didFailProvisionalLoadWithError(IWebView* /*webView*/, IWebError* error, IWebFrame* frame)
 {
     if (!done && gTestRunner->dumpFrameLoadCallbacks())
@@ -153,7 +163,7 @@ HRESULT FrameLoadDelegate::didCommitLoadForFrame(IWebView* webView, IWebFrame* f
     if (!done && gTestRunner->dumpFrameLoadCallbacks())
         printf("%s - didCommitLoadForFrame\n", descriptionSuitableForTestResult(frame).c_str());
 
-    COMPtr<IWebViewPrivate> webViewPrivate;
+    COMPtr<IWebViewPrivate2> webViewPrivate;
     HRESULT hr = webView->QueryInterface(&webViewPrivate);
     if (FAILED(hr))
         return hr;
@@ -189,7 +199,7 @@ void FrameLoadDelegate::processWork()
         return;
 
     // if we finish all the commands, we're ready to dump state
-    if (WorkQueue::shared()->processWork() && !::gTestRunner->waitToDump())
+    if (WorkQueue::singleton().processWork() && !::gTestRunner->waitToDump())
         dump();
 }
 
@@ -225,13 +235,14 @@ void FrameLoadDelegate::locationChangeDone(IWebError*, IWebFrame* frame)
     if (frame != topLoadingFrame)
         return;
 
-    topLoadingFrame = 0;
-    WorkQueue::shared()->setFrozen(true);
+    topLoadingFrame = nullptr;
+    auto& workQueue = WorkQueue::singleton();
+    workQueue.setFrozen(true);
 
     if (::gTestRunner->waitToDump())
         return;
 
-    if (WorkQueue::shared()->count()) {
+    if (workQueue.count()) {
         if (!processWorkTimerID)
             processWorkTimerID = ::SetTimer(0, 0, 0, processWorkTimer);
         delegatesWithDelayedWork().append(this);
@@ -280,6 +291,16 @@ HRESULT FrameLoadDelegate::didCancelClientRedirectForFrame(IWebView* /*webView*/
 HRESULT FrameLoadDelegate::willCloseFrame(IWebView* /*webView*/, IWebFrame* /*frame*/)
 {
     return E_NOTIMPL;
+}
+
+HRESULT FrameLoadDelegate::windowScriptObjectAvailable(IWebView*, JSContextRef, JSObjectRef)
+{
+    if (!done && gTestRunner->dumpFrameLoadCallbacks())
+        printf("?? - windowScriptObjectAvailable\n");
+
+    ASSERT_NOT_REACHED();
+
+    return S_OK;
 }
 
 HRESULT FrameLoadDelegate::didClearWindowObject(IWebView*, JSContextRef, JSObjectRef, IWebFrame*)
@@ -404,4 +425,25 @@ HRESULT FrameLoadDelegate::didRunInsecureContent(IWebView* /*sender*/, IWebSecur
         printf("didRunInsecureContent\n");
 
     return S_OK;
+}
+
+HRESULT FrameLoadDelegate::onNotify(IWebNotification* notification)
+{
+    _bstr_t notificationName;
+    HRESULT hr = notification->name(&notificationName.GetBSTR());
+    if (FAILED(hr))
+        return hr;
+
+    static _bstr_t webViewProgressFinishedNotificationName(WebViewProgressFinishedNotification);
+
+    if (!wcscmp(notificationName, webViewProgressFinishedNotificationName))
+        webViewProgressFinishedNotification();
+
+    return S_OK;
+}
+
+void FrameLoadDelegate::webViewProgressFinishedNotification()
+{
+    if (!done && gTestRunner->dumpProgressFinishedCallback())
+        printf("postProgressFinishedNotification\n");
 }

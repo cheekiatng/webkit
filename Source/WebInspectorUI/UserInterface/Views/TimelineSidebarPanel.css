@@ -29,11 +29,11 @@
     left: 0;
     right: 0;
     height: 29px;
-    border-bottom: 1px solid rgb(179, 179, 179);
+    border-bottom: 1px solid hsl(0, 0%, 70%);
 }
 
-body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .status-bar {
-    height: 22px;
+body.window-inactive .sidebar > .panel.navigation.timeline > .status-bar {
+    border-bottom-color: hsl(0, 0%, 85%);
 }
 
 .sidebar > .panel.navigation.timeline > .status-bar > .record-glyph {
@@ -51,33 +51,22 @@ body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .status-bar {
     -webkit-appearance: none;
 
     background-color: transparent;
-    background-image: -webkit-image-set(url(../Images/RecordingStopped.png) 1x, url(../Images/RecordingStopped@2x.png) 2x);
     background-repeat: no-repeat;
-    background-size: 21px 21px;
-}
-
-body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .status-bar > .record-glyph {
-    top: 0;
-}
-
-.sidebar > .panel.navigation.timeline > .status-bar > .record-glyph.recording {
-    background-image: -webkit-image-set(url(../Images/Recording.png) 1x, url(../Images/Recording@2x.png) 2x);
+    background-image: url(../Images/Record.svg);
+    background-size: 13px 13px;
+    background-position: center;
 }
 
 .sidebar > .panel.navigation.timeline > .status-bar > .record-glyph:hover {
-    background-image: -webkit-image-set(url(../Images/RecordingHovered.png) 1x, url(../Images/RecordingHovered@2x.png) 2x);
+    -webkit-filter: brightness(95%);
 }
 
-.sidebar > .panel.navigation.timeline > .status-bar > .record-glyph.recording:hover {
-    background-image: -webkit-image-set(url(../Images/RecordingStopped.png) 1x, url(../Images/RecordingStopped@2x.png) 2x);
+.sidebar > .panel.navigation.timeline > .status-bar > .record-glyph:active {
+    -webkit-filter: brightness(80%);
 }
 
-.sidebar > .panel.navigation.timeline > .status-bar > .record-glyph.forced {
-    background-image: -webkit-image-set(url(../Images/RecordingStopped.png) 1x, url(../Images/RecordingStopped@2x.png) 2x) !important;
-}
-
-.sidebar > .panel.navigation.timeline > .status-bar > .record-glyph.recording.forced {
-    background-image: -webkit-image-set(url(../Images/Recording.png) 1x, url(../Images/Recording@2x.png) 2x) !important;
+.sidebar > .panel.navigation.timeline > .status-bar > .record-glyph.recording {
+    background-image: url(../Images/Stop.svg);
 }
 
 .sidebar > .panel.navigation.timeline > .status-bar > .record-status {
@@ -91,12 +80,12 @@ body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .status-bar > .
     line-height: 20px;
     font-weight: bold;
 
-    color: rgb(76, 76, 76);
-    text-shadow: rgba(255, 255, 255, 0.5) 0 1px 0;
+    color: hsl(0, 0%, 29%);
+    text-shadow: hsla(0, 0%, 100%, 0.5) 0 1px 0;
 }
 
-body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .status-bar > .record-status {
-    top: 0;
+.panel.timeline .navigation-bar.timelines-view {
+    justify-content: flex-end;
 }
 
 .sidebar > .panel.navigation.timeline > .title-bar {
@@ -104,11 +93,11 @@ body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .status-bar > .
     left: 0;
     right: 0;
 
-    height: 22px;
+    height: 29px;
 
-    border-bottom: 1px solid rgb(179, 179, 179);
-    background-color: rgb(242, 242, 242);
-    color: rgb(57, 57, 57);
+    border-bottom: 1px solid hsl(0, 0%, 70%);
+    background-color: hsl(0, 0%, 94%);
+    color: hsl(0, 0%, 22%);
 
     white-space: nowrap;
     overflow: hidden;
@@ -122,33 +111,64 @@ body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .status-bar > .
     overflow: hidden;
 }
 
-body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .title-bar {
-    background-color: transparent;
-    background-image: linear-gradient(to bottom, rgb(238, 240, 244), rgb(224, 226, 230));
-    text-shadow: rgba(255, 255, 255, 0.5) 0 1px 0;
+body.window-inactive .sidebar > .panel.navigation.timeline > .title-bar {
+    border-bottom-color: hsl(0, 0%, 85%);
 }
 
 .sidebar > .panel.navigation.timeline > .title-bar.timelines {
     top: 29px;
+    padding: 8px 9px;
 }
 
-body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .title-bar.timelines {
-    top: 22px;
+.sidebar > .panel.navigation.timeline > .navigation-bar-container {
+    position: absolute;
+    top: 29px;
+    left: 0;
+    right: 0;
+}
+
+.sidebar > .panel.navigation.timeline > .navigation-bar-container > .navigation-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    align-content: center;
 }
 
 .sidebar > .panel.navigation.timeline > .title-bar.timeline-events {
+    display: flex;
     height: 23px;
-    border-top: 1px solid rgb(179, 179, 179);
-    top: 159px;
+    border-top: 1px solid hsl(0, 0%, 70%);
+    top: 166px;
 }
 
-body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .title-bar.timeline-events {
-    top: 152px;
+.sidebar > .panel.navigation.timeline > .title-bar.timeline-events > .title-bar-scope-bar {
+    position: absolute;
+    top: 2px;
+    right: 0;
+    font-weight: normal;
+}
+
+.sidebar > .panel.navigation.timeline > .title-bar.timeline-events > .title-bar-scope-bar > .default-item-selected > .multiple {
+    background-color: transparent;
+    color: black;
+}
+
+.sidebar > .panel.navigation.timeline > .title-bar.timeline-events > .title-bar-scope-bar > .default-item-selected > .multiple svg .filled {
+    fill: black !important;
+}
+
+.sidebar > .panel.navigation.timeline > .title-bar.timeline-events > .title-bar-scope-bar > .default-item-selected > .multiple svg .stroked {
+    stroke: black !important;
+}
+
+body.window-inactive .sidebar > .panel.navigation.timeline > .title-bar.timeline-events {
+    border-top-color: hsl(0, 0%, 85%);
 }
 
 .sidebar > .panel.navigation.timeline > .timelines-content {
     position: absolute;
-    top: 51px;
+    top: 58px;
     height: 108px;
     left: 0;
     right: 0;
@@ -156,16 +176,10 @@ body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .title-bar.time
     overflow: hidden;
 }
 
-body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .timelines-content {
-    top: 44px;
-}
-
 .sidebar > .panel.navigation.timeline > .timelines-content .close-button {
-    margin-top: 2px;
-    width: 12px;
-    height: 12px;
-
-    content: -webkit-image-set(url(../Images/CloseTimeline.png) 1x, url(../Images/CloseTimeline@2x.png) 2x);
+    margin-top: 1px;
+    width: 14px;
+    height: 14px;
 
     visibility: hidden;
 }
@@ -181,68 +195,59 @@ body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .timelines-cont
 }
 
 .sidebar > .panel.navigation.timeline > .timelines-content li.item:not(.selected):nth-child(even) {
-    background-color: rgba(0, 0, 0, 0.03);
+    background-color: hsla(0, 0%, 0%, 0.03);
     background-clip: padding-box;
 }
 
 .sidebar > .panel.navigation.timeline > .timelines-content li.item:not(.selected):not(:first-child) {
-    border-top: 1px solid rgba(0, 0, 0, 0.09);
+    border-top: 1px solid hsla(0, 0%, 0%, 0.09);
 }
 
 .sidebar > .panel.navigation.timeline > .timelines-content li.item.selected + li.item {
-    border-top-color: rgb(185, 184, 185);
+    border-top-color: hsl(0, 0%, 83%);
 }
 
 body.window-inactive .sidebar > .panel.navigation.timeline > .timelines-content li.item.selected + li.item {
-    border-top-color: rgb(212, 212, 212);
+    border-top-color: hsl(0, 0%, 83%);
 }
 
 .sidebar > .panel.navigation.timeline > .timelines-content :focus li.item.selected + li.item {
-    border-top-color: rgb(0, 128, 252);
-}
-
-body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .timelines-content li.item.selected + li.item {
-    border-top-color: rgb(120, 139, 168);
-}
-
-body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .timelines-content :focus li.item.selected + li.item {
-    border-top-color: rgb(107, 130, 164);
-}
-
-.sidebar > .panel.navigation.timeline > .timelines-content .close-button:active {
-    opacity: 0.8;
+    border-top-color: hsl(209, 100%, 49%);
 }
 
 .sidebar > .panel.navigation.timeline > .content,
 .sidebar > .panel.navigation.timeline > .empty-content-placeholder {
-    top: 182px;
+    top: 189px;
 }
 
-body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .content,
-body.mac-platform.legacy .sidebar > .panel.navigation.timeline > .empty-content-placeholder {
-    top: 175px;
-}
-
-.sidebar > .panel.navigation.timeline.timeline-content-view-showing > .content {
+.sidebar > .panel.navigation.timeline.timeline-recording-content-view-showing > .content {
  /* This hides the scrollbar. The view shows a scrollbar, we don't need two. */
     padding-right: 16px;
     right: -16px;
 }
 
-.sidebar > .panel.navigation.timeline > .content > .stripe-background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    min-height: 100%;
-
-    background-image: linear-gradient(to bottom, transparent, transparent 50%, rgba(0, 0, 0, 0.03) 50%, rgba(0, 0, 0, 0.03));
-    background-size: 100% 40px;
-
-    pointer-events: none;
+.sidebar > .panel.navigation.timeline .item:not(:hover, .selected) .status .status-button,
+.sidebar > .panel.navigation.timeline .item:hover:not(.selected) .status .close.status-button {
     display: none;
 }
 
-.sidebar > .panel.navigation.timeline.timeline-content-view-showing > .content > .stripe-background {
-    display: block;
+.sidebar > .panel.navigation.timeline:not(.timeline-recording-content-view-showing) .status .go-to-arrow.status-button {
+    display: none;
+}
+
+.sidebar > .panel.navigation.timeline.timeline-recording-content-view-showing .status .close.status-button {
+    display: none;
+}
+
+.sidebar > .panel.navigation.timeline > .timelines-content > .details-section > div.header {
+    display: none;
+}
+
+.sidebar > .panel.navigation.timeline > .timelines-content > .details-section > .content > .group > .row.chart {
+    height: 108px;
+}
+
+.sidebar > .panel.navigation.timeline > .timelines-content > .details-section > .content > .group > .row.chart > .chart-content > .chart {
+    width: 76px;
+    height: 76px;
 }

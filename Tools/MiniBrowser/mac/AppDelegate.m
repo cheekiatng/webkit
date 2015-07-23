@@ -25,11 +25,17 @@
 
 #import "AppDelegate.h"
 
+#import "ExtensionManagerWindowController.h"
 #import "SettingsController.h"
 #import "WK1BrowserWindowController.h"
 #import "WK2BrowserWindowController.h"
-#import <WebKit/WebHistory.h>
-#import <WebKit/WebKit2.h>
+#import <WebKit/WKPreferencesPrivate.h>
+#import <WebKit/WKProcessPoolPrivate.h>
+#import <WebKit/WKUserContentControllerPrivate.h>
+#import <WebKit/WKWebViewConfigurationPrivate.h>
+#import <WebKit/WebKit.h>
+#import <WebKit/_WKProcessPoolConfiguration.h>
+#import <WebKit/_WKUserContentExtensionStore.h>
 
 enum {
     WebKit1NewWindowTag = 1,
@@ -43,6 +49,9 @@ enum {
     self = [super init];
     if (self) {
         _browserWindowControllers = [[NSMutableSet alloc] init];
+#if WK_API_ENABLED
+        _extensionManagerWindowController = [[ExtensionManagerWindowController alloc] init];
+#endif
     }
 
     return self;
@@ -54,6 +63,30 @@ enum {
     [item setSubmenu:[[SettingsController shared] menu]];
     [[NSApp mainMenu] insertItem:[item autorelease] atIndex:[[NSApp mainMenu] indexOfItemWithTitle:@"Debug"]];
 }
+
+#if WK_API_ENABLED
+static WKWebViewConfiguration *defaultConfiguration()
+{
+    static WKWebViewConfiguration *configuration;
+
+    if (!configuration) {
+        configuration = [[WKWebViewConfiguration alloc] init];
+        configuration.preferences._fullScreenEnabled = YES;
+        configuration.preferences._developerExtrasEnabled = YES;
+
+        if ([SettingsController shared].perWindowWebProcessesDisabled) {
+            _WKProcessPoolConfiguration *singleProcessConfiguration = [[_WKProcessPoolConfiguration alloc] init];
+            singleProcessConfiguration.maximumProcessCount = 1;
+            configuration.processPool = [[[WKProcessPool alloc] _initWithConfiguration:singleProcessConfiguration] autorelease];
+            [singleProcessConfiguration release];
+        }
+    }
+
+    configuration.suppressesIncrementalRendering = [SettingsController shared].incrementalRenderingSuppressed;
+    return configuration;
+}
+#endif
+
 
 - (IBAction)newWindow:(id)sender
 {
@@ -70,7 +103,7 @@ enum {
         controller = [[WK1BrowserWindowController alloc] initWithWindowNibName:@"BrowserWindow"];
 #if WK_API_ENABLED
     else
-        controller = [[WK2BrowserWindowController alloc] initWithWindowNibName:@"BrowserWindow"];
+        controller = [[WK2BrowserWindowController alloc] initWithConfiguration:defaultConfiguration()];
 #endif
     if (!controller)
         return;
@@ -79,6 +112,22 @@ enum {
     [_browserWindowControllers addObject:controller];
     
     [controller loadURLString:[SettingsController shared].defaultURL];
+}
+
+- (IBAction)newPrivateWindow:(id)sender
+{
+#if WK_API_ENABLED
+    WKWebViewConfiguration *privateConfiguraton = [defaultConfiguration() copy];
+    privateConfiguraton.websiteDataStore = [WKWebsiteDataStore nonPersistentDataStore];
+
+    BrowserWindowController *controller = [[WK2BrowserWindowController alloc] initWithConfiguration:privateConfiguraton];
+    [privateConfiguraton release];
+
+    [[controller window] makeKeyAndOrderFront:sender];
+    [_browserWindowControllers addObject:controller];
+
+    [controller loadURLString:[SettingsController shared].defaultURL];
+#endif
 }
 
 - (void)browserWindowWillClose:(NSWindow *)window
@@ -126,7 +175,7 @@ enum {
     if (browserWindowController) {
         NSOpenPanel *openPanel = [[NSOpenPanel openPanel] retain];
         [openPanel beginSheetModalForWindow:browserWindowController.window completionHandler:^(NSInteger result) {
-            if (result != NSOKButton)
+            if (result != NSFileHandlingPanelOKButton)
                 return;
 
             NSURL *url = [openPanel.URLs objectAtIndex:0];
@@ -137,7 +186,7 @@ enum {
 
     NSOpenPanel *openPanel = [NSOpenPanel openPanel];
     [openPanel beginWithCompletionHandler:^(NSInteger result) {
-        if (result != NSOKButton)
+        if (result != NSFileHandlingPanelOKButton)
             return;
 
         BrowserWindowController *newBrowserWindowController = [[WK1BrowserWindowController alloc] initWithWindowNibName:@"BrowserWindow"];
@@ -153,7 +202,7 @@ enum {
     [self _updateNewWindowKeyEquivalents];
 
     // Let all of the BrowserWindowControllers know that a setting changed, so they can attempt to dynamically update.
-    for (BrowserWindowController<BrowserController> *browserWindowController in _browserWindowControllers)
+    for (BrowserWindowController *browserWindowController in _browserWindowControllers)
         [browserWindowController didChangeSettings];
 }
 
@@ -167,5 +216,45 @@ enum {
         [_newWebKit2WindowItem setKeyEquivalentModifierMask:NSCommandKeyMask | NSAlternateKeyMask];
     }
 }
+
+- (IBAction)showExtensionsManager:(id)sender
+{
+#if WK_API_ENABLED
+    [_extensionManagerWindowController showWindow:sender];
+#endif
+}
+
+#if WK_API_ENABLED
+- (WKUserContentController *)userContentContoller
+{
+    return defaultConfiguration().userContentController;
+}
+
+- (IBAction)fetchDefaultStoreWebsiteData:(id)sender
+{
+    [[WKWebsiteDataStore defaultDataStore] fetchDataRecordsOfTypes:[WKWebsiteDataStore allWebsiteDataTypes] completionHandler:^(NSArray *websiteDataRecords) {
+        NSLog(@"did fetch default store website data %@.", websiteDataRecords);
+    }];
+}
+
+- (IBAction)fetchAndClearDefaultStoreWebsiteData:(id)sender
+{
+    [[WKWebsiteDataStore defaultDataStore] fetchDataRecordsOfTypes:[WKWebsiteDataStore allWebsiteDataTypes] completionHandler:^(NSArray *websiteDataRecords) {
+        [[WKWebsiteDataStore defaultDataStore] removeDataOfTypes:[WKWebsiteDataStore allWebsiteDataTypes] forDataRecords:websiteDataRecords completionHandler:^{
+            [[WKWebsiteDataStore defaultDataStore] fetchDataRecordsOfTypes:[WKWebsiteDataStore allWebsiteDataTypes] completionHandler:^(NSArray *websiteDataRecords) {
+                NSLog(@"did clear default store website data, after clearing data is %@.", websiteDataRecords);
+            }];
+        }];
+    }];
+}
+
+- (IBAction)clearDefaultStoreWebsiteData:(id)sender
+{
+    [[WKWebsiteDataStore defaultDataStore] removeDataOfTypes:[WKWebsiteDataStore allWebsiteDataTypes] modifiedSince:[NSDate distantPast] completionHandler:^{
+        NSLog(@"Did clear default store website data.");
+    }];
+}
+
+#endif
 
 @end

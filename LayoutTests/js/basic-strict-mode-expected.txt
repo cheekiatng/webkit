@@ -92,8 +92,8 @@ PASS 'use strict'; for(;;)break missingLabel threw exception SyntaxError: Cannot
 PASS (function(){'use strict'; for(;;)break missingLabel}) threw exception SyntaxError: Cannot use the undeclared label 'missingLabel'..
 PASS 'use strict'; for(;;)continue missingLabel threw exception SyntaxError: Cannot use the undeclared label 'missingLabel'..
 PASS (function(){'use strict'; for(;;)continue missingLabel}) threw exception SyntaxError: Cannot use the undeclared label 'missingLabel'..
-PASS 'use strict'; 007; threw exception SyntaxError: Octal escapes are forbidden in strict mode.
-PASS (function(){'use strict'; 007;}) threw exception SyntaxError: Octal escapes are forbidden in strict mode.
+PASS 'use strict'; 007; threw exception SyntaxError: Decimal integer literals with a leading zero are forbidden in strict mode.
+PASS (function(){'use strict'; 007;}) threw exception SyntaxError: Decimal integer literals with a leading zero are forbidden in strict mode.
 PASS 'use strict'; '\007'; threw exception SyntaxError: The only valid numeric escape in strict mode is '\0'.
 PASS (function(){'use strict'; '\007';}) threw exception SyntaxError: The only valid numeric escape in strict mode is '\0'.
 PASS '\007'; 'use strict'; threw exception SyntaxError: The only valid numeric escape in strict mode is '\0'.
@@ -130,12 +130,16 @@ PASS (function(){'use strict'; function f() { arguments-- }}) threw exception Sy
 PASS global.eval('"use strict"; if (0) ++arguments; true;') threw exception SyntaxError: Cannot modify 'arguments' in strict mode..
 PASS 'use strict'; ++(1, eval) threw exception ReferenceError: Prefix ++ operator applied to value that is not a reference..
 PASS (function(){'use strict'; ++(1, eval)}) threw exception SyntaxError: Cannot modify 'eval' in strict mode..
+PASS 'use strict'; ++(1, 2, 3, eval) threw exception ReferenceError: Prefix ++ operator applied to value that is not a reference..
+PASS (function(){'use strict'; ++(1, 2, 3, eval)}) threw exception SyntaxError: Cannot modify 'eval' in strict mode..
 PASS 'use strict'; (1, eval)++ threw exception ReferenceError: Postfix ++ operator applied to value that is not a reference..
 PASS (function(){'use strict'; (1, eval)++}) threw exception SyntaxError: Cannot modify 'eval' in strict mode..
 PASS 'use strict'; --(1, eval) threw exception ReferenceError: Prefix -- operator applied to value that is not a reference..
 PASS (function(){'use strict'; --(1, eval)}) threw exception SyntaxError: Cannot modify 'eval' in strict mode..
 PASS 'use strict'; (1, eval)-- threw exception ReferenceError: Postfix -- operator applied to value that is not a reference..
 PASS (function(){'use strict'; (1, eval)--}) threw exception SyntaxError: 'eval' cannot be modified in strict mode..
+PASS 'use strict'; (1, 2, 3, eval)-- threw exception ReferenceError: Postfix -- operator applied to value that is not a reference..
+PASS (function(){'use strict'; (1, 2, 3, eval)--}) threw exception SyntaxError: 'eval' cannot be modified in strict mode..
 PASS 'use strict'; function f() { ++(1, arguments) } threw exception SyntaxError: Cannot modify 'arguments' in strict mode..
 PASS (function(){'use strict'; function f() { ++(1, arguments) }}) threw exception SyntaxError: Cannot modify 'arguments' in strict mode..
 PASS 'use strict'; function f() { (1, arguments)++ } threw exception SyntaxError: Cannot modify 'arguments' in strict mode..

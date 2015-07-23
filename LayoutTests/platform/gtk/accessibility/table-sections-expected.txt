@@ -17,8 +17,8 @@ Example #1: Nested Stubs
 THEAD, TFOOT table
 --------------------------
 
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXColumnHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 363.000000, 60.000000 }
 AXSize: { 21.000000, 29.000000 }
@@ -27,17 +27,17 @@ AXDescription:
 AXValue: 1
 AXFocusable: 0
 AXFocused: 0
-AXSelectable: 1
+AXSelectable: 0
 AXSelected: 0
 AXMultiSelectable: 0
 AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:columnheader, tag:th, toolkit:WebKitGtk
 ------------
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXColumnHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 383.000000, 60.000000 }
 AXSize: { 28.000000, 29.000000 }
@@ -46,17 +46,17 @@ AXDescription:
 AXValue: a
 AXFocusable: 0
 AXFocused: 0
-AXSelectable: 1
+AXSelectable: 0
 AXSelected: 0
 AXMultiSelectable: 0
 AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:columnheader, tag:th, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 410.000000, 60.000000 }
 AXSize: { 29.000000, 29.000000 }
@@ -72,14 +72,14 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
 
 
 --------------------------
 
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXColumnHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 355.000000, 60.000000 }
 AXSize: { 20.000000, 29.000000 }
@@ -88,17 +88,17 @@ AXDescription:
 AXValue: 1
 AXFocusable: 0
 AXFocused: 0
-AXSelectable: 1
+AXSelectable: 0
 AXSelected: 0
 AXMultiSelectable: 0
 AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:columnheader, tag:th, toolkit:WebKitGtk
 ------------
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXRowHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 355.000000, 89.000000 }
 AXSize: { 20.000000, 29.000000 }
@@ -114,10 +114,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:rowheader, tag:th, toolkit:WebKitGtk
 ------------
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXRowHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 355.000000, 118.000000 }
 AXSize: { 20.000000, 29.000000 }
@@ -133,7 +133,7 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:rowheader, tag:th, toolkit:WebKitGtk
 ------------
 
 AXParent: (null)
@@ -163,8 +163,8 @@ AXPlatformAttributes:
 
 --------------------------
 
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXColumnHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 355.000000, 60.000000 }
 AXSize: { 20.000000, 29.000000 }
@@ -173,17 +173,17 @@ AXDescription:
 AXValue: 1
 AXFocusable: 0
 AXFocused: 0
-AXSelectable: 1
+AXSelectable: 0
 AXSelected: 0
 AXMultiSelectable: 0
 AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:columnheader, tag:th, toolkit:WebKitGtk
 ------------
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXColumnHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 375.000000, 60.000000 }
 AXSize: { 27.000000, 29.000000 }
@@ -192,17 +192,17 @@ AXDescription:
 AXValue: a
 AXFocusable: 0
 AXFocused: 0
-AXSelectable: 1
+AXSelectable: 0
 AXSelected: 0
 AXMultiSelectable: 0
 AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:columnheader, tag:th, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 402.000000, 60.000000 }
 AXSize: { 28.000000, 29.000000 }
@@ -218,10 +218,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXRowHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 355.000000, 89.000000 }
 AXSize: { 20.000000, 29.000000 }
@@ -237,10 +237,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:rowheader, tag:th, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 375.000000, 89.000000 }
 AXSize: { 27.000000, 29.000000 }
@@ -256,10 +256,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 402.000000, 89.000000 }
 AXSize: { 28.000000, 29.000000 }
@@ -275,10 +275,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXRowHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 355.000000, 118.000000 }
 AXSize: { 20.000000, 29.000000 }
@@ -294,10 +294,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:rowheader, tag:th, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 375.000000, 118.000000 }
 AXSize: { 27.000000, 29.000000 }
@@ -313,10 +313,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 402.000000, 118.000000 }
 AXSize: { 28.000000, 29.000000 }
@@ -332,10 +332,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 355.000000, 147.000000 }
 AXSize: { 20.000000, 29.000000 }
@@ -351,10 +351,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 375.000000, 147.000000 }
 AXSize: { 27.000000, 29.000000 }
@@ -370,10 +370,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 402.000000, 147.000000 }
 AXSize: { 28.000000, 29.000000 }
@@ -389,7 +389,7 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
 
 
@@ -403,8 +403,8 @@ AXPlatformAttributes: toolkit:WebKitGtk
 Multi-TBODY table
 --------------------------
 
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXColumnHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 355.000000, 60.000000 }
 AXSize: { 20.000000, 29.000000 }
@@ -413,17 +413,17 @@ AXDescription:
 AXValue: 1
 AXFocusable: 0
 AXFocused: 0
-AXSelectable: 1
+AXSelectable: 0
 AXSelected: 0
 AXMultiSelectable: 0
 AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:columnheader, tag:th, toolkit:WebKitGtk
 ------------
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXColumnHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 375.000000, 60.000000 }
 AXSize: { 27.000000, 29.000000 }
@@ -432,17 +432,17 @@ AXDescription:
 AXValue: a
 AXFocusable: 0
 AXFocused: 0
-AXSelectable: 1
+AXSelectable: 0
 AXSelected: 0
 AXMultiSelectable: 0
 AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:columnheader, tag:th, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 402.000000, 60.000000 }
 AXSize: { 28.000000, 29.000000 }
@@ -458,14 +458,14 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
 
 
 --------------------------
 
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXColumnHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 355.000000, 60.000000 }
 AXSize: { 20.000000, 29.000000 }
@@ -474,17 +474,17 @@ AXDescription:
 AXValue: 1
 AXFocusable: 0
 AXFocused: 0
-AXSelectable: 1
+AXSelectable: 0
 AXSelected: 0
 AXMultiSelectable: 0
 AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:columnheader, tag:th, toolkit:WebKitGtk
 ------------
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXRowHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 355.000000, 89.000000 }
 AXSize: { 20.000000, 29.000000 }
@@ -500,10 +500,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:rowheader, tag:th, toolkit:WebKitGtk
 ------------
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXRowHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 355.000000, 118.000000 }
 AXSize: { 20.000000, 29.000000 }
@@ -519,7 +519,7 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:rowheader, tag:th, toolkit:WebKitGtk
 ------------
 
 AXParent: (null)
@@ -549,8 +549,8 @@ AXPlatformAttributes:
 
 --------------------------
 
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXColumnHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 355.000000, 60.000000 }
 AXSize: { 20.000000, 29.000000 }
@@ -559,17 +559,17 @@ AXDescription:
 AXValue: 1
 AXFocusable: 0
 AXFocused: 0
-AXSelectable: 1
+AXSelectable: 0
 AXSelected: 0
 AXMultiSelectable: 0
 AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:columnheader, tag:th, toolkit:WebKitGtk
 ------------
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXColumnHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 375.000000, 60.000000 }
 AXSize: { 27.000000, 29.000000 }
@@ -578,17 +578,17 @@ AXDescription:
 AXValue: a
 AXFocusable: 0
 AXFocused: 0
-AXSelectable: 1
+AXSelectable: 0
 AXSelected: 0
 AXMultiSelectable: 0
 AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:columnheader, tag:th, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 402.000000, 60.000000 }
 AXSize: { 28.000000, 29.000000 }
@@ -604,10 +604,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXRowHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 355.000000, 89.000000 }
 AXSize: { 20.000000, 29.000000 }
@@ -623,10 +623,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:rowheader, tag:th, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 375.000000, 89.000000 }
 AXSize: { 27.000000, 29.000000 }
@@ -642,10 +642,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 402.000000, 89.000000 }
 AXSize: { 28.000000, 29.000000 }
@@ -661,10 +661,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXRowHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 355.000000, 118.000000 }
 AXSize: { 20.000000, 29.000000 }
@@ -680,10 +680,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:rowheader, tag:th, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 375.000000, 118.000000 }
 AXSize: { 27.000000, 29.000000 }
@@ -699,10 +699,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 402.000000, 118.000000 }
 AXSize: { 28.000000, 29.000000 }
@@ -718,10 +718,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 355.000000, 147.000000 }
 AXSize: { 20.000000, 29.000000 }
@@ -737,10 +737,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 375.000000, 147.000000 }
 AXSize: { 27.000000, 29.000000 }
@@ -756,10 +756,10 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 402.000000, 147.000000 }
 AXSize: { 28.000000, 29.000000 }
@@ -775,7 +775,7 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------
 
 

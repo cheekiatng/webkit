@@ -33,7 +33,7 @@
     width: 238px;
     height: 21px;
 
-    border: 1px solid rgb(146, 146, 146);
+    border: 1px solid hsl(0, 0%, 57%);
 }
 
 .gradient-slider > canvas {
@@ -85,8 +85,7 @@
     opacity: 0;
 }
 
-.gradient-slider-knob > img,
-.gradient-slider-knob > div {
+.gradient-slider-knob > :matches(img, div) {
     position: absolute;
     
     left: 5px;
@@ -100,7 +99,7 @@
 }
 
 .gradient-slider-knob > div {
-    border: 1px solid rgba(0, 0, 0, 0.25);
+    border: 1px solid hsla(0, 0%, 0%, 0.25);
 
     background-color: white;
 }

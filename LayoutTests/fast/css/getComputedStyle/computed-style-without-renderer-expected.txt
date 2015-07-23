@@ -43,13 +43,14 @@ empty-cells: show
 float: none
 font-size: 16px
 font-style: normal
+font-synthesis: style weight
 font-variant: normal
 font-weight: normal
 height: 100px
 image-rendering: auto
 left: auto
 letter-spacing: normal
-line-height: normal
+line-height: 18px
 list-style-image: none
 list-style-position: outside
 list-style-type: disc
@@ -90,6 +91,9 @@ text-shadow: none
 text-overflow: clip
 text-transform: none
 top: auto
+transform: none
+transform-origin: 50% 50%
+transform-style: flat
 unicode-bidi: normal
 vertical-align: baseline
 visibility: visible
@@ -135,19 +139,22 @@ zoom: 1
 -webkit-column-break-before: auto
 -webkit-column-break-inside: auto
 -webkit-column-axis: auto
--webkit-column-count: auto
--webkit-column-gap: normal
--webkit-column-rule-color: rgb(0, 0, 0)
--webkit-column-rule-style: none
--webkit-column-rule-width: 0px
--webkit-column-span: none
--webkit-column-width: auto
--webkit-align-content: stretch
--webkit-align-items: stretch
--webkit-align-self: stretch
--webkit-flex-direction: row
--webkit-flex-wrap: nowrap
--webkit-justify-content: flex-start
+column-count: auto
+column-fill: balance
+column-gap: normal
+column-rule-color: rgb(0, 0, 0)
+column-rule-style: none
+column-rule-width: 0px
+column-span: none
+column-width: auto
+align-content: auto
+align-items: auto
+align-self: auto
+flex-direction: row
+flex-wrap: nowrap
+justify-content: auto
+justify-self: auto
+justify-items: auto
 -webkit-font-kerning: auto
 -webkit-font-smoothing: auto
 -webkit-font-variant-ligatures: normal
@@ -192,9 +199,9 @@ zoom: 1
 -webkit-mask-repeat: repeat
 -webkit-mask-size: auto
 -webkit-nbsp-mode: normal
--webkit-order: 0
--webkit-perspective: none
--webkit-perspective-origin: 50% 50%
+order: 0
+perspective: none
+perspective-origin: 50% 50%
 -webkit-print-color-adjust: economy
 -webkit-rtl-ordering: logical
 -webkit-text-combine: none
@@ -207,8 +214,6 @@ zoom: 1
 -webkit-text-security: none
 -webkit-text-stroke-color: rgb(0, 0, 0)
 -webkit-text-stroke-width: 0px
--webkit-transform: none
--webkit-transform-origin: 50% 50%
 -webkit-transform-style: flat
 -webkit-transition-delay: 0s
 -webkit-transition-duration: 0s
@@ -239,12 +244,12 @@ marker-start: none
 shape-rendering: auto
 stroke: none
 stroke-dasharray: none
-stroke-dashoffset: 0
+stroke-dashoffset: 0px
 stroke-linecap: butt
 stroke-linejoin: miter
 stroke-miterlimit: 4
 stroke-opacity: 1
-stroke-width: 1
+stroke-width: 1px
 alignment-baseline: auto
 baseline-shift: baseline
 dominant-baseline: auto

@@ -23,7 +23,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#include "config.h"
 #include "WebDocumentLoader.h"
 
 #include "WebKitDLL.h"
@@ -36,18 +35,18 @@ WebDocumentLoader::WebDocumentLoader(const ResourceRequest& request, const Subst
     , m_detachedDataSource(0)
 {
     gClassCount++;
-    gClassNameCount.add("WebDocumentLoader");
+    gClassNameCount().add("WebDocumentLoader");
 }
 
-PassRefPtr<WebDocumentLoader> WebDocumentLoader::create(const ResourceRequest& req, const SubstituteData& data)
+Ref<WebDocumentLoader> WebDocumentLoader::create(const ResourceRequest& request, const SubstituteData& data)
 {
-    return adoptRef(new WebDocumentLoader(req, data));
+    return adoptRef(*new WebDocumentLoader(request, data));
 }
 
 WebDocumentLoader::~WebDocumentLoader()
 {
     gClassCount--;
-    gClassNameCount.remove("WebDocumentLoader");
+    gClassNameCount().remove("WebDocumentLoader");
     if (m_dataSource) {
         ASSERT(!m_detachedDataSource);
         m_dataSource->Release();

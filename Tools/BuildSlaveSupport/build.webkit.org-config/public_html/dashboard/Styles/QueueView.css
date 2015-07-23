@@ -25,7 +25,6 @@
 
 .queue-view {
     width: 200px;
-    min-height: 200px;
     padding: 10px 20px;
 }
 
@@ -120,7 +119,10 @@
     padding-left: 7px;
 }
 
-.ews-popover {
+.bubble-server-popover,
+.performance-popover,
+.leaks-popover,
+.combined-queue-popover {
     font-family: "HelveticaNeue-Light", "Helvetica Neue", sans-serif;
     color: rgb(145, 135, 95);
     font-size: 12px;
@@ -128,21 +130,30 @@
     padding: 1px 6px 1px 6px;
 }
 
-.ews-popover .popover-queue-heading .queue-status-link,
-.ews-popover .popover-queue-heading .queue-charts-link {
+.bubble-server-popover .popover-queue-heading .queue-status-link,
+.bubble-server-popover .popover-queue-heading .queue-charts-link {
     color: rgb(145, 135, 95);
     padding-left: 7px;
 }
 
-.ews-popover .latest-status-with-link,
-.ews-popover .latest-status-no-link {
+.bubble-server-popover .latest-status-with-link,
+.bubble-server-popover .latest-status-no-link {
     color: black;
     padding-left: 7px;
 }
 
-.ews-popover .failure-count,
-.ews-popover .time-since-message,
-.ews-popover .bugzilla-link,
-.ews-popover .bot-status-description {
+.bubble-server-popover .failure-count,
+.bubble-server-popover .time-since-message,
+.bubble-server-popover .bugzilla-link,
+.bubble-server-popover .bot-status-description {
+    padding-left: 7px;
+}
+
+/* Styling the performance dashboard link as visited doesn't make much sense in the context of bot watcher's dashboard. */
+.performance-popover .dashboard-link {
+    color: blue;
+}
+
+.combined-queue-popover .revision {
     padding-left: 7px;
 }

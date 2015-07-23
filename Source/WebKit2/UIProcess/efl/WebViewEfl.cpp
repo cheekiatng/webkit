@@ -26,7 +26,9 @@
 #include "config.h"
 #include "WebViewEfl.h"
 
+#include "CoordinatedGraphicsScene.h"
 #include "DownloadManagerEfl.h"
+#include "DownloadProxy.h"
 #include "EwkView.h"
 #include "InputMethodContextEfl.h"
 #include "NativeWebMouseEvent.h"
@@ -34,7 +36,6 @@
 #include "WebContextMenuProxyEfl.h"
 #include "WebPopupMenuListenerEfl.h"
 #include "ewk_context_private.h"
-#include <WebCore/CoordinatedGraphicsScene.h>
 #include <WebCore/PlatformContextCairo.h>
 
 #if ENABLE(FULLSCREEN_API)
@@ -54,13 +55,13 @@ using namespace WebCore;
 
 namespace WebKit {
 
-PassRefPtr<WebView> WebView::create(WebContext* context, WebPageGroup* pageGroup)
+Ref<WebView> WebView::create(WebProcessPool* processPool, WebPageGroup* pageGroup)
 {
-    return adoptRef(new WebViewEfl(context, pageGroup));
+    return adoptRef(*new WebViewEfl(processPool, pageGroup));
 }
 
-WebViewEfl::WebViewEfl(WebContext* context, WebPageGroup* pageGroup)
-    : WebView(context, pageGroup)
+WebViewEfl::WebViewEfl(WebProcessPool* processPool, WebPageGroup* pageGroup)
+    : WebView(processPool, pageGroup)
     , m_ewkView(0)
     , m_hasRequestedFullScreen(false)
 {
@@ -84,16 +85,16 @@ void WebViewEfl::paintToCairoSurface(cairo_surface_t* surface)
 
     cairo_matrix_t transform = { effectiveScale, 0, 0, effectiveScale, - position.x() * m_page->deviceScaleFactor(), - position.y() * m_page->deviceScaleFactor() };
     cairo_set_matrix(context.cr(), &transform);
-    scene->paintToGraphicsContext(&context);
+    scene->paintToGraphicsContext(&context, m_page->pageExtendedBackgroundColor(), m_page->drawsBackground());
 }
 
-PassRefPtr<WebPopupMenuProxy> WebViewEfl::createPopupMenuProxy(WebPageProxy* page)
+RefPtr<WebPopupMenuProxy> WebViewEfl::createPopupMenuProxy(WebPageProxy* page)
 {
     return WebPopupMenuListenerEfl::create(page);
 }
 
 #if ENABLE(CONTEXT_MENUS)
-PassRefPtr<WebContextMenuProxy> WebViewEfl::createContextMenuProxy(WebPageProxy* page)
+RefPtr<WebContextMenuProxy> WebViewEfl::createContextMenuProxy(WebPageProxy* page)
 {
     return WebContextMenuProxyEfl::create(m_ewkView, page);
 }
@@ -113,7 +114,7 @@ void WebViewEfl::updateTextInputState()
 void WebViewEfl::handleDownloadRequest(DownloadProxy* download)
 {
     EwkContext* context = m_ewkView->ewkContext();
-    context->downloadManager()->registerDownloadJob(toAPI(download), m_ewkView);
+    context->downloadManager()->registerDownloadJob(toAPI(download));
 }
 
 void WebViewEfl::setThemePath(const String& theme)
@@ -211,7 +212,7 @@ void WebViewEfl::initializeColorPickerClient(const WKColorPickerClientBase* clie
     m_colorPickerClient.initialize(client);
 }
 
-PassRefPtr<WebColorPicker> WebViewEfl::createColorPicker(WebPageProxy* page, const WebCore::Color& color, const WebCore::IntRect&)
+RefPtr<WebColorPicker> WebViewEfl::createColorPicker(WebPageProxy* page, const WebCore::Color& color, const WebCore::IntRect&)
 {
     return WebColorPickerEfl::create(this, page, color);
 }

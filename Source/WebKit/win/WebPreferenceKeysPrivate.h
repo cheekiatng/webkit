@@ -48,6 +48,7 @@
 #define WebKitTextAreasAreResizablePreferenceKey "WebKitTextAreasAreResizable"
 #define WebKitJavaEnabledPreferenceKey "WebKitJavaEnabled"
 #define WebKitJavaScriptEnabledPreferenceKey "WebKitJavaScriptEnabled"
+#define WebKitJavaScriptRuntimeFlagsPreferenceKey "WebKitJavaScriptRuntimeFlags"
 #define WebKitWebSecurityEnabledPreferenceKey "WebKitWebSecurityEnabled"
 #define WebKitAllowUniversalAccessFromFileURLsPreferenceKey "WebKitAllowUniversalAccessFromFileURLs"
 #define WebKitAllowFileAccessFromFileURLsPreferenceKey "WebKitAllowFileAccessFromFileURLs"
@@ -160,7 +161,5 @@
 #define WebKitRequestAnimationFrameEnabledPreferenceKey "WebKitRequestAnimationFrameEnabled"
 
 #define WebKitMockScrollbarsEnabledPreferenceKey "WebKitMockScrollbarsEnabled"
-
-#define WebKitScreenFontSubstitutionEnabledPreferenceKey "WebKitScreenFontSubstitutionEnabledPreferenceKey"
 
 #define WebKitEnableInheritURIQueryComponentPreferenceKey "WebKitEnableInheritURIQueryComponent"

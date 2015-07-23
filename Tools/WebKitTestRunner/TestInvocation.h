@@ -40,11 +40,12 @@ public:
     ~TestInvocation();
 
     WKURLRef url() const;
-    const char* pathOrURL() const { return m_pathOrURL.c_str(); }
+    bool urlContains(const char*) const;
 
     void setIsPixelTest(const std::string& expectedPixelHash);
 
-    void setCustomTimeout(int duration);
+    void setCustomTimeout(int duration) { m_timeout = duration; }
+    int customTimeout() const { return m_timeout; }
 
     void invoke();
     void didReceiveMessageFromInjectedBundle(WKStringRef messageName, WKTypeRef messageBody);
@@ -62,9 +63,12 @@ private:
 
     static void forceRepaintDoneCallback(WKErrorRef, void* context);
 
+    bool shouldLogFrameLoadDelegates();
+    bool shouldLogHistoryClientCallbacks();
+
     WKRetainPtr<WKURLRef> m_url;
-    std::string m_pathOrURL;
-    
+    WTF::String m_urlString;
+
     bool m_dumpPixels;
     std::string m_expectedPixelHash;
 

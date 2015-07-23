@@ -28,6 +28,7 @@
 #import "AccessibilityUIElement.h"
 
 #import "AccessibilityCommonMac.h"
+#import "AccessibilityNotificationHandler.h"
 #import <Foundation/Foundation.h>
 #import <JavaScriptCore/JSRetainPtr.h>
 #import <JavaScriptCore/JSStringRef.h>
@@ -76,6 +77,9 @@ AccessibilityUIElement::~AccessibilityUIElement()
 - (void)accessibilitySetPostedNotificationCallback:(AXPostedNotificationCallback)function withContext:(void*)context;
 - (CGFloat)_accessibilityMinValue;
 - (CGFloat)_accessibilityMaxValue;
+- (void)_accessibilitySetValue:(NSString *)value;
+- (void)_accessibilityActivate;
+- (UIAccessibilityTraits)_axSelectedTrait;
 @end
 
 @interface NSObject (WebAccessibilityObjectWrapperPrivate)
@@ -98,43 +102,23 @@ static JSStringRef concatenateAttributeAndValue(NSString* attribute, NSString* v
 
 #pragma mark iPhone Attributes
 
-JSStringRef AccessibilityUIElement::iphoneLabel()
-{
-    return concatenateAttributeAndValue(@"AXLabel", [m_element accessibilityLabel]);
-}
-
-JSStringRef AccessibilityUIElement::iphoneHint()
-{
-    return concatenateAttributeAndValue(@"AXHint", [m_element accessibilityHint]);
-}
-
-JSStringRef AccessibilityUIElement::iphoneValue()
-{
-    return concatenateAttributeAndValue(@"AXValue", [m_element accessibilityValue]);
-}
-
-JSStringRef AccessibilityUIElement::iphoneIdentifier()
+JSStringRef AccessibilityUIElement::identifier()
 {
     return concatenateAttributeAndValue(@"AXIdentifier", [m_element accessibilityIdentifier]);
 }
 
-JSStringRef AccessibilityUIElement::iphoneTraits()
+JSStringRef AccessibilityUIElement::traits()
 {
     return concatenateAttributeAndValue(@"AXTraits", [NSString stringWithFormat:@"%qu", [m_element accessibilityTraits]]);
 }
 
-bool AccessibilityUIElement::iphoneIsElement()
-{
-    return [m_element isAccessibilityElement];
-}
-
-int AccessibilityUIElement::iphoneElementTextPosition()
+int AccessibilityUIElement::elementTextPosition()
 {
     NSRange range = [[m_element valueForKey:@"elementTextRange"] rangeValue];
     return range.location;
 }
 
-int AccessibilityUIElement::iphoneElementTextLength()
+int AccessibilityUIElement::elementTextLength()
 {
     NSRange range = [[m_element valueForKey:@"elementTextRange"] rangeValue];
     return range.length;    
@@ -191,8 +175,10 @@ void AccessibilityUIElement::getChildren(Vector<AccessibilityUIElement>& element
 
 void AccessibilityUIElement::getChildrenWithRange(Vector<AccessibilityUIElement>& elementVector, unsigned location, unsigned length)
 {
-    NSUInteger childCount = [m_element accessibilityElementCount];
-    for (NSUInteger k = location; k < childCount && k < (location+length); ++k)
+    // accessibilityElementAtIndex: takes an NSInteger.
+    // We want to preserve that in order to test against invalid indexes being input.
+    NSInteger maxValue = static_cast<NSInteger>(location + length);
+    for (NSInteger k = location; k < maxValue; ++k)
         elementVector.append(AccessibilityUIElement([m_element accessibilityElementAtIndex:k]));    
 }
 
@@ -486,8 +472,8 @@ JSStringRef AccessibilityUIElement::title()
 
 JSStringRef AccessibilityUIElement::description()
 {
-    return JSStringCreateWithCharacters(0, 0);
-}    
+    return concatenateAttributeAndValue(@"AXLabel", [m_element accessibilityLabel]);
+}
 
 JSStringRef AccessibilityUIElement::orientation() const
 {
@@ -496,7 +482,7 @@ JSStringRef AccessibilityUIElement::orientation() const
 
 JSStringRef AccessibilityUIElement::stringValue()
 {
-    return JSStringCreateWithCharacters(0, 0);
+    return concatenateAttributeAndValue(@"AXValue", [m_element accessibilityValue]);
 }
 
 JSStringRef AccessibilityUIElement::language()
@@ -506,7 +492,7 @@ JSStringRef AccessibilityUIElement::language()
 
 JSStringRef AccessibilityUIElement::helpText() const
 {
-    return JSStringCreateWithCharacters(0, 0);
+    return concatenateAttributeAndValue(@"AXHint", [m_element accessibilityHint]);
 }
 
 double AccessibilityUIElement::intValue() const
@@ -522,6 +508,11 @@ double AccessibilityUIElement::minValue()
 double AccessibilityUIElement::maxValue()
 {
     return [m_element _accessibilityMaxValue];
+}
+
+void AccessibilityUIElement::setValue(JSStringRef valueText)
+{
+    [m_element _accessibilitySetValue:[NSString stringWithJSStringRef:valueText]];
 }
 
 JSStringRef AccessibilityUIElement::valueDescription()
@@ -553,7 +544,8 @@ bool AccessibilityUIElement::isFocused() const
 bool AccessibilityUIElement::isSelected() const
 {
     UIAccessibilityTraits traits = [m_element accessibilityTraits];
-    return (traits & UIAccessibilityTraitSelected);
+    bool result = (traits & [m_element _axSelectedTrait]) == [m_element _axSelectedTrait];
+    return result;
 }
 
 bool AccessibilityUIElement::isExpanded() const
@@ -696,6 +688,7 @@ void AccessibilityUIElement::showMenu()
 
 void AccessibilityUIElement::press()
 {
+    [m_element _accessibilityActivate];
 }
 
 JSStringRef AccessibilityUIElement::accessibilityValue() const
@@ -714,32 +707,31 @@ JSStringRef AccessibilityUIElement::documentURI()
     return JSStringCreateWithCharacters(0, 0);
 }
 
-static void _accessibilityNotificationCallback(id element, NSString* notification, void* context)
-{
-    if (!context)
-        return;
-    
-    JSObjectRef functionCallback = static_cast<JSObjectRef>(context);
-    
-    JSRetainPtr<JSStringRef> jsNotification(Adopt, [notification createJSStringRef]);
-    JSValueRef argument = JSValueMakeString([mainFrame globalContext], jsNotification.get());
-    JSObjectCallAsFunction([mainFrame globalContext], functionCallback, NULL, 1, &argument, NULL);
-}
-
 bool AccessibilityUIElement::addNotificationListener(JSObjectRef functionCallback)
 {
     if (!functionCallback)
         return false;
     
-    m_notificationFunctionCallback = functionCallback;
-    [platformUIElement() accessibilitySetPostedNotificationCallback:_accessibilityNotificationCallback withContext:reinterpret_cast<void*>(m_notificationFunctionCallback)];
-    return true;    
+    // iOS programmers should not be adding more than one notification listener per element.
+    // Other platforms may be different.
+    if (m_notificationHandler)
+        return false;
+    m_notificationHandler = [[AccessibilityNotificationHandler alloc] init];
+    [m_notificationHandler setPlatformElement:platformUIElement()];
+    [m_notificationHandler setCallback:functionCallback];
+    [m_notificationHandler startObserving];
+    
+    return true;
 }
 
 void AccessibilityUIElement::removeNotificationListener()
 {
-    m_notificationFunctionCallback = 0;
-    [platformUIElement() accessibilitySetPostedNotificationCallback:nil withContext:nil];
+    // iOS programmers should not be trying to remove a listener that's already removed.
+    ASSERT(m_notificationHandler);
+    
+    [m_notificationHandler stopObserving];
+    [m_notificationHandler release];
+    m_notificationHandler = nil;
 }
 
 bool AccessibilityUIElement::isFocusable() const
@@ -786,8 +778,7 @@ bool AccessibilityUIElement::isCollapsed() const
 
 bool AccessibilityUIElement::isIgnored() const
 {
-    // FIXME: implement
-    return false;
+    return ![m_element isAccessibilityElement];
 }
 
 bool AccessibilityUIElement::hasPopup() const

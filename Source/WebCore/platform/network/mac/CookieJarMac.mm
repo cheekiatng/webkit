@@ -26,22 +26,17 @@
 #import "config.h"
 #import "PlatformCookieJar.h"
 
+#import "CFNetworkSPI.h"
+#import "NetworkStorageSession.h"
+
 #if !USE(CFNETWORK)
 
 #import "BlockExceptions.h"
 #import "Cookie.h"
 #import "CookieStorage.h"
 #import "URL.h"
-#import "NetworkStorageSession.h"
 #import "WebCoreSystemInterface.h"
-
-enum {
-    NSHTTPCookieAcceptPolicyExclusivelyFromMainDocumentDomain = 3
-};
-
-@interface NSHTTPCookieStorage (Details)
-- (void)removeCookiesSinceDate:(NSDate *)date;
-@end
+#import <wtf/text/StringBuilder.h>
 
 namespace WebCore {
 
@@ -69,26 +64,44 @@ static RetainPtr<NSArray> filterCookies(NSArray *unfilteredCookies)
     return filteredCookies;
 }
 
-String cookiesForDOM(const NetworkStorageSession& session, const URL& firstParty, const URL& url)
+enum IncludeHTTPOnlyOrNot { DoNotIncludeHTTPOnly, IncludeHTTPOnly };
+static String cookiesForSession(const NetworkStorageSession& session, const URL& firstParty, const URL& url, IncludeHTTPOnlyOrNot includeHTTPOnly)
 {
     BEGIN_BLOCK_OBJC_EXCEPTIONS;
 
     NSArray *cookies = wkHTTPCookiesForURL(session.cookieStorage().get(), firstParty, url);
-    return [[NSHTTPCookie requestHeaderFieldsWithCookies:filterCookies(cookies).get()] objectForKey:@"Cookie"];
+    if (![cookies count])
+        return String(); // Return a null string, not an empty one that StringBuilder would create below.
+
+    StringBuilder cookiesBuilder;
+    for (NSHTTPCookie *cookie in cookies) {
+        if (![[cookie name] length])
+            continue;
+
+        if (!includeHTTPOnly && [cookie isHTTPOnly])
+            continue;
+
+        if (!cookiesBuilder.isEmpty())
+            cookiesBuilder.appendLiteral("; ");
+
+        cookiesBuilder.append(String([cookie name]));
+        cookiesBuilder.append('=');
+        cookiesBuilder.append(String([cookie value]));
+    }
+    return cookiesBuilder.toString();
 
     END_BLOCK_OBJC_EXCEPTIONS;
     return String();
 }
 
+String cookiesForDOM(const NetworkStorageSession& session, const URL& firstParty, const URL& url)
+{
+    return cookiesForSession(session, firstParty, url, DoNotIncludeHTTPOnly);
+}
+
 String cookieRequestHeaderFieldValue(const NetworkStorageSession& session, const URL& firstParty, const URL& url)
 {
-    BEGIN_BLOCK_OBJC_EXCEPTIONS;
-
-    NSArray *cookies = wkHTTPCookiesForURL(session.cookieStorage().get(), firstParty, url);
-    return [[NSHTTPCookie requestHeaderFieldsWithCookies:cookies] objectForKey:@"Cookie"];
-
-    END_BLOCK_OBJC_EXCEPTIONS;
-    return String();
+    return cookiesForSession(session, firstParty, url, IncludeHTTPOnly);
 }
 
 void setCookiesFromDOM(const NetworkStorageSession& session, const URL& firstParty, const URL& url, const String& cookieStr)
@@ -105,7 +118,18 @@ void setCookiesFromDOM(const NetworkStorageSession& session, const URL& firstPar
     String cookieString = cookieStr.contains('=') ? cookieStr : cookieStr + "=";
 
     NSURL *cookieURL = url;
-    RetainPtr<NSArray> filteredCookies = filterCookies([NSHTTPCookie cookiesWithResponseHeaderFields:[NSDictionary dictionaryWithObject:cookieString forKey:@"Set-Cookie"] forURL:cookieURL]);
+    NSDictionary *headerFields = [NSDictionary dictionaryWithObject:cookieString forKey:@"Set-Cookie"];
+
+    NSArray *unfilteredCookies;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wundeclared-selector"
+    if ([[NSHTTPCookie class] respondsToSelector:@selector(_parsedCookiesWithResponseHeaderFields:forURL:)])
+        unfilteredCookies = [NSHTTPCookie performSelector:@selector(_parsedCookiesWithResponseHeaderFields:forURL:) withObject:headerFields withObject:cookieURL];
+#pragma clang diagnostic pop
+    else
+        unfilteredCookies = [NSHTTPCookie cookiesWithResponseHeaderFields:headerFields forURL:cookieURL];
+
+    RetainPtr<NSArray> filteredCookies = filterCookies(unfilteredCookies);
     ASSERT([filteredCookies.get() count] <= 1);
 
     wkSetHTTPCookiesForURL(session.cookieStorage().get(), filteredCookies.get(), cookieURL, firstParty);
@@ -196,15 +220,30 @@ void deleteAllCookies(const NetworkStorageSession& session)
     wkDeleteAllHTTPCookies(session.cookieStorage().get());
 }
 
-void deleteAllCookiesModifiedAfterDate(const NetworkStorageSession& session, double date)
-{
-    UNUSED_PARAM(session);
-
-    NSHTTPCookieStorage *cookieStorage = [NSHTTPCookieStorage sharedHTTPCookieStorage];
-    if ([cookieStorage respondsToSelector:@selector(removeCookiesSinceDate:)])
-        [cookieStorage removeCookiesSinceDate:[NSDate dateWithTimeIntervalSince1970:date]];
-}
-
 }
 
 #endif // !USE(CFNETWORK)
+
+namespace WebCore {
+
+static NSHTTPCookieStorage *cookieStorage(const NetworkStorageSession& session)
+{
+    auto cookieStorage = session.cookieStorage();
+    if (!cookieStorage || [NSHTTPCookieStorage sharedHTTPCookieStorage]._cookieStorage == cookieStorage)
+        return [NSHTTPCookieStorage sharedHTTPCookieStorage];
+
+    return [[[NSHTTPCookieStorage alloc] _initWithCFHTTPCookieStorage:cookieStorage.get()] autorelease];
+}
+
+void deleteAllCookiesModifiedSince(const NetworkStorageSession& session, std::chrono::system_clock::time_point timePoint)
+{
+    if (![NSHTTPCookieStorage instancesRespondToSelector:@selector(removeCookiesSinceDate:)])
+        return;
+
+    NSTimeInterval timeInterval = std::chrono::duration_cast<std::chrono::duration<double>>(timePoint.time_since_epoch()).count();
+    NSDate *date = [NSDate dateWithTimeIntervalSince1970:timeInterval];
+
+    [cookieStorage(session) removeCookiesSinceDate:date];
+}
+
+}

@@ -179,9 +179,9 @@
       },
       "Andres Gomez" : {
          "emails" : [
+            "agomez@igalia.com",
             "tanty0@gmail.com",
-            "agomez@gnome.org",
-            "agomez@igalia.com"
+            "agomez@gnome.org"
          ],
          "expertise" : "WebKitGTK+",
          "nicks" : [
@@ -231,6 +231,14 @@
          ],
          "nicks" : [
             "caseq"
+         ]
+      },
+      "Andrzej Badowski" : {
+         "emails" : [
+            "a.badowski@samsung.com"
+         ],
+         "nicks" : [
+            "abadowski"
          ]
       },
       "Andy Wingo" : {
@@ -325,6 +333,11 @@
             "anilsson"
          ]
       },
+      "Babak Shafiei": {
+          "emails" : [
+            "bshafiei@apple.com"
+          ]
+      },
       "Balazs Kelemen" : {
          "emails" : [
             "kbalazs@webkit.org",
@@ -334,6 +347,14 @@
          "nicks" : [
             "kbalazs"
          ]
+      },
+      "Basile Clement" : {
+        "emails" : [
+            "basile_clement@apple.com"
+        ],
+        "nicks" : [
+            "elarnon"
+        ]
       },
       "Bear Travis" : {
          "emails" : [
@@ -415,16 +436,6 @@
             "brettx"
          ]
       },
-      "Brian Burg" : {
-         "emails" : [
-            "burg@cs.washington.edu"
-         ],
-         "expertise" : "Developer Tools, Web Inspector",
-         "nicks" : [
-            "bburg",
-            "brrian"
-         ]
-      },
       "Brian Holt" : {
          "emails" : [
             "brian.holt@samsung.com"
@@ -443,6 +454,16 @@
          "expertise" : "The QtWebKit Port, CSS, Layout and Rendering",
          "nicks" : [
             "abinader"
+         ]
+      },
+      "Byungseon Shin" : {
+         "emails" : [
+            "sun.shin@webkit.org",
+            "sun.shin@lge.com"
+         ],
+         "expertise" : "WTF, GPU Accelerated Rendering and Compositing",
+         "nicks" : [
+            "xingri"
          ]
       },
       "Byungwoo Lee" : {
@@ -567,6 +588,14 @@
             "collinjackson"
          ]
       },
+      "Conrad Shultz" : {
+         "emails" : [
+            "conrad_shultz@apple.com"
+         ],
+         "nicks" : [
+            "shultzc"
+         ]
+      },
       "Cosmin Truta" : {
          "emails" : [
             "ctruta@gmail.com",
@@ -592,6 +621,14 @@
             "danw"
          ]
       },
+      "Dana Burkart" : {
+         "emails" : [
+            "dburkart@apple.com"
+         ],
+         "nicks" : [
+            "dana"
+         ]
+      },
       "Dana Jansens" : {
          "emails" : [
             "danakj@chromium.org"
@@ -603,6 +640,7 @@
       "D\u00E1niel B\u00E1tyai" : {
          "emails" : [
             "dbatyai.u-szeged@partner.samsung.com",
+            "dbatyai@inf.u-szeged.hu",
             "Batyai.Daniel@stud.u-szeged.hu"
          ],
          "nicks" : [
@@ -680,6 +718,22 @@
             "dnomi"
          ]
       },
+      "Devin Rousso" : {
+         "emails" : [
+            "drousso@apple.com"
+         ],
+         "nicks" : [
+            "drousso"
+         ]
+      },
+      "Dhi Aurrahman" : {
+         "emails" : [
+            "diorahman@rockybars.com"
+         ],
+         "nicks" : [
+            "diorahman"
+         ]
+      },
       "Diego Gonzalez" : {
          "emails" : [
             "diegohcg@webkit.org",
@@ -688,6 +742,14 @@
          "expertise" : "The QtWebKit Port",
          "nicks" : [
             "diegohcg"
+         ]
+      },
+      "Diego Pino Garcia" : {
+         "emails" : [
+            "dpino@igalia.com"
+         ],
+         "nicks" : [
+            "dpino"
          ]
       },
       "Dinu Jacob" : {
@@ -832,6 +894,16 @@
          "expertise" : "The EFLWebKit Port, Touch and Gesture",
          "nicks" : [
             "eunmi"
+         ]
+      },
+      "Eva Balazsfalvi" : {
+         "emails" : [
+            "evab.u-szeged@partner.samsung.com",
+            "evab@inf.u-szeged.hu",
+            "balazsfalvi.eva@stud.u-szeged.hu"
+         ],
+         "nicks" : [
+            "ebalazsfalvi"
          ]
       },
       "Evan Martin" : {
@@ -1049,6 +1121,15 @@
             "hyowon"
          ]
       },
+      "Hyungwook Lee" : {
+         "emails" : [
+            "hyungwook.lee@navercorp.com"
+         ],
+         "expertise" : "Loader, Graphics, The EFLWebKit port, WebKit on Windows",
+         "nicks" : [
+            "hyungwooklee"
+         ]
+      },
       "Ian Vollick" : {
          "emails" : [
             "vollick@chromium.org"
@@ -1124,6 +1205,12 @@
          ],
          "nicks" : [
             "jaepark"
+         ]
+      },
+      "Jake Nielsen" : {
+         "emails" : [
+            "jake.nielsen.webkit@gmail.com",
+            "jacob_nielsen@gmail.com"
          ]
       },
       "Jakob Petsovits" : {
@@ -1356,6 +1443,16 @@
             "jonlee"
          ]
       },
+      "Jonathan Davis" : {
+         "emails" : [
+            "jond@apple.com",
+            "web-evangelist@apple.com"
+         ],
+         "expertise" : "webkit.org, Developer Tools, Web Inspector",
+         "nicks" : [
+            "JonDavis"
+         ]
+      },
       "Jonathan Dong" : {
          "emails" : [
             "jonathan.dong.webkit@gmail.com",
@@ -1578,7 +1675,9 @@
       },
       "Kristof Kosztyo" : {
          "emails" : [
-            "kkristof@inf.u-szeged.hu"
+            "kkristof@inf.u-szeged.hu",
+            "kkosztyo.u-szeged@partner.samsung.com",
+            "Kosztyo.Kristof@stud.u-szeged.hu"
          ],
          "nicks" : [
             "kkristof"
@@ -1607,6 +1706,15 @@
          "expertise" : "HTML Parsing, Networking, WebKit2",
          "nicks" : [
             "kseo"
+         ]
+      },
+      "KwangHyuk Kim" : {
+         "emails" : [
+            "hyuki.kim@samsung.com"
+         ],
+         "expertise" : "Webkit-EFL, Tiled BackingStore",
+         "nicks" : [
+            "hyuki"
          ]
       },
       "L\u00E1szl\u00F3 Lang\u00F3" : {
@@ -1772,6 +1880,11 @@
             "marywu"
          ]
       },
+      "Matt Baker" : {
+         "emails" : [
+            "mattbaker@apple.com"
+         ]
+      },
       "Matt Delaney" : {
          "emails" : [
             "mdelaney@apple.com"
@@ -1806,6 +1919,14 @@
       "Matt Perry" : {
          "emails" : [
             "mpcomplete@chromium.org"
+         ]
+      },
+      "Matt Rajca" : {
+         "emails" : [
+            "mrajca@apple.com"
+         ],
+         "nicks" : [
+            "mrajca"
          ]
       },
       "Matthew Mirman" : {
@@ -1853,6 +1974,16 @@
             "mibrunin"
          ]
       },
+      "Michael Catanzaro" : {
+         "emails" : [
+            "mcatanzaro@igalia.com",
+            "mcatanzaro@gnome.org"
+         ],
+         "expertise" : "The WebKitGTK+ Port, Epiphany, TLS",
+         "nicks" : [
+            "mcatanzaro"
+         ]
+      },
       "Michael Nordman" : {
          "emails" : [
             "michaeln@google.com"
@@ -1871,6 +2002,7 @@
       },
       "Micha\u0142 Paku\u0142a vel Rutka" : {
          "emails" : [
+            "mpakulavelrutka@gmail.com",
             "m.pakula@samsung.com"
          ],
          "nicks" : [
@@ -1966,14 +2098,6 @@
             "MPozdnyakov"
          ]
       },
-      "Myles C. Maxfield" : {
-         "emails" : [
-            "mmaxfield@apple.com"
-         ],
-         "nicks" : [
-            "litherum"
-         ]
-      },
       "Nadav Rotem" : {
          "emails" : [
             "nrotem@apple.com"
@@ -2017,6 +2141,16 @@
          ],
          "nicks" : [
             "diegoyam"
+         ]
+      },
+      "Nikita Vasilyev" : {
+         "emails" : [
+            "nvasilyev@apple.com"
+         ],
+         "expertise" : "Web Inspector",
+         "nicks" : [
+            "NVI",
+            "nvasilyev"
          ]
       },
       "Nima Ghanavatian" : {
@@ -2075,6 +2209,14 @@
             "podivilov"
          ]
       },
+      "Per Arne Vollan" : {
+         "emails" : [
+            "peavo@outlook.com"
+         ],
+         "nicks" : [
+            "peavo"
+         ]
+      },
       "Peter Beverloo" : {
          "emails" : [
             "peter@chromium.org",
@@ -2087,7 +2229,8 @@
       },
       "Peter Gal" : {
          "emails" : [
-            "galpeter@inf.u-szeged.hu"
+            "galpeter@inf.u-szeged.hu",
+            "pgal.u-szeged@partner.samsung.com"
          ],
          "expertise": "Python, CURL HTTP backend",
          "nicks" : [
@@ -2106,7 +2249,8 @@
       },
       "Peter Molnar" : {
          "emails" : [
-            "pmolnar.u-szeged@partner.samsung.com"
+            "pmolnar.u-szeged@partner.samsung.com",
+            "molnarp@inf.u-szeged.hu"
          ],
          "nicks" : [
             "molnarp"
@@ -2229,6 +2373,7 @@
       "Renata Hodovan" : {
          "emails" : [
             "rhodovan.u-szeged@partner.samsung.com",
+            "reni@inf.u-szeged.hu",
             "reni@webkit.org"
          ],
          "nicks" : [
@@ -2276,7 +2421,8 @@
       },
       "Roland Takacs" : {
          "emails" : [
-            "rtakacs@inf.u-szeged.hu"
+            "rtakacs@inf.u-szeged.hu",
+            "rtakacs.u-szeged@partner.samsung.com"
          ],
          "nicks" : [
             "rtakacs"
@@ -2294,12 +2440,22 @@
       },
       "Ryuan Choi" : {
          "emails" : [
-            "ryuan.choi@samsung.com",
-            "ryuan.choi@gmail.com"
+            "ryuan.choi@navercorp.com",
+            "ryuan.choi@gmail.com",
+            "ryuan.choi@webkit.org",
+            "ryuan.choi@samsung.com"
          ],
          "expertise" : "The EFLWebKit Port",
          "nicks" : [
             "ryuan"
+         ]
+      },
+      "Saam Barati" : {
+         "emails" : [
+            "saambarati1@gmail.com"
+         ],
+         "nicks" : [
+            "saamyjoon"
          ]
       },
       "Sadrul Habib Chowdhury" : {
@@ -2309,6 +2465,14 @@
          "nicks" : [
             "sadrul",
             "sadrulhc"
+         ]
+      },
+      "Said Abou-Hallawa" : {
+         "emails" : [
+            "sabouhallawa@apple.com"
+         ],
+         "nicks" : [
+            "sabouhallawa"
          ]
       },
       "Sami Ky\u00f6stil\u00e4" : {
@@ -2383,6 +2547,16 @@
          ],
          "nicks" : [
             "shinyak"
+         ]
+      },
+      "Shivakumar J M" : {
+         "emails" : [
+            "shiva.jm@samsung.com",
+            "shivakumarjm@gmail.com"
+         ],
+         "expertise" : "The EFLWebKit Port, DOM, HTML",
+         "nicks" : [
+            "shivajm"
          ]
       },
       "Siddharth Mathur" : {
@@ -2508,6 +2682,25 @@
          ],
          "nicks" : [
             "tsepez"
+         ]
+      },
+      "Tibor Meszaros" : {
+         "emails" : [
+            "tmeszaros.u-szeged@partner.samsung.com",
+            "mtibor@inf.u-szeged.hu",
+            "tmeszaros@inf.u-szeged.hu"
+         ],
+         "nicks" : [
+            "mtibor"
+         ]
+      },
+      "Tobias Reiss" : {
+         "emails" : [
+            "tobi+webkit@basecode.de"
+         ],
+         "expertise" : "Web Inspector",
+         "nicks" : [
+            "basecode"
          ]
       },
       "Tom Hudson" : {
@@ -2642,6 +2835,15 @@
             "seumas"
          ]
       },
+      "Wenson Hsieh" : {
+         "emails" : [
+            "wenson_hsieh@apple.com",
+            "whsieh@berkeley.edu"
+         ],
+         "nicks" : [
+            "whsieh"
+         ]
+      },
       "William Siegrist" : {
          "emails" : [
             "wsiegrist@apple.com"
@@ -2737,20 +2939,20 @@
             "yosin"
          ]
       },
+      "Youenn Fablet" : {
+         "emails" : [
+            "youennf@gmail.com",
+            "youenn.fablet@crf.canon.fr"
+         ],
+         "nicks" : [
+            "youenn"
+         ]
+      },
       "Yuqiang Xian" : {
          "emails" : [
             "yuqiang.xian@intel.com"
          ],
          "expertise" : "JavaScriptCore"
-      },
-      "Yusuke Suzuki" : {
-         "emails" : [
-            "utatane.tea@gmail.com"
-         ],
-         "expertise" : "JIT Compilers, CSS JIT, JavaScript/ECMAScript",
-         "nicks" : [
-            "yusukesuzuki"
-         ]
       },
       "Yuzo Fujishima" : {
          "emails" : [
@@ -2788,13 +2990,13 @@
             "azbest_hu"
          ]
       },
-      "\u017dan Dober\u0161ek" : {
+      "Zsolt Borbely" : {
          "emails" : [
-            "zandobersek@gmail.com",
-            "zdobersek@igalia.com"
+            "zsborbely.u-szeged@partner.samsung.com",
+            "borbezs@inf.u-szeged.hu"
          ],
          "nicks" : [
-            "zdobersek"
+            "bzsolt"
          ]
       }
    },
@@ -2807,6 +3009,14 @@
       "Aharon Lanin" : {
          "emails" : [
             "aharon@google.com"
+         ]
+      },
+      "Akos Kiss" : {
+         "emails" : [
+            "akiss@inf.u-szeged.hu"
+         ],
+         "nicks" : [
+            "akiss"
          ]
       },
       "Alan Cutter" : {
@@ -2946,15 +3156,6 @@
          ],
          "nicks" : [
             "epenner"
-         ]
-      },
-      "Eva Balazsfalvi" : {
-         "emails" : [
-            "evab.u-szeged@partner.samsung.com",
-            "balazsfalvi.eva@stud.u-szeged.hu"
-         ],
-         "nicks" : [
-            "ebalazsfalvi"
          ]
       },
       "Frédéric Wang" : {
@@ -3115,6 +3316,15 @@
             "juergen"
          ]
       },
+      "Katie Madonna" : {
+         "emails" : [
+            "madonnk@gmail.com"
+         ],
+         "expertise" : "Web Inspector",
+         "nicks" : [
+            "madonk"
+         ]
+      },
       "Koji Hara" : {
          "emails" : [
             "kojih@chromium.org"
@@ -3148,6 +3358,14 @@
          ],
          "nicks" : [
             "hmartin"
+         ]
+      },
+      "Matt Daiter" : {
+         "emails" : [
+            "mdaiter@apple.com"
+         ],
+         "nicks" : [
+            "mdaiter"
          ]
       },
       "Mihai Balan" : {
@@ -3200,12 +3418,29 @@
             "rhudea"
          ]
       },
+      "Rebecca Hauck" : {
+         "emails" : [
+             "rhauck@adobe.com"
+         ],
+         "nicks" : [
+             "rhauck"
+         ]
+      },
       "Ricky Mondello" : {
          "emails" : [
             "rmondello@apple.com"
          ],
          "nicks" : [
             "rmondello"
+         ]
+      },
+      "Sungmann Cho" : {
+         "emails" : [
+            "sungmann.cho@navercorp.com",
+            "sungmann.cho@gmail.com"
+         ],
+         "nicks" : [
+            "mann"
          ]
       },
       "Tab Atkins" : {
@@ -3224,15 +3459,6 @@
          ],
          "nicks" : [
             "tczene"
-         ]
-      },
-      "Tibor Meszaros" : {
-         "emails" : [
-            "tmeszaros.u-szeged@partner.samsung.com",
-            "mtibor@inf.u-szeged.hu"
-         ],
-         "nicks" : [
-            "mtibor"
          ]
       },
       "Tien-Ren Chen" : {
@@ -3284,15 +3510,6 @@
       "Zeev Lieber" : {
          "emails" : [
             "zlieber@chromium.org"
-         ]
-      },
-      "Zsolt Borbely" : {
-         "emails" : [
-            "zsborbely.u-szeged@partner.samsung.com",
-            "borbezs@inf.u-szeged.hu"
-         ],
-         "nicks" : [
-            "bzsolt"
          ]
       }
    },
@@ -3586,6 +3803,17 @@
             "bfulgham"
          ]
       },
+      "Brian Burg" : {
+         "emails" : [
+            "burg@cs.washington.edu",
+            "bburg@apple.com"
+         ],
+         "expertise" : "Developer Tools, Web Inspector",
+         "nicks" : [
+            "bburg",
+            "brrian"
+         ]
+      },
       "Brian Weinstein" : {
          "emails" : [
             "bweinstein@apple.com"
@@ -3641,6 +3869,20 @@
             "cblu"
          ]
       },
+      "Chris Dumez" : {
+         "emails" : [
+            "cdumez@apple.com",
+            "dchris@gmail.com",
+            "ch.dumez@samsung.com",
+            "ch.dumez@sta.samsung.com",
+            "ch.dumez@sisa.samsung.com",
+            "christophe.dumez@intel.com"
+         ],
+         "expertise" : "Performance, DOM, HTML, Bindings generator, EFLWebKit Port",
+         "nicks" : [
+            "cdumez"
+         ]
+      },
       "Chris Fleizach" : {
          "emails" : [
             "cfleizach@apple.com"
@@ -3674,22 +3916,10 @@
             "crogers"
          ]
       },
-      "Christophe Dumez" : {
-         "emails" : [
-            "dchris@gmail.com",
-            "ch.dumez@samsung.com",
-            "ch.dumez@sta.samsung.com",
-            "ch.dumez@sisa.samsung.com",
-            "christophe.dumez@intel.com"
-         ],
-         "expertise" : "The EFLWebKit Port, Bindings generator",
-         "nicks" : [
-            "cdumez"
-         ]
-      },
       "Csaba Osztrogon\u00e1c" : {
          "emails" : [
-            "ossy@webkit.org"
+            "ossy@webkit.org",
+            "oszi@inf.u-szeged.hu"
          ],
          "nicks" : [
             "ossy"
@@ -3935,9 +4165,9 @@
       "Gyuyoung Kim" : {
          "emails" : [
             "gyuyoung.kim@webkit.org",
-            "gyuyoung.kim@samsung.com"
+            "gyuyoung.kim@navercorp.com"
          ],
-         "expertise" : "The EFLWebKit Port, Navigator Content Utils",
+         "expertise" : "The EFLWebKit Port, Navigator Content Utils, CMake build system",
          "nicks" : [
             "gyuyoung"
          ]
@@ -4217,7 +4447,9 @@
       "Mario Sanchez Prada" : {
          "emails" : [
             "mario@webkit.org",
-            "mario.prada@samsung.com"
+            "mario@endlessm.com",
+            "mario.prada@samsung.com",
+            "msanchez@igalia.com"
          ],
          "expertise" : "WebKitGTK+, Accessibility, WebKit2, Epiphany/WebKit Contributor",
          "nicks" : [
@@ -4226,6 +4458,7 @@
       },
       "Mark Hahnenberg" : {
          "emails" : [
+            "mhahnenb@gmail.com",
             "mhahnenberg@apple.com"
          ],
          "expertise" : "JavaScript/ECMAScript",
@@ -4278,6 +4511,15 @@
          "expertise" : "CSS Regions, CSS Exclusions",
          "nicks" : [
             "mihnea"
+         ]
+      },
+      "Myles C. Maxfield" : {
+         "emails" : [
+            "mmaxfield@apple.com"
+         ],
+         "expertise" : "Text layout and rendering",
+         "nicks" : [
+            "litherum"
          ]
       },
       "Nate Chapin" : {
@@ -4602,6 +4844,15 @@
             "yurys"
          ]
       },
+      "Yusuke Suzuki" : {
+         "emails" : [
+            "utatane.tea@gmail.com"
+         ],
+         "expertise" : "JIT Compilers, CSS JIT, JavaScript/ECMAScript",
+         "nicks" : [
+            "yusukesuzuki"
+         ]
+      },
       "Yuta Kitamura" : {
          "emails" : [
             "yutak@chromium.org"
@@ -4651,6 +4902,16 @@
          "expertise" : "CSS Shapes, Line layout, Custom Allocation Framework, PerformanceTests, QtWebKit",
          "nicks" : [
             "zoltan"
+         ]
+      },
+      "\u017dan Dober\u0161ek" : {
+         "emails" : [
+            "zan@falconsigh.net",
+            "zdobersek@igalia.com",
+            "zandobersek@gmail.com"
+         ],
+         "nicks" : [
+            "zdobersek"
          ]
       }
    }

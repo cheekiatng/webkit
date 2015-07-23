@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013, 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2013-2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,6 +32,7 @@
 #include "DFGBranchDirection.h"
 #include "DFGGraph.h"
 #include "DFGNode.h"
+#include "DFGPhiChildren.h"
 
 namespace JSC { namespace DFG {
 
@@ -80,18 +81,15 @@ public:
     //
     // This is guaranteed to be equivalent to doing:
     //
-    // if (state.startExecuting(index)) {
-    //     state.executeEdges(index);
-    //     result = state.executeEffects(index);
-    // } else
-    //     result = true;
+    // state.startExecuting()
+    // state.executeEdges(index);
+    // result = state.executeEffects(index);
     bool execute(unsigned indexInBlock);
     bool execute(Node*);
     
-    // Indicate the start of execution of the node. It resets any state in the node
+    // Indicate the start of execution of a node. It resets any state in the node
     // that is progressively built up by executeEdges() and executeEffects().
-    bool startExecuting(Node*);
-    bool startExecuting(unsigned indexInBlock);
+    void startExecuting();
     
     // Abstractly execute the edges of the given node. This runs filterEdgeByUse()
     // on all edges of the node. You can skip this step, if you have already used
@@ -146,9 +144,10 @@ public:
     FiltrationResult filter(AbstractValue&, SpeculatedType);
     FiltrationResult filterByValue(AbstractValue&, FrozenValue);
     
+    PhiChildren* phiChildren() { return m_phiChildren.get(); }
+    
 private:
     void clobberWorld(const CodeOrigin&, unsigned indexInBlock);
-    void clobberCapturedVars(const CodeOrigin&);
     
     template<typename Functor>
     void forAllValues(unsigned indexInBlock, Functor&);
@@ -169,7 +168,7 @@ private:
     {
         AbstractValue& abstractValue = forNode(node);
         abstractValue.set(m_graph, value, m_state.structureClobberState());
-        abstractValue.fixTypeForRepresentation(node);
+        abstractValue.fixTypeForRepresentation(m_graph, node);
     }
     
     void setConstant(Node* node, FrozenValue value)
@@ -195,6 +194,7 @@ private:
     CodeBlock* m_codeBlock;
     Graph& m_graph;
     AbstractStateType& m_state;
+    std::unique_ptr<PhiChildren> m_phiChildren;
 };
 
 } } // namespace JSC::DFG

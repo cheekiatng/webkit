@@ -36,6 +36,7 @@ class JSScope;
 class DebuggerScope : public JSNonFinalObject {
 public:
     typedef JSNonFinalObject Base;
+    static const unsigned StructureFlags = Base::StructureFlags | OverridesGetOwnPropertySlot | OverridesGetPropertyNames;
 
     static DebuggerScope* create(VM& vm, JSScope* scope)
     {
@@ -54,39 +55,43 @@ public:
 
     DECLARE_EXPORT_INFO;
 
-    static Structure* createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype) 
+    static Structure* createStructure(VM& vm, JSGlobalObject* globalObject) 
     {
-        return Structure::create(vm, globalObject, prototype, TypeInfo(ObjectType, StructureFlags), info()); 
+        return Structure::create(vm, globalObject, jsNull(), TypeInfo(ObjectType, StructureFlags), info()); 
     }
 
-    class Iterator {
+    class iterator {
     public:
-        Iterator(DebuggerScope* node)
+        iterator(DebuggerScope* node)
             : m_node(node)
         {
         }
 
         DebuggerScope* get() { return m_node; }
-        Iterator& operator++() { m_node = m_node->next(); return *this; }
+        iterator& operator++() { m_node = m_node->next(); return *this; }
         // postfix ++ intentionally omitted
 
-        bool operator==(const Iterator& other) const { return m_node == other.m_node; }
-        bool operator!=(const Iterator& other) const { return m_node != other.m_node; }
+        bool operator==(const iterator& other) const { return m_node == other.m_node; }
+        bool operator!=(const iterator& other) const { return m_node != other.m_node; }
 
     private:
         DebuggerScope* m_node;
     };
 
-    Iterator begin();
-    Iterator end();
+    iterator begin();
+    iterator end();
     DebuggerScope* next();
 
     void invalidateChain();
     bool isValid() const { return !!m_scope; }
 
+    bool isCatchScope() const;
+    bool isFunctionNameScope() const;
     bool isWithScope() const;
     bool isGlobalScope() const;
-    bool isFunctionScope() const;
+    bool isFunctionOrEvalScope() const;
+
+    JSValue caughtValue() const;
 
 private:
     JS_EXPORT_PRIVATE DebuggerScope(VM&, JSScope*);
@@ -94,22 +99,20 @@ private:
 
     JSScope* jsScope() const { return m_scope.get(); }
 
-    static const unsigned StructureFlags = OverridesGetOwnPropertySlot | JSObject::StructureFlags;
-
     WriteBarrier<JSScope> m_scope;
     WriteBarrier<DebuggerScope> m_next;
 
     friend class DebuggerCallFrame;
 };
 
-inline DebuggerScope::Iterator DebuggerScope::begin()
+inline DebuggerScope::iterator DebuggerScope::begin()
 {
-    return Iterator(this); 
+    return iterator(this); 
 }
 
-inline DebuggerScope::Iterator DebuggerScope::end()
+inline DebuggerScope::iterator DebuggerScope::end()
 { 
-    return Iterator(0); 
+    return iterator(0); 
 }
 
 } // namespace JSC

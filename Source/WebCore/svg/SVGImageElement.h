@@ -35,21 +35,21 @@ class SVGImageElement final : public SVGGraphicsElement,
                               public SVGExternalResourcesRequired,
                               public SVGURIReference {
 public:
-    static PassRefPtr<SVGImageElement> create(const QualifiedName&, Document&);
+    static Ref<SVGImageElement> create(const QualifiedName&, Document&);
 
 private:
     SVGImageElement(const QualifiedName&, Document&);
     
     virtual bool isValid() const override { return SVGTests::isValid(); }
 
-    bool isSupportedAttribute(const QualifiedName&);
+    static bool isSupportedAttribute(const QualifiedName&);
     virtual void parseAttribute(const QualifiedName&, const AtomicString&) override;
     virtual void svgAttributeChanged(const QualifiedName&) override;
 
     virtual void didAttachRenderers() override;
     virtual InsertionNotificationRequest insertedInto(ContainerNode&) override;
 
-    virtual RenderPtr<RenderElement> createElementRenderer(PassRef<RenderStyle>) override;
+    virtual RenderPtr<RenderElement> createElementRenderer(Ref<RenderStyle>&&, const RenderTreePosition&) override;
 
     virtual const AtomicString& imageSourceURL() const override;
     virtual void addSubresourceAttributeURLs(ListHashSet<URL>&) const override;
@@ -65,14 +65,12 @@ private:
         DECLARE_ANIMATED_LENGTH(Width, width)
         DECLARE_ANIMATED_LENGTH(Height, height)
         DECLARE_ANIMATED_PRESERVEASPECTRATIO(PreserveAspectRatio, preserveAspectRatio)
-        DECLARE_ANIMATED_STRING(Href, href)
-        DECLARE_ANIMATED_BOOLEAN(ExternalResourcesRequired, externalResourcesRequired)
+        DECLARE_ANIMATED_STRING_OVERRIDE(Href, href)
+        DECLARE_ANIMATED_BOOLEAN_OVERRIDE(ExternalResourcesRequired, externalResourcesRequired)
     END_DECLARE_ANIMATED_PROPERTIES
 
     SVGImageLoader m_imageLoader;
 };
-
-NODE_TYPE_CASTS(SVGImageElement)
 
 } // namespace WebCore
 

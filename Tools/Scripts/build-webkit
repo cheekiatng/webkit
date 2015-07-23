@@ -59,8 +59,6 @@ my $prefixPath;
 my $makeArgs = "";
 my $cmakeArgs = "";
 my $onlyWebKitProject = 0;
-my $noWebKit1 = 0;
-my $noWebKit2 = 0;
 my $coverageSupport = 0;
 my $shouldRunStaticAnalyzer = 0;
 my $startTime = time();
@@ -90,17 +88,16 @@ Usage: $programName [options] [options to pass to build system]
   --debug                           Compile with Debug configuration
   --release                         Compile with Release configuration
   --sdk=<sdk>                       Use a specific Xcode SDK (iOS and Mac only)
-  --device                          Use the current iphoneos.internal SDK (iOS only)
-  --simulator                       Use the current iphonesimulator SDK (iOS only)
+  --device                          Use "iphoneos.internal" SDK if installed, else "iphoneos" SDK (iOS only)
+  --ios-simulator                   Use the current iphonesimulator SDK (iOS only)
   --coverage                        Enable code coverage support (Mac only)
   --analyze                         Enable static anaylsis (iOS and Mac only)
 
   --efl                             Build the EFL port
   --gtk                             Build the GTK+ port
   --wincairo                        Build using Cairo (rather than CoreGraphics) on Windows
-  --wince                           Build the WinCE port
 
-  --inspector-frontend              Copy changes to the inspector front-end files to the build directory
+  --inspector-frontend              Copy Web Inspector user interface resources to the build directory
 
   --prefix=<path>                   Set installation prefix to the given path (Gtk/Efl only)
   --makeargs=<arguments>            Optional Makefile flags
@@ -109,8 +106,6 @@ Usage: $programName [options] [options to pass to build system]
   --minimal                         No optional features, unless explicitly enabled
 
   --only-webkit                     Build only the WebKit project
-  --no-webkit1                      Omit WebKit1 code from the build (EFL/GTK only)
-  --no-webkit2                      Omit WebKit2 code from the build
 
 EOF
 
@@ -124,8 +119,6 @@ my %options = (
     'cmakeargs=s' => \$cmakeArgs,
     'minimal' => \$minimal,
     'only-webkit' => \$onlyWebKitProject,
-    'no-webkit1' => \$noWebKit1,
-    'no-webkit2' => \$noWebKit2,
     'coverage' => \$coverageSupport,
     'analyze' => \$shouldRunStaticAnalyzer,
 );
@@ -148,18 +141,6 @@ checkRequiredSystemConfig();
 setConfiguration();
 
 my $productDir = productDir();
-
-sub unlinkZeroFiles()
-{
-    my $file = $File::Find::name;
-    # Remove 0 byte sized files, except
-    # - directories (Because they are always 0 byte sized on Windows)
-    # - .d files used for dependency tracking
-    if (! -d $file && ! -s $file && $file !~ m/\.d$/) {
-        unlink $file;
-        print "0 byte sized file removed from build directory: $file\n";
-    }
-}
 
 # Check that all the project directories are there.
 my @projects = ("Source/JavaScriptCore", "Source/WebCore", "Source/WebKit");
@@ -195,18 +176,6 @@ if (isAppleMacWebKit()) {
         push @options, $option unless $option eq "";
     }
 
-    if (isIOSWebKit()) {
-        # FIXME: Remove the inclusion of both WebKit System Interface and WebKit Additions projects
-        # once the iOS build is stable.
-
-        # WebKitSystemInterface should always be built just before WebKit.
-        my $webKitIndex = first { $projects[$_] eq "Source/WebKit" } 0..$#projects;
-        splice(@projects, $webKitIndex, 0, "../Internal/WebKitSystemInterface");
-
-        # WebKitAdditions must come before WebCore
-        splice(@projects, 0, 0, "../Internal/WebKitAdditions");
-    }
-
     # ANGLE must come before WebCore
     splice @projects, 0, 0, "Source/ThirdParty/ANGLE";
 
@@ -226,7 +195,7 @@ if (isAppleMacWebKit()) {
     } else {
         my @copyLibrariesArgs = (
             "perl", "Tools/Scripts/copy-webkitlibraries-to-product-directory",
-            "--sdk", xcodeSDK(), "--llvm", "--prefer-system-llvm",
+            "--sdk", xcodeSDK(), "--wksi", "--llvm", "--prefer-system-llvm",
             "--llvm-subdirectory", "internal-llvm", productDir(),
             "--llvm-prefix", "/usr/local"
         );
@@ -253,21 +222,16 @@ if (isAppleMacWebKit()) {
 my $result = 0;
 
 if (isInspectorFrontend()) {
-    $result = copyInspectorFrontendFiles();
-    exit exitStatus($result) if exitStatus($result);
+    die "The --inspector-frontend option is not supported for CMake-based builds." if isCMakeBuild();
     @projects = ("Source/WebInspectorUI");
 }
 
 if (isCMakeBuild()) {
-    $cmakeArgs = "-DENABLE_WEBKIT=OFF "  . $cmakeArgs if $noWebKit1;
-    $cmakeArgs = "-DENABLE_WEBKIT2=OFF " . $cmakeArgs if $noWebKit2;
 
     # By default we build using all of the available CPUs.
-    if (!isWinCE()) {
-        $makeArgs .= ($makeArgs ? " " : "") . "-j" . numberOfCPUs() if $makeArgs !~ /-j\s*\d+/;
-        my $maxCPULoad = maxCPULoad() if $makeArgs !~ /-l\s*\d+\.?\d*/;
-        $makeArgs .= " -l" . maxCPULoad() if defined $maxCPULoad;
-    }
+    $makeArgs .= ($makeArgs ? " " : "") . "-j" . numberOfCPUs() if $makeArgs !~ /-j\s*\d+/;
+    my $maxCPULoad = maxCPULoad() if $makeArgs !~ /-l\s*\d+\.?\d*/;
+    $makeArgs .= " -l" . maxCPULoad() if defined $maxCPULoad;
 
     # We remove CMakeCache to avoid the bots to reuse cached flags when
     # we enable new features. This forces a reconfiguration.
@@ -294,16 +258,20 @@ for my $dir (@projects) {
         }
         $result = buildXCodeProject($projectPath, $clean, @local_options, @ARGV);
     } elsif (isAppleWinWebKit() || isWinCairo()) {
-        if ($project eq "WebKit") {
+        if (isWinCairo()) {
+            chdirWebKit();
+            generateBuildSystemFromCMakeProject("WinCairo");
+            $result = buildVisualStudioProject("WebKitBuild/" . configuration() . "/WebKit.sln", $clean);
+        } else {
             my $webkitSolutionPath = "WebKit.vcxproj/WebKit.sln";
             $result = buildVisualStudioProject($webkitSolutionPath, $clean);
+        }
+        if (usingVisualStudioExpress()) {
+            # Visual Studio Express is so lame it can't stdout build failures.
+            # So we find its logs and dump them to the console ourselves.
             my $vsConfiguration = configuration();
-            if (usingVisualStudioExpress()) {
-                # Visual Studio Express is so lame it can't stdout build failures.
-                # So we find its logs and dump them to the console ourselves.
-                open(my $OUTPUT_HANDLE, '<', "$baseProductDir/$vsConfiguration/BuildOutput.htm") or die "Could not open build log file at $baseProductDir/$vsConfiguration/BuildOutput.htm";
-                print while (<$OUTPUT_HANDLE>);
-            }
+            open(my $OUTPUT_HANDLE, '<', "$baseProductDir/$vsConfiguration/BuildOutput.htm") or die "Could not open build log file at $baseProductDir/$vsConfiguration/BuildOutput.htm";
+            print while (<$OUTPUT_HANDLE>);
         }
     }
     # Various build* calls above may change the CWD.

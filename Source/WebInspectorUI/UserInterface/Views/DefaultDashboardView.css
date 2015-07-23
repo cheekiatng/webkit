@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013, 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2013-2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,59 +23,53 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-body.web .toolbar.collapsed .dashboard.default > .time,
-body.web .toolbar.collapsed .dashboard.default > .resourcesSize,
-body.web .toolbar.collapsed .dashboard.default > .logs {
+body.web .toolbar.collapsed .dashboard.default > :matches(.resourcesSize, .time, .logs) {
     display: none;
 }
 
-body.javascript .toolbar .dashboard.default > .time,
-body.javascript .toolbar .dashboard.default > .resourcesSize,
-body.javascript .toolbar .dashboard.default > .resourcesCount {
+body.javascript .toolbar .dashboard.default > :matches(.resourcesCount, .resourcesSize, .time) {
     display: none;
 }
 
 .toolbar .dashboard.default {
-    display: -webkit-flex;
-    -webkit-flex-flow: row nowrap;
-    -webkit-justify-content: space-between;
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: center;
 }
 
 .toolbar .dashboard.default > .item {
-    font-family: Helvetica, sans-serif;
-    font-weight: bold;
-    font-size: 11px;
-    line-height: 12px;
+    line-height: 13px;
 
     padding: 0 5px;
 
-    display: -webkit-flex;
+    display: flex;
 
     min-width: 45px;
 
-    -webkit-justify-content: center;
-    -webkit-align-items: center;
+    justify-content: center;
+    align-items: center;
 
     border-radius: 4px;
     border: 1px solid transparent;
+
+    font-family: -apple-system-monospaced-numbers, sans-serif;
 }
 
-.toolbar .dashboard.default > .time,
-.toolbar .dashboard.default > .resourcesSize {
+.toolbar .dashboard.default > :matches(.time, .resourcesSize) {
     min-width: 70px;
 }
 
 .toolbar .dashboard.default > .item.enabled:hover {
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid hsla(0, 0%, 0%, 0.1);
 }
 
 .toolbar .dashboard.default > .item.enabled:active {
-    border: 1px solid rgba(0, 0, 0, 0.2);
+    border: 1px solid hsla(0, 0%, 0%, 0.2);
 }
 
 .toolbar .dashboard.default > .item > * {
-    display: -webkit-flex;
-    -webkit-align-items: center;
+    display: flex;
+    align-items: center;
 }
 
 .toolbar .dashboard.default > .item > img {
@@ -94,19 +88,19 @@ body.javascript .toolbar .dashboard.default > .resourcesCount {
 }
 
 .toolbar .dashboard.default > .item > div {
-    display: -webkit-flex;
-    -webkit-flex: 1;
+    display: flex;
+    flex: 1;
 
-    color: rgba(0, 0, 0, 0.2);
+    color: hsla(0, 0%, 0%, 0.2);
     padding-left: 2px;
 }
 
 .toolbar .dashboard.default > .item.enabled > div {
-    color: rgba(0, 0, 0, 0.7);
+    color: hsla(0, 0%, 0%, 0.7);
 }
 
 .toolbar .dashboard.default > .item.enabled:hover > div {
-    color: rgba(0, 0, 0, 0.85);
+    color: hsla(0, 0%, 0%, 0.85);
 }
 
 .toolbar .dashboard.default > .resourcesCount > img {
@@ -139,11 +133,11 @@ body.javascript .toolbar .dashboard.default > .resourcesCount {
 }
 
 .toolbar .dashboard.default > .errors.enabled > div {
-    color: rgba(201, 55, 57, 0.9);
+    color: hsla(359, 57%, 50%, 0.9);
 }
 
 .toolbar .dashboard.default > .errors.enabled:hover > div {
-    color: rgb(201, 55, 57);
+    color: hsl(359, 57%, 50%);
 }
 
 .toolbar .dashboard.default > .issues > img {
@@ -160,11 +154,11 @@ body.javascript .toolbar .dashboard.default > .resourcesCount {
 }
 
 .toolbar .dashboard.default > .issues.enabled > div {
-    color: rgba(224, 164, 4, 0.9);
+    color: hsla(43, 96%, 44%, 0.9);
 }
 
 .toolbar .dashboard.default > .issues.enabled:hover > div {
-    color: rgb(224, 164, 4);
+    color: hsl(43, 96%, 44%);
 }
 
 /* Styles for the pulsing animated state of console items */
@@ -182,16 +176,12 @@ body.javascript .toolbar .dashboard.default > .resourcesCount {
 /* Styles for the extra short style, one row with quite a small y-margin */
 
 .toolbar.label-only .dashboard.default > .item,
-.toolbar.small-size.icon-only .dashboard.default > .item,
-.toolbar.small-size.icon-and-label-vertical .dashboard.default > .item,
-.toolbar.small-size.icon-and-label-horizontal .dashboard.default > .item {
+.toolbar.small-size:matches(.icon-only, .icon-and-label-vertical, .icon-and-label-horizontal) .dashboard.default > .item {
     margin: 1px 0;
 }
 
 /* Styles for the fairly short style, one row with quite a bit of y-margin */
 
-.toolbar.normal-size.icon-only .dashboard.default > .item,
-.toolbar.normal-size.icon-and-label-vertical .dashboard.default > .item,
-.toolbar.normal-size.icon-and-label-horizontal .dashboard.default > .item {
+.toolbar.normal-size:matches(.icon-only, .icon-and-label-vertical, .icon-and-label-horizontal) .dashboard.default > .item {
     margin: 4px 0;
 }

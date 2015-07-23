@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013, 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2013-2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -132,34 +132,20 @@ private:
                 }
             }
             break;
-            
-        case GetArrayLength:
-            if (JSArrayBufferView* view = m_graph.tryGetFoldableViewForChild1(m_node))
-                foldTypedArrayPropertyToConstant(view, jsNumber(view->length()));
-            break;
-            
-        case GetTypedArrayByteOffset:
-            if (JSArrayBufferView* view = m_graph.tryGetFoldableView(m_node->child1().node()))
-                foldTypedArrayPropertyToConstant(view, jsNumber(view->byteOffset()));
-            break;
-            
-        case GetIndexedPropertyStorage:
-            if (JSArrayBufferView* view = m_graph.tryGetFoldableViewForChild1(m_node)) {
-                if (view->mode() != FastTypedArray) {
-                    prepareToFoldTypedArray(view);
-                    m_node->convertToConstantStoragePointer(view->vector());
+
+        case ArithPow:
+            if (m_node->child2()->isNumberConstant()) {
+                double yOperandValue = m_node->child2()->asNumber();
+                if (yOperandValue == 1) {
+                    convertToIdentityOverChild1();
+                } else if (yOperandValue == 0.5) {
+                    m_insertionSet.insertCheck(m_nodeIndex, m_node);
+                    m_node->convertToArithSqrt();
                     m_changed = true;
-                    break;
-                } else {
-                    // FIXME: It would be awesome to be able to fold the property storage for
-                    // these GC-allocated typed arrays. For now it doesn't matter because the
-                    // most common use-cases for constant typed arrays involve large arrays with
-                    // aliased buffer views.
-                    // https://bugs.webkit.org/show_bug.cgi?id=125425
                 }
             }
             break;
-            
+
         case ValueRep:
         case Int52Rep:
         case DoubleRep: {
@@ -180,8 +166,7 @@ private:
             for (Node* node = m_node->child1().node(); ; node = node->child1().node()) {
                 if (canonicalResultRepresentation(node->result()) ==
                     canonicalResultRepresentation(m_node->result())) {
-                    m_insertionSet.insertNode(
-                        m_nodeIndex, SpecNone, Phantom, m_node->origin, m_node->child1());
+                    m_insertionSet.insertCheck(m_nodeIndex, m_node);
                     if (hadInt32Check) {
                         // FIXME: Consider adding Int52RepInt32Use or even DoubleRepInt32Use,
                         // which would be super weird. The latter would only arise in some
@@ -189,9 +174,8 @@ private:
                         if (canonicalResultRepresentation(node->result()) != NodeResultJS)
                             break;
                         
-                        m_insertionSet.insertNode(
-                            m_nodeIndex, SpecNone, Phantom, m_node->origin,
-                            Edge(node, Int32Use));
+                        m_insertionSet.insertCheck(
+                            m_nodeIndex, m_node->origin, Edge(node, Int32Use));
                     }
                     m_node->child1() = node->defaultEdge();
                     m_node->convertToIdentity();
@@ -224,65 +208,23 @@ private:
             Node* setLocal = nullptr;
             VirtualRegister local = m_node->local();
             
-            if (m_node->variableAccessData()->isCaptured()) {
-                for (unsigned i = m_nodeIndex; i--;) {
-                    Node* node = m_block->at(i);
-                    bool done = false;
-                    switch (node->op()) {
-                    case GetLocal:
-                    case Flush:
-                        if (node->local() == local)
-                            done = true;
-                        break;
-                
-                    case GetLocalUnlinked:
-                        if (node->unlinkedLocal() == local)
-                            done = true;
-                        break;
-                
-                    case SetLocal: {
-                        if (node->local() != local)
-                            break;
-                        setLocal = node;
-                        done = true;
-                        break;
-                    }
-                
-                    case Phantom:
-                    case Check:
-                    case HardPhantom:
-                    case MovHint:
-                    case JSConstant:
-                    case DoubleConstant:
-                    case Int52Constant:
-                        break;
-                
-                    default:
-                        done = true;
-                        break;
-                    }
-                    if (done)
-                        break;
+            for (unsigned i = m_nodeIndex; i--;) {
+                Node* node = m_block->at(i);
+                if (node->op() == SetLocal && node->local() == local) {
+                    setLocal = node;
+                    break;
                 }
-            } else {
-                for (unsigned i = m_nodeIndex; i--;) {
-                    Node* node = m_block->at(i);
-                    if (node->op() == SetLocal && node->local() == local) {
-                        setLocal = node;
-                        break;
-                    }
-                    if (accessesOverlap(m_graph, node, AbstractHeap(Variables, local)))
-                        break;
-                }
+                if (accessesOverlap(m_graph, node, AbstractHeap(Stack, local)))
+                    break;
             }
             
             if (!setLocal)
                 break;
             
-            m_node->convertToPhantom();
-            Node* dataNode = setLocal->child1().node();
-            DFG_ASSERT(m_graph, m_node, dataNode->hasResult());
-            m_node->child1() = dataNode->defaultEdge();
+            // The Flush should become a PhantomLocal at this point. This means that we want the
+            // local's value during OSR, but we don't care if the value is stored to the stack. CPS
+            // rethreading can canonicalize PhantomLocals for us.
+            m_node->convertFlushToPhantomLocal();
             m_graph.dethread();
             m_changed = true;
             break;
@@ -295,8 +237,7 @@ private:
             
     void convertToIdentityOverChild(unsigned childIndex)
     {
-        m_insertionSet.insertNode(
-            m_nodeIndex, SpecNone, Phantom, m_node->origin, m_node->children);
+        m_insertionSet.insertCheck(m_nodeIndex, m_node);
         m_node->children.removeEdge(childIndex ^ 1);
         m_node->convertToIdentity();
         m_changed = true;
@@ -310,22 +251,6 @@ private:
     void convertToIdentityOverChild2()
     {
         convertToIdentityOverChild(1);
-    }
-    
-    void foldTypedArrayPropertyToConstant(JSArrayBufferView* view, JSValue constant)
-    {
-        prepareToFoldTypedArray(view);
-        m_graph.convertToConstant(m_node, constant);
-        m_changed = true;
-    }
-    
-    void prepareToFoldTypedArray(JSArrayBufferView* view)
-    {
-        m_insertionSet.insertNode(
-            m_nodeIndex, SpecNone, TypedArrayWatchpoint, m_node->origin,
-            OpInfo(view));
-        m_insertionSet.insertNode(
-            m_nodeIndex, SpecNone, Phantom, m_node->origin, m_node->children);
     }
     
     void handleCommutativity()

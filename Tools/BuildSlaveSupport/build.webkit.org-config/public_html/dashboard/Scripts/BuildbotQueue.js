@@ -33,18 +33,27 @@ BuildbotQueue = function(buildbot, id, info)
     this.buildbot = buildbot;
     this.id = id;
 
-    this.branch = info.branch || null;
-    this.platform = info.platform.name || "unknown";
-    this.debug = info.debug || false;
-    this.builder = info.builder || false;
-    this.tester = info.tester || false;
-    this.architecture = info.architecture || null;
-    this.testCategory = info.testCategory || null;
+    // FIXME: Some of these are presentation only, and should be handled above BuildbotQueue level.
+    this.branch = info.branch;
+    this.platform = info.platform.name;
+    this.debug = info.debug;
+    this.builder = info.builder;
+    this.tester = info.tester;
+    this.performance = info.performance;
+    this.staticAnalyzer = info.staticAnalyzer;
+    this.leaks = info.leaks;
+    this.architecture = info.architecture;
+    this.testCategory = info.testCategory;
+    this.heading = info.heading;
+    this.crashesOnly = info.crashesOnly;
 
     this.iterations = [];
     this._knownIterations = {};
 
-    this.update();
+    // Some queues process changes out of order, but we need to display results for the latest commit,
+    // not the latest build. BuildbotQueue ensures that at least one productive iteration
+    // that was run in order gets loaded (if the queue had any productive iterations, of course).
+    this._hasLoadedIterationForInOrderResult = false;
 };
 
 BaseObject.addConstructorFunctions(BuildbotQueue);
@@ -63,6 +72,12 @@ BuildbotQueue.prototype = {
     get baseURL()
     {
         return this.buildbot.baseURL + "json/builders/" + encodeURIComponent(this.id);
+    },
+
+    get allIterationsURL()
+    {
+        // Getting too many builds results in a timeout error, 10000 is OK.
+        return this.buildbot.baseURL + "json/builders/" + encodeURIComponent(this.id) + "/builds/_all/?max=10000";
     },
 
     get overviewURL()
@@ -118,13 +133,68 @@ BuildbotQueue.prototype = {
         return null;
     },
 
-    update: function()
+    _load: function(url, callback)
     {
         if (this.buildbot.needsAuthentication && this.buildbot.authenticationStatus === Buildbot.AuthenticationStatus.InvalidCredentials)
             return;
 
-        JSON.load(this.baseURL, function(data) {
-            this.buildbot.isAuthenticated = true;
+        JSON.load(
+            url,
+            function(data) {
+                this.buildbot.isAuthenticated = true;
+                callback(data);
+            }.bind(this),
+            function(data) {
+                if (data.errorType !== JSON.LoadError || data.errorHTTPCode !== 401)
+                    return;
+                if (this.buildbot.isAuthenticated) {
+                    // FIXME (128006): Safari/WebKit should coalesce authentication requests with the same origin and authentication realm.
+                    // In absence of the fix, Safari presents additional authentication dialogs regardless of whether an earlier authentication
+                    // dialog was dismissed. As a way to ameliorate the user experience where a person authenticated successfully using an
+                    // earlier authentication dialog and cancelled the authentication dialog associated with the load for this queue, we call
+                    // ourself so that we can schedule another load, which should complete successfully now that we have credentials.
+                    this._load(url, callback);
+                    return;
+                }
+
+                this.buildbot.isAuthenticated = false;
+                this.dispatchEventToListeners(BuildbotQueue.Event.UnauthorizedAccess, { });
+            }.bind(this),
+            {withCredentials: this.buildbot.needsAuthentication}
+        );
+    },
+
+    loadMoreHistoricalIterations: function()
+    {
+        var indexOfFirstNewlyLoadingIteration;
+        for (var i = 0; i < this.iterations.length; ++i) {
+            if (indexOfFirstNewlyLoadingIteration !== undefined && i >= indexOfFirstNewlyLoadingIteration + BuildbotQueue.RecentIterationsToLoad)
+                return;
+            var iteration = this.iterations[i];
+            if (!iteration.finished)
+                continue;
+            if (iteration.isLoading) {
+                // Caller lacks visibility into loading, so it is likely to call this function too often.
+                // Give it a chance to analyze everything that's been already requested first, and then it can decide whether it needs more.
+                return;
+            }
+            if (iteration.loaded && indexOfFirstNewlyLoadingIteration !== undefined) {
+                // There was a gap between loaded iterations, which we've closed now.
+                return;
+            }
+            if (!iteration.loaded) {
+                if (indexOfFirstNewlyLoadingIteration === undefined)
+                    indexOfFirstNewlyLoadingIteration = i;
+                if (!this._hasLoadedIterationForInOrderResult)
+                    iteration.addEventListener(BuildbotIteration.Event.Updated, this._checkForInOrderResult.bind(this));
+                iteration.update();
+            }
+        }
+    },
+
+    update: function()
+    {
+        this._load(this.baseURL, function(data) {
             if (!(data.cachedBuilds instanceof Array))
                 return;
 
@@ -145,8 +215,11 @@ BuildbotQueue.prototype = {
                     this._knownIterations[iteration.id] = iteration;
                 }
 
-                if (i >= loadingStop && (!iteration.finished || !iteration.loaded))
+                if (i >= loadingStop && (!iteration.finished || !iteration.loaded)) {
+                    if (!this._hasLoadedIterationForInOrderResult)
+                        iteration.addEventListener(BuildbotIteration.Event.Updated, this._checkForInOrderResult.bind(this));
                     iteration.update();
+                }
             }
 
             if (!newIterations.length)
@@ -155,39 +228,77 @@ BuildbotQueue.prototype = {
             this.sortIterations();
 
             this.dispatchEventToListeners(BuildbotQueue.Event.IterationsAdded, {addedIterations: newIterations});
-        }.bind(this),
-        function(data) {
-            if (this.buildbot.isAuthenticated) {
-                // FIXME (128006): Safari/WebKit should coallesce authentication requests with the same origin and authentication realm.
-                // In absence of the fix, Safari presents additional authentication dialogs regardless of whether an earlier authentication
-                // dialog was dismissed. As a way to ameliorate the user experience where a person authenticated successfully using an
-                // earlier authentication dialog and cancelled the authentication dialog associated with the load for this queue, we call
-                // ourself so that we can schedule another load, which should complete successfully now that we have credentials.
-                this.update();
+        }.bind(this));
+    },
+
+    _checkForInOrderResult: function(event)
+    {
+        if (this._hasLoadedIterationForInOrderResult)
+            return;
+        var iterationsInOriginalOrder = this.iterations.concat().sort(function(a, b) { return b.id - a.id; });
+        for (var i = 0; i < iterationsInOriginalOrder.length - 1; ++i) {
+            var i1 = iterationsInOriginalOrder[i];
+            var i2 = iterationsInOriginalOrder[i + 1];
+            if (i1.productive && i2.loaded && this.compareIterationsByRevisions(i1, i2) < 0) {
+                this._hasLoadedIterationForInOrderResult = true;
                 return;
             }
-            if (data.errorType === JSON.LoadError && data.errorHTTPCode === 401) {
-                this.buildbot.isAuthenticated = false;
-                this.dispatchEventToListeners(BuildbotQueue.Event.UnauthorizedAccess, { });
+        }
+        this.loadMoreHistoricalIterations();
+    },
+
+    loadAll: function(callback)
+    {
+        // FIXME: Don't load everything at once, do it incrementally as requested.
+        this._load(this.allIterationsURL, function(data) {
+            for (var idString in data) {
+                console.assert(typeof idString === "string");
+                var iteration = new BuildbotIteration(this, data[idString]);
+                this.iterations.push(iteration);
+                this._knownIterations[iteration.id] = iteration;
             }
-        }.bind(this), {withCredentials: this.buildbot.needsAuthentication});
+
+            this.sortIterations();
+
+            this._hasLoadedIterationForInOrderResult = true;
+
+            callback(this);
+        }.bind(this));
+    },
+
+    compareIterations: function(a, b)
+    {
+        var result = b.openSourceRevision - a.openSourceRevision;
+        if (result)
+            return result;
+
+        result = b.internalRevision - a.internalRevision;
+        if (result)
+            return result;
+
+        // A loaded iteration may not have revision numbers if it failed early, before svn steps finished.
+        result = b.loaded - a.loaded;
+        if (result)
+            return result;
+
+        return b.id - a.id;
+    },
+
+    compareIterationsByRevisions: function(a, b)
+    {
+        var result = b.openSourceRevision - a.openSourceRevision;
+        if (result)
+            return result;
+
+        result = b.internalRevision - a.internalRevision;
+        if (result)
+            return result;
+
+        return 0;
     },
 
     sortIterations: function()
     {
-        function compareIterations(a, b)
-        {
-            var result = b.openSourceRevision - a.openSourceRevision;
-            if (result)
-                return result;
-
-            result = b.internalRevision - a.internalRevision;
-            if (result)
-                return result;
-
-            return b.id - a.id;
-        }
-
-        this.iterations.sort(compareIterations);
+        this.iterations.sort(this.compareIterations);
     }
 };

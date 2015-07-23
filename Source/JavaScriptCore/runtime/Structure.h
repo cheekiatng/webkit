@@ -48,8 +48,12 @@
 #include <wtf/PassRefPtr.h>
 #include <wtf/PrintStream.h>
 #include <wtf/RefCounted.h>
-#include <wtf/text/StringImpl.h>
 
+namespace WTF {
+
+class UniquedStringImpl;
+
+} // namespace WTF
 
 namespace JSC {
 
@@ -73,11 +77,57 @@ static const unsigned initialOutOfLineCapacity = 4;
 // initial allocation.
 static const unsigned outOfLineGrowthFactor = 2;
 
-class Structure : public JSCell {
+struct PropertyMapEntry {
+    UniquedStringImpl* key;
+    PropertyOffset offset;
+    unsigned attributes;
+
+    PropertyMapEntry()
+        : key(nullptr)
+        , offset(invalidOffset)
+        , attributes(0)
+    {
+    }
+    
+    PropertyMapEntry(UniquedStringImpl* key, PropertyOffset offset, unsigned attributes)
+        : key(key)
+        , offset(offset)
+        , attributes(attributes)
+    {
+    }
+};
+
+class StructureFireDetail : public FireDetail {
+public:
+    StructureFireDetail(const Structure* structure)
+        : m_structure(structure)
+    {
+    }
+    
+    virtual void dump(PrintStream& out) const override;
+
+private:
+    const Structure* m_structure;
+};
+
+class DeferredStructureTransitionWatchpointFire {
+    WTF_MAKE_NONCOPYABLE(DeferredStructureTransitionWatchpointFire);
+public:
+    JS_EXPORT_PRIVATE DeferredStructureTransitionWatchpointFire();
+    JS_EXPORT_PRIVATE ~DeferredStructureTransitionWatchpointFire();
+    
+    void add(const Structure*);
+    
+private:
+    const Structure* m_structure;
+};
+
+class Structure final : public JSCell {
 public:
     friend class StructureTransitionTable;
 
     typedef JSCell Base;
+    static const unsigned StructureFlags = Base::StructureFlags | StructureIsImmortal;
     
     static Structure* create(VM&, JSGlobalObject*, JSValue prototype, const TypeInfo&, const ClassInfo*, IndexingType = NonArray, unsigned inlineCapacity = 0);
 
@@ -112,12 +162,12 @@ public:
 
     static void dumpStatistics();
 
-    JS_EXPORT_PRIVATE static Structure* addPropertyTransition(VM&, Structure*, PropertyName, unsigned attributes, PropertyOffset&, PutPropertySlot::Context = PutPropertySlot::UnknownContext);
-    static Structure* addPropertyTransitionToExistingStructureConcurrently(Structure*, StringImpl* uid, unsigned attributes, PropertyOffset&);
+    JS_EXPORT_PRIVATE static Structure* addPropertyTransition(VM&, Structure*, PropertyName, unsigned attributes, PropertyOffset&, PutPropertySlot::Context = PutPropertySlot::UnknownContext, DeferredStructureTransitionWatchpointFire* = nullptr);
+    static Structure* addPropertyTransitionToExistingStructureConcurrently(Structure*, UniquedStringImpl* uid, unsigned attributes, PropertyOffset&);
     JS_EXPORT_PRIVATE static Structure* addPropertyTransitionToExistingStructure(Structure*, PropertyName, unsigned attributes, PropertyOffset&);
     static Structure* removePropertyTransition(VM&, Structure*, PropertyName, PropertyOffset&);
     JS_EXPORT_PRIVATE static Structure* changePrototypeTransition(VM&, Structure*, JSValue prototype);
-    static Structure* attributeChangeTransition(VM&, Structure*, PropertyName, unsigned attributes);
+    JS_EXPORT_PRIVATE static Structure* attributeChangeTransition(VM&, Structure*, PropertyName, unsigned attributes);
     JS_EXPORT_PRIVATE static Structure* toCacheableDictionaryTransition(VM&, Structure*);
     static Structure* toUncacheableDictionaryTransition(VM&, Structure*);
     JS_EXPORT_PRIVATE static Structure* sealTransition(VM&, Structure*);
@@ -134,7 +184,6 @@ public:
     JS_EXPORT_PRIVATE Structure* flattenDictionaryStructure(VM&, JSObject*);
 
     static const bool needsDestruction = true;
-    static const bool hasImmortalStructure = true;
     static void destroy(JSCell*);
 
     // These should be used with caution.  
@@ -260,11 +309,19 @@ public:
     bool masqueradesAsUndefined(JSGlobalObject* lexicalGlobalObject);
 
     PropertyOffset get(VM&, PropertyName);
-    PropertyOffset get(VM&, const WTF::String& name);
     PropertyOffset get(VM&, PropertyName, unsigned& attributes);
 
-    PropertyOffset getConcurrently(VM&, StringImpl* uid);
-    PropertyOffset getConcurrently(VM&, StringImpl* uid, unsigned& attributes);
+    // This is a somewhat internalish method. It will call your functor while possibly holding the
+    // Structure's lock. There is no guarantee whether the lock is held or not in any particular
+    // call. So, you have to assume the worst. Also, the functor returns true if it wishes for you
+    // to continue or false if it's done.
+    template<typename Functor>
+    void forEachPropertyConcurrently(const Functor&);
+    
+    PropertyOffset getConcurrently(UniquedStringImpl* uid);
+    PropertyOffset getConcurrently(UniquedStringImpl* uid, unsigned& attributes);
+    
+    Vector<PropertyMapEntry> getPropertiesConcurrently();
     
     void setHasGetterSetterPropertiesWithProtoCheck(bool is__proto__)
     {
@@ -288,8 +345,11 @@ public:
         return !JSC::isValidOffset(m_offset);
     }
 
-    void setEnumerationCache(VM&, JSPropertyNameIterator* enumerationCache); // Defined in JSPropertyNameIterator.h.
-    JSPropertyNameIterator* enumerationCache(); // Defined in JSPropertyNameIterator.h.
+    void setCachedPropertyNameEnumerator(VM&, JSPropertyNameEnumerator*);
+    JSPropertyNameEnumerator* cachedPropertyNameEnumerator() const;
+    bool canCachePropertyNameEnumerator() const;
+    bool canAccessPropertiesQuickly() const;
+
     void getPropertyNamesFromStructure(VM&, PropertyNameArray&, EnumerationMode);
 
     JSString* objectToStringValue()
@@ -353,6 +413,13 @@ public:
         // watching it. We should come up with a comprehensive story for not watching things that
         // aren't profitable to watch.
         // https://bugs.webkit.org/show_bug.cgi?id=133625
+        
+        // - We don't watch Structures that either decided not to be watched, or whose predecessors
+        //   decided not to be watched. This happens either when a transition is fired while being
+        //   watched, or if a dictionary transition occurs.
+        if (transitionWatchpointIsLikelyToBeFired())
+            return false;
+        
         return true;
     }
     
@@ -367,7 +434,7 @@ public:
         m_transitionWatchpointSet.add(watchpoint);
     }
     
-    void didTransitionFromThisStructure() const;
+    void didTransitionFromThisStructure(DeferredStructureTransitionWatchpointFire* = nullptr) const;
     
     InlineWatchpointSet& transitionWatchpointSet() const
     {
@@ -397,7 +464,11 @@ public:
             structure->startWatchingInternalPropertiesIfNecessary(vm);
     }
 
-    PassRefPtr<StructureShape> toStructureShape();
+    PassRefPtr<StructureShape> toStructureShape(JSValue);
+    
+    // Determines if the two structures match enough that this one could be used for allocations
+    // of the other one.
+    bool canUseForAllocationsOf(Structure*);
     
     void dump(PrintStream&) const;
     void dumpInContext(PrintStream&, DumpContext*) const;
@@ -438,17 +509,18 @@ public:
     DEFINE_BITFIELD(bool, hasBeenFlattenedBefore, HasBeenFlattenedBefore, 1, 24);
     DEFINE_BITFIELD(bool, hasCustomGetterSetterProperties, HasCustomGetterSetterProperties, 1, 25);
     DEFINE_BITFIELD(bool, didWatchInternalProperties, DidWatchInternalProperties, 1, 26);
+    DEFINE_BITFIELD(bool, transitionWatchpointIsLikelyToBeFired, TransitionWatchpointIsLikelyToBeFired, 1, 27);
 
 private:
     friend class LLIntOffsetsExtractor;
 
     JS_EXPORT_PRIVATE Structure(VM&, JSGlobalObject*, JSValue prototype, const TypeInfo&, const ClassInfo*, IndexingType, unsigned inlineCapacity);
     Structure(VM&);
-    Structure(VM&, Structure*);
+    Structure(VM&, Structure*, DeferredStructureTransitionWatchpointFire*);
 
-    static Structure* create(VM&, Structure*);
+    static Structure* create(VM&, Structure*, DeferredStructureTransitionWatchpointFire* = nullptr);
     
-    static Structure* addPropertyTransitionToExistingStructureImpl(Structure*, StringImpl* uid, unsigned attributes, PropertyOffset&);
+    static Structure* addPropertyTransitionToExistingStructureImpl(Structure*, UniquedStringImpl* uid, unsigned attributes, PropertyOffset&);
 
     // This will return the structure that has a usable property table, that property table,
     // and the list of structures that we visited before we got to it. If it returns a
@@ -556,7 +628,7 @@ private:
 
     WriteBarrier<JSCell> m_previousOrRareData;
 
-    RefPtr<StringImpl> m_nameInPrevious;
+    RefPtr<UniquedStringImpl> m_nameInPrevious;
 
     const ClassInfo* m_classInfo;
 

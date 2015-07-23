@@ -10,8 +10,8 @@ South	3333	1111	2222
 South	3333	1111	2222
 ------------------------
 [0,0]
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXColumnHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 235.000000, 26.000000 }
 AXSize: { 144.000000, 63.000000 }
@@ -20,18 +20,18 @@ AXDescription:
 AXValue: Ruritanian<\n>Population <\n>Survey
 AXFocusable: 0
 AXFocused: 0
-AXSelectable: 1
+AXSelectable: 0
 AXSelected: 0
 AXMultiSelectable: 0
 AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:columnheader, tag:th, toolkit:WebKitGtk
 ------------------------
 [3,1]
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 447.000000, 55.000000 }
 AXSize: { 53.000000, 34.000000 }
@@ -47,11 +47,11 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:th, toolkit:WebKitGtk
 ------------------------
 [1,1]
-AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXRole: AXColumnHeader
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 227.000000, 26.000000 }
 AXSize: { 143.000000, 63.000000 }
@@ -60,18 +60,18 @@ AXDescription:
 AXValue: Ruritanian<\n>Population <\n>Survey
 AXFocusable: 0
 AXFocused: 0
-AXSelectable: 1
+AXSelectable: 0
 AXSelected: 0
 AXMultiSelectable: 0
 AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:columnheader, tag:th, toolkit:WebKitGtk
 ------------------------
 [2,2]
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 370.000000, 89.000000 }
 AXSize: { 69.000000, 29.000000 }
@@ -87,11 +87,11 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------------------
 [3,5]
 AXRole: AXCell
-AXParent: AXTable: Example #1: Nested Stubs
+AXParent: AXRow
 AXChildren: 0
 AXPosition: { 439.000000, 176.000000 }
 AXSize: { 52.000000, 29.000000 }
@@ -107,7 +107,7 @@ AXEnabled: 1
 AXExpanded: 0
 AXRequired: 0
 AXChecked: 0
-AXPlatformAttributes: toolkit:WebKitGtk
+AXPlatformAttributes: computed-role:gridcell, tag:td, toolkit:WebKitGtk
 ------------------------
 [100,0]
 

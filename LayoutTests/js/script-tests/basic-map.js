@@ -10,12 +10,20 @@ shouldBeTrue("new Map(undefined) instanceof Map");
 shouldBeTrue("new Map(undefined, undefined) instanceof Map");
 shouldBeTrue("new Map(null, undefined) instanceof Map");
 
+shouldThrow("Map()");
+shouldThrow("Map(1)");
+shouldThrow("Map(true)");
+shouldThrow("Map('String')");
+shouldThrow("Map([])");
+shouldThrow("Map({})");
+shouldThrow("Map(undefined)");
+shouldThrow("Map(null)");
 shouldThrow("new Map(1)");
 shouldThrow("new Map(true)");
-shouldThrow("new Map([])");
+shouldNotThrow("new Map([])");
 shouldThrow("new Map({})");
-shouldThrow("new Map(undefined, null)");
-shouldThrow("new Map(undefined, {})");
+shouldNotThrow("new Map(undefined, null)");
+shouldNotThrow("new Map(undefined, {})");
 
 var map = new Map;
 shouldBeFalse("Object.hasOwnProperty(map, 'size')")
@@ -33,13 +41,14 @@ shouldBe("Map.prototype.entries.length", "0")
 shouldBe("map.size", "0")
 shouldBe("map.set(-0, 1)", "map")
 shouldBe("map.set(0, 2)", "map")
+shouldBe("map.size", "1")
 shouldBe("map.set(Infinity, 3)", "map")
 shouldBe("map.set(-Infinity, 4)", "map")
 shouldBe("map.set(NaN, 5)", "map")
 shouldBe("map.set('0', 6)", "map")
 shouldBe("map.set(0.1, 7)", "map")
-shouldBe("map.size", "7")
-shouldBe("map.get(-0)", "1")
+shouldBe("map.size", "6")
+shouldBe("map.get(-0)", "2")
 shouldBe("map.get(0)", "2")
 shouldBe("map.get(Infinity)", "3")
 shouldBe("map.get(-Infinity)", "4")
@@ -56,7 +65,7 @@ shouldBeTrue("map.has('0')")
 shouldBeTrue("map.has(0.1)")
 
 shouldBeTrue("map.delete(-0)")
-shouldBeTrue("map.delete(0)")
+shouldBeFalse("map.delete(0)")
 shouldBeTrue("map.delete(Infinity)")
 shouldBeTrue("map.delete(-Infinity)")
 shouldBeTrue("map.delete(NaN)")
@@ -246,3 +255,35 @@ map.forEach(function (v, k) {
 shouldBe("i", "5")
 shouldBe("map.size", "4");
 
+debug("A dead iterator should remain dead")
+
+var map = new Map;
+map.set(1, "foo");
+var keys = map.keys()
+// Iterator reaches end and becomes dead.
+for (key of keys) {
+    // Do nothing
+}
+map.set(2, "bar")
+map.set(3, "wibble")
+
+// Iterator 'keys' remains dead.
+var count = 0;
+for (key of keys) {
+    count++;
+}
+shouldBe("count", "0");
+
+// New assignment creates a new iterator.
+keys = map.keys();
+for (key of keys) {
+    count++;
+}
+shouldBe("count", "3");
+
+// Iterating through map.keys()
+count = 0;
+for (key of map.keys()) {
+    count++;
+}
+shouldBe("count", "3");

@@ -42,25 +42,26 @@ a:hover {
     text-decoration: underline;
 }
 
-div.cellButton {
+div.cellButton, div.accessibilityButton {
     font-family: "HelveticaNeue-Light", sans-serif;
     font-size: 12px;
     color: rgb(185, 175, 125);
     cursor: pointer;
 }
 
-div.cellButton.hide {
+div.cellButton.hide, div.accessibilityButton.hide {
     display: none;
     position: absolute;
     bottom: 2px;
     right: 4px;
 }
 
-div.cellButton.unhide {
+div.cellButton.unhide, div.accessibilityButton.unhide {
     display: none;
 }
 
-.settings-visible div.cellButton.hide, .settings-visible div.cellButton.unhide {
+.settings-visible div.cellButton.hide, .settings-visible div.cellButton.unhide,
+.settings-visible div.accessibilityButton.hide, .settings-visible div.accessibilityButton.unhide {
     display: block;
 }
 
@@ -69,7 +70,7 @@ div.cellButton.unhide {
 }
 
 .settings {
-    position: absolute;
+    position: fixed;
     top: 5px;
     left: 5px;
     width: 35px;
@@ -89,7 +90,7 @@ div.cellButton.unhide {
 body {
     background-color: rgb(233, 231, 223);
     text-align: center;
-    margin: 50px;
+    margin: 50px 25px 50px 25px;
 }
 
 table.queue-grid {
@@ -131,6 +132,7 @@ table.queue-grid tr:nth-child(odd):not(.headers) td:last-child {
 }
 
 table.queue-grid td {
+    height: 200px;
     width: 200px;
     vertical-align: top;
 }
@@ -164,16 +166,20 @@ table.queue-grid td.logo img.logo {
     left: 26px;
 }
 
+table.queue-grid tr.platform.ios-8 img.logo {
+    content: -webkit-image-set(url(../Images/IOSDevice@2x.png) 2x, url(../Images/IOSDevice.png) 1x);
+}
+
+table.queue-grid tr.platform.mac-os-x-elcapitan img.logo {
+    content: -webkit-image-set(url(../Images/ElCapitan@2x.png) 2x, url(../Images/ElCapitan.png) 1x);
+}
+
+table.queue-grid tr.platform.mac-os-x-yosemite img.logo {
+    content: -webkit-image-set(url(../Images/Yosemite@2x.png) 2x, url(../Images/Yosemite.png) 1x);
+}
+
 table.queue-grid tr.platform.mac-os-x-mavericks img.logo {
     content: -webkit-image-set(url(../Images/Mavericks@2x.png) 2x, url(../Images/Mavericks.png) 1x);
-}
-
-table.queue-grid tr.platform.mac-os-x-mountain-lion img.logo {
-    content: -webkit-image-set(url(../Images/MountainLion@2x.png) 2x, url(../Images/MountainLion.png) 1x);
-}
-
-table.queue-grid tr.platform.mac-os-x-lion img.logo {
-    content: -webkit-image-set(url(../Images/Lion@2x.png) 2x, url(../Images/Lion.png) 1x);
 }
 
 table.queue-grid tr.platform.windows-8 img.logo {
@@ -198,4 +204,10 @@ table.queue-grid tr.platform.linux-efl img.logo {
 
 .popover-tracking:hover {
     text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.2)
+}
+
+.accessibilityButton {
+    position: absolute;
+    left: 45px;
+    top: 13.5px;
 }

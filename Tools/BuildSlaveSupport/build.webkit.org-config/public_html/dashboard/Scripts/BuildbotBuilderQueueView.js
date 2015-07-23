@@ -23,25 +23,25 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-BuildbotBuilderQueueView = function(debugQueues, releaseQueues)
+BuildbotBuilderQueueView = function(queues)
 {
-    BuildbotQueueView.call(this, debugQueues, releaseQueues);
+    BuildbotQueueView.call(this, queues);
 
-    function filterQueuesByArchitecture(architecture, queue)
+    function filterQueues(architecture, debug, queue)
     {
-        return queue.architecture === architecture;
+        return queue.architecture === architecture && queue.debug === debug;
     }
 
-    this.universalReleaseQueues = this.releaseQueues.filter(filterQueuesByArchitecture.bind(this, Buildbot.BuildArchitecture.Universal));
-    this.sixtyFourBitReleaseQueues = this.releaseQueues.filter(filterQueuesByArchitecture.bind(this, Buildbot.BuildArchitecture.SixtyFourBit));
-    this.thirtyTwoBitReleaseQueues = this.releaseQueues.filter(filterQueuesByArchitecture.bind(this, Buildbot.BuildArchitecture.ThirtyTwoBit));
+    this.universalReleaseQueues = this.queues.filter(filterQueues.bind(this, Buildbot.BuildArchitecture.Universal, false));
+    this.sixtyFourBitReleaseQueues = this.queues.filter(filterQueues.bind(this, Buildbot.BuildArchitecture.SixtyFourBit, false));
+    this.thirtyTwoBitReleaseQueues = this.queues.filter(filterQueues.bind(this, Buildbot.BuildArchitecture.ThirtyTwoBit, false));
 
-    this.universalDebugQueues = this.debugQueues.filter(filterQueuesByArchitecture.bind(this, Buildbot.BuildArchitecture.Universal));
-    this.sixtyFourBitDebugQueues = this.debugQueues.filter(filterQueuesByArchitecture.bind(this, Buildbot.BuildArchitecture.SixtyFourBit));
-    this.thirtyTwoBitDebugQueues = this.debugQueues.filter(filterQueuesByArchitecture.bind(this, Buildbot.BuildArchitecture.ThirtyTwoBit));
+    this.universalDebugQueues = this.queues.filter(filterQueues.bind(this, Buildbot.BuildArchitecture.Universal, true));
+    this.sixtyFourBitDebugQueues = this.queues.filter(filterQueues.bind(this, Buildbot.BuildArchitecture.SixtyFourBit, true));
+    this.thirtyTwoBitDebugQueues = this.queues.filter(filterQueues.bind(this, Buildbot.BuildArchitecture.ThirtyTwoBit, true));
 
-    this.hasMultipleReleaseBuilds = this.releaseQueues.length > 1;
-    this.hasMultipleDebugBuilds = this.debugQueues.length > 1;
+    this.hasMultipleReleaseBuilds = this.universalReleaseQueues.length + this.sixtyFourBitReleaseQueues.length + this.thirtyTwoBitReleaseQueues.length > 1;
+    this.hasMultipleDebugBuilds = this.universalDebugQueues.length + this.sixtyFourBitDebugQueues.length + this.thirtyTwoBitDebugQueues.length > 1;
 
     this.update();
 };
@@ -103,39 +103,23 @@ BuildbotBuilderQueueView.prototype = {
                 var status = new StatusLineView(message, StatusLineView.Status.Good, firstRecentUnsuccessfulIteration ? "last successful build" : "latest build", null, url);
                 this.element.appendChild(status.element);
             } else {
-                var status = new StatusLineView("unknown", StatusLineView.Status.Neutral, firstRecentUnsuccessfulIteration ? "last successful build" : "latest build");            
+                var status = new StatusLineView("unknown", StatusLineView.Status.Neutral, firstRecentUnsuccessfulIteration ? "last successful build" : "latest build");
                 this.element.appendChild(status.element);
 
                 if (firstRecentUnsuccessfulIteration) {
                     // We have a failed iteration but no successful. It might be further back in time.
-                    // Update all the iterations so we get more history.
-                    // FIXME: It can be very time consuming to load all iterations, we should load progressively.
-                    queue.iterations.forEach(function(iteration) { iteration.update(); });
+                    queue.loadMoreHistoricalIterations();
                 }
             }
         }
 
-        function appendBuildArchitecture(queues, label)
-        {
-            queues.forEach(function(queue) {
-                var releaseLabel = document.createElement("a");
-                releaseLabel.classList.add("queueLabel");
-                releaseLabel.textContent = label;
-                releaseLabel.href = queue.overviewURL;
-                releaseLabel.target = "_blank";
-                this.element.appendChild(releaseLabel);
+        this.appendBuildStyle.call(this, this.universalReleaseQueues, this.hasMultipleReleaseBuilds ? "Release (Universal)" : "Release", appendBuilderQueueStatus);
+        this.appendBuildStyle.call(this, this.sixtyFourBitReleaseQueues, this.hasMultipleReleaseBuilds ? "Release (64-bit)" : "Release", appendBuilderQueueStatus);
+        this.appendBuildStyle.call(this, this.thirtyTwoBitReleaseQueues, this.hasMultipleReleaseBuilds ? "Release (32-bit)" : "Release", appendBuilderQueueStatus);
 
-                appendBuilderQueueStatus.call(this, queue);
-            }.bind(this));
-        }
-
-        appendBuildArchitecture.call(this, this.universalReleaseQueues, this.hasMultipleReleaseBuilds ? "Release (Universal)" : "Release");
-        appendBuildArchitecture.call(this, this.sixtyFourBitReleaseQueues, this.hasMultipleReleaseBuilds ? "Release (64-bit)" : "Release");
-        appendBuildArchitecture.call(this, this.thirtyTwoBitReleaseQueues, this.hasMultipleReleaseBuilds ? "Release (32-bit)" : "Release");
-
-        appendBuildArchitecture.call(this, this.universalDebugQueues, this.hasMultipleDebugBuilds ? "Debug (Universal)" : "Debug");
-        appendBuildArchitecture.call(this, this.sixtyFourBitDebugQueues, this.hasMultipleDebugBuilds ? "Debug (64-bit)" : "Debug");
-        appendBuildArchitecture.call(this, this.thirtyTwoBitDebugQueues, this.hasMultipleDebugBuilds ? "Debug (32-bit)" : "Debug");
+        this.appendBuildStyle.call(this, this.universalDebugQueues, this.hasMultipleDebugBuilds ? "Debug (Universal)" : "Debug", appendBuilderQueueStatus);
+        this.appendBuildStyle.call(this, this.sixtyFourBitDebugQueues, this.hasMultipleDebugBuilds ? "Debug (64-bit)" : "Debug", appendBuilderQueueStatus);
+        this.appendBuildStyle.call(this, this.thirtyTwoBitDebugQueues, this.hasMultipleDebugBuilds ? "Debug (32-bit)" : "Debug", appendBuilderQueueStatus);
     },
 
     _presentPopoverFailureLogs: function(element, popover, iteration)

@@ -38,6 +38,7 @@
 #include "JSDOMBinding.h"
 #include "JSHTMLElementWrapperFactory.h"
 #include "JSNodeList.h"
+#include "JSNodeOrString.h"
 #include "JSSVGElementWrapperFactory.h"
 #include "NodeList.h"
 #include "SVGElement.h"
@@ -56,14 +57,59 @@ JSValue toJSNewlyCreated(ExecState*, JSDOMGlobalObject* globalObject, Element* e
     ASSERT(!getCachedWrapper(globalObject->world(), element));
 
     JSDOMWrapper* wrapper;        
-    if (element->isHTMLElement())
-        wrapper = createJSHTMLWrapper(globalObject, toHTMLElement(element));
-    else if (element->isSVGElement())
-        wrapper = createJSSVGWrapper(globalObject, toSVGElement(element));
+    if (is<HTMLElement>(*element))
+        wrapper = createJSHTMLWrapper(globalObject, downcast<HTMLElement>(element));
+    else if (is<SVGElement>(*element))
+        wrapper = createJSSVGWrapper(globalObject, downcast<SVGElement>(element));
     else
         wrapper = CREATE_DOM_WRAPPER(globalObject, Element, element);
 
     return wrapper;    
+}
+
+JSValue JSElement::before(ExecState* state)
+{
+    ExceptionCode ec = 0;
+    impl().before(toNodeOrStringVector(*state), ec);
+    setDOMException(state, ec);
+
+    return jsUndefined();
+}
+
+JSValue JSElement::after(ExecState* state)
+{
+    ExceptionCode ec = 0;
+    impl().after(toNodeOrStringVector(*state), ec);
+    setDOMException(state, ec);
+
+    return jsUndefined();
+}
+
+JSValue JSElement::replaceWith(ExecState* state)
+{
+    ExceptionCode ec = 0;
+    impl().replaceWith(toNodeOrStringVector(*state), ec);
+    setDOMException(state, ec);
+
+    return jsUndefined();
+}
+
+JSValue JSElement::prepend(ExecState* state)
+{
+    ExceptionCode ec = 0;
+    impl().prepend(toNodeOrStringVector(*state), ec);
+    setDOMException(state, ec);
+
+    return jsUndefined();
+}
+
+JSValue JSElement::append(ExecState* state)
+{
+    ExceptionCode ec = 0;
+    impl().append(toNodeOrStringVector(*state), ec);
+    setDOMException(state, ec);
+
+    return jsUndefined();
 }
 
 } // namespace WebCore

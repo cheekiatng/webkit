@@ -45,6 +45,7 @@ from checkers.featuredefines import FeatureDefinesChecker
 from checkers.js import JSChecker
 from checkers.jsonchecker import JSONChecker
 from checkers.jsonchecker import JSONContributorsChecker
+from checkers.jsonchecker import JSONFeaturesChecker
 from checkers.messagesin import MessagesInChecker
 from checkers.png import PNGChecker
 from checkers.python import PythonChecker
@@ -189,7 +190,8 @@ _PATH_RULES_SPECIFIER = [
     ([# The EFL APIs use EFL naming style, which includes
       # both lower-cased and camel-cased, underscore-sparated
       # values.
-      "Source/WebKit2/UIProcess/API/efl/"],
+      "Source/WebKit2/UIProcess/API/efl/",
+      "Source/WebKit2/WebProcess/InjectedBundle/API/efl/"],
      ["-readability/naming",
       "-readability/parameter_name"]),
     ([# MiniBrowser/efl are EFL simple application.
@@ -329,7 +331,6 @@ _SKIPPED_FILES_WITH_WARNING = [
 # with FileType.NONE are automatically skipped without warning.
 _SKIPPED_FILES_WITHOUT_WARNING = [
     "LayoutTests" + os.path.sep,
-    "Source/ThirdParty/leveldb" + os.path.sep,
     ]
 
 # Extensions of files which are allowed to contain carriage returns.
@@ -619,6 +620,8 @@ class CheckerDispatcher(object):
             basename = os.path.basename(file_path)
             if commit_queue and basename == 'contributors.json':
                 checker = JSONContributorsChecker(file_path, handle_style_error)
+            if basename == 'features.json':
+                checker = JSONFeaturesChecker(file_path, handle_style_error)
             else:
                 checker = JSONChecker(file_path, handle_style_error)
         elif file_type == FileType.PYTHON:

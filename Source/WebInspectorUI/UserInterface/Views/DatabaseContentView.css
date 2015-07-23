@@ -24,18 +24,15 @@
  */
 
 .storage-view {    
-    /* Added so fonts look good */
     font-family: Menlo, monospace;
-    font-size: 11px;
 }
 
 .storage-view .data-grid {
-    border: none;
     height: 100%;
 }
 
 .storage-view .storage-table-error {
-    color: rgb(66%, 33%, 33%);
+    color: hsl(0, 33%, 49%);
 }
 
 .storage-view.query {
@@ -57,7 +54,7 @@
     outline: none;
 }
 
-.database-user-query::before, .database-query-prompt::before, .database-query-result::before {
+:matches(.database-user-query, .database-query-prompt, .database-query-result)::before {
     position: absolute;
     display: block;
     z-index: 1;
@@ -76,7 +73,7 @@
 
 .database-user-query {
     position: relative;
-    border-bottom: 1px solid rgb(245, 245, 245);
+    border-bottom: 1px solid hsl(0, 0%, 96%);
     padding: 4px 22px 4px 18px;
     min-height: 16px;
 }
@@ -86,7 +83,7 @@
 }
 
 .database-query-text {
-    color: rgb(0, 128, 255);
+    color: hsl(209, 100%, 50%);
     -webkit-user-select: text;
 }
 

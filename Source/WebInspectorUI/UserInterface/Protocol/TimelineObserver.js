@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Apple Inc. All rights reserved.
+ * Copyright (C) 2013, 2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,30 +23,22 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-WebInspector.TimelineObserver = function()
+WebInspector.TimelineObserver = class TimelineObserver
 {
-    WebInspector.Object.call(this);
-};
-
-WebInspector.TimelineObserver.prototype = {
-    constructor: WebInspector.TimelineObserver,
-
     // Events defined by the "Timeline" domain.
 
-    eventRecorded: function(record)
+    eventRecorded(record)
     {
         WebInspector.timelineManager.eventRecorded(record);
-    },
+    }
 
-    recordingStarted: function()
+    recordingStarted(startTime)
     {
-        WebInspector.timelineManager.capturingStarted();
-    },
+        WebInspector.timelineManager.capturingStarted(startTime);
+    }
 
-    recordingStopped: function()
+    recordingStopped(endTime)
     {
-        WebInspector.timelineManager.capturingStopped();
+        WebInspector.timelineManager.capturingStopped(endTime);
     }
 };
-
-WebInspector.TimelineObserver.prototype.__proto__ = WebInspector.Object.prototype;

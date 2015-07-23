@@ -26,15 +26,19 @@
 #ifndef HTMLConverter_h
 #define HTMLConverter_h
 
+#include "PlatformExportMacros.h"
+
 OBJC_CLASS NSAttributedString;
 
 namespace WebCore {
     
 class Range;
+
+enum class IncludeImagesInAttributedString { Yes, No };
     
-NSAttributedString *attributedStringFromRange(Range&);
+WEBCORE_EXPORT NSAttributedString *attributedStringFromRange(Range&);
 #if !PLATFORM(IOS)
-NSAttributedString *editingAttributedStringFromRange(Range&);
+WEBCORE_EXPORT NSAttributedString *editingAttributedStringFromRange(Range&, IncludeImagesInAttributedString = IncludeImagesInAttributedString::Yes);
 #endif
 
 }

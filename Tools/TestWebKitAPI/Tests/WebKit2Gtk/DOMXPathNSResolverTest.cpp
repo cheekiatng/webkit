@@ -22,7 +22,7 @@
 #include "WebProcessTest.h"
 #include <gio/gio.h>
 #include <webkit2/webkit-web-extension.h>
-#include <wtf/gobject/GUniquePtr.h>
+#include <wtf/glib/GUniquePtr.h>
 
 typedef struct _WebKitXPathNSResolver {
     GObject parent;
@@ -57,73 +57,60 @@ static void webkit_xpath_ns_resolver_class_init(WebKitXPathNSResolverClass*)
 
 class WebKitDOMXPathNSResolverTest : public WebProcessTest {
 public:
-    static PassOwnPtr<WebProcessTest> create() { return adoptPtr(new WebKitDOMXPathNSResolverTest()); }
+    static std::unique_ptr<WebProcessTest> create() { return std::unique_ptr<WebProcessTest>(new WebKitDOMXPathNSResolverTest()); }
 
 private:
-    guint64 webPageFromArgs(GVariant* args)
-    {
-        GVariantIter iter;
-        g_variant_iter_init(&iter, args);
-
-        const char* key;
-        GVariant* value;
-        while (g_variant_iter_loop(&iter, "{&sv}", &key, &value)) {
-            if (!strcmp(key, "pageID") && g_variant_classify(value) == G_VARIANT_CLASS_UINT64)
-                return g_variant_get_uint64(value);
-        }
-
-        g_assert_not_reached();
-        return 0;
-    }
-
     void evaluateFooChildTextAndCheckResult(WebKitDOMDocument* document, WebKitDOMXPathNSResolver* resolver)
     {
         WebKitDOMElement* documentElement = webkit_dom_document_get_document_element(document);
         g_assert(WEBKIT_DOM_IS_ELEMENT(documentElement));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(documentElement));
 
-        WebKitDOMXPathResult* result = webkit_dom_document_evaluate(document, "foo:child/text()", WEBKIT_DOM_NODE(documentElement), resolver, WEBKIT_DOM_XPATH_RESULT_ORDERED_NODE_ITERATOR_TYPE, nullptr, nullptr);
-        g_assert(WEBKIT_DOM_IS_XPATH_RESULT(result));
+        GRefPtr<WebKitDOMXPathResult> result = adoptGRef(webkit_dom_document_evaluate(document, "foo:child/text()", WEBKIT_DOM_NODE(documentElement), resolver, WEBKIT_DOM_XPATH_RESULT_ORDERED_NODE_ITERATOR_TYPE, nullptr, nullptr));
+        g_assert(WEBKIT_DOM_IS_XPATH_RESULT(result.get()));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(result.get()));
 
-        WebKitDOMNode* nodeResult = webkit_dom_xpath_result_iterate_next(result, nullptr);
+        WebKitDOMNode* nodeResult = webkit_dom_xpath_result_iterate_next(result.get(), nullptr);
         g_assert(WEBKIT_DOM_IS_NODE(nodeResult));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(nodeResult));
 
         GUniquePtr<char> nodeValue(webkit_dom_node_get_node_value(nodeResult));
         g_assert_cmpstr(nodeValue.get(), ==, "SUCCESS");
     }
 
-    bool testXPathNSResolverNative(WebKitWebExtension* extension, GVariant* args)
+    bool testXPathNSResolverNative(WebKitWebPage* page)
     {
-        WebKitWebPage* page = webkit_web_extension_get_page(extension, webPageFromArgs(args));
-        g_assert(WEBKIT_IS_WEB_PAGE(page));
         WebKitDOMDocument* document = webkit_web_page_get_dom_document(page);
         g_assert(WEBKIT_DOM_IS_DOCUMENT(document));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(document));
 
-        WebKitDOMXPathNSResolver* resolver = webkit_dom_document_create_ns_resolver(document, WEBKIT_DOM_NODE(webkit_dom_document_get_document_element(document)));
-        g_assert(WEBKIT_DOM_IS_XPATH_NS_RESOLVER(resolver));
-        evaluateFooChildTextAndCheckResult(document, resolver);
-
-        return true;
-    }
-
-    bool testXPathNSResolverCustom(WebKitWebExtension* extension, GVariant* args)
-    {
-        WebKitWebPage* page = webkit_web_extension_get_page(extension, webPageFromArgs(args));
-        g_assert(WEBKIT_IS_WEB_PAGE(page));
-        WebKitDOMDocument* document = webkit_web_page_get_dom_document(page);
-        g_assert(WEBKIT_DOM_IS_DOCUMENT(document));
-
-        GRefPtr<WebKitDOMXPathNSResolver> resolver = adoptGRef(WEBKIT_DOM_XPATH_NS_RESOLVER(g_object_new(webkit_xpath_ns_resolver_get_type(), nullptr)));
+        GRefPtr<WebKitDOMXPathNSResolver> resolver = adoptGRef(webkit_dom_document_create_ns_resolver(document, WEBKIT_DOM_NODE(webkit_dom_document_get_document_element(document))));
+        g_assert(WEBKIT_DOM_IS_XPATH_NS_RESOLVER(resolver.get()));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(resolver.get()));
         evaluateFooChildTextAndCheckResult(document, resolver.get());
 
         return true;
     }
 
-    virtual bool runTest(const char* testName, WebKitWebExtension* extension, GVariant* args)
+    bool testXPathNSResolverCustom(WebKitWebPage* page)
+    {
+        WebKitDOMDocument* document = webkit_web_page_get_dom_document(page);
+        g_assert(WEBKIT_DOM_IS_DOCUMENT(document));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(document));
+
+        GRefPtr<WebKitDOMXPathNSResolver> resolver = adoptGRef(WEBKIT_DOM_XPATH_NS_RESOLVER(g_object_new(webkit_xpath_ns_resolver_get_type(), nullptr)));
+        assertObjectIsDeletedWhenTestFinishes(G_OBJECT(resolver.get()));
+        evaluateFooChildTextAndCheckResult(document, resolver.get());
+
+        return true;
+    }
+
+    bool runTest(const char* testName, WebKitWebPage* page) override
     {
         if (!strcmp(testName, "native"))
-            return testXPathNSResolverNative(extension, args);
+            return testXPathNSResolverNative(page);
         if (!strcmp(testName, "custom"))
-            return testXPathNSResolverCustom(extension, args);
+            return testXPathNSResolverCustom(page);
 
         g_assert_not_reached();
         return false;

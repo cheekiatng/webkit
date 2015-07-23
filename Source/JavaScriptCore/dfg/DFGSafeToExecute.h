@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013, 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2013-2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,9 +50,11 @@ public:
         case DoubleRepRealUse:
         case Int52RepUse:
         case NumberUse:
+        case RealNumberUse:
         case BooleanUse:
         case CellUse:
         case ObjectUse:
+        case FunctionUse:
         case FinalObjectUse:
         case ObjectOrOtherUse:
         case StringIdentUse:
@@ -115,13 +117,15 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case ToThis:
     case CreateThis:
     case GetCallee:
+    case GetArgumentCount:
     case GetLocal:
     case SetLocal:
+    case PutStack:
+    case KillStack:
+    case GetStack:
     case MovHint:
     case ZombieHint:
-    case GetArgument:
     case Phantom:
-    case HardPhantom:
     case Upsilon:
     case Phi:
     case Flush:
@@ -138,6 +142,7 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case UInt32ToNumber:
     case DoubleAsInt32:
     case ArithAdd:
+    case ArithClz32:
     case ArithSub:
     case ArithNegate:
     case ArithMul:
@@ -147,10 +152,13 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case ArithAbs:
     case ArithMin:
     case ArithMax:
+    case ArithPow:
     case ArithSqrt:
     case ArithFRound:
+    case ArithRound:
     case ArithSin:
     case ArithCos:
+    case ArithLog:
     case ValueAdd:
     case GetById:
     case GetByIdFlush:
@@ -158,24 +166,21 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case PutByIdFlush:
     case PutByIdDirect:
     case CheckStructure:
-    case CheckExecutable:
+    case GetExecutable:
     case GetButterfly:
     case CheckArray:
     case Arrayify:
     case ArrayifyToStructure:
     case GetScope:
-    case GetMyScope:
-    case SkipTopScope:
     case SkipScope:
-    case GetClosureRegisters:
     case GetClosureVar:
     case PutClosureVar:
     case GetGlobalVar:
     case PutGlobalVar:
-    case VariableWatchpoint:
     case VarInjectionWatchpoint:
-    case CheckFunction:
-    case AllocationProfileWatchpoint:
+    case CheckCell:
+    case CheckBadCell:
+    case CheckNotEmpty:
     case RegExpExec:
     case RegExpTest:
     case CompareLess:
@@ -187,6 +192,11 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case CompareStrictEq:
     case Call:
     case Construct:
+    case CallVarargs:
+    case ConstructVarargs:
+    case LoadVarargs:
+    case CallForwardVarargs:
+    case ConstructForwardVarargs:
     case NewObject:
     case NewArray:
     case NewArrayWithSize:
@@ -195,6 +205,8 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case Breakpoint:
     case ProfileWillCall:
     case ProfileDidCall:
+    case ProfileType:
+    case ProfileControlFlow:
     case CheckHasInstance:
     case InstanceOf:
     case IsUndefined:
@@ -202,27 +214,23 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case IsNumber:
     case IsString:
     case IsObject:
+    case IsObjectOrNull:
     case IsFunction:
     case TypeOf:
     case LogicalNot:
     case ToPrimitive:
     case ToString:
+    case CallStringConstructor:
     case NewStringObject:
     case MakeRope:
     case In:
     case CreateActivation:
-    case TearOffActivation:
-    case CreateArguments:
-    case PhantomArguments:
-    case TearOffArguments:
-    case GetMyArgumentsLength:
-    case GetMyArgumentByVal:
-    case GetMyArgumentsLengthSafe:
-    case GetMyArgumentByValSafe:
-    case CheckArgumentsNotCreated:
-    case NewFunctionNoCheck:
+    case CreateDirectArguments:
+    case CreateScopedArguments:
+    case CreateClonedArguments:
+    case GetFromArguments:
+    case PutToArguments:
     case NewFunction:
-    case NewFunctionExpression:
     case Jump:
     case Branch:
     case Switch:
@@ -239,13 +247,11 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case CheckTierUpInLoop:
     case CheckTierUpAtReturn:
     case CheckTierUpAndOSREnter:
+    case CheckTierUpWithNestedTriggerAndOSREnter:
     case LoopHint:
     case StoreBarrier:
-    case StoreBarrierWithNullCheck:
     case InvalidationPoint:
     case NotifyWrite:
-    case FunctionReentryWatchpoint:
-    case TypedArrayWatchpoint:
     case CheckInBounds:
     case ConstantStoragePointer:
     case Check:
@@ -258,11 +264,36 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case FiatInt52:
     case GetGetter:
     case GetSetter:
+    case GetEnumerableLength:
+    case HasGenericProperty:
+    case HasStructureProperty:
+    case HasIndexedProperty:
+    case GetDirectPname:
+    case GetPropertyEnumerator:
+    case GetEnumeratorStructurePname:
+    case GetEnumeratorGenericPname:
+    case ToIndexString:
+    case PhantomNewObject:
+    case PhantomNewFunction:
+    case PhantomCreateActivation:
+    case PutHint:
+    case CheckStructureImmediate:
+    case MaterializeNewObject:
+    case MaterializeCreateActivation:
+    case PhantomDirectArguments:
+    case PhantomClonedArguments:
+    case GetMyArgumentByVal:
+    case ForwardVarargs:
         return true;
 
     case NativeCall:
     case NativeConstruct:
         return false; // TODO: add a check for already checked.  https://bugs.webkit.org/show_bug.cgi?id=133769
+
+    case BottomValue:
+        // If in doubt, assume that this isn't safe to execute, just because we have no way of
+        // compiling this node.
+        return false;
 
     case GetByVal:
     case GetIndexedPropertyStorage:
@@ -294,7 +325,7 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
         StructureAbstractValue& value = state.forNode(node->child1()).m_structure;
         if (value.isTop())
             return false;
-        PropertyOffset offset = graph.m_storageAccessData[node->storageAccessDataIndex()].offset;
+        PropertyOffset offset = node->storageAccessData().offset;
         for (unsigned i = value.size(); i--;) {
             if (!value[i]->isValidOffset(offset))
                 return false;

@@ -59,14 +59,14 @@ bool GetByIdStatus::appendVariant(const GetByIdVariant& variant)
 }
 
 #if ENABLE(DFG_JIT)
-bool GetByIdStatus::hasExitSite(const ConcurrentJITLocker& locker, CodeBlock* profiledBlock, unsigned bytecodeIndex, ExitingJITType jitType)
+bool GetByIdStatus::hasExitSite(const ConcurrentJITLocker& locker, CodeBlock* profiledBlock, unsigned bytecodeIndex)
 {
-    return profiledBlock->hasExitSite(locker, DFG::FrequentExitSite(bytecodeIndex, BadCache, jitType))
-        || profiledBlock->hasExitSite(locker, DFG::FrequentExitSite(bytecodeIndex, BadConstantCache, jitType));
+    return profiledBlock->hasExitSite(locker, DFG::FrequentExitSite(bytecodeIndex, BadCache))
+        || profiledBlock->hasExitSite(locker, DFG::FrequentExitSite(bytecodeIndex, BadConstantCache));
 }
 #endif
 
-GetByIdStatus GetByIdStatus::computeFromLLInt(CodeBlock* profiledBlock, unsigned bytecodeIndex, StringImpl* uid)
+GetByIdStatus GetByIdStatus::computeFromLLInt(CodeBlock* profiledBlock, unsigned bytecodeIndex, UniquedStringImpl* uid)
 {
     UNUSED_PARAM(profiledBlock);
     UNUSED_PARAM(bytecodeIndex);
@@ -84,15 +84,14 @@ GetByIdStatus GetByIdStatus::computeFromLLInt(CodeBlock* profiledBlock, unsigned
         return GetByIdStatus(NoInformation, false);
 
     unsigned attributesIgnored;
-    PropertyOffset offset = structure->getConcurrently(
-        *profiledBlock->vm(), uid, attributesIgnored);
+    PropertyOffset offset = structure->getConcurrently(uid, attributesIgnored);
     if (!isValidOffset(offset))
         return GetByIdStatus(NoInformation, false);
     
     return GetByIdStatus(Simple, false, GetByIdVariant(StructureSet(structure), offset));
 }
 
-GetByIdStatus GetByIdStatus::computeFor(CodeBlock* profiledBlock, StubInfoMap& map, unsigned bytecodeIndex, StringImpl* uid)
+GetByIdStatus GetByIdStatus::computeFor(CodeBlock* profiledBlock, StubInfoMap& map, unsigned bytecodeIndex, UniquedStringImpl* uid)
 {
     ConcurrentJITLocker locker(profiledBlock->m_lock);
 
@@ -104,8 +103,7 @@ GetByIdStatus GetByIdStatus::computeFor(CodeBlock* profiledBlock, StubInfoMap& m
         CallLinkStatus::computeExitSiteData(locker, profiledBlock, bytecodeIndex));
     
     if (!result.takesSlowPath()
-        && (hasExitSite(locker, profiledBlock, bytecodeIndex)
-            || profiledBlock->likelyToTakeSlowCase(bytecodeIndex)))
+        && hasExitSite(locker, profiledBlock, bytecodeIndex))
         return GetByIdStatus(result.makesCalls() ? MakesCalls : TakesSlowPath, true);
 #else
     UNUSED_PARAM(map);
@@ -119,10 +117,13 @@ GetByIdStatus GetByIdStatus::computeFor(CodeBlock* profiledBlock, StubInfoMap& m
 
 #if ENABLE(JIT)
 GetByIdStatus GetByIdStatus::computeForStubInfo(
-    const ConcurrentJITLocker& locker, CodeBlock* profiledBlock, StructureStubInfo* stubInfo, StringImpl* uid,
+    const ConcurrentJITLocker& locker, CodeBlock* profiledBlock, StructureStubInfo* stubInfo, UniquedStringImpl* uid,
     CallLinkStatus::ExitSiteData callExitSiteData)
 {
-    if (!stubInfo || !stubInfo->seen)
+    if (!stubInfo)
+        return GetByIdStatus(NoInformation);
+    
+    if (!stubInfo->seen)
         return GetByIdStatus(NoInformation);
     
     PolymorphicGetByIdList* list = 0;
@@ -135,6 +136,9 @@ GetByIdStatus GetByIdStatus::computeForStubInfo(
                 slowPathState = MakesCalls;
         }
     }
+    
+    if (stubInfo->tookSlowPath)
+        return GetByIdStatus(slowPathState);
     
     // Finally figure out if we can derive an access strategy.
     GetByIdStatus result;
@@ -150,8 +154,7 @@ GetByIdStatus GetByIdStatus::computeForStubInfo(
             return GetByIdStatus(slowPathState, true);
         unsigned attributesIgnored;
         GetByIdVariant variant;
-        variant.m_offset = structure->getConcurrently(
-            *profiledBlock->vm(), uid, attributesIgnored);
+        variant.m_offset = structure->getConcurrently(uid, attributesIgnored);
         if (!isValidOffset(variant.m_offset))
             return GetByIdStatus(slowPathState, true);
         
@@ -187,9 +190,11 @@ GetByIdStatus GetByIdStatus::computeForStubInfo(
                     AccessorCallJITStubRoutine* stub = static_cast<AccessorCallJITStubRoutine*>(
                         list->at(listIndex).stubRoutine());
                     callLinkStatus = std::make_unique<CallLinkStatus>(
-                        CallLinkStatus::computeFor(locker, *stub->m_callLinkInfo, callExitSiteData));
+                        CallLinkStatus::computeFor(
+                            locker, profiledBlock, *stub->m_callLinkInfo, callExitSiteData));
                     break;
                 }
+                case GetByIdAccess::SimpleMiss:
                 case GetByIdAccess::CustomGetter:
                 case GetByIdAccess::WatchedStub:{
                     // FIXME: It would be totally sweet to support this at some point in the future.
@@ -202,7 +207,7 @@ GetByIdStatus GetByIdStatus::computeForStubInfo(
                  
                 GetByIdVariant variant(
                     StructureSet(structure), complexGetStatus.offset(), complexGetStatus.chain(),
-                    std::move(callLinkStatus));
+                    WTF::move(callLinkStatus));
                  
                 if (!result.appendVariant(variant))
                     return GetByIdStatus(slowPathState, true);
@@ -224,7 +229,7 @@ GetByIdStatus GetByIdStatus::computeForStubInfo(
 
 GetByIdStatus GetByIdStatus::computeFor(
     CodeBlock* profiledBlock, CodeBlock* dfgBlock, StubInfoMap& baselineMap,
-    StubInfoMap& dfgMap, CodeOrigin codeOrigin, StringImpl* uid)
+    StubInfoMap& dfgMap, CodeOrigin codeOrigin, UniquedStringImpl* uid)
 {
 #if ENABLE(DFG_JIT)
     if (dfgBlock) {
@@ -232,7 +237,7 @@ GetByIdStatus GetByIdStatus::computeFor(
         {
             ConcurrentJITLocker locker(profiledBlock->m_lock);
             exitSiteData = CallLinkStatus::computeExitSiteData(
-                locker, profiledBlock, codeOrigin.bytecodeIndex, ExitFromFTL);
+                locker, profiledBlock, codeOrigin.bytecodeIndex);
         }
         
         GetByIdStatus result;
@@ -247,7 +252,7 @@ GetByIdStatus GetByIdStatus::computeFor(
     
         {
             ConcurrentJITLocker locker(profiledBlock->m_lock);
-            if (hasExitSite(locker, profiledBlock, codeOrigin.bytecodeIndex, ExitFromFTL))
+            if (hasExitSite(locker, profiledBlock, codeOrigin.bytecodeIndex))
                 return GetByIdStatus(TakesSlowPath, true);
         }
         
@@ -262,7 +267,7 @@ GetByIdStatus GetByIdStatus::computeFor(
     return computeFor(profiledBlock, baselineMap, codeOrigin.bytecodeIndex, uid);
 }
 
-GetByIdStatus GetByIdStatus::computeFor(VM& vm, const StructureSet& set, StringImpl* uid)
+GetByIdStatus GetByIdStatus::computeFor(const StructureSet& set, UniquedStringImpl* uid)
 {
     // For now we only handle the super simple self access case. We could handle the
     // prototype case in the future.
@@ -270,7 +275,7 @@ GetByIdStatus GetByIdStatus::computeFor(VM& vm, const StructureSet& set, StringI
     if (set.isEmpty())
         return GetByIdStatus();
 
-    if (toUInt32FromStringImpl(uid) != PropertyName::NotAnIndex)
+    if (parseIndex(*uid))
         return GetByIdStatus(TakesSlowPath);
     
     GetByIdStatus result;
@@ -285,7 +290,7 @@ GetByIdStatus GetByIdStatus::computeFor(VM& vm, const StructureSet& set, StringI
             return GetByIdStatus(TakesSlowPath);
         
         unsigned attributes;
-        PropertyOffset offset = structure->getConcurrently(vm, uid, attributes);
+        PropertyOffset offset = structure->getConcurrently(uid, attributes);
         if (!isValidOffset(offset))
             return GetByIdStatus(TakesSlowPath); // It's probably a prototype lookup. Give up on life for now, even though we could totally be way smarter about it.
         if (attributes & Accessor)

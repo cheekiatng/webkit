@@ -115,8 +115,8 @@ class PerfTestsRunner(object):
                 help="Don't launch a browser with results after the tests are done"),
             optparse.make_option("--test-results-server",
                 help="Upload the generated JSON file to the specified server when --output-json-path is present."),
-            optparse.make_option("--webkit-test-runner", "-2", action="store_true",
-                help="Use WebKitTestRunner rather than DumpRenderTree."),
+            optparse.make_option("--dump-render-tree", "-1", action="store_false", default=True, dest="webkit_test_runner",
+                help="Use DumpRenderTree rather than WebKitTestRunner."),
             optparse.make_option("--force", dest="use_skipped_list", action="store_false", default=True,
                 help="Run all tests, including the ones in the Skipped list."),
             optparse.make_option("--profile", action="store_true",
@@ -132,6 +132,10 @@ class PerfTestsRunner(object):
                 help="Specify number of times to run test set (default: 1)."),
             optparse.make_option("--test-runner-count", default=-1, type="int",
                 help="Specify number of times to invoke test runner for each performance test."),
+            optparse.make_option("--wrapper",
+                help="wrapper command to insert before invocations of "
+                 "DumpRenderTree or WebKitTestRunner; option is split on whitespace before "
+                 "running. (Example: --wrapper='valgrind --smc-check=all')"),
             ]
         return optparse.OptionParser(option_list=(perf_option_list)).parse_args(args)
 

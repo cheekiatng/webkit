@@ -34,8 +34,8 @@
 #include "InjectedBundleUtilities.h"
 #include <fontconfig/fontconfig.h>
 #include <gtk/gtk.h>
-#include <wtf/gobject/GUniquePtr.h>
-#include <wtf/gobject/GlibUtilities.h>
+#include <wtf/glib/GLibUtilities.h>
+#include <wtf/glib/GUniquePtr.h>
 
 namespace WTR {
 
@@ -68,7 +68,7 @@ CString getOutputDir()
 static CString getFontsPath()
 {
     CString webkitOutputDir = getOutputDir();
-    GUniquePtr<char> fontsPath(g_build_filename(webkitOutputDir.data(), "Dependencies", "Root", "webkitgtk-test-fonts", nullptr));
+    GUniquePtr<char> fontsPath(g_build_filename(webkitOutputDir.data(), "DependenciesGTK", "Root", "webkitgtk-test-fonts", nullptr));
     if (g_file_test(fontsPath.get(), static_cast<GFileTest>(G_FILE_TEST_EXISTS | G_FILE_TEST_IS_DIR)))
         return fontsPath.get();
 

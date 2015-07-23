@@ -4,7 +4,7 @@ set(TEST_RESOURCES_DIR ${TEST_BINARY_DIR}/resources)
 file(MAKE_DIRECTORY ${TEST_RESOURCES_DIR})
 
 add_definitions(
-    -DWEBKIT_TEST_PLUGIN_DIR="${CMAKE_LIBRARY_OUTPUT_DIRECTORY}"
+    -DWEBKIT_TEST_PLUGIN_DIR="${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/plugins"
     -DWEBKIT_EXEC_PATH="${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
     -DWEBKIT_SRC_DIR="${CMAKE_SOURCE_DIR}"
     -DWEBKIT_TEST_WEB_EXTENSIONS_DIR="${TEST_LIBRARY_DIR}"
@@ -21,6 +21,9 @@ include_directories(
     ${FORWARDING_HEADERS_WEBKIT2GTK_DIR}
     ${FORWARDING_HEADERS_WEBKIT2GTK_EXTENSION_DIR}
     ${TOOLS_DIR}/TestWebKitAPI/gtk/WebKit2Gtk
+)
+
+include_directories(SYSTEM
     ${ATSPI_INCLUDE_DIRS}
     ${GLIB_INCLUDE_DIRS}
     ${GTK3_INCLUDE_DIRS}
@@ -32,19 +35,23 @@ add_library(WebKit2APITestCore STATIC
     ${TOOLS_DIR}/TestWebKitAPI/gtk/WebKit2Gtk/LoadTrackingTest.cpp
     ${TOOLS_DIR}/TestWebKitAPI/gtk/WebKit2Gtk/WebKitTestBus.cpp
     ${TOOLS_DIR}/TestWebKitAPI/gtk/WebKit2Gtk/WebKitTestServer.cpp
-    ${TOOLS_DIR}/TestWebKitAPI/gtk/WebKit2Gtk/WebProcessTestRunner.cpp
     ${TOOLS_DIR}/TestWebKitAPI/gtk/WebKit2Gtk/TestMain.cpp
     ${TOOLS_DIR}/TestWebKitAPI/gtk/WebKit2Gtk/WebViewTest.cpp
 )
 target_link_libraries(WebKit2APITestCore WebKit2)
 
-add_custom_target(test-gresource-bundle
+add_custom_command(
+    OUTPUT ${TEST_RESOURCES_DIR}/webkit2gtk-tests-resources.gresource
     DEPENDS resources/webkit2gtk-tests.gresource.xml
             resources/link-title.js
     COMMAND glib-compile-resources
             --target=${TEST_RESOURCES_DIR}/webkit2gtk-tests-resources.gresource
             --sourcedir=${CMAKE_SOURCE_DIR}
             ${CMAKE_CURRENT_LIST_DIR}/resources/webkit2gtk-tests.gresource.xml
+)
+
+add_custom_target(test-gresource-bundle
+    DEPENDS ${TEST_RESOURCES_DIR}/webkit2gtk-tests-resources.gresource
 )
 
 macro(ADD_WK2_TEST_WEB_EXTENSION extension_name)
@@ -82,7 +89,7 @@ macro(ADD_WK2_TEST test_name)
 endmacro()
 
 ADD_WK2_TEST_WEB_EXTENSION(WebExtensionTest WebExtensionTest.cpp)
-ADD_WK2_TEST_WEB_EXTENSION(WebProcessTest DOMNodeTest.cpp DOMNodeFilterTest.cpp DOMXPathNSResolverTest.cpp FrameTest.cpp WebProcessTest.cpp)
+ADD_WK2_TEST_WEB_EXTENSION(WebProcessTest DOMNodeTest.cpp DOMNodeFilterTest.cpp DOMXPathNSResolverTest.cpp FrameTest.cpp WebProcessTest.cpp EditorTest.cpp)
 
 ADD_WK2_TEST(InspectorTestServer InspectorTestServer.cpp)
 ADD_WK2_TEST(TestAuthentication TestAuthentication.cpp)
@@ -112,6 +119,7 @@ ADD_WK2_TEST(TestWebViewEditor TestWebViewEditor.cpp)
 ADD_WK2_TEST(TestWebKitWebContext TestWebKitWebContext.cpp)
 ADD_WK2_TEST(TestWebKitWebView TestWebKitWebView.cpp)
 ADD_WK2_TEST(TestWebKitUserContentManager TestWebKitUserContentManager.cpp)
+ADD_WK2_TEST(TestEditor TestEditor.cpp)
 
 if (ATSPI_FOUND)
     ADD_WK2_TEST(AccessibilityTestServer AccessibilityTestServer.cpp)

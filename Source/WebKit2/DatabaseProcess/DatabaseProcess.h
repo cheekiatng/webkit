@@ -32,27 +32,28 @@
 #include "UniqueIDBDatabaseIdentifier.h"
 #include <wtf/NeverDestroyed.h>
 
-class WorkQueue;
+namespace WebCore {
+class SessionID;
+}
 
 namespace WebKit {
 
 class AsyncTask;
 class DatabaseToWebProcessConnection;
 class UniqueIDBDatabase;
-class WebOriginDataManager;
 
 struct DatabaseProcessCreationParameters;
 
-class DatabaseProcess : public ChildProcess  {
+class DatabaseProcess : public ChildProcess {
     WTF_MAKE_NONCOPYABLE(DatabaseProcess);
     friend class NeverDestroyed<DatabaseProcess>;
 public:
-    static DatabaseProcess& shared();
+    static DatabaseProcess& singleton();
     ~DatabaseProcess();
 
     const String& indexedDatabaseDirectory() const { return m_indexedDatabaseDirectory; }
 
-    PassRefPtr<UniqueIDBDatabase> getOrCreateUniqueIDBDatabase(const UniqueIDBDatabaseIdentifier&);
+    RefPtr<UniqueIDBDatabase> getOrCreateUniqueIDBDatabase(const UniqueIDBDatabaseIdentifier&);
     void removeUniqueIDBDatabase(const UniqueIDBDatabase&);
 
     void ensureIndexedDatabaseRelativePathExists(const String&);
@@ -60,10 +61,7 @@ public:
 
     WorkQueue& queue() { return m_queue.get(); }
 
-    void getIndexedDatabaseOrigins(uint64_t callbackID);
-    void deleteIndexedDatabaseEntriesForOrigin(const SecurityOriginData&, uint64_t callbackID);
-    void deleteIndexedDatabaseEntriesModifiedBetweenDates(double startDate, double endDate, uint64_t callbackID);
-    void deleteAllIndexedDatabaseEntries(uint64_t callbackID);
+    void postDatabaseTask(std::unique_ptr<AsyncTask>);
 
 private:
     DatabaseProcess();
@@ -76,24 +74,28 @@ private:
     virtual bool shouldTerminate() override;
 
     // IPC::Connection::Client
-    virtual void didReceiveMessage(IPC::Connection*, IPC::MessageDecoder&) override;
-    virtual void didClose(IPC::Connection*) override;
-    virtual void didReceiveInvalidMessage(IPC::Connection*, IPC::StringReference messageReceiverName, IPC::StringReference messageName) override;
-    void didReceiveDatabaseProcessMessage(IPC::Connection*, IPC::MessageDecoder&);
+    virtual void didReceiveMessage(IPC::Connection&, IPC::MessageDecoder&) override;
+    virtual void didClose(IPC::Connection&) override;
+    virtual void didReceiveInvalidMessage(IPC::Connection&, IPC::StringReference messageReceiverName, IPC::StringReference messageName) override;
+    virtual IPC::ProcessType localProcessType() override { return IPC::ProcessType::Database; }
+    virtual IPC::ProcessType remoteProcessType() override { return IPC::ProcessType::UI; }
+    void didReceiveDatabaseProcessMessage(IPC::Connection&, IPC::MessageDecoder&);
 
     // Message Handlers
     void initializeDatabaseProcess(const DatabaseProcessCreationParameters&);
     void createDatabaseToWebProcessConnection();
 
-    void postDatabaseTask(std::unique_ptr<AsyncTask>);
+    void fetchWebsiteData(WebCore::SessionID, uint64_t websiteDataTypes, uint64_t callbackID);
+    void deleteWebsiteData(WebCore::SessionID, uint64_t websiteDataTypes, std::chrono::system_clock::time_point modifiedSince, uint64_t callbackID);
+    void deleteWebsiteDataForOrigins(WebCore::SessionID, uint64_t websiteDataTypes, const Vector<SecurityOriginData>& origins, uint64_t callbackID);
+
+    Vector<RefPtr<WebCore::SecurityOrigin>> indexedDatabaseOrigins();
+    void deleteIndexedDatabaseEntriesForOrigins(const Vector<RefPtr<WebCore::SecurityOrigin>>&);
+    void deleteIndexedDatabaseEntriesModifiedSince(std::chrono::system_clock::time_point modifiedSince);
 
     // For execution on work queue thread only
     void performNextDatabaseTask();
     void ensurePathExists(const String&);
-    void doGetIndexedDatabaseOrigins(uint64_t callbackID);
-    void doDeleteIndexedDatabaseEntriesForOrigin(const SecurityOriginData&, uint64_t callbackID);
-    void doDeleteIndexedDatabaseEntriesModifiedBetweenDates(double startDate, double endDate, uint64_t callbackID);
-    void doDeleteAllIndexedDatabaseEntries(uint64_t callbackID);
 
     Vector<RefPtr<DatabaseToWebProcessConnection>> m_databaseToWebProcessConnections;
 
@@ -105,8 +107,6 @@ private:
 
     Deque<std::unique_ptr<AsyncTask>> m_databaseTasks;
     Mutex m_databaseTaskMutex;
-
-    std::unique_ptr<WebOriginDataManager> m_webOriginDataManager;
 };
 
 } // namespace WebKit

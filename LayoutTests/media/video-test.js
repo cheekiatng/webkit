@@ -203,6 +203,11 @@ function waitForEventAndTest(eventName, testFuncString, endit)
     mediaElement.addEventListener(eventName, _eventCallback, true);
 }
 
+function waitForEventOnceOn(element, eventName, func, endit)
+{
+    waitForEventOn(element, eventName, func, endit, true);
+}
+
 function waitForEventOn(element, eventName, func, endit, oneTimeOnly)
 {
     waitForEvent(eventName, func, endit, oneTimeOnly, element);
@@ -377,5 +382,24 @@ function setCaptionDisplayMode(mode)
         internals.setCaptionDisplayMode(mode);
     else
         consoleWrite("<br><b>** This test only works in DRT! **<" + "/b><br>");
+}
 
+function runWithKeyDown(fn) 
+{
+    // FIXME: WKTR does not yet support the keyDown() message.  Do a mouseDown here
+    // instead until keyDown support is added.
+    var eventName = !window.testRunner || eventSender.keyDown ? 'keypress' : 'mousedown'
+
+    function thunk() {
+        document.removeEventListener(eventName, thunk, false);
+        fn();
+    }
+    document.addEventListener(eventName, thunk, false);
+
+    if (window.testRunner) {
+        if (eventSender.keyDown)
+            eventSender.keyDown(" ", []);
+        else
+            eventSender.mouseDown();
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012, 2013, 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2012-2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,6 +27,8 @@
 #define Watchpoint_h
 
 #include <wtf/Atomics.h>
+#include <wtf/FastMalloc.h>
+#include <wtf/Noncopyable.h>
 #include <wtf/PrintStream.h>
 #include <wtf/SentinelLinkedList.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -34,6 +36,8 @@
 namespace JSC {
 
 class FireDetail {
+    void* operator new(size_t) = delete;
+    
 public:
     FireDetail()
     {
@@ -59,7 +63,11 @@ private:
     const char* m_string;
 };
 
+class WatchpointSet;
+
 class Watchpoint : public BasicRawSentinelNode<Watchpoint> {
+    WTF_MAKE_NONCOPYABLE(Watchpoint);
+    WTF_MAKE_FAST_ALLOCATED;
 public:
     Watchpoint()
     {
@@ -67,10 +75,12 @@ public:
     
     virtual ~Watchpoint();
 
-    void fire(const FireDetail& detail) { fireInternal(detail); }
-    
 protected:
     virtual void fireInternal(const FireDetail&) = 0;
+
+private:
+    friend class WatchpointSet;
+    void fire(const FireDetail&);
 };
 
 enum WatchpointState {
@@ -86,6 +96,12 @@ class WatchpointSet : public ThreadSafeRefCounted<WatchpointSet> {
 public:
     JS_EXPORT_PRIVATE WatchpointSet(WatchpointState);
     JS_EXPORT_PRIVATE ~WatchpointSet(); // Note that this will not fire any of the watchpoints; if you need to know when a WatchpointSet dies then you need a separate mechanism for this.
+    
+    // Fast way of getting the state, which only works from the main thread.
+    WatchpointState stateOnJSThread() const
+    {
+        return static_cast<WatchpointState>(m_state);
+    }
     
     // It is safe to call this from another thread. It may return an old
     // state. Guarantees that if *first* read the state() of the thing being
@@ -125,20 +141,24 @@ public:
     // set watchpoints that we believe will actually be fired.
     void startWatching()
     {
-        ASSERT(state() != IsInvalidated);
+        ASSERT(m_state != IsInvalidated);
+        if (m_state == IsWatched)
+            return;
+        WTF::storeStoreFence();
         m_state = IsWatched;
+        WTF::storeStoreFence();
     }
     
     void fireAll(const FireDetail& detail)
     {
-        if (LIKELY(state() != IsWatched))
+        if (LIKELY(m_state != IsWatched))
             return;
         fireAllSlow(detail);
     }
     
     void fireAll(const char* reason)
     {
-        if (LIKELY(state() != IsWatched))
+        if (LIKELY(m_state != IsWatched))
             return;
         fireAllSlow(reason);
     }
@@ -151,13 +171,28 @@ public:
             fireAll(detail);
     }
     
+    void touch(const char* reason)
+    {
+        touch(StringFireDetail(reason));
+    }
+    
     void invalidate(const FireDetail& detail)
     {
         if (state() == IsWatched)
             fireAll(detail);
         m_state = IsInvalidated;
     }
-
+    
+    void invalidate(const char* reason)
+    {
+        invalidate(StringFireDetail(reason));
+    }
+    
+    bool isBeingWatched() const
+    {
+        return m_setIsNotEmpty;
+    }
+    
     int8_t* addressOfState() { return &m_state; }
     int8_t* addressOfSetIsNotEmpty() { return &m_setIsNotEmpty; }
     
@@ -209,18 +244,34 @@ public:
         freeFat();
     }
     
+    // Fast way of getting the state, which only works from the main thread.
+    WatchpointState stateOnJSThread() const
+    {
+        uintptr_t data = m_data;
+        if (isFat(data))
+            return fat(data)->stateOnJSThread();
+        return decodeState(data);
+    }
+
+    // It is safe to call this from another thread. It may return a prior state,
+    // but that should be fine since you should only perform actions based on the
+    // state if you also add a watchpoint.
+    WatchpointState state() const
+    {
+        WTF::loadLoadFence();
+        uintptr_t data = m_data;
+        WTF::loadLoadFence();
+        if (isFat(data))
+            return fat(data)->state();
+        return decodeState(data);
+    }
+    
     // It is safe to call this from another thread.  It may return false
     // even if the set actually had been invalidated, but that ought to happen
     // only in the case of races, and should be rare.
     bool hasBeenInvalidated() const
     {
-        WTF::loadLoadFence();
-        uintptr_t data = m_data;
-        if (isFat(data)) {
-            WTF::loadLoadFence();
-            return fat(data)->hasBeenInvalidated();
-        }
-        return decodeState(data) == IsInvalidated;
+        return state() == IsInvalidated;
     }
     
     // Like hasBeenInvalidated(), may be called from another thread.
@@ -253,6 +304,14 @@ public:
         WTF::storeStoreFence();
     }
     
+    void invalidate(const FireDetail& detail)
+    {
+        if (isFat())
+            fat()->invalidate(detail);
+        else
+            m_data = encodeState(IsInvalidated);
+    }
+    
     JS_EXPORT_PRIVATE void fireAll(const char* reason);
     
     void touch(const FireDetail& detail)
@@ -261,7 +320,11 @@ public:
             fat()->touch(detail);
             return;
         }
-        if (decodeState(m_data) == ClearWatchpoint)
+        uintptr_t data = m_data;
+        if (decodeState(data) == IsInvalidated)
+            return;
+        WTF::storeStoreFence();
+        if (decodeState(data) == ClearWatchpoint)
             m_data = encodeState(IsWatched);
         else
             m_data = encodeState(IsInvalidated);
@@ -271,6 +334,13 @@ public:
     void touch(const char* reason)
     {
         touch(StringFireDetail(reason));
+    }
+    
+    bool isBeingWatched() const
+    {
+        if (isFat())
+            return fat()->isBeingWatched();
+        return false;
     }
     
 private:
@@ -289,7 +359,7 @@ private:
     
     static uintptr_t encodeState(WatchpointState state)
     {
-        return (state << StateShift) | IsThinFlag;
+        return (static_cast<uintptr_t>(state) << StateShift) | IsThinFlag;
     }
     
     bool isThin() const { return isThin(m_data); }

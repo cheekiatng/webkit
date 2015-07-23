@@ -27,11 +27,19 @@ function array_set_default(&$array, $key, $default) {
 
 $_config = NULL;
 
+define('CONFIG_DIR', dirname(__FILE__) . '/../../');
+
 function config($key) {
     global $_config;
     if (!$_config)
-        $_config = json_decode(file_get_contents(dirname(__FILE__) . '/../../config.json'), true);
+        $_config = json_decode(file_get_contents(CONFIG_DIR . 'config.json'), true);
     return $_config[$key];
+}
+
+function generate_data_file($filename, $content) {
+    if (!assert(ctype_alnum(str_replace(array('-', '_', '.'), '', $filename))))
+        return FALSE;
+    return file_put_contents(CONFIG_DIR . config('dataDirectory') . '/' . $filename, $content);
 }
 
 if (config('debug')) {
@@ -39,6 +47,8 @@ if (config('debug')) {
     ini_set('display_errors', 'On');
 } else
     error_reporting(E_ERROR);
+
+date_default_timezone_set('UTC');
 
 class Database
 {
@@ -50,8 +60,20 @@ class Database
         $this->connection = false;
     }
 
-    function is_true($value) {
+    static function is_true($value) {
         return $value == 't';
+    }
+
+    static function to_database_boolean($value) {
+        return $value ? 't' : 'f';
+    }
+
+    static function to_js_time($time_str) {
+        $timestamp_in_s = strtotime($time_str);
+        $dot_index = strrpos($time_str, '.');
+        if ($dot_index !== FALSE)
+            $timestamp_in_s += floatval(substr($time_str, $dot_index));
+        return intval($timestamp_in_s * 1000);
     }
 
     function connect() {
@@ -62,7 +84,7 @@ class Database
     }
 
     private function prefixed_column_names($columns, $prefix = NULL) {
-        if (!$prefix)
+        if (!$prefix || !$columns)
             return join(', ', $columns);
         return $prefix . '_' . join(', ' . $prefix . '_', $columns);
     }
@@ -94,16 +116,29 @@ class Database
         $column_names = $this->prefixed_column_names($column_names, $prefix);
         $placeholders = join(', ', $placeholders);
 
+        $value_query = $column_names ? "($column_names) VALUES ($placeholders)" : ' VALUES (default)';
         if ($returning) {
             $returning_column_name = $this->prefixed_name($returning, $prefix);
-            $rows = $this->query_and_fetch_all("INSERT INTO $table ($column_names) VALUES ($placeholders) RETURNING $returning_column_name", $values);
+            $rows = $this->query_and_fetch_all("INSERT INTO $table $value_query RETURNING $returning_column_name", $values);
             return $rows ? $rows[0][$returning_column_name] : NULL;
         }
 
-        return $this->query_and_get_affected_rows("INSERT INTO $table ($column_names) VALUES ($placeholders)", $values) == 1;
+        return $this->query_and_get_affected_rows("INSERT INTO $table $value_query", $values) == 1;
     }
 
     function select_or_insert_row($table, $prefix, $select_params, $insert_params = NULL, $returning = 'id') {
+        return $this->_select_update_or_insert_row($table, $prefix, $select_params, $insert_params, $returning, FALSE, TRUE);
+    }
+
+    function update_or_insert_row($table, $prefix, $select_params, $insert_params = NULL, $returning = 'id') {
+        return $this->_select_update_or_insert_row($table, $prefix, $select_params, $insert_params, $returning, TRUE, TRUE);
+    }
+
+    function update_row($table, $prefix, $select_params, $update_params, $returning = 'id') {
+        return $this->_select_update_or_insert_row($table, $prefix, $select_params, $update_params, $returning, TRUE, FALSE);
+    }
+
+    private function _select_update_or_insert_row($table, $prefix, $select_params, $insert_params, $returning, $should_update, $should_insert) {
         $values = array();
 
         $select_placeholders = array();
@@ -124,27 +159,58 @@ class Database
 
         $insert_column_names = $this->prefixed_column_names($insert_column_names, $prefix);
         $insert_placeholders = join(', ', $insert_placeholders);
-        $rows = $this->query_and_fetch_all("INSERT INTO $table ($insert_column_names) SELECT $insert_placeholders WHERE NOT EXISTS
-            ($query) RETURNING $returning_column_name", $values);
-        if (!$rows)
+
+        // http://stackoverflow.com/questions/1109061/insert-on-duplicate-update-in-postgresql
+        $rows = NULL;
+        if ($should_update) {
+            $rows = $this->query_and_fetch_all("UPDATE $table SET ($insert_column_names) = ($insert_placeholders)
+                WHERE ($select_column_names) = ($select_placeholders) RETURNING $returning_column_name", $values);
+        }
+        if (!$rows && $should_insert) {
+            $rows = $this->query_and_fetch_all("INSERT INTO $table ($insert_column_names) SELECT $insert_placeholders
+                WHERE NOT EXISTS ($query) RETURNING $returning_column_name", $values);            
+        }
+        if (!$should_update && !$rows)
             $rows = $this->query_and_fetch_all($query, $select_values);
 
         return $rows ? ($returning == '*' ? $rows[0] : $rows[0][$returning_column_name]) : NULL;
     }
 
     function select_first_row($table, $prefix, $params, $order_by = NULL) {
+        return $this->select_first_or_last_row($table, $prefix, $params, $order_by, FALSE);
+    }
+
+    function select_last_row($table, $prefix, $params, $order_by = NULL) {
+        return $this->select_first_or_last_row($table, $prefix, $params, $order_by, TRUE);
+    }
+
+    private function select_first_or_last_row($table, $prefix, $params, $order_by, $descending_order) {
+        $rows = $this->select_rows($table, $prefix, $params, $order_by, $descending_order, 0, 1);
+        return $rows ? $rows[0] : NULL;
+    }
+
+    function select_rows($table, $prefix, $params,
+        $order_by = NULL, $descending_order = FALSE, $offset = NULL, $limit = NULL) {
+
         $placeholders = array();
         $values = array();
         $column_names = $this->prefixed_column_names($this->prepare_params($params, $placeholders, $values), $prefix);
         $placeholders = join(', ', $placeholders);
+        if (!$column_names && !$placeholders)
+            $column_names = $placeholders = '1';
         $query = "SELECT * FROM $table WHERE ($column_names) = ($placeholders)";
         if ($order_by) {
-            assert(!ctype_alnum_underscore($order_by));
+            assert(ctype_alnum_underscore($order_by));
             $query .= ' ORDER BY ' . $this->prefixed_name($order_by, $prefix);
+            if ($descending_order)
+                $query .= ' DESC';
         }
-        $rows = $this->query_and_fetch_all($query . ' LIMIT 1', $values);
+        if ($offset !== NULL)
+            $query .= ' OFFSET ' . intval($offset);
+        if ($limit !== NULL)
+            $query .= ' LIMIT ' . intval($limit);
 
-        return $rows ? $rows[0] : NULL;
+        return $this->query_and_fetch_all($query, $values);
     }
 
     function query_and_get_affected_rows($query, $params = array()) {
@@ -158,10 +224,12 @@ class Database
 
     function query_and_fetch_all($query, $params = array()) {
         if (!$this->connection)
-            return false;
+            return NULL;
         $result = pg_query_params($this->connection, $query, $params);
         if (!$result)
-            return false;
+            return NULL;
+        if (pg_num_rows($result) == 0)
+            return array();
         return pg_fetch_all($result);
     }
 

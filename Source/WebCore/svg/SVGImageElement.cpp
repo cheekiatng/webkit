@@ -23,14 +23,11 @@
 #include "config.h"
 #include "SVGImageElement.h"
 
-#include "Attribute.h"
 #include "CSSPropertyNames.h"
 #include "RenderImageResource.h"
 #include "RenderSVGImage.h"
 #include "RenderSVGResource.h"
-#include "SVGElementInstance.h"
 #include "SVGNames.h"
-#include "SVGSVGElement.h"
 #include "XLinkNames.h"
 #include <wtf/NeverDestroyed.h>
 
@@ -67,9 +64,9 @@ inline SVGImageElement::SVGImageElement(const QualifiedName& tagName, Document& 
     registerAnimatedPropertiesForSVGImageElement();
 }
 
-PassRefPtr<SVGImageElement> SVGImageElement::create(const QualifiedName& tagName, Document& document)
+Ref<SVGImageElement> SVGImageElement::create(const QualifiedName& tagName, Document& document)
 {
-    return adoptRef(new SVGImageElement(tagName, document));
+    return adoptRef(*new SVGImageElement(tagName, document));
 }
 
 bool SVGImageElement::isSupportedAttribute(const QualifiedName& attrName)
@@ -90,29 +87,29 @@ bool SVGImageElement::isSupportedAttribute(const QualifiedName& attrName)
 
 void SVGImageElement::parseAttribute(const QualifiedName& name, const AtomicString& value)
 {
-    SVGParsingError parseError = NoError;
-
-    if (!isSupportedAttribute(name))
-        SVGGraphicsElement::parseAttribute(name, value);
-    else if (name == SVGNames::xAttr)
-        setXBaseValue(SVGLength::construct(LengthModeWidth, value, parseError));
-    else if (name == SVGNames::yAttr)
-        setYBaseValue(SVGLength::construct(LengthModeHeight, value, parseError));
-    else if (name == SVGNames::preserveAspectRatioAttr) {
+    if (name == SVGNames::preserveAspectRatioAttr) {
         SVGPreserveAspectRatio preserveAspectRatio;
         preserveAspectRatio.parse(value);
         setPreserveAspectRatioBaseValue(preserveAspectRatio);
-    } else if (name == SVGNames::widthAttr)
+        return;
+    }
+
+    SVGParsingError parseError = NoError;
+
+    if (name == SVGNames::xAttr)
+        setXBaseValue(SVGLength::construct(LengthModeWidth, value, parseError));
+    else if (name == SVGNames::yAttr)
+        setYBaseValue(SVGLength::construct(LengthModeHeight, value, parseError));
+    else if (name == SVGNames::widthAttr)
         setWidthBaseValue(SVGLength::construct(LengthModeWidth, value, parseError, ForbidNegativeLengths));
     else if (name == SVGNames::heightAttr)
         setHeightBaseValue(SVGLength::construct(LengthModeHeight, value, parseError, ForbidNegativeLengths));
-    else if (SVGLangSpace::parseAttribute(name, value)
-             || SVGExternalResourcesRequired::parseAttribute(name, value)
-             || SVGURIReference::parseAttribute(name, value)) {
-    } else
-        ASSERT_NOT_REACHED();
 
     reportAttributeParsingError(parseError, name, value);
+
+    SVGGraphicsElement::parseAttribute(name, value);
+    SVGExternalResourcesRequired::parseAttribute(name, value);
+    SVGURIReference::parseAttribute(name, value);
 }
 
 void SVGImageElement::svgAttributeChanged(const QualifiedName& attrName)
@@ -122,7 +119,7 @@ void SVGImageElement::svgAttributeChanged(const QualifiedName& attrName)
         return;
     }
 
-    SVGElementInstance::InvalidationGuard invalidationGuard(this);
+    InstanceInvalidationGuard guard(*this);
 
     if (attrName == SVGNames::widthAttr
         || attrName == SVGNames::heightAttr) {
@@ -143,12 +140,12 @@ void SVGImageElement::svgAttributeChanged(const QualifiedName& attrName)
         return;
     }
 
-    auto renderer = this->renderer();
+    auto* renderer = this->renderer();
     if (!renderer)
         return;
 
     if (isLengthAttribute) {
-        if (toRenderSVGImage(renderer)->updateImageViewport())
+        if (downcast<RenderSVGImage>(*renderer).updateImageViewport())
             RenderSVGResource::markForLayoutAndParentResourceInvalidation(*renderer);
         return;
     }
@@ -163,7 +160,7 @@ void SVGImageElement::svgAttributeChanged(const QualifiedName& attrName)
     ASSERT_NOT_REACHED();
 }
 
-RenderPtr<RenderElement> SVGImageElement::createElementRenderer(PassRef<RenderStyle> style)
+RenderPtr<RenderElement> SVGImageElement::createElementRenderer(Ref<RenderStyle>&& style, const RenderTreePosition&)
 {
     return createRenderer<RenderSVGImage>(*this, WTF::move(style));
 }
@@ -175,7 +172,7 @@ bool SVGImageElement::haveLoadedRequiredResources()
 
 void SVGImageElement::didAttachRenderers()
 {
-    if (RenderSVGImage* imageObj = toRenderSVGImage(renderer())) {
+    if (auto* imageObj = downcast<RenderSVGImage>(renderer())) {
         if (imageObj->imageResource().hasImage())
             return;
 

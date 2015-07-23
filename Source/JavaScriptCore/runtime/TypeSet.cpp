@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008, 2014 Apple Inc. All Rights Reserved.
+ * Copyright (C) 2014, 2015 Apple Inc. All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,6 +26,7 @@
 #include "config.h"
 #include "TypeSet.h"
 
+#include "InspectorProtocolObjects.h"
 #include "JSCJSValue.h"
 #include "JSCJSValueInlines.h"
 #include <wtf/text/CString.h>
@@ -37,123 +38,293 @@ namespace JSC {
 
 TypeSet::TypeSet()
     : m_seenTypes(TypeNothing)
-    , m_structureHistory(new Vector<RefPtr<StructureShape>>)
+    , m_isOverflown(false)
 {
 }
 
-RuntimeType TypeSet::getRuntimeTypeForValue(JSValue v)
+void TypeSet::addTypeInformation(RuntimeType type, PassRefPtr<StructureShape> prpNewShape, Structure* structure) 
 {
-    RuntimeType ret;
-    if (v.isFunction())
-        ret = TypeFunction;
-    else if (v.isUndefined())
-        ret = TypeUndefined;
-    else if (v.isNull())
-        ret = TypeNull;
-    else if (v.isBoolean())
-        ret = TypeBoolean;
-    else if (v.isMachineInt())
-        ret = TypeMachineInt;
-    else if (v.isNumber())
-        ret = TypeNumber;
-    else if (v.isString())
-        ret = TypeString;
-    else if (v.isPrimitive())
-        ret = TypePrimitive;
-    else if (v.isObject())
-        ret = TypeObject;
-    else
-        CRASH();
+    RefPtr<StructureShape> newShape = prpNewShape;
+    m_seenTypes = m_seenTypes | type;
 
-    return ret;
-}
-
-void TypeSet::addTypeForValue(JSValue v, PassRefPtr<StructureShape> shape, StructureID id) 
-{
-    RuntimeType t = getRuntimeTypeForValue(v);
-    m_seenTypes = m_seenTypes | t;
-
-    if (id && shape) {
-        ASSERT(m_structureIDHistory.isValidKey(id));
-        auto iter = m_structureIDHistory.find(id);
-        if (iter == m_structureIDHistory.end()) {
-            m_structureIDHistory.set(id, 1);
-            // Make one more pass making sure that we don't have the same shape. (Same shapes may have different StructureIDs).
+    if (structure && newShape && !runtimeTypeIsPrimitive(type)) {
+        if (!m_structureSet.contains(structure)) {
+            m_structureSet.add(structure);
+            // Make one more pass making sure that: 
+            // - We don't have two instances of the same shape. (Same shapes may have different Structures).
+            // - We don't have two shapes that share the same prototype chain. If these shapes share the same 
+            //   prototype chain, they will be merged into one shape.
             bool found = false;
-            String hash = shape->propertyHash();
-            for (size_t i = 0; i < m_structureHistory->size(); i++) {
-                RefPtr<StructureShape> obj = m_structureHistory->at(i);
-                if (obj->propertyHash() == hash) {
+            String hash = newShape->propertyHash();
+            for (size_t i = 0; i < m_structureHistory.size(); i++) {
+                RefPtr<StructureShape>& seenShape = m_structureHistory.at(i);
+                if (seenShape->propertyHash() == hash) {
+                    found = true;
+                    break;
+                } 
+                if (seenShape->hasSamePrototypeChain(newShape)) {
+                    seenShape = StructureShape::merge(seenShape, newShape);
                     found = true;
                     break;
                 }
             }
 
-            if (!found)
-                m_structureHistory->append(shape);
+            if (!found) {
+                if (m_structureHistory.size() < 100)
+                    m_structureHistory.append(newShape);
+                else if (!m_isOverflown)
+                    m_isOverflown = true;
+            }
         }
     }
 }
 
-String TypeSet::seenTypes() 
+void TypeSet::invalidateCache()
+{
+    auto keepMarkedStructuresFilter = [] (Structure* structure) -> bool { return Heap::isMarked(structure); };
+    m_structureSet.genericFilter(keepMarkedStructuresFilter);
+}
+
+String TypeSet::dumpTypes() const
 {
     if (m_seenTypes == TypeNothing)
-        return "(Unreached Statement)";
+        return ASCIILiteral("(Unreached Statement)");
 
     StringBuilder seen;
 
     if (m_seenTypes & TypeFunction)
-         seen.append("Function ");
+        seen.appendLiteral("Function ");
     if (m_seenTypes & TypeUndefined)
-         seen.append("Undefined ");
+        seen.appendLiteral("Undefined ");
     if (m_seenTypes & TypeNull)
-         seen.append("Null ");
+        seen.appendLiteral("Null ");
     if (m_seenTypes & TypeBoolean)
-         seen.append("Boolean ");
+        seen.appendLiteral("Boolean ");
     if (m_seenTypes & TypeMachineInt)
-         seen.append("MachineInt ");
+        seen.appendLiteral("MachineInt ");
     if (m_seenTypes & TypeNumber)
-         seen.append("Number ");
+        seen.appendLiteral("Number ");
     if (m_seenTypes & TypeString)
-         seen.append("String ");
-    if (m_seenTypes & TypePrimitive)
-         seen.append("Primitive ");
+        seen.appendLiteral("String ");
     if (m_seenTypes & TypeObject)
-         seen.append("Object ");
+        seen.appendLiteral("Object ");
+    if (m_seenTypes & TypeSymbol)
+        seen.appendLiteral("Symbol ");
 
-    for (size_t i = 0; i < m_structureHistory->size(); i++) {
-        RefPtr<StructureShape> shape = m_structureHistory->at(i);
-        if (!shape->m_constructorName.isEmpty()) {
-            seen.append(shape->m_constructorName);
-            seen.append(" ");
-        }
+    for (size_t i = 0; i < m_structureHistory.size(); i++) {
+        RefPtr<StructureShape> shape = m_structureHistory.at(i);
+        seen.append(shape->m_constructorName);
+        seen.append(' ');
     }
 
-    if (m_structureHistory->size()) 
-        seen.append("\nStructures:[ ");
-    for (size_t i = 0; i < m_structureHistory->size(); i++) {
-        seen.append(m_structureHistory->at(i)->stringRepresentation());
-        seen.append(" ");
+    if (m_structureHistory.size()) 
+        seen.appendLiteral("\nStructures:[ ");
+    for (size_t i = 0; i < m_structureHistory.size(); i++) {
+        seen.append(m_structureHistory.at(i)->stringRepresentation());
+        seen.append(' ');
     }
-    if (m_structureHistory->size())
-        seen.append("]");
+    if (m_structureHistory.size())
+        seen.append(']');
 
-    if (m_structureHistory->size()) {
-        seen.append("\nLUB: ");
-        seen.append(StructureShape::leastUpperBound(m_structureHistory));
+    if (m_structureHistory.size()) {
+        seen.appendLiteral("\nLeast Common Ancestor: ");
+        seen.append(leastCommonAncestor());
     }
 
     return seen.toString();
 }
 
-void TypeSet::dumpSeenTypes()
+bool TypeSet::doesTypeConformTo(RuntimeTypeMask test) const
 {
-    dataLog(seenTypes(), "\n");
+    // This function checks if our seen types conform  to the types described by the test bitstring. (i.e we haven't seen more types than test).
+    // We are <= to those types if ANDing with the bitstring doesn't zero out any of our bits.
+
+    // For example:
+
+    // 0b0110 (seen)
+    // 0b1111 (test)
+    // ------ (AND)
+    // 0b0110 == seen
+
+    // 0b0110 (seen)
+    // 0b0010 (test)
+    // ------ (AND)
+    // 0b0010 != seen
+
+    return m_seenTypes != TypeNothing && (m_seenTypes & test) == m_seenTypes;
+}
+
+String TypeSet::displayName() const
+{
+    if (m_seenTypes == TypeNothing)
+        return emptyString();
+
+    if (m_structureHistory.size() && doesTypeConformTo(TypeObject | TypeNull | TypeUndefined)) {
+        String ctorName = leastCommonAncestor(); 
+
+        if (doesTypeConformTo(TypeObject))
+            return ctorName;
+        if (doesTypeConformTo(TypeObject | TypeNull | TypeUndefined))
+            return ctorName + '?';
+    }
+
+    // The order of these checks are important. For example, if a value is only a function, it conforms to TypeFunction, but it also conforms to TypeFunction | TypeNull.
+    // Therefore, more specific types must be checked first.
+
+    if (doesTypeConformTo(TypeFunction))
+        return ASCIILiteral("Function");
+    if (doesTypeConformTo(TypeUndefined))
+        return ASCIILiteral("Undefined");
+    if (doesTypeConformTo(TypeNull))
+        return ASCIILiteral("Null");
+    if (doesTypeConformTo(TypeBoolean))
+        return ASCIILiteral("Boolean");
+    if (doesTypeConformTo(TypeMachineInt))
+        return ASCIILiteral("Integer");
+    if (doesTypeConformTo(TypeNumber | TypeMachineInt))
+        return ASCIILiteral("Number");
+    if (doesTypeConformTo(TypeString))
+        return ASCIILiteral("String");
+    if (doesTypeConformTo(TypeSymbol))
+        return ASCIILiteral("Symbol");
+
+    if (doesTypeConformTo(TypeNull | TypeUndefined))
+        return ASCIILiteral("(?)");
+
+    if (doesTypeConformTo(TypeFunction | TypeNull | TypeUndefined))
+        return ASCIILiteral("Function?");
+    if (doesTypeConformTo(TypeBoolean | TypeNull | TypeUndefined))
+        return ASCIILiteral("Boolean?");
+    if (doesTypeConformTo(TypeMachineInt | TypeNull | TypeUndefined))
+        return ASCIILiteral("Integer?");
+    if (doesTypeConformTo(TypeNumber | TypeMachineInt | TypeNull | TypeUndefined))
+        return ASCIILiteral("Number?");
+    if (doesTypeConformTo(TypeString | TypeNull | TypeUndefined))
+        return ASCIILiteral("String?");
+    if (doesTypeConformTo(TypeSymbol | TypeNull | TypeUndefined))
+        return ASCIILiteral("Symbol?");
+   
+    if (doesTypeConformTo(TypeObject | TypeFunction | TypeString))
+        return ASCIILiteral("Object");
+    if (doesTypeConformTo(TypeObject | TypeFunction | TypeString | TypeNull | TypeUndefined))
+        return ASCIILiteral("Object?");
+
+    return ASCIILiteral("(many)");
+}
+
+String TypeSet::leastCommonAncestor() const
+{
+    return StructureShape::leastCommonAncestor(m_structureHistory);
+}
+
+Ref<Inspector::Protocol::Array<Inspector::Protocol::Runtime::StructureDescription>> TypeSet::allStructureRepresentations() const
+{
+    auto description = Inspector::Protocol::Array<Inspector::Protocol::Runtime::StructureDescription>::create();
+
+    for (size_t i = 0; i < m_structureHistory.size(); i++)
+        description->addItem(m_structureHistory.at(i)->inspectorRepresentation());
+
+    return WTF::move(description);
+}
+
+Ref<Inspector::Protocol::Runtime::TypeSet> TypeSet::inspectorTypeSet() const
+{
+    return Inspector::Protocol::Runtime::TypeSet::create()
+        .setIsFunction((m_seenTypes & TypeFunction) != TypeNothing)
+        .setIsUndefined((m_seenTypes & TypeUndefined) != TypeNothing)
+        .setIsNull((m_seenTypes & TypeNull) != TypeNothing)
+        .setIsBoolean((m_seenTypes & TypeBoolean) != TypeNothing)
+        .setIsInteger((m_seenTypes & TypeMachineInt) != TypeNothing)
+        .setIsNumber((m_seenTypes & TypeNumber) != TypeNothing)
+        .setIsString((m_seenTypes & TypeString) != TypeNothing)
+        .setIsObject((m_seenTypes & TypeObject) != TypeNothing)
+        .setIsSymbol((m_seenTypes & TypeSymbol) != TypeNothing)
+        .release();
+}
+
+String TypeSet::toJSONString() const
+{
+    // This returns a JSON string representing an Object with the following properties:
+    //     displayTypeName: 'String'
+    //     primitiveTypeNames: 'Array<String>'
+    //     structures: 'Array<JSON<StructureShape>>'
+
+    StringBuilder json;
+    json.append('{');
+
+    json.appendLiteral("\"displayTypeName\":");
+    json.append('"');
+    json.append(displayName());
+    json.append('"');
+    json.append(',');
+
+    json.appendLiteral("\"primitiveTypeNames\":");
+    json.append('[');
+    bool hasAnItem = false;
+    if (m_seenTypes & TypeUndefined) {
+        hasAnItem = true;
+        json.appendLiteral("\"Undefined\"");
+    }
+    if (m_seenTypes & TypeNull) {
+        if (hasAnItem)
+            json.append(',');
+        hasAnItem = true;
+        json.appendLiteral("\"Null\"");
+    }
+    if (m_seenTypes & TypeBoolean) {
+        if (hasAnItem)
+            json.append(',');
+        hasAnItem = true;
+        json.appendLiteral("\"Boolean\"");
+    }
+    if (m_seenTypes & TypeMachineInt) {
+        if (hasAnItem)
+            json.append(',');
+        hasAnItem = true;
+        json.appendLiteral("\"Integer\"");
+    }
+    if (m_seenTypes & TypeNumber) {
+        if (hasAnItem)
+            json.append(',');
+        hasAnItem = true;
+        json.appendLiteral("\"Number\"");
+    }
+    if (m_seenTypes & TypeString) {
+        if (hasAnItem)
+            json.append(',');
+        hasAnItem = true;
+        json.appendLiteral("\"String\"");
+    }
+    if (m_seenTypes & TypeSymbol) {
+        if (hasAnItem)
+            json.append(',');
+        hasAnItem = true;
+        json.appendLiteral("\"Symbol\"");
+    }
+    json.append(']');
+
+    json.append(',');
+
+    json.appendLiteral("\"structures\":");
+    json.append('[');
+    hasAnItem = false;
+    for (size_t i = 0; i < m_structureHistory.size(); i++) {
+        if (hasAnItem)
+            json.append(',');
+        hasAnItem = true;
+        json.append(m_structureHistory[i]->toJSONString());
+    }
+    json.append(']');
+
+    json.append('}');
+    return json.toString();
 }
 
 StructureShape::StructureShape()
-    : m_propertyHash(nullptr)
+    : m_proto(nullptr)
+    , m_propertyHash(nullptr)
     , m_final(false)
+    , m_isInDictionaryMode(false)
 {
 }
 
@@ -163,75 +334,254 @@ void StructureShape::markAsFinal()
     m_final = true;
 }
 
-void StructureShape::addProperty(RefPtr<StringImpl> impl)
+void StructureShape::addProperty(UniquedStringImpl& uid)
 {
     ASSERT(!m_final);
-    m_fields.set(impl, true);
+    m_fields.add(&uid);
 }
 
-String StructureShape::propertyHash() 
+String StructureShape::propertyHash()
 {
     ASSERT(m_final);
     if (m_propertyHash)
         return *m_propertyHash;
 
     StringBuilder builder;
-    builder.append(":");
-    for (auto iter = m_fields.begin(), end = m_fields.end(); iter != end; ++iter) {
-        String property = String(iter->key);
+    builder.append(':');
+    builder.append(m_constructorName);
+    builder.append(':');
+    for (auto& key : m_fields) {
+        String property = key.get();
         property.replace(":", "\\:"); // Ensure that hash({"foo:", "bar"}) != hash({"foo", ":bar"}) because we're using colons as a separator and colons are legal characters in field names in JS.
         builder.append(property);
+    }
+
+    if (m_proto) {
+        builder.append(':');
+        builder.appendLiteral("__proto__");
+        builder.append(m_proto->propertyHash());
     }
 
     m_propertyHash = std::make_unique<String>(builder.toString());
     return *m_propertyHash;
 }
 
-String StructureShape::leastUpperBound(Vector<RefPtr<StructureShape>>* shapes)
+String StructureShape::leastCommonAncestor(const Vector<RefPtr<StructureShape>> shapes)
 {
-    if (!shapes->size())
-        return "";
+    if (!shapes.size())
+        return emptyString();
 
-    StringBuilder lub;
-    RefPtr<StructureShape> origin = shapes->at(0);
-    lub.append("{");
-    for (auto iter = origin->m_fields.begin(), end = origin->m_fields.end(); iter != end; ++iter) {
-        bool shouldAdd = true;
-        for (size_t i = 1, size = shapes->size(); i < size; i++) {
-            // If all other Shapes have the same field as origin, add it to the least upper bound.
-            if (!shapes->at(i)->m_fields.contains(iter->key)) {
-                shouldAdd = false;
-                break;
+    RefPtr<StructureShape> origin = shapes.at(0);
+    for (size_t i = 1; i < shapes.size(); i++) {
+        bool foundLUB = false;
+        while (!foundLUB) {
+            RefPtr<StructureShape> check = shapes.at(i);
+            String curCtorName = origin->m_constructorName;
+            while (check) {
+                if (check->m_constructorName == curCtorName) {
+                    foundLUB = true;
+                    break;
+                }
+                check = check->m_proto;
+            }
+            if (!foundLUB) {
+                origin = origin->m_proto;
+                // All Objects must share the 'Object' Prototype. Therefore, at the very least, we should always converge on 'Object' before reaching a null prototype.
+                RELEASE_ASSERT(origin); 
             }
         }
-        if (shouldAdd)
-            lub.append(String(iter->key.get()) + String(", "));
+
+        if (origin->m_constructorName == "Object")
+            break;
     }
 
-    if (lub.length() >= 3)
-        lub.resize(lub.length() - 2); // Remove the trailing ', '
-
-    lub.append("}");
-    
-    return lub.toString();
+    return origin->m_constructorName;
 }
 
 String StructureShape::stringRepresentation()
 {
     StringBuilder representation;
-    representation.append("{");
-    for (auto iter = m_fields.begin(), end = m_fields.end(); iter != end; ++iter) {
-        String prop(iter->key.get());
-        representation.append(prop);
-        representation.append(", ");
+    RefPtr<StructureShape> curShape = this;
+
+    representation.append('{');
+    while (curShape) {
+        for (auto it = curShape->m_fields.begin(), end = curShape->m_fields.end(); it != end; ++it) {
+            String prop((*it).get());
+            representation.append(prop);
+            representation.appendLiteral(", ");
+        }
+
+        if (curShape->m_proto) {
+            representation.appendLiteral("__proto__ [");
+            representation.append(curShape->m_proto->m_constructorName);
+            representation.appendLiteral("], ");
+        }
+
+        curShape = curShape->m_proto;
     }
 
     if (representation.length() >= 3)
         representation.resize(representation.length() - 2);
 
-    representation.append("}");
+    representation.append('}');
 
     return representation.toString();
+}
+
+String StructureShape::toJSONString() const
+{
+    // This returns a JSON string representing an Object with the following properties:
+    //     constructorName: 'String'
+    //     fields: 'Array<String>'
+    //     optionalFields: 'Array<String>'
+    //     proto: 'JSON<StructureShape> | null'
+
+    StringBuilder json;
+    json.append('{');
+
+    json.appendLiteral("\"constructorName\":");
+    json.append('"');
+    json.append(m_constructorName);
+    json.append('"');
+    json.append(',');
+
+    json.appendLiteral("\"isInDictionaryMode\":");
+    if (m_isInDictionaryMode)
+        json.appendLiteral("true");
+    else
+        json.appendLiteral("false");
+    json.append(',');
+
+    json.appendLiteral("\"fields\":");
+    json.append('[');
+    bool hasAnItem = false;
+    for (auto it = m_fields.begin(), end = m_fields.end(); it != end; ++it) {
+        if (hasAnItem)
+            json.append(',');
+        hasAnItem = true;
+
+        String fieldName((*it).get());
+        json.append('"');
+        json.append(fieldName);
+        json.append('"');
+    }
+    json.append(']');
+    json.append(',');
+
+    json.appendLiteral("\"optionalFields\":");
+    json.append('[');
+    hasAnItem = false;
+    for (auto it = m_optionalFields.begin(), end = m_optionalFields.end(); it != end; ++it) {
+        if (hasAnItem)
+            json.append(',');
+        hasAnItem = true;
+
+        String fieldName((*it).get());
+        json.append('"');
+        json.append(fieldName);
+        json.append('"');
+    }
+    json.append(']');
+    json.append(',');
+
+    json.appendLiteral("\"proto\":");
+    if (m_proto)
+        json.append(m_proto->toJSONString());
+    else
+        json.appendLiteral("null");
+
+    json.append('}');
+
+    return json.toString();
+}
+
+Ref<Inspector::Protocol::Runtime::StructureDescription> StructureShape::inspectorRepresentation()
+{
+    auto base = Inspector::Protocol::Runtime::StructureDescription::create().release();
+    Ref<Inspector::Protocol::Runtime::StructureDescription> currentObject = base.copyRef();
+    RefPtr<StructureShape> currentShape(this);
+
+    while (currentShape) {
+        auto fields = Inspector::Protocol::Array<String>::create();
+        auto optionalFields = Inspector::Protocol::Array<String>::create();
+        for (auto field : currentShape->m_fields)
+            fields->addItem(field.get());
+        for (auto field : currentShape->m_optionalFields)
+            optionalFields->addItem(field.get());
+
+        currentObject->setFields(&fields.get());
+        currentObject->setOptionalFields(&optionalFields.get());
+        currentObject->setConstructorName(currentShape->m_constructorName);
+        currentObject->setIsImprecise(currentShape->m_isInDictionaryMode);
+
+        if (currentShape->m_proto) {
+            auto nextObject = Inspector::Protocol::Runtime::StructureDescription::create().release();
+            currentObject->setPrototypeStructure(&nextObject.get());
+            currentObject = WTF::move(nextObject);
+        }
+
+        currentShape = currentShape->m_proto;
+    }
+
+    return WTF::move(base);
+}
+
+bool StructureShape::hasSamePrototypeChain(PassRefPtr<StructureShape> prpOther)
+{
+    RefPtr<StructureShape> self = this;
+    RefPtr<StructureShape> other = prpOther;
+    while (self && other) {
+        if (self->m_constructorName != other->m_constructorName)
+            return false;
+        self = self->m_proto;
+        other = other->m_proto;
+    }
+
+    return !self && !other;
+}
+
+PassRefPtr<StructureShape> StructureShape::merge(const PassRefPtr<StructureShape> prpA, const PassRefPtr<StructureShape> prpB)
+{
+    RefPtr<StructureShape> a = prpA;
+    RefPtr<StructureShape> b = prpB;
+    ASSERT(a->hasSamePrototypeChain(b));
+
+    RefPtr<StructureShape> merged = StructureShape::create();
+    for (auto field : a->m_fields) {
+        if (b->m_fields.contains(field))
+            merged->m_fields.add(field);
+        else
+            merged->m_optionalFields.add(field);
+    }
+
+    for (auto field : b->m_fields) {
+        if (!merged->m_fields.contains(field)) {
+            auto addResult = merged->m_optionalFields.add(field);
+            ASSERT_UNUSED(addResult, addResult.isNewEntry);
+        }
+    }
+
+    for (auto field : a->m_optionalFields)
+        merged->m_optionalFields.add(field);
+    for (auto field : b->m_optionalFields)
+        merged->m_optionalFields.add(field);
+
+    ASSERT(a->m_constructorName == b->m_constructorName);
+    merged->setConstructorName(a->m_constructorName);
+
+    if (a->m_proto) {
+        RELEASE_ASSERT(b->m_proto);
+        merged->setProto(StructureShape::merge(a->m_proto, b->m_proto));
+    }
+
+    merged->markAsFinal();
+
+    return merged.release();
+}
+
+void StructureShape::enterDictionaryMode()
+{
+    m_isInDictionaryMode = true;
 }
 
 } //namespace JSC

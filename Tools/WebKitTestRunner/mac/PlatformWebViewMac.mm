@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010, 2013 Apple Inc. All rights reserved.
+ * Copyright (C) 2010, 2013, 2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -141,13 +141,21 @@ PlatformWebView::PlatformWebView(WKContextRef contextRef, WKPageGroupRef pageGro
     m_view = [[TestRunnerWKView alloc] initWithFrame:rect contextRef:contextRef pageGroupRef:pageGroupRef relatedToPage:relatedPage useThreadedScrolling:useThreadedScrolling];
     [m_view setWindowOcclusionDetectionEnabled:NO];
 
-    NSRect windowRect = NSOffsetRect(rect, -10000, [(NSScreen *)[[NSScreen screens] objectAtIndex:0] frame].size.height - rect.size.height + 10000);
+    WKRetainPtr<WKStringRef> shouldShowWebViewKey(AdoptWK, WKStringCreateWithUTF8CString("ShouldShowWebView"));
+    WKTypeRef shouldShowWebViewValue = options ? WKDictionaryGetItemForKey(options, shouldShowWebViewKey.get()) : NULL;
+    bool shouldShowWebView = shouldShowWebViewValue && WKBooleanGetValue(static_cast<WKBooleanRef>(shouldShowWebViewValue));
+
+    NSScreen *firstScreen = [[NSScreen screens] objectAtIndex:0];
+    NSRect windowRect = (shouldShowWebView) ? NSOffsetRect(rect, 100, 100) : NSOffsetRect(rect, -10000, [firstScreen frame].size.height - rect.size.height + 10000);
     m_window = [[WebKitTestRunnerWindow alloc] initWithContentRect:windowRect styleMask:NSBorderlessWindowMask backing:(NSBackingStoreType)_NSBackingStoreUnbuffered defer:YES];
     m_window.platformWebView = this;
-    [m_window setColorSpace:[[NSScreen mainScreen] colorSpace]];
+    [m_window setColorSpace:[firstScreen colorSpace]];
     [m_window setCollectionBehavior:NSWindowCollectionBehaviorStationary];
     [[m_window contentView] addSubview:m_view];
-    [m_window orderBack:nil];
+    if (shouldShowWebView)
+        [m_window orderFront:nil];
+    else
+        [m_window orderBack:nil];
     [m_window setReleasedWhenClosed:NO];
 }
 
@@ -230,7 +238,12 @@ void PlatformWebView::makeWebViewFirstResponder()
 WKRetainPtr<WKImageRef> PlatformWebView::windowSnapshotImage()
 {
     [m_view display];
-    RetainPtr<CGImageRef> windowSnapshotImage = adoptCF(CGWindowListCreateImage(CGRectNull, kCGWindowListOptionIncludingWindow, [m_window windowNumber], kCGWindowImageBoundsIgnoreFraming | kCGWindowImageShouldBeOpaque));
+    CGWindowImageOption options = kCGWindowImageBoundsIgnoreFraming | kCGWindowImageShouldBeOpaque;
+
+    if ([m_window backingScaleFactor] == 1)
+        options |= kCGWindowImageNominalResolution;
+
+    RetainPtr<CGImageRef> windowSnapshotImage = adoptCF(CGWindowListCreateImage(CGRectNull, kCGWindowListOptionIncludingWindow, [m_window windowNumber], options));
 
     // windowSnapshotImage will be in GenericRGB, as we've set the main display's color space to GenericRGB.
     return adoptWK(WKImageCreateFromCGImage(windowSnapshotImage.get(), 0));

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2011-2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,7 +30,6 @@
 
 #if ENABLE(DFG_JIT)
 
-#include "CodeOrigin.h"
 #include "Options.h"
 #include "VirtualRegister.h"
 
@@ -61,6 +60,13 @@ enum RefChildrenMode {
 enum RefNodeMode {
     RefNode,
     DontRefNode
+};
+
+enum SwitchKind {
+    SwitchImm,
+    SwitchChar,
+    SwitchString,
+    SwitchCell
 };
 
 inline bool verboseCompilationEnabled(CompilationMode mode = DFGMode)
@@ -146,7 +152,9 @@ enum PredictionPass {
     FixupPass
 };
 
-enum StructureWatchpointState { HaveNotStartedWatching, WatchingAllWatchableStructures };
+enum StructureRegistrationState { HaveNotStartedRegistering, AllStructuresAreRegistered };
+
+enum StructureRegistrationResult { StructureRegisteredNormally, StructureRegisteredAndWatched };
 
 enum OptimizationFixpointState { BeforeFixpoint, FixpointNotConverged, FixpointConverged };
 
@@ -184,12 +192,10 @@ enum GraphForm {
     // expect to be live at the head, and which locals they make available at the
     // tail. ThreadedCPS form also implies that:
     //
-    // - GetLocals and SetLocals to uncaptured variables are not redundant within
-    //   a basic block.
+    // - GetLocals and SetLocals are not redundant within a basic block.
     //
     // - All GetLocals and Flushes are linked directly to the last access point
-    //   of the variable, which must not be another GetLocal if the variable is
-    //   uncaptured.
+    //   of the variable, which must not be another GetLocal.
     //
     // - Phantom(Phi) is not legal, but PhantomLocal is.
     //
@@ -247,6 +253,11 @@ inline KillStatus killStatusForDoesKill(bool doesKill)
     return doesKill ? DoesKill : DoesNotKill;
 }
 
+enum class PlanStage {
+    Initial,
+    AfterFixup
+};
+
 template<typename T, typename U>
 bool checkAndSet(T& left, U right)
 {
@@ -262,6 +273,33 @@ bool checkAndSet(T& left, U right)
 void startCrashing();
 
 JS_EXPORT_PRIVATE bool isCrashing();
+
+struct NodeAndIndex {
+    NodeAndIndex()
+        : node(nullptr)
+        , index(UINT_MAX)
+    {
+    }
+    
+    NodeAndIndex(Node* node, unsigned index)
+        : node(node)
+        , index(index)
+    {
+        ASSERT(!node == (index == UINT_MAX));
+    }
+    
+    bool operator!() const
+    {
+        return !node;
+    }
+    
+    Node* node;
+    unsigned index;
+};
+
+// A less-than operator for strings that is useful for generating string switches. Sorts by <
+// relation on characters. Ensures that if a is a prefix of b, then a < b.
+bool stringLessThan(StringImpl& a, StringImpl& b);
 
 } } // namespace JSC::DFG
 
@@ -283,7 +321,6 @@ namespace JSC { namespace DFG {
 
 enum CapabilityLevel {
     CannotCompile,
-    CanInline,
     CanCompile,
     CanCompileAndInline,
     CapabilityLevelNotSet
@@ -303,7 +340,6 @@ inline bool canCompile(CapabilityLevel level)
 inline bool canInline(CapabilityLevel level)
 {
     switch (level) {
-    case CanInline:
     case CanCompileAndInline:
         return true;
     default:
@@ -316,14 +352,6 @@ inline CapabilityLevel leastUpperBound(CapabilityLevel a, CapabilityLevel b)
     switch (a) {
     case CannotCompile:
         return CannotCompile;
-    case CanInline:
-        switch (b) {
-        case CanInline:
-        case CanCompileAndInline:
-            return CanInline;
-        default:
-            return CannotCompile;
-        }
     case CanCompile:
         switch (b) {
         case CanCompile:
@@ -354,6 +382,12 @@ inline bool shouldShowDisassembly(CompilationMode mode = DFGMode)
 }
 
 } } // namespace JSC::DFG
+
+namespace WTF {
+
+void printInternal(PrintStream&, JSC::DFG::CapabilityLevel);
+
+} // namespace WTF
 
 #endif // DFGCommon_h
 

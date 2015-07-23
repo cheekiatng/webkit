@@ -102,7 +102,7 @@ TEST(WTF_RefPtr, Basic)
     {
         RefPtr<RefLogger> ptr(&a);
         ASSERT_EQ(&a, ptr.get());
-        ptr.clear();
+        ptr = nullptr;
         ASSERT_EQ(nullptr, ptr.get());
     }
     ASSERT_STREQ("ref(a) deref(a) ", takeLogStr().c_str());
@@ -120,7 +120,7 @@ TEST(WTF_RefPtr, AssignPassRefToRefPtr)
 {
     DerivedRefLogger a("a");
     {
-        PassRef<RefLogger> passRef(a);
+        Ref<RefLogger> passRef(a);
         RefPtr<RefLogger> ptr = WTF::move(passRef);
         ASSERT_EQ(&a, ptr.get());
         ptr.release();

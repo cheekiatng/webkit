@@ -27,15 +27,13 @@
  */
 
 #include "config.h"
-
-#if ENABLE(SQL_DATABASE)
 #include "SQLException.h"
 
 #include "ExceptionCodeDescription.h"
 
 namespace WebCore {
 
-static struct SQLExceptionNameDescription {
+static const struct SQLExceptionNameDescription {
     const char* const name;
     const char* const description;
 } sqlExceptions[] = {
@@ -68,5 +66,3 @@ bool SQLException::initializeDescription(ExceptionCode ec, ExceptionCodeDescript
 }
 
 } // namespace WebCore
-
-#endif // ENABLE(SQL_DATABASE)

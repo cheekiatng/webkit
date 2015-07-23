@@ -24,17 +24,17 @@
  */
 
 #import "LTRelayController.h"
-#import "LTPipeRelay.h"
 
+#import "CoreSimulatorSPI.h"
+#import "LTPipeRelay.h"
 #import <AppKit/AppKit.h>
-#import <CoreSimulator/CoreSimulator.h>
 
 @interface LTRelayController ()
-@property (readonly, strong) NSFileHandle *standardInput;
+@property (readonly, strong) dispatch_source_t standardInputDispatchSource;
 @property (readonly, strong) NSFileHandle *standardOutput;
 @property (readonly, strong) NSFileHandle *standardError;
 @property (readonly, strong) NSString *uniqueAppPath;
-@property (readonly, strong) NSString *uniqueAppIdentifer;
+@property (readonly, strong) NSString *uniqueAppIdentifier;
 @property (readonly, strong) NSURL *uniqueAppURL;
 @property (readonly, strong) NSString *originalAppIdentifier;
 @property (readonly, strong) NSString *originalAppPath;
@@ -58,9 +58,25 @@
         _originalAppIdentifier = [NSDictionary dictionaryWithContentsOfFile:[_originalAppPath stringByAppendingPathComponent:@"Info.plist"]][(NSString *)kCFBundleIdentifierKey];
         _identifierSuffix = suffix;
         _dumpToolArguments = arguments;
-        _standardInput = [NSFileHandle fileHandleWithStandardInput];
+        _standardInputDispatchSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, STDIN_FILENO, 0, dispatch_get_main_queue());
         _standardOutput = [NSFileHandle fileHandleWithStandardOutput];
         _standardError = [NSFileHandle fileHandleWithStandardError];
+
+        dispatch_source_set_event_handler(_standardInputDispatchSource, ^{
+            uint8_t buffer[1024];
+            ssize_t len = read(STDIN_FILENO, buffer, sizeof(buffer));
+            if (len > 0) {
+                @try {
+                    [[[self relay] outputStream] write:buffer maxLength:len];
+                } @catch (NSException *e) {
+                    // Broken pipe - the dump tool crashed. Time to die.
+                    [self didCrashWithMessage:nil];
+                }
+            } else {
+                // EOF Received on the relay's standard input.
+                [self finish];
+            }
+        });
 
         _relay = [[LTPipeRelay alloc] initWithPrefix:[@"/tmp" stringByAppendingPathComponent:[self uniqueAppIdentifier]]];
         [_relay setRelayDelegate:self];
@@ -87,42 +103,44 @@
     return [[[self originalAppIdentifier] componentsSeparatedByString:@"."] lastObject];
 }
 
-- (void)readFileHandle:(NSFileHandle *)fileHandle
-{
-    NSData *data = [fileHandle availableData];
-    uint8_t bytes[[data length]];
-    [data getBytes:bytes length:[data length]];
-    [[[self relay] outputStream] write:[data bytes] maxLength:[data length]];
-}
-
-
 - (void)didReceiveStdoutData:(NSData *)data
 {
-    [[self standardOutput] writeData:data];
+    @try {
+        [[self standardOutput] writeData:data];
+    } @catch (NSException *exception) {
+        // NSFileHandleOperationException
+        // Broken pipe - the test harness stopped listening to us,
+        // probably because we timed out or a run was canceled.
+        exit(EXIT_FAILURE);
+    }
 }
 
 - (void)didReceiveStderrData:(NSData *)data
 {
-    [[self standardError] writeData:data];
+    @try {
+        [[self standardError] writeData:data];
+    } @catch (NSException *exception) {
+        // NSFileHandleOperationException
+        // Broken pipe - the test harness stopped listening to us,
+        // probably because we timed out or a run was canceled.
+        exit(EXIT_FAILURE);
+    }
 }
 
 - (void)didDisconnect
 {
-    [[self standardInput] setReadabilityHandler:nil];
+    dispatch_suspend([self standardInputDispatchSource]);
 }
 
 - (void)didConnect
 {
-    [[self standardInput] setReadabilityHandler: ^(NSFileHandle *fileHandle)
-    {
-        [self readFileHandle:fileHandle];
-    }];
+    dispatch_resume([self standardInputDispatchSource]);
 }
 
 - (void)didCrashWithMessage:(NSString *)message
 {
     [[self relay] disconnect];
-    NSString *crashMessage = [NSString stringWithFormat:@"\nCRASH: %@ %d\n", [self processName], [self pid]];
+    NSString *crashMessage = [NSString stringWithFormat:@"\n#CRASHED - %@ (pid %d)\n", [self processName], [self pid]];
 
     if (message)
         crashMessage = [crashMessage stringByAppendingFormat:@"%@\n", message];
@@ -131,66 +149,6 @@
     [[self standardError] closeFile];
     [[self standardOutput] closeFile];
     exit(EXIT_FAILURE);
-}
-
-- (void)launchSimulator
-{
-    NSString *developerDir = [[[NSProcessInfo processInfo] environment] valueForKey:@"DEVELOPER_DIR"];
-    if (!developerDir) {
-        NSTask *xcodeSelectTask = [[NSTask alloc] init];
-        [xcodeSelectTask setLaunchPath:@"/usr/bin/xcode-select"];
-        [xcodeSelectTask setArguments:@[@"--print-path"]];
-        [xcodeSelectTask setStandardOutput:[NSPipe pipe]];
-
-        NSFileHandle *stdoutFileHandle = [[xcodeSelectTask standardOutput] fileHandleForReading];
-        [xcodeSelectTask launch];
-        [xcodeSelectTask waitUntilExit];
-
-        NSData *data = [stdoutFileHandle readDataToEndOfFile];
-        developerDir = [NSString stringWithUTF8String:[data bytes]];
-    }
-
-    developerDir = [developerDir stringByTrimmingCharactersInSet:[NSCharacterSet newlineCharacterSet]];
-
-    if (!developerDir || ![developerDir length]) {
-        NSLog(@"Not able to determine the path to iOS Simulator.app in your active Xcode.app");
-        exit(EXIT_FAILURE);
-    }
-    NSURL *simulatorURL = [NSURL fileURLWithPath:[developerDir stringByAppendingPathComponent:@"Applications/iOS Simulator.app"]];
-
-    NSDictionary *launchConfiguration = @{
-        NSWorkspaceLaunchConfigurationArguments: @[
-            @"-CurrentDeviceUDID", [[[self device] UDID] UUIDString],
-            ]
-    };
-    NSError *error;
-    [[NSWorkspace sharedWorkspace] launchApplicationAtURL:simulatorURL options:NSWorkspaceLaunchDefault configuration:launchConfiguration error:&error];
-
-    if (error) {
-        NSLog(@"Couldn't launch iOS Simulator from %@: %@", [simulatorURL path], [error description]);
-        exit(EXIT_FAILURE);
-    }
-
-    while ([[self device] state] == SimDeviceStateShutdown) {
-        // Wait for device to start booting
-        sleep(1);
-    }
-}
-
-- (void)bootDevice
-{
-    while ([[self device] state] == SimDeviceStateBooting)
-        sleep(1);
-
-    if ([[self device] state] == SimDeviceStateBooted)
-        return;
-
-    NSError *error;
-    [[self device] bootWithOptions:nil error:&error];
-    if (error) {
-        NSLog(@"Unable to boot device: %@", [error description]);
-        exit(EXIT_FAILURE);
-    }
 }
 
 - (void)createUniqueApp
@@ -219,14 +177,6 @@
         (NSString *)kCFBundleIdentifierKey: [self uniqueAppIdentifier],
     };
 
-    if ([[self device] applicationIsInstalled:[self uniqueAppIdentifier] type: nil error: &error]) {
-        BOOL uninstalled = [[self device ] uninstallApplication:[self uniqueAppIdentifier] withOptions:nil error:&error];
-        if (!uninstalled) {
-            NSLog(@"Couldn't uninstall %@: %@", [self uniqueAppIdentifier], [error description]);
-            exit(EXIT_FAILURE);
-        }
-    }
-
     [[self device] installApplication:[self uniqueAppURL] withOptions:installOptions error:&error];
     if (error) {
         NSLog(@"Couldn't install %@: %@", [[self uniqueAppURL] path], [error description]);
@@ -248,13 +198,40 @@
     [self setAppDispatchSource:nil];
 }
 
+- (NSDictionary *)_environmentVariables
+{
+    static NSDictionary *environmentVariables;
+    static dispatch_once_t once;
+
+    dispatch_once(&once, ^{
+        NSString *productDirectory = [self productDir];
+
+        NSMutableDictionary *dictionary = [@{
+            @"DYLD_FRAMEWORK_PATH": productDirectory,
+            @"__XPC_DYLD_FRAMEWORK_PATH": productDirectory,
+            @"DYLD_LIBRARY_PATH": productDirectory,
+            @"__XPC_DYLD_LIBRARY_PATH": productDirectory,
+        } mutableCopy];
+
+        for (NSString *keyName in @[@"DYLD_INSERT_LIBRARIES", @"MallocStackLogging", @"LOCAL_RESOURCE_ROOT", @"DUMPRENDERTREE_TEMP"]) {
+            const char* value = getenv([keyName UTF8String]);
+            if (value && strlen(value)) {
+                NSString *nsValue = [NSString stringWithUTF8String:value];
+                [dictionary setObject:nsValue forKey:keyName];
+                [dictionary setObject:nsValue forKey:[@"__XPC_" stringByAppendingString:keyName]];
+            }
+        }
+
+        environmentVariables = [dictionary copy];
+    });
+
+    return environmentVariables;
+}
+
 - (void)launchApp
 {
     NSDictionary *launchOptions = @{
-        kSimDeviceLaunchApplicationEnvironment: @{
-            @"DYLD_LIBRARY_PATH": [self productDir],
-            @"DYLD_FRAMEWORK_PATH": [self productDir],
-        },
+        kSimDeviceLaunchApplicationEnvironment: [self _environmentVariables],
         kSimDeviceLaunchApplicationArguments: [self dumpToolArguments],
     };
 
@@ -269,23 +246,28 @@
     [self setPid:pid];
 
     dispatch_queue_t queue = dispatch_get_main_queue();
-    dispatch_source_t dispatchSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_PROC, [self pid], DISPATCH_PROC_EXIT, queue);
-    [self setAppDispatchSource:dispatchSource];
-    dispatch_source_set_event_handler(dispatchSource, ^{
-        dispatch_source_cancel(dispatchSource);
+    dispatch_source_t simulatorAppExitDispatchSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_PROC, [self pid], DISPATCH_PROC_EXIT, queue);
+    [self setAppDispatchSource:simulatorAppExitDispatchSource];
+    dispatch_source_set_event_handler(simulatorAppExitDispatchSource, ^{
+        dispatch_source_cancel(simulatorAppExitDispatchSource);
         [self didCrashWithMessage:nil];
     });
-    dispatch_resume(dispatchSource);
+    dispatch_resume(simulatorAppExitDispatchSource);
 }
 
 - (void)start
 {
-    [self launchSimulator];
-    [self bootDevice];
     [self createUniqueApp];
     [[self relay] setup];
     [self launchApp];
     [[self relay] connect];
+}
+
+- (void)finish
+{
+    [[self relay] disconnect];
+    [self killApp];
+    exit(EXIT_SUCCESS);
 }
 
 @end

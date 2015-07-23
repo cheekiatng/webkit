@@ -1,4 +1,5 @@
-macro(INCLUDE_IF_EXISTS _file)
+macro(WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS)
+    set(_file ${CMAKE_CURRENT_SOURCE_DIR}/Platform${PORT}.cmake)
     if (EXISTS ${_file})
         message(STATUS "Using platform-specific CMakeLists: ${_file}")
         include(${_file})
@@ -6,7 +7,6 @@ macro(INCLUDE_IF_EXISTS _file)
         message(STATUS "Platform-specific CMakeLists not found: ${_file}")
     endif ()
 endmacro()
-
 
 # Append the given dependencies to the source file
 macro(ADD_SOURCE_DEPENDENCIES _source _deps)
@@ -23,6 +23,22 @@ macro(ADD_SOURCE_DEPENDENCIES _source _deps)
     set_source_files_properties(${_source} PROPERTIES OBJECT_DEPENDS "${_tmp}")
 endmacro()
 
+macro(ADD_PRECOMPILED_HEADER _header _cpp _source)
+    if (MSVC)
+        get_filename_component(PrecompiledBasename ${_header} NAME_WE)
+        set(PrecompiledBinary "${CMAKE_CURRENT_BINARY_DIR}/${PrecompiledBasename}.pch")
+        set(_sources ${${_source}})
+
+        set_source_files_properties(${_cpp}
+            PROPERTIES COMPILE_FLAGS "/Yc\"${_header}\" /Fp\"${PrecompiledBinary}\""
+            OBJECT_OUTPUTS "${PrecompiledBinary}")
+        set_source_files_properties(${_sources}
+            PROPERTIES COMPILE_FLAGS "/Yu\"${_header}\" /FI\"${_header}\" /Fp\"${PrecompiledBinary}\""
+            OBJECT_DEPENDS "${PrecompiledBinary}")
+        list(APPEND ${_source} ${_cpp})
+    endif ()
+    #FIXME: Add support for Xcode.
+endmacro()
 
 # Helper macro which wraps generate-bindings.pl script.
 #   _output_source is a list name which will contain generated sources.(eg. WebCore_SOURCES)
@@ -34,19 +50,16 @@ endmacro()
 #   _prefix is a prefix of output files. (eg. JS - it makes JSXXX.cpp JSXXX.h from XXX.idl)
 #   _generator is a value of --generator argument.
 #   _supplemental_dependency_file is a value of --supplementalDependencyFile. (optional)
-macro(GENERATE_BINDINGS _output_source _input_files _base_dir _idl_includes _features _destination _prefix _generator _idl_attributes_file)
+macro(GENERATE_BINDINGS _output_source _input_files _base_dir _idl_includes _features _destination _prefix _generator _extension _idl_attributes_file)
     set(BINDING_GENERATOR ${WEBCORE_DIR}/bindings/scripts/generate-bindings.pl)
     set(_args ${ARGN})
     list(LENGTH _args _argCount)
-    if (_argCount EQUAL 5)
+    if (_argCount GREATER 0)
         list(GET _args 0 _supplemental_dependency_file)
         if (_supplemental_dependency_file)
             set(_supplemental_dependency --supplementalDependencyFile ${_supplemental_dependency_file})
         endif ()
-        list(GET _args 1 _window_constructors_file)
-        list(GET _args 2 _workerglobalscope_constructors_file)
-        list(GET _args 3 _sharedworkerglobalscope_constructors_file)
-        list(GET _args 4 _dedicatedworkerglobalscope_constructors_file)
+        list(GET _args 1 _additional_dependencies)
     endif ()
 
     set(COMMON_GENERATOR_DEPENDENCIES
@@ -55,11 +68,8 @@ macro(GENERATE_BINDINGS _output_source _input_files _base_dir _idl_includes _fea
         ${SCRIPTS_BINDINGS}
         ${_supplemental_dependency_file}
         ${_idl_attributes_file}
-        ${_window_constructors_file}
-        ${_workerglobalscope_constructors_file}
-        ${_sharedworkerglobalscope_constructors_file}
-        ${_dedicatedworkerglobalscope_constructors_file}
     )
+    list(APPEND COMMON_GENERATOR_DEPENDENCIES ${_additional_dependencies})
 
     if (EXISTS ${WEBCORE_DIR}/bindings/scripts/CodeGenerator${_generator}.pm)
         list(APPEND COMMON_GENERATOR_DEPENDENCIES ${WEBCORE_DIR}/bindings/scripts/CodeGenerator${_generator}.pm)
@@ -69,14 +79,14 @@ macro(GENERATE_BINDINGS _output_source _input_files _base_dir _idl_includes _fea
         get_filename_component(_name ${_file} NAME_WE)
 
         add_custom_command(
-            OUTPUT ${_destination}/${_prefix}${_name}.cpp ${_destination}/${_prefix}${_name}.h
+            OUTPUT ${_destination}/${_prefix}${_name}.${_extension} ${_destination}/${_prefix}${_name}.h
             MAIN_DEPENDENCY ${_file}
             DEPENDS ${COMMON_GENERATOR_DEPENDENCIES}
             COMMAND ${PERL_EXECUTABLE} -I${WEBCORE_DIR}/bindings/scripts ${BINDING_GENERATOR} --defines "${_features}" --generator ${_generator} ${_idl_includes} --outputDir "${_destination}" --preprocessor "${CODE_GENERATOR_PREPROCESSOR}" --idlAttributesFile ${_idl_attributes_file} ${_supplemental_dependency} ${_file}
             WORKING_DIRECTORY ${_base_dir}
             VERBATIM)
 
-        list(APPEND ${_output_source} ${_destination}/${_prefix}${_name}.cpp)
+        list(APPEND ${_output_source} ${_destination}/${_prefix}${_name}.${_extension})
     endforeach ()
 endmacro()
 
@@ -196,13 +206,6 @@ macro(MAKE_HASH_TOOLS _source)
     unset(_hash_tools_h)
 endmacro()
 
-macro(WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS)
-    if (PORT_FALLBACK)
-        INCLUDE_IF_EXISTS(${CMAKE_CURRENT_SOURCE_DIR}/Platform${PORT_FALLBACK}.cmake)
-    endif ()
-    INCLUDE_IF_EXISTS(${CMAKE_CURRENT_SOURCE_DIR}/Platform${PORT}.cmake)
-endmacro()
-
 macro(WEBKIT_WRAP_SOURCELIST)
     foreach (_file ${ARGN})
         get_filename_component(_basename ${_file} NAME_WE)
@@ -281,10 +284,10 @@ macro(GENERATE_WEBKIT2_MESSAGE_SOURCES _output_source _input_files)
         add_custom_command(
             OUTPUT ${DERIVED_SOURCES_WEBKIT2_DIR}/${_name}MessageReceiver.cpp ${DERIVED_SOURCES_WEBKIT2_DIR}/${_name}Messages.h
             MAIN_DEPENDENCY ${_file}
-            DEPENDS ${WEBKIT2_DIR}/Scripts/webkit2/__init__.py
-                    ${WEBKIT2_DIR}/Scripts/webkit2/messages.py
-                    ${WEBKIT2_DIR}/Scripts/webkit2/model.py
-                    ${WEBKIT2_DIR}/Scripts/webkit2/parser.py
+            DEPENDS ${WEBKIT2_DIR}/Scripts/webkit/__init__.py
+                    ${WEBKIT2_DIR}/Scripts/webkit/messages.py
+                    ${WEBKIT2_DIR}/Scripts/webkit/model.py
+                    ${WEBKIT2_DIR}/Scripts/webkit/parser.py
             COMMAND ${PYTHON_EXECUTABLE} ${WEBKIT2_DIR}/Scripts/generate-message-receiver.py ${_file} > ${DERIVED_SOURCES_WEBKIT2_DIR}/${_name}MessageReceiver.cpp
             COMMAND ${PYTHON_EXECUTABLE} ${WEBKIT2_DIR}/Scripts/generate-messages-header.py ${_file} > ${DERIVED_SOURCES_WEBKIT2_DIR}/${_name}Messages.h
             WORKING_DIRECTORY ${WEBKIT2_DIR}

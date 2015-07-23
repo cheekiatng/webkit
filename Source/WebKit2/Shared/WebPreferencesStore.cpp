@@ -30,11 +30,14 @@
 #include "WebCoreArgumentCoders.h"
 #include "WebPreferencesKeys.h"
 #include <WebCore/Settings.h>
+#include <WebCore/TextEncodingRegistry.h>
 #include <wtf/NeverDestroyed.h>
 
 #if PLATFORM(IOS)
 #import <WebKitSystemInterfaceIOS.h>
 #endif
+
+using namespace WebCore;
 
 namespace WebKit {
 
@@ -181,7 +184,7 @@ static MappedType valueForKey(const WebPreferencesStore::ValueMap& values, const
     if (overridenDefaultsIt != overridenDefaults.end() && overridenDefaultsIt->value.type() == ToType<MappedType>::value)
         return as<MappedType>(overridenDefaultsIt->value);
 
-    auto defaultsMap = defaults();
+    auto& defaultsMap = defaults();
     auto defaultsIt = defaultsMap.find(key);
     if (defaultsIt != defaultsMap.end() && defaultsIt->value.type() == ToType<MappedType>::value)
         return as<MappedType>(defaultsIt->value);

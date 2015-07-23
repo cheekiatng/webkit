@@ -53,6 +53,21 @@ bool AccessibilityUIElement::isValid() const
     return m_element;            
 }
 
+// iOS specific methods
+#if !PLATFORM(IOS)
+JSRetainPtr<JSStringRef> AccessibilityUIElement::identifier() { return nullptr; }
+JSRetainPtr<JSStringRef> AccessibilityUIElement::traits() { return nullptr; }
+int AccessibilityUIElement::elementTextPosition() { return 0; }
+int AccessibilityUIElement::elementTextLength() { return 0; }
+JSRetainPtr<JSStringRef> AccessibilityUIElement::stringForSelection() { return nullptr; }
+JSValueRef AccessibilityUIElement::elementsForRange(unsigned, unsigned) { return nullptr; }
+void AccessibilityUIElement::increaseTextSelection() { }
+void AccessibilityUIElement::decreaseTextSelection() { }
+PassRefPtr<AccessibilityUIElement> AccessibilityUIElement::linkedElement() { return nullptr; }
+PassRefPtr<AccessibilityUIElement> AccessibilityUIElement::headerElementAtIndex(unsigned) { return nullptr; }
+void AccessibilityUIElement::assistiveTechnologySimulatedFocus() { return; }
+#endif
+    
 // Unsupported methods on various platforms. As they're implemented on other platforms this list should be modified.
 #if (!PLATFORM(GTK) && !PLATFORM(EFL)) || !HAVE(ACCESSIBILITY)
 JSRetainPtr<JSStringRef> AccessibilityUIElement::characterAtOffset(int) { return 0; }
@@ -173,6 +188,7 @@ JSRetainPtr<JSStringRef> AccessibilityUIElement::rangeForLine(int) { return 0; }
 JSRetainPtr<JSStringRef> AccessibilityUIElement::rangeForPosition(int, int) { return 0; }
 JSRetainPtr<JSStringRef> AccessibilityUIElement::boundsForRange(unsigned, unsigned) { return 0; }
 bool AccessibilityUIElement::setSelectedTextRange(unsigned, unsigned) { return false; }
+bool AccessibilityUIElement::setSelectedVisibleTextRange(AccessibilityTextMarkerRange*) { return false; }
 JSRetainPtr<JSStringRef> AccessibilityUIElement::stringForRange(unsigned, unsigned) { return 0; }
 JSRetainPtr<JSStringRef> AccessibilityUIElement::attributedStringForRange(unsigned, unsigned) { return 0; }
 bool AccessibilityUIElement::attributedStringRangeIsMisspelled(unsigned, unsigned) { return false; }
@@ -209,6 +225,12 @@ JSRetainPtr<JSStringRef> AccessibilityUIElement::mathPostscriptsDescription() co
 JSRetainPtr<JSStringRef> AccessibilityUIElement::mathPrescriptsDescription() const { return 0; }
 JSRetainPtr<JSStringRef> AccessibilityUIElement::pathDescription() const { return 0; }
 
+#endif
+
+#if !PLATFORM(MAC) || !HAVE(ACCESSIBILITY)
+PassRefPtr<AccessibilityTextMarkerRange> AccessibilityUIElement::selectedTextMarkerRange() { return nullptr; }
+void AccessibilityUIElement::resetSelectedTextMarkerRange() { }
+void AccessibilityUIElement::setBoolAttributeValue(JSStringRef, bool) { }
 #endif
 
 } // namespace WTR

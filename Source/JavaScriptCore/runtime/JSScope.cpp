@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012, 2013, 2014 Apple Inc. All Rights Reserved.
+ * Copyright (C) 2012-2015 Apple Inc. All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,8 +26,8 @@
 #include "config.h"
 #include "JSScope.h"
 
-#include "JSActivation.h"
 #include "JSGlobalObject.h"
+#include "JSLexicalEnvironment.h"
 #include "JSNameScope.h"
 #include "JSWithScope.h"
 #include "JSCInlines.h"
@@ -47,26 +47,26 @@ void JSScope::visitChildren(JSCell* cell, SlotVisitor& visitor)
 // Returns true if we found enough information to terminate optimization.
 static inline bool abstractAccess(ExecState* exec, JSScope* scope, const Identifier& ident, GetOrPut getOrPut, size_t depth, bool& needsVarInjectionChecks, ResolveOp& op)
 {
-    if (JSActivation* activation = jsDynamicCast<JSActivation*>(scope)) {
+    if (JSLexicalEnvironment* lexicalEnvironment = jsDynamicCast<JSLexicalEnvironment*>(scope)) {
         if (ident == exec->propertyNames().arguments) {
-            // We know the property will be at this activation scope, but we don't know how to cache it.
+            // We know the property will be at this lexical environment scope, but we don't know how to cache it.
             op = ResolveOp(Dynamic, 0, 0, 0, 0, 0);
             return true;
         }
 
-        SymbolTableEntry entry = activation->symbolTable()->get(ident.impl());
+        SymbolTableEntry entry = lexicalEnvironment->symbolTable()->get(ident.impl());
         if (entry.isReadOnly() && getOrPut == Put) {
-            // We know the property will be at this activation scope, but we don't know how to cache it.
+            // We know the property will be at this lexical environment scope, but we don't know how to cache it.
             op = ResolveOp(Dynamic, 0, 0, 0, 0, 0);
             return true;
         }
 
         if (!entry.isNull()) {
-            op = ResolveOp(makeType(ClosureVar, needsVarInjectionChecks), depth, 0, activation, entry.watchpointSet(), entry.getIndex());
+            op = ResolveOp(makeType(ClosureVar, needsVarInjectionChecks), depth, 0, lexicalEnvironment, entry.watchpointSet(), entry.scopeOffset().offset());
             return true;
         }
 
-        if (activation->symbolTable()->usesNonStrictEval())
+        if (lexicalEnvironment->symbolTable()->usesNonStrictEval())
             needsVarInjectionChecks = true;
         return false;
     }
@@ -82,7 +82,7 @@ static inline bool abstractAccess(ExecState* exec, JSScope* scope, const Identif
 
             op = ResolveOp(
                 makeType(GlobalVar, needsVarInjectionChecks), depth, 0, 0, entry.watchpointSet(),
-                reinterpret_cast<uintptr_t>(globalObject->registerAt(entry.getIndex()).slot()));
+                reinterpret_cast<uintptr_t>(globalObject->variableAt(entry.scopeOffset()).slot()));
             return true;
         }
 
@@ -133,29 +133,51 @@ int JSScope::depth()
     return depth;
 }
 
+// When an exception occurs, the result of isUnscopable becomes false.
+static inline bool isUnscopable(ExecState* exec, JSScope* scope, JSObject* object, const Identifier& ident)
+{
+    if (scope->type() != WithScopeType)
+        return false;
+
+    JSValue unscopables = object->get(exec, exec->propertyNames().unscopablesSymbol);
+    if (exec->hadException())
+        return false;
+    if (!unscopables.isObject())
+        return false;
+    JSValue blocked = jsCast<JSObject*>(unscopables)->get(exec, ident);
+    if (exec->hadException())
+        return false;
+
+    return blocked.toBoolean(exec);
+}
+
 JSValue JSScope::resolve(ExecState* exec, JSScope* scope, const Identifier& ident)
 {
     ScopeChainIterator end = scope->end();
     ScopeChainIterator it = scope->begin();
     while (1) {
+        JSScope* scope = it.scope();
         JSObject* object = it.get();
 
         if (++it == end) // Global scope.
             return object;
 
-        if (object->hasProperty(exec, ident))
-            return object;
+        if (object->hasProperty(exec, ident)) {
+            if (!isUnscopable(exec, scope, object, ident))
+                return object;
+            ASSERT_WITH_MESSAGE(!exec->hadException(), "When an exception occurs, the result of isUnscopable becomes false");
+        }
     }
 }
 
-ResolveOp JSScope::abstractResolve(ExecState* exec, JSScope* scope, const Identifier& ident, GetOrPut getOrPut, ResolveType unlinkedType)
+ResolveOp JSScope::abstractResolve(ExecState* exec, size_t depthOffset, JSScope* scope, const Identifier& ident, GetOrPut getOrPut, ResolveType unlinkedType)
 {
     ResolveOp op(Dynamic, 0, 0, 0, 0, 0);
     if (unlinkedType == Dynamic)
         return op;
 
-    size_t depth = 0;
     bool needsVarInjectionChecks = JSC::needsVarInjectionChecks(unlinkedType);
+    size_t depth = depthOffset;
     for (; scope; scope = scope->next()) {
         if (abstractAccess(exec, scope, ident, getOrPut, depth, needsVarInjectionChecks, op))
             break;
@@ -163,6 +185,28 @@ ResolveOp JSScope::abstractResolve(ExecState* exec, JSScope* scope, const Identi
     }
 
     return op;
+}
+
+void JSScope::collectVariablesUnderTDZ(JSScope* scope, VariableEnvironment& result)
+{
+    for (; scope; scope = scope->next()) {
+        if (!scope->isLexicalScope())
+            continue;
+        SymbolTable* symbolTable = jsCast<JSLexicalEnvironment*>(scope)->symbolTable();
+        ASSERT(symbolTable->correspondsToLexicalScope());
+        ConcurrentJITLocker locker(symbolTable->m_lock);
+        for (auto end = symbolTable->end(locker), iter = symbolTable->begin(locker); iter != end; ++iter)
+            result.add(iter->key);
+    }
+}
+
+bool JSScope::isLexicalScope()
+{
+    JSLexicalEnvironment* lexicalEnvironment = jsDynamicCast<JSLexicalEnvironment*>(this);
+    if (!lexicalEnvironment) // Global object does not hold any lexical variables so we can ignore it.
+        return false;
+
+    return lexicalEnvironment->symbolTable()->correspondsToLexicalScope();
 }
 
 const char* resolveModeName(ResolveMode mode)
@@ -180,12 +224,12 @@ const char* resolveTypeName(ResolveType type)
         "GlobalProperty",
         "GlobalVar",
         "ClosureVar",
+        "LocalClosureVar",
         "GlobalPropertyWithVarInjectionChecks",
         "GlobalVarWithVarInjectionChecks",
         "ClosureVarWithVarInjectionChecks",
         "Dynamic"
     };
-    ASSERT(type < sizeof(names) / sizeof(names[0]));
     return names[type];
 }
 

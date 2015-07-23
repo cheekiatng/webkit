@@ -24,58 +24,55 @@
  */
 
 .filter-bar {
-    display: -webkit-flex;
+    display: flex;
 
-    height: 26px;
+    height: 29px;
 
     white-space: nowrap;
     overflow: hidden;
+
+    background-color: hsl(0, 0%, 94%);
 }
 
-body.mac-platform.legacy .filter-bar {
-    height: 21px;
+.filter-bar > .navigation-bar {
+    margin-top: 1px;
+}
+
+.filter-bar > .navigation-bar > .item {
+    padding: 0 0 3px 8px;
 }
 
 .filter-bar > input[type="search"] {
-    display: -webkit-flex;
-    -webkit-flex: 1;
+    display: flex;
+    flex: 1;
 
-    margin: 1px 6px;
+    margin: 3px 6px 4px;
+    padding-top: 0;
 
     outline: none;
 
     -webkit-appearance: none;
 
-    border: 1px solid rgba(0, 0, 0, 0.25);
+    border: 1px solid hsla(0, 0%, 0%, 0.25);
     border-radius: 3px;
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: hsla(0, 0%, 100%, 0.2);
     background-clip: padding-box;
 
     height: 22px;
 }
 
-body.mac-platform.legacy .filter-bar > input[type="search"] {
-    border: 1px solid rgba(0, 0, 0, 0.35);
-    border-radius: 10px;
-    box-shadow: inset rgba(0, 0, 0, 0.1) 0 1px 0;
-
-    height: 19px;
-    transition: background-color 200ms ease-in-out;
-}
-
 .filter-bar > input[type="search"]::-webkit-input-placeholder {
-    color: rgba(0, 0, 0, 0.35);
+    color: hsla(0, 0%, 0%, 0.35);
 }
 
 .filter-bar > input[type="search"]:focus { background-color: white; }
-.filter-bar > input[type="search"]:not(:placeholder-shown) { background-color: white; } /* Needs to be a separate rule. See http://webkit.org/b/118162 */
 
 .filter-bar > input[type="search"]::-webkit-search-decoration {
     width: 13px;
     height: 13px;
 
-    margin-left: 1px;
-    margin-right: 3px;
+    margin-left: 6px;
+    margin-right: 6px;
 
     vertical-align: bottom;
 

@@ -36,7 +36,7 @@
 #include "Dictionary.h"
 #include "Document.h"
 #include "ExceptionCodeDescription.h"
-#include "Font.h"
+#include "FontCascade.h"
 #include "FrameView.h"
 #include "StyleProperties.h"
 #include "StyleResolver.h"
@@ -48,12 +48,12 @@ static const char* const defaultFontFamily = "sans-serif";
 
 class LoadFontCallback : public CSSSegmentedFontFace::LoadFontCallback {
 public:
-    static PassRefPtr<LoadFontCallback> create(int numLoading, PassRefPtr<VoidCallback> loadCallback, PassRefPtr<VoidCallback> errorCallback)
+    static Ref<LoadFontCallback> create(int numLoading, FontLoader& fontLoader, PassRefPtr<VoidCallback> loadCallback, PassRefPtr<VoidCallback> errorCallback)
     {
-        return adoptRef<LoadFontCallback>(new LoadFontCallback(numLoading, loadCallback, errorCallback));
+        return adoptRef(*new LoadFontCallback(numLoading, fontLoader, loadCallback, errorCallback));
     }
 
-    static PassRefPtr<LoadFontCallback> createFromParams(const Dictionary& params, const Font& font)
+    static PassRefPtr<LoadFontCallback> createFromParams(const Dictionary& params, FontLoader& fontLoader, const FontCascade& font)
     {
         RefPtr<VoidCallback> onsuccess;
         RefPtr<VoidCallback> onerror;
@@ -62,23 +62,29 @@ public:
         if (!onsuccess && !onerror)
             return 0;
         int numFamilies = font.familyCount();
-        return LoadFontCallback::create(numFamilies, onsuccess, onerror);
+        return LoadFontCallback::create(numFamilies, fontLoader, onsuccess, onerror);
     }
 
     virtual void notifyLoaded() override;
     virtual void notifyError() override;
     virtual ~LoadFontCallback() { };
 
+    int familyCount() const { return m_familyCount; }
+
 private:
-    LoadFontCallback(int numLoading, PassRefPtr<VoidCallback> loadCallback, PassRefPtr<VoidCallback> errorCallback)
-        : m_numLoading(numLoading)
+    LoadFontCallback(int numLoading, FontLoader& fontLoader, PassRefPtr<VoidCallback> loadCallback, PassRefPtr<VoidCallback> errorCallback)
+        : m_familyCount(numLoading)
+        , m_numLoading(numLoading)
         , m_errorOccured(false)
+        , m_fontLoader(fontLoader)
         , m_loadCallback(loadCallback)
         , m_errorCallback(errorCallback)
     { }
 
+    int m_familyCount;
     int m_numLoading;
     bool m_errorOccured;
+    FontLoader& m_fontLoader;
     RefPtr<VoidCallback> m_loadCallback;
     RefPtr<VoidCallback> m_errorCallback;
 };
@@ -88,6 +94,8 @@ void LoadFontCallback::notifyLoaded()
     m_numLoading--;
     if (m_numLoading)
         return;
+
+    m_fontLoader.loadFontDone(*this);
 
     if (m_errorOccured) {
         if (m_errorCallback)
@@ -104,10 +112,17 @@ void LoadFontCallback::notifyError()
     notifyLoaded();
 }
 
+void FontLoader::loadFontDone(const LoadFontCallback& callback)
+{
+    m_numLoadingFromJS -= callback.familyCount();
+}
+
 FontLoader::FontLoader(Document* document)
     : ActiveDOMObject(document)
     , m_document(document)
-    , m_loadingCount(0)
+    , m_numLoadingFromCSS(0)
+    , m_numLoadingFromJS(0)
+    , m_pendingEventsTimer(*this, &FontLoader::pendingEventsTimerFired)
 {
     suspendIfNeeded();
 }
@@ -138,93 +153,100 @@ ScriptExecutionContext* FontLoader::scriptExecutionContext() const
 
 void FontLoader::didLayout()
 {
-    firePendingEvents();
     loadingDone();
+}
+
+const char* FontLoader::activeDOMObjectName() const
+{
+    return "FontLoader";
+}
+
+bool FontLoader::canSuspendForPageCache() const
+{
+    return !m_numLoadingFromCSS && !m_numLoadingFromJS;
 }
 
 void FontLoader::scheduleEvent(PassRefPtr<Event> event)
 {
-    if (FrameView* view = m_document->view()) {
-        if (view->isInLayout()) {
-            m_pendingEvents.append(event);
-            return;
-        }
-    }
-    firePendingEvents();
-    dispatchEvent(event);
+    m_pendingEvents.append(event);
+    if (!m_pendingEventsTimer.isActive())
+        m_pendingEventsTimer.startOneShot(0);
 }
 
 void FontLoader::firePendingEvents()
 {
-    if (m_pendingEvents.isEmpty())
+    if (m_pendingEvents.isEmpty() && !m_loadingDoneEvent && !m_callbacks.isEmpty())
         return;
 
-    Vector<RefPtr<Event> > pendingEvents;
+    Vector<RefPtr<Event>> pendingEvents;
     m_pendingEvents.swap(pendingEvents);
+
+    bool loadingDone = false;
+    if (m_loadingDoneEvent) {
+        pendingEvents.append(m_loadingDoneEvent.release());
+        loadingDone = true;
+    }
+
     for (size_t index = 0; index < pendingEvents.size(); ++index)
         dispatchEvent(pendingEvents[index].release());
+
+    if (loadingDone && !m_callbacks.isEmpty()) {
+        Vector<RefPtr<VoidCallback>> callbacks;
+        m_callbacks.swap(callbacks);
+        for (size_t index = 0; index < callbacks.size(); ++index)
+            callbacks[index]->handleEvent();
+    }
 }
 
 void FontLoader::beginFontLoading(CSSFontFaceRule* rule)
 {
-    ++m_loadingCount;
-    if (m_loadingCount == 1 && !m_loadingDoneEvent)
+    ++m_numLoadingFromCSS;
+    if (m_numLoadingFromCSS == 1 && !m_loadingDoneEvent)
         scheduleEvent(CSSFontFaceLoadEvent::createForFontFaceRule(eventNames().loadingEvent, rule));
     scheduleEvent(CSSFontFaceLoadEvent::createForFontFaceRule(eventNames().loadstartEvent, rule));
 }
 
 void FontLoader::fontLoaded(CSSFontFaceRule* rule)
 {
-    ASSERT(m_loadingCount > 0);
+    ASSERT(m_numLoadingFromCSS > 0);
     scheduleEvent(CSSFontFaceLoadEvent::createForFontFaceRule(eventNames().loadEvent, rule));
 
-    --m_loadingCount;
-    if (!m_loadingCount)
+    --m_numLoadingFromCSS;
+    if (!m_numLoadingFromCSS)
         m_loadingDoneEvent = CSSFontFaceLoadEvent::createForFontFaceRule(eventNames().loadingdoneEvent, rule);
 }
 
 void FontLoader::loadError(CSSFontFaceRule* rule, CSSFontFaceSource* source)
 {
-    ASSERT(m_loadingCount > 0);
+    ASSERT(m_numLoadingFromCSS > 0);
 
     // FIXME: We should report NetworkError in case of timeout, etc.
     String errorName = (source && source->isDecodeError()) ? "InvalidFontDataError" : ExceptionCodeDescription(NOT_FOUND_ERR).name;
     scheduleEvent(CSSFontFaceLoadEvent::createForError(rule, DOMError::create(errorName)));
-    --m_loadingCount;
-    if (!m_loadingCount)
+    --m_numLoadingFromCSS;
+    if (!m_numLoadingFromCSS)
         m_loadingDoneEvent = CSSFontFaceLoadEvent::createForFontFaceRule(eventNames().loadingdoneEvent, rule);
 }
 
 void FontLoader::notifyWhenFontsReady(PassRefPtr<VoidCallback> callback)
 {
     m_callbacks.append(callback);
-    loadingDone();
 }
 
 void FontLoader::loadingDone()
 {
-    if (loading())
+    if (loading() || !m_document->haveStylesheetsLoaded())
         return;
-    if (!m_loadingDoneEvent && m_callbacks.isEmpty())
+    if (!m_loadingDoneEvent && m_callbacks.isEmpty() && m_pendingEvents.isEmpty())
         return;
 
     if (FrameView* view = m_document->view()) {
         if (view->isInLayout() || view->needsLayout())
             return;
-        m_document->updateStyleIfNeeded();
-        if (view->needsLayout())
-            return;
     }
 
-    if (m_loadingDoneEvent)
-        dispatchEvent(m_loadingDoneEvent.release());
-
-    if (!m_callbacks.isEmpty()) {
-        Vector<RefPtr<VoidCallback> > callbacks;
-        m_callbacks.swap(callbacks);
-        for (size_t index = 0; index < callbacks.size(); ++index)
-            callbacks[index]->handleEvent();
-    }
+    if (!m_pendingEventsTimer.isActive())
+        m_pendingEventsTimer.startOneShot(0);
 }
 
 void FontLoader::loadFont(const Dictionary& params)
@@ -233,13 +255,14 @@ void FontLoader::loadFont(const Dictionary& params)
     String fontString;
     if (!params.get("font", fontString))
         return;
-    Font font;
+    FontCascade font;
     if (!resolveFontStyle(fontString, font))
         return;
-    RefPtr<LoadFontCallback> callback = LoadFontCallback::createFromParams(params, font);
-    
+    RefPtr<LoadFontCallback> callback = LoadFontCallback::createFromParams(params, *this, font);
+    m_numLoadingFromJS += callback->familyCount();
+
     for (unsigned i = 0; i < font.familyCount(); i++) {
-        CSSSegmentedFontFace* face = m_document->ensureStyleResolver().fontSelector()->getFontFace(font.fontDescription(), font.familyAt(i));
+        CSSSegmentedFontFace* face = m_document->fontSelector().getFontFace(font.fontDescription(), font.familyAt(i));
         if (!face) {
             if (callback)
                 callback->notifyError();
@@ -252,11 +275,11 @@ void FontLoader::loadFont(const Dictionary& params)
 bool FontLoader::checkFont(const String& fontString, const String&)
 {
     // FIXME: The second parameter (text) is ignored.
-    Font font;
+    FontCascade font;
     if (!resolveFontStyle(fontString, font))
         return false;
     for (unsigned i = 0; i < font.familyCount(); i++) {
-        CSSSegmentedFontFace* face = m_document->ensureStyleResolver().fontSelector()->getFontFace(font.fontDescription(), font.familyAt(i));
+        CSSSegmentedFontFace* face = m_document->fontSelector().getFontFace(font.fontDescription(), font.familyAt(i));
         if (!face || !face->checkFont())
             return false;
     }
@@ -268,11 +291,11 @@ static void applyPropertyToCurrentStyle(StyleResolver& styleResolver, CSSPropert
     styleResolver.applyPropertyToCurrentStyle(id, parsedStyle->getPropertyCSSValue(id).get());
 }
 
-bool FontLoader::resolveFontStyle(const String& fontString, Font& font)
+bool FontLoader::resolveFontStyle(const String& fontString, FontCascade& font)
 {
     // Interpret fontString in the same way as the 'font' attribute of CanvasRenderingContext2D.
     RefPtr<MutableStyleProperties> parsedStyle = MutableStyleProperties::create();
-    CSSParser::parseValue(parsedStyle.get(), CSSPropertyFont, fontString, true, CSSStrictMode, 0);
+    CSSParser::parseValue(parsedStyle.get(), CSSPropertyFont, fontString, true, CSSStrictMode, nullptr);
     if (parsedStyle->isEmpty())
         return false;
     
@@ -289,7 +312,7 @@ bool FontLoader::resolveFontStyle(const String& fontString, Font& font)
 
     style->setFontDescription(defaultFontDescription);
 
-    style->font().update(style->font().fontSelector());
+    style->fontCascade().update(style->fontCascade().fontSelector());
 
     // Now map the font property longhands into the style.
     StyleResolver& styleResolver = m_document->ensureStyleResolver();
@@ -306,8 +329,8 @@ bool FontLoader::resolveFontStyle(const String& fontString, Font& font)
     styleResolver.updateFont();
     applyPropertyToCurrentStyle(styleResolver, CSSPropertyLineHeight, parsedStyle);
 
-    font = style->font();
-    font.update(styleResolver.fontSelector());
+    font = style->fontCascade();
+    font.update(&m_document->fontSelector());
     return true;
 }
 

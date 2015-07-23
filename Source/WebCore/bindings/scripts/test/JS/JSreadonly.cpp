@@ -111,9 +111,9 @@ void JSreadonlyPrototype::finishCreation(VM& vm)
 
 const ClassInfo JSreadonly::s_info = { "readonly", &Base::s_info, 0, CREATE_METHOD_TABLE(JSreadonly) };
 
-JSreadonly::JSreadonly(Structure* structure, JSDOMGlobalObject* globalObject, PassRefPtr<readonly> impl)
+JSreadonly::JSreadonly(Structure* structure, JSDOMGlobalObject* globalObject, Ref<readonly>&& impl)
     : JSDOMWrapper(structure, globalObject)
-    , m_impl(impl.leakRef())
+    , m_impl(&impl.leakRef())
 {
 }
 
@@ -135,7 +135,7 @@ void JSreadonly::destroy(JSC::JSCell* cell)
 
 JSreadonly::~JSreadonly()
 {
-    releaseImplIfNotNull();
+    releaseImpl();
 }
 
 EncodedJSValue jsreadonlyConstructor(ExecState* exec, JSObject* baseValue, EncodedJSValue, PropertyName)
@@ -160,10 +160,9 @@ bool JSreadonlyOwner::isReachableFromOpaqueRoots(JSC::Handle<JSC::Unknown> handl
 
 void JSreadonlyOwner::finalize(JSC::Handle<JSC::Unknown> handle, void* context)
 {
-    JSreadonly* jsreadonly = jsCast<JSreadonly*>(handle.slot()->asCell());
-    DOMWrapperWorld& world = *static_cast<DOMWrapperWorld*>(context);
+    auto* jsreadonly = jsCast<JSreadonly*>(handle.slot()->asCell());
+    auto& world = *static_cast<DOMWrapperWorld*>(context);
     uncacheWrapper(world, &jsreadonly->impl(), jsreadonly);
-    jsreadonly->releaseImpl();
 }
 
 JSC::JSValue toJS(JSC::ExecState*, JSDOMGlobalObject* globalObject, readonly* impl)
@@ -182,7 +181,7 @@ JSC::JSValue toJS(JSC::ExecState*, JSDOMGlobalObject* globalObject, readonly* im
     return createNewWrapper<JSreadonly>(globalObject, impl);
 }
 
-readonly* toreadonly(JSC::JSValue value)
+readonly* JSreadonly::toWrapped(JSC::JSValue value)
 {
     if (auto* wrapper = jsDynamicCast<JSreadonly*>(value))
         return &wrapper->impl();

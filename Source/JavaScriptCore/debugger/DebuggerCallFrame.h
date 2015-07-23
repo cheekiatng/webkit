@@ -31,6 +31,7 @@
 
 #include "DebuggerPrimitives.h"
 #include "Strong.h"
+#include <wtf/NakedPtr.h>
 #include <wtf/PassRefPtr.h>
 #include <wtf/RefCounted.h>
 #include <wtf/text/TextPosition.h>
@@ -38,6 +39,7 @@
 namespace JSC {
 
 class DebuggerScope;
+class Exception;
 class ExecState;
 typedef ExecState CallFrame;
 
@@ -45,14 +47,14 @@ class DebuggerCallFrame : public RefCounted<DebuggerCallFrame> {
 public:
     enum Type { ProgramType, FunctionType };
 
-    static PassRefPtr<DebuggerCallFrame> create(CallFrame* callFrame)
+    static Ref<DebuggerCallFrame> create(CallFrame* callFrame)
     {
-        return adoptRef(new DebuggerCallFrame(callFrame));
+        return adoptRef(*new DebuggerCallFrame(callFrame));
     }
 
     JS_EXPORT_PRIVATE explicit DebuggerCallFrame(CallFrame*);
 
-    JS_EXPORT_PRIVATE PassRefPtr<DebuggerCallFrame> callerFrame();
+    JS_EXPORT_PRIVATE RefPtr<DebuggerCallFrame> callerFrame();
     ExecState* exec() const { return m_callFrame; }
     JS_EXPORT_PRIVATE SourceID sourceID() const;
 
@@ -66,7 +68,7 @@ public:
     JS_EXPORT_PRIVATE String functionName() const;
     JS_EXPORT_PRIVATE Type type() const;
     JS_EXPORT_PRIVATE JSValue thisValue() const;
-    JSValue evaluate(const String&, JSValue& exception);
+    JSValue evaluate(const String&, NakedPtr<Exception>&);
 
     bool isValid() const { return !!m_callFrame; }
     JS_EXPORT_PRIVATE void invalidate();
@@ -82,7 +84,7 @@ private:
     CallFrame* m_callFrame;
     RefPtr<DebuggerCallFrame> m_caller;
     TextPosition m_position;
-    // The DebuggerCallFrameScope is responsible for calling invalidate() which,
+    // The DebuggerPausedScope is responsible for calling invalidate() which,
     // in turn, will clear this strong ref.
     Strong<DebuggerScope> m_scope;
 };

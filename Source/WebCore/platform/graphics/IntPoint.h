@@ -29,6 +29,10 @@
 #include "IntSize.h"
 #include <cmath>
 
+#if PLATFORM(MAC) && defined __OBJC__
+#import <Foundation/NSGeometry.h>
+#endif
+
 #if USE(CG)
 typedef struct CGPoint CGPoint;
 #endif
@@ -47,8 +51,6 @@ typedef struct _NSPoint NSPoint;
 #if PLATFORM(WIN)
 typedef struct tagPOINT POINT;
 typedef struct tagPOINTS POINTS;
-#elif PLATFORM(GTK)
-typedef struct _GdkPoint GdkPoint;
 #endif
 
 namespace WebCore {
@@ -104,14 +106,14 @@ public:
     }
 
 #if USE(CG)
-    explicit IntPoint(const CGPoint&); // don't do this implicitly since it's lossy
-    operator CGPoint() const;
+    WEBCORE_EXPORT explicit IntPoint(const CGPoint&); // don't do this implicitly since it's lossy
+    WEBCORE_EXPORT operator CGPoint() const;
 #endif
 
 #if !PLATFORM(IOS)
 #if OS(DARWIN) && !defined(NSGEOMETRY_TYPES_SAME_AS_CGGEOMETRY_TYPES)
-    explicit IntPoint(const NSPoint&); // don't do this implicitly since it's lossy
-    operator NSPoint() const;
+    WEBCORE_EXPORT explicit IntPoint(const NSPoint&); // don't do this implicitly since it's lossy
+    WEBCORE_EXPORT operator NSPoint() const;
 #endif
 #endif // !PLATFORM(IOS)
 
@@ -120,9 +122,6 @@ public:
     operator POINT() const;
     IntPoint(const POINTS&);
     operator POINTS() const;
-#elif PLATFORM(GTK)
-    IntPoint(const GdkPoint&);
-    operator GdkPoint() const;
 #elif PLATFORM(EFL)
     explicit IntPoint(const Evas_Point&);
     operator Evas_Point() const;

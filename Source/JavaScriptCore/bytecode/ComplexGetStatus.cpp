@@ -32,7 +32,7 @@ namespace JSC {
 
 ComplexGetStatus ComplexGetStatus::computeFor(
     CodeBlock* profiledBlock, Structure* headStructure, StructureChain* chain,
-    unsigned chainCount, StringImpl* uid)
+    unsigned chainCount, UniquedStringImpl* uid)
 {
     // FIXME: We should assert that we never see a structure that
     // hasImpureGetOwnPropertySlot() but for which we don't
@@ -46,7 +46,7 @@ ComplexGetStatus ComplexGetStatus::computeFor(
     ComplexGetStatus result;
     result.m_kind = Inlineable;
     
-    if (chain) {
+    if (chain && chainCount) {
         result.m_chain = adoptRef(new IntendedStructureChain(
             profiledBlock, headStructure, chain, chainCount));
         
@@ -62,11 +62,9 @@ ComplexGetStatus ComplexGetStatus::computeFor(
         
         ASSERT_UNUSED(currentObject, currentObject);
         
-        result.m_offset = currentStructure->getConcurrently(
-            *profiledBlock->vm(), uid, result.m_attributes);
+        result.m_offset = currentStructure->getConcurrently(uid, result.m_attributes);
     } else {
-        result.m_offset = headStructure->getConcurrently(
-            *profiledBlock->vm(), uid, result.m_attributes);
+        result.m_offset = headStructure->getConcurrently(uid, result.m_attributes);
     }
     
     if (!isValidOffset(result.m_offset))

@@ -26,8 +26,6 @@
 #include "config.h"
 #include "JSJavaScriptCallFrame.h"
 
-#if ENABLE(INSPECTOR)
-
 #include "DebuggerScope.h"
 #include "Error.h"
 #include "JSCJSValue.h"
@@ -66,10 +64,8 @@ void JSJavaScriptCallFrame::destroy(JSC::JSCell* cell)
 
 void JSJavaScriptCallFrame::releaseImpl()
 {
-    if (m_impl) {
-        m_impl->deref();
-        m_impl = nullptr;
-    }
+    if (auto impl = std::exchange(m_impl, nullptr))
+        impl->deref();
 }
 
 JSJavaScriptCallFrame::~JSJavaScriptCallFrame()
@@ -79,7 +75,7 @@ JSJavaScriptCallFrame::~JSJavaScriptCallFrame()
 
 JSValue JSJavaScriptCallFrame::evaluate(ExecState* exec)
 {
-    JSValue exception;
+    NakedPtr<Exception> exception;
     JSValue result = impl().evaluate(exec->argument(0).toString(exec)->value(exec), exception);
     if (exception)
         exec->vm().throwException(exec, exception);
@@ -97,13 +93,13 @@ JSValue JSJavaScriptCallFrame::scopeType(ExecState* exec)
     int index = exec->argument(0).asInt32();
 
     DebuggerScope* scopeChain = impl().scopeChain();
-    DebuggerScope::Iterator end = scopeChain->end();
+    DebuggerScope::iterator end = scopeChain->end();
 
     bool foundLocalScope = false;
-    for (DebuggerScope::Iterator iter = scopeChain->begin(); iter != end; ++iter) {
+    for (DebuggerScope::iterator iter = scopeChain->begin(); iter != end; ++iter) {
         DebuggerScope* scope = iter.get();
 
-        if (!foundLocalScope && scope->isFunctionScope()) {
+        if (!foundLocalScope && scope->isFunctionOrEvalScope()) {
             // First function scope is the local scope, each successive one is a closure.
             if (!index)
                 return jsNumber(JSJavaScriptCallFrame::LOCAL_SCOPE);
@@ -111,14 +107,17 @@ JSValue JSJavaScriptCallFrame::scopeType(ExecState* exec)
         }
 
         if (!index) {
+            if (scope->isCatchScope())
+                return jsNumber(JSJavaScriptCallFrame::CATCH_SCOPE);
+            if (scope->isFunctionNameScope())
+                return jsNumber(JSJavaScriptCallFrame::FUNCTION_NAME_SCOPE);
             if (scope->isWithScope())
                 return jsNumber(JSJavaScriptCallFrame::WITH_SCOPE);
             if (scope->isGlobalScope()) {
                 ASSERT(++iter == end);
                 return jsNumber(JSJavaScriptCallFrame::GLOBAL_SCOPE);
             }
-            // FIXME: We should be identifying and returning CATCH_SCOPE appropriately.
-            ASSERT(scope->isFunctionScope());
+            ASSERT(scope->isFunctionOrEvalScope());
             return jsNumber(JSJavaScriptCallFrame::CLOSURE_SCOPE);
         }
 
@@ -160,8 +159,8 @@ JSValue JSJavaScriptCallFrame::scopeChain(ExecState* exec) const
         return jsNull();
 
     DebuggerScope* scopeChain = impl().scopeChain();
-    DebuggerScope::Iterator iter = scopeChain->begin();
-    DebuggerScope::Iterator end = scopeChain->end();
+    DebuggerScope::iterator iter = scopeChain->begin();
+    DebuggerScope::iterator end = scopeChain->end();
 
     // We must always have something in the scope chain.
     ASSERT(iter != end);
@@ -212,4 +211,3 @@ JSJavaScriptCallFrame* toJSJavaScriptCallFrame(JSValue value)
 
 } // namespace Inspector
 
-#endif // ENABLE(INSPECTOR)

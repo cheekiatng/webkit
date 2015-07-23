@@ -21,6 +21,7 @@
 
 #include "UnitTestUtils/EWK2UnitTestBase.h"
 #include "UnitTestUtils/EWK2UnitTestServer.h"
+#include <WebCore/CairoUtilities.h>
 #include <wtf/text/CString.h>
 #include <wtf/text/WTFString.h>
 
@@ -278,6 +279,7 @@ TEST_F(EWK2ViewTest, ewk_view_url_get)
     EXPECT_STREQ(environment->defaultTestPageUrl(), ewk_view_url_get(webView()));
 }
 
+#if HAVE(CAIRO_SURFACE_SET_DEVICE_SCALE)
 TEST_F(EWK2ViewTest, ewk_view_device_pixel_ratio)
 {
     ASSERT_TRUE(loadUrlSync(environment->defaultTestPageUrl()));
@@ -291,6 +293,7 @@ TEST_F(EWK2ViewTest, ewk_view_device_pixel_ratio)
     ASSERT_TRUE(ewk_view_device_pixel_ratio_set(webView(), 1));
     ASSERT_FLOAT_EQ(1, ewk_view_device_pixel_ratio_get(webView()));
 }
+#endif
 
 TEST_F(EWK2ViewTest, ewk_view_html_string_load)
 {
@@ -894,17 +897,15 @@ TEST_F(EWK2ViewTest, window_move_resize)
 
 TEST_F(EWK2ViewTest, ewk_view_inspector)
 {
-#if ENABLE(INSPECTOR)
     ASSERT_TRUE(ewk_view_inspector_show(webView()));
     ASSERT_TRUE(ewk_view_inspector_close(webView()));
-#else
-    ASSERT_FALSE(ewk_view_inspector_show(webView()));
-    ASSERT_FALSE(ewk_view_inspector_close(webView()));
-#endif
 }
 
-TEST_F(EWK2ViewTest, DISABLED_ewk_view_scale)
+TEST_F(EWK2ViewTest, DISABLED_ewk_view_scale_with_fixed_layout)
 {
+    // ewk_view_scale() can work only when fixed layout is enabled.
+    EXPECT_TRUE(ewk_view_layout_fixed_set(webView(), true));
+
     ASSERT_TRUE(loadUrlSync(environment->defaultTestPageUrl()));
 
     // Default scale value is 1.0.
@@ -953,7 +954,7 @@ TEST_F(EWK2ViewTest, ewk_view_pagination)
     ASSERT_EQ(EWK_PAGINATION_MODE_UNPAGINATED, ewk_view_pagination_mode_get(webView()));
 }
 
-TEST_F(EWK2ViewTest, ewk_context_vibration_client_callbacks_set)
+TEST_F(EWK2ViewTest, DISABLED_ewk_context_vibration_client_callbacks_set)
 {
     VibrationCbData data = { false, false, false, 0, 5000 };
     evas_object_smart_callback_add(webView(), "vibrate", onVibrate, &data);
@@ -1063,6 +1064,22 @@ TEST_F(EWK2ViewTest, ewk_view_user_agent)
     ASSERT_TRUE(ewk_view_user_agent_set(webView(), 0));
     ASSERT_STREQ(defaultUserAgent, ewk_view_user_agent_get(webView()));
     eina_stringshare_del(defaultUserAgent);
+}
+
+TEST_F(EWK2ViewTest, ewk_view_application_name_for_user_agent)
+{
+    const char customUserAgent[] = "Foo";
+    const char applicationNameForUserAgent[] = "Bar";
+
+    ASSERT_TRUE(ewk_view_user_agent_set(webView(), customUserAgent));
+
+    ASSERT_TRUE(ewk_view_application_name_for_user_agent_set(webView(), applicationNameForUserAgent));
+    ASSERT_STREQ(applicationNameForUserAgent, ewk_view_application_name_for_user_agent_get(webView()));
+    ASSERT_STREQ(customUserAgent, ewk_view_user_agent_get(webView()));
+    ASSERT_FALSE(strstr(ewk_view_user_agent_get(webView()), applicationNameForUserAgent));
+
+    ASSERT_TRUE(ewk_view_user_agent_set(webView(), nullptr));
+    ASSERT_TRUE(strstr(ewk_view_user_agent_get(webView()), applicationNameForUserAgent));
 }
 
 static void scriptExecuteCallback(Evas_Object*, const char* returnValue, void* userData)
@@ -1191,12 +1208,14 @@ TEST_F(EWK2ViewTest, ewk_view_contents_size_get)
     EXPECT_EQ(environment->defaultWidth(), contentsWidth);
     EXPECT_EQ(environment->defaultHeight(), contentsHeight);
 
+#if HAVE(CAIRO_SURFACE_SET_DEVICE_SCALE)
     ewk_view_device_pixel_ratio_set(webView(), 2);
     ASSERT_TRUE(loadUrlSync(environment->defaultTestPageUrl()));
     ewk_view_contents_size_get(webView(), &contentsWidth, &contentsHeight);
 
     EXPECT_EQ(environment->defaultWidth() / 2, contentsWidth);
     EXPECT_EQ(environment->defaultHeight() / 2, contentsHeight);
+#endif
 
     const char fixedContentsSize[] =
         "<!DOCTYPE html>"

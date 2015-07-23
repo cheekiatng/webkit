@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006, 2014 Apple Inc.  All rights reserved.
+ * Copyright (C) 2006, 2014-2015 Apple Inc.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,7 +30,7 @@
 
 class WinLauncher;
 
-class WinLauncherWebHost : public IWebFrameLoadDelegate {
+class WinLauncherWebHost : public IWebFrameLoadDelegate, public IWebFrameLoadDelegatePrivate {
 public:
     WinLauncherWebHost(WinLauncher* client, HWND urlBar)
         : m_refCount(1), m_client(client), m_hURLBarWnd(urlBar) { }
@@ -41,7 +41,7 @@ public:
     virtual ULONG STDMETHODCALLTYPE Release();
 
     // IWebFrameLoadDelegate
-    virtual HRESULT STDMETHODCALLTYPE didStartProvisionalLoadForFrame(IWebView*, IWebFrame*) { return S_OK; }
+    virtual HRESULT STDMETHODCALLTYPE didStartProvisionalLoadForFrame(IWebView*, IWebFrame*);
     virtual HRESULT STDMETHODCALLTYPE didReceiveServerRedirectForProvisionalLoadForFrame(IWebView*, IWebFrame*) { return S_OK; }
     virtual HRESULT STDMETHODCALLTYPE didFailProvisionalLoadWithError(IWebView*, IWebError*, IWebFrame*);
     virtual HRESULT STDMETHODCALLTYPE didCommitLoadForFrame(IWebView* webView, IWebFrame*)
@@ -54,15 +54,23 @@ public:
     
     virtual HRESULT STDMETHODCALLTYPE didReceiveTitle(IWebView*, BSTR title, IWebFrame*) { return S_OK; }
     virtual HRESULT STDMETHODCALLTYPE didChangeIcons(IWebView*, IWebFrame*) { return S_OK; }
-    virtual HRESULT STDMETHODCALLTYPE didReceiveIcon(IWebView*, OLE_HANDLE hBitmap, IWebFrame*) { return S_OK; }
+    virtual HRESULT STDMETHODCALLTYPE didReceiveIcon(IWebView*, HBITMAP, IWebFrame*) { return S_OK; }
     virtual HRESULT STDMETHODCALLTYPE didFinishLoadForFrame(IWebView*, IWebFrame*);   
-    virtual HRESULT STDMETHODCALLTYPE didFailLoadWithError(IWebView*, IWebError*, IWebFrame*) { return S_OK; }
+    virtual HRESULT STDMETHODCALLTYPE didFailLoadWithError(IWebView*, IWebError*, IWebFrame*);
     virtual HRESULT STDMETHODCALLTYPE didChangeLocationWithinPageForFrame(IWebView*, IWebFrame*) { return S_OK; }
     virtual HRESULT STDMETHODCALLTYPE willPerformClientRedirectToURL(IWebView*, BSTR url, double delaySeconds, DATE fireDate, IWebFrame*) { return S_OK; }
     virtual HRESULT STDMETHODCALLTYPE didCancelClientRedirectForFrame(IWebView*, IWebFrame*) { return S_OK; }
     virtual HRESULT STDMETHODCALLTYPE willCloseFrame(IWebView*, IWebFrame*) { return S_OK; }
     virtual /* [local] */ HRESULT STDMETHODCALLTYPE windowScriptObjectAvailable(IWebView*, JSContextRef, JSObjectRef)  { return S_OK; }
     virtual /* [local] */ HRESULT STDMETHODCALLTYPE didClearWindowObject(IWebView*, JSContextRef, JSObjectRef, IWebFrame*) { return S_OK; }
+
+    // IWebFrameLoadDelegatePrivate
+    virtual HRESULT STDMETHODCALLTYPE didFinishDocumentLoadForFrame(IWebView* sender, IWebFrame*) { return S_OK; }
+    virtual HRESULT STDMETHODCALLTYPE didFirstLayoutInFrame(IWebView* sender, IWebFrame*);
+    virtual HRESULT STDMETHODCALLTYPE didHandleOnloadEventsForFrame(IWebView*, IWebFrame*);
+    virtual HRESULT STDMETHODCALLTYPE didFirstVisuallyNonEmptyLayoutInFrame(IWebView* sender, IWebFrame*)  { return S_OK; }
+
+    void loadURL(_bstr_t&);
 
 protected:
     HRESULT updateAddressBar(IWebView&);

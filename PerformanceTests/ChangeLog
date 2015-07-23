@@ -1,3 +1,739 @@
+2015-07-13  Filip Pizlo  <fpizlo@apple.com>
+
+        Update JetStream version number to 1.1.
+
+        Rubber stamped by Ryosuke Niwa.
+
+        * JetStream/create.rb:
+
+2015-06-30  Filip Pizlo  <fpizlo@apple.com>
+
+        Update the JetStream documentation to reflect the recent changes
+        https://bugs.webkit.org/show_bug.cgi?id=146474
+
+        Reviewed by Geoffrey Garen.
+
+        * JetStream/create.rb: Bump the version.
+        * JetStream/in-depth-TEMPLATE.html: Add cdjs documentation. Remove cordic documentation. Change documentation for splay and mandreel.
+
+2015-06-26  Filip Pizlo  <fpizlo@apple.com>
+
+        [JetStream] Raise the percentile of mandreel-latency and splay-latency
+        https://bugs.webkit.org/show_bug.cgi?id=146378
+
+        Reviewed by Mark Lam.
+        
+        The current percentile is 95%.  When I looked at the sample lists in our GC, it was
+        clear that the worst 5% samples completely amortize our GC pauses.  Our GC pauses can
+        be quite bad.  Clearly, splay-latency is meant to test whether we have an incremental
+        GC that ensures that you don't have bad worst-case pauses.  But 95% is too small,
+        because it doesn't really capture those pauses.  Raising the percentile to above 99%
+        appears to do the trick.  99.5% or more seems like a good bet.  The trade-off there is
+        just that if we set it too high, then we won't have enough statistics.  Doing this very
+        clearly rewards GCs that are incremental, and punishes GCs that aren't (like ours).
+        That's what we want, since in the future we want to use this test to guide any
+        improvements to the worst-case performance of our GC.
+
+        The way that the percentile is selected will also affect mandreel-latency.  That's a
+        good thing, because 95% is probably too low for that test as well.  That test ends up
+        with >10k samples.  The goal of using 95% in the first place was to get enough samples
+        to have a stable average.  But if we have >10k samples, we can push that percentile up
+        much higher and still get good statistics while achieving the effect we want - i.e.
+        getting the worst case.
+
+        I don't think that we need to do the same thing for cdjs.  That test only takes 200
+        samples, so 95% means we report the average of the worst 10 samples.  That's probably
+        good enough.
+
+        * JetStream/Octane2/base.js: Raise the percentile as described above.
+        (BenchmarkSuite.prototype.RunSingleBenchmark):
+        * JetStream/Reference.js: Tweak the reference times to bring the latency tests closer to 100ish on my machine.
+        * JetStream/create.rb: Bump the version.
+
+2015-06-19  Filip Pizlo  <fpizlo@apple.com>
+
+        Run CDjs as part of JSC stress testing
+        https://bugs.webkit.org/show_bug.cgi?id=146174
+
+        Reviewed by Geoffrey Garen.
+
+        * JetStream/cdjs/cdjs-tests.yaml: Added. This tells JSC stress tests what tests to run. It uses new syntax ("tests" being a list) that I add in this change.
+        * JetStream/cdjs/main.js: Mark this as a slow test.
+        * JetStream/create.rb: Don't copy the JSC stress tests artifacts into the JetStream bundle.
+
+2015-06-19  Filip Pizlo  <fpizlo@apple.com>
+
+        Unreviewed, fix a small indentation goof.
+
+        * JetStream/cdjs/motion.js:
+        (Motion.prototype.findIntersection):
+
+2015-06-19  Filip Pizlo  <fpizlo@apple.com>
+
+        JetStream should include a JavaScript version of the CDx real-time benchmark
+        https://bugs.webkit.org/show_bug.cgi?id=146156
+
+        Reviewed by Geoffrey Garen.
+        
+        This adds a JavaScript port of the CDx real-time benchmark to JetStream, and retires
+        the cordic test because it was previously the smallest and probably least interesting.
+        
+        The new test, "cdjs", is mostly a faithful rewrite of the Java code into JavaScript.
+        I got the Java code from https://www.cs.purdue.edu/sss/projects/cdx/.
+        
+        There are some differences:
+        
+        - It uses RedBlackTree's for all sets and maps rather than hashtables. This is clearly
+          more in the spirit of real-time than the CDx benchmark. FWIW, CDx used to use trees
+          and I don't know why that changed in the latest version.
+        
+        - CDjs doesn't attempt to avoid memory allocations, unlike the real-time Java version.
+          I wrote the code that I wanted to write for aesthetics, rather than the code that I
+          would have written if I tried to write the fastest code possible. Again, I believe
+          that this is in the spirit of CDj - it's meant to test what would happen if you wrote
+          real-timey stuff in a high level language and actually took advantage of that
+          language to be more productive.
+        
+        The test score reflects the average latency of the worst 10 samples out of 200 samples.
+        The simulation uses 1000 aircraft, flying along paths that result in some detected
+        collisions every once in a while. The benchmark validates its results by checking the
+        total number of collisions detected.
+        
+        Apart from the integration into the JetStream harness, the CDjs directory contains a
+        fully self-contained benchmark that could be run either in the jsc shell or in browser.
+        
+        This new code uses the same 3-clause BSD license as the Purdue code, and gives
+        attribution to Purdue in almost all files. I believe that is appropriate since I wrote
+        most of the JS files by looking at the Purdue Java code and trascribing to JavaScript.
+        In some cases, I even copy-pasted the Java code, like the complicated math for
+        four-dimensional intersections and voxel hashing.
+
+        * JetStream/CDjsSetup.js: Added.
+        * JetStream/Octane2Setup.js:
+        * JetStream/Reference.js:
+        * JetStream/cdjs: Added.
+        * JetStream/cdjs/benchmark.js: Added.
+        (benchmark):
+        * JetStream/cdjs/call_sign.js: Added.
+        (CallSign):
+        (CallSign.prototype.compareTo):
+        (CallSign.prototype.toString):
+        * JetStream/cdjs/collision.js: Added.
+        (Collision):
+        (Collision.prototype.toString):
+        * JetStream/cdjs/collision_detector.js: Added.
+        (CollisionDetector):
+        (CollisionDetector.prototype.handleNewFrame.get for):
+        (CollisionDetector.prototype.handleNewFrame):
+        * JetStream/cdjs/constants.js: Added.
+        * JetStream/cdjs/main.html: Added.
+        * JetStream/cdjs/main.js: Added.
+        * JetStream/cdjs/motion.js: Added.
+        (Motion):
+        (Motion.prototype.toString):
+        (Motion.prototype.delta):
+        (Motion.prototype.findIntersection):
+        * JetStream/cdjs/motion_test.js: Added.
+        (checkDoesIntersect):
+        (checkDoesNotIntersect):
+        (makeMotion):
+        * JetStream/cdjs/red_black_tree.js: Added.
+        (RedBlackTree):
+        (RedBlackTree.):
+        * JetStream/cdjs/red_black_tree_test.js: Added.
+        (test):
+        (test.):
+        * JetStream/cdjs/reduce_collision_set.js: Added.
+        (drawMotionOnVoxelMap):
+        (drawMotionOnVoxelMap.):
+        (.get reduceCollisionSet):
+        * JetStream/cdjs/reduce_collision_set_test.js: Added.
+        (makeMotion):
+        (keys):
+        (test):
+        * JetStream/cdjs/simulator.js: Added.
+        (Simulator):
+        (Simulator.prototype.simulate):
+        * JetStream/cdjs/util.js: Added.
+        (compareNumbers):
+        (averageAbovePercentile):
+        (currentTime):
+        (else.currentTime):
+        * JetStream/cdjs/vector_2d.js: Added.
+        (Vector2D):
+        (Vector2D.prototype.plus):
+        (Vector2D.prototype.minus):
+        (Vector2D.prototype.toString):
+        (Vector2D.prototype.compareTo):
+        * JetStream/cdjs/vector_3d.js: Added.
+        (Vector3D):
+        (Vector3D.prototype.plus):
+        (Vector3D.prototype.minus):
+        (Vector3D.prototype.dot):
+        (Vector3D.prototype.squaredMagnitude):
+        (Vector3D.prototype.magnitude):
+        (Vector3D.prototype.times):
+        (Vector3D.prototype.as2D):
+        (Vector3D.prototype.toString):
+        * JetStream/create.rb:
+        * JetStream/index-TEMPLATE.html:
+        * JetStream/sunspider/cordic.js: Removed.
+
+2015-06-17  Javier Fernandez  <jfernandez@igalia.com>
+
+        [CSS Grid Layout] We should add performance tests for stretching logic
+        https://bugs.webkit.org/show_bug.cgi?id=146063
+
+        Reviewed by Sergio Villar Senin.
+
+        Added a new performance test for Grid Layout to ensure there are no
+        regressions in the stretching alignment logic.
+
+        * Layout/fixed-grid-lots-of-stretched-data.html: Added.
+
+2015-06-17  Javier Fernandez  <jfernandez@igalia.com>
+
+        [CSS Grid Layout] Performance tests are using the old syntax
+        https://bugs.webkit.org/show_bug.cgi?id=146061
+
+        Reviewed by Sergio Villar Senin.
+
+        Adapted tests to the new grid tracks definition syntax.
+
+        * Layout/auto-grid-lots-of-data.html:
+        * Layout/fixed-grid-lots-of-data.html:
+
+2015-06-08  Filip Pizlo  <fpizlo@apple.com>
+
+        JetStream should have a more rational story for jitter-oriented latency tests
+        https://bugs.webkit.org/show_bug.cgi?id=145762
+
+        Reviewed by Geoffrey Garen.
+        
+        JetStream has some latency tests that are meant to measure jitter.  Prior to this change, they
+        did this by computing the RMS.  But the RMS is a pretty bad metric.  The thing that it rewards
+        isn't really the thing that you'd want your browser to do.  These RMS-based tests involve taking
+        the geomean of the RMS of some samples and the sample average.  The lower the geomean, the better
+        (in the JetStream harness we then invert the scores so that higher is better, but let's ignore
+        that for this discussion and assume that lower is better).  Here's an example of how this can go
+        bad.  A browser that always computes a task in some horribly long time (say, 1000ms) but never
+        varies that time will perform better than a browser that usually computes the task super quickly
+        (say, 10ms) and sometimes just a little bit less quickly (say, 15ms).  The former browser will
+        have an RMS of 0 and an average of 1000.  The latter will have a RMS somewhere around 3.5 and an
+        average of 12.5 (assuming equal probability of 10ms and 15ms).  The geomean of (0, 1000) is 0.
+        The geomean of (3.5, 12.5) is 6.6.  Lower is better, so the former browser scores higher - even
+        though it's obviously never better to have a browser always complete a task in 1000ms when a
+        different browser can do it in 15ms in the worst case.
+
+        JetStream should not have this pathology.  The right way of avoiding it is to replace RMS with
+        some other metric of how bad things get.  A good metric is the average of the worst percentile.
+        The worst 1% or the worst 5% would be good things to average.  This will catch cases where the VM
+        jittered due to JIT or GC, but it never have the pathology that we end up giving the better score
+        to a VM whose best case is worst than another VM's worst case.
+        
+        For now, this change uses the highest samples above the 95% percentile. I'm not yet sure if that
+        is the best thing - it might include too many scores that are around the best-case performance -
+        but it's certainly better than RMS and it might be good enough to keep. But because of that
+        uncertainty, I'm setting the version to be "1.1-alpha1" to indicate that we aren't ready to
+        release this yet.
+
+        * JetStream/Octane2/base.js:
+        (.this.Setup.setup.setup):
+        (.this.TearDown.tearDown.tearDown):
+        (BenchmarkSuite.GeometricMeanTime):
+        (BenchmarkSuite.AverageAbovePercentile):
+        (BenchmarkSuite.GeometricMeanLatency):
+        (BenchmarkSuite.prototype.NotifyStep):
+        (BenchmarkSuite.prototype.RunSingleBenchmark):
+        * JetStream/Octane2/mandreel.js:
+        (setupMandreel):
+        (updateMandreelStats):
+        (startMandreelTimer):
+        (latencyMandreel):
+        (tearDownMandreel):
+        (RMSMandreel): Deleted.
+        * JetStream/Octane2/splay.js:
+        (GenerateKey):
+        (SplayUpdateStats):
+        (InsertNewNode):
+        (SplayTearDown):
+        (SplayRMS): Deleted.
+        * JetStream/create.rb:
+
+2015-06-03  Zalan Bujtas  <zalan@apple.com>
+
+        Skip Dromaeo/jslib-modify-prototype.html for now.
+
+        Unreviewed gardening.
+
+        * Skipped:
+
+2015-05-04  Filip Pizlo  <fpizlo@apple.com>
+
+        Large array shouldn't be slow
+        https://bugs.webkit.org/show_bug.cgi?id=144617
+
+        Reviewed by Geoffrey Garen.
+        
+        Add the hash-map benchmark to LongSpider. LongSpider was already not a perfect match of
+        SunSpider. It's not an official benchmark. It contains benchmarks that are relatively
+        long-running. So, hash-map sort of belongs here.
+
+        * LongSpider/hash-map.js: Added.
+        (HashMap):
+        (HashMap.):
+        (.get var):
+
+2015-05-01  Dewei Zhu  <dewei_zhu@apple.com>
+
+        Fix typo bug in Speedometer/resources/main.js
+        https://bugs.webkit.org/show_bug.cgi?id=144504
+
+        Reviewed by Ryosuke Niwa. 
+
+        * Speedometer/resources/main.js: Fix typo.
+        (window.benchmarkClient.totalTimeInDisplayUnit):
+
+2015-04-21  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Add JetStream to PerformanceTests
+        https://bugs.webkit.org/show_bug.cgi?id=144024
+
+        Rubber-stamped by Filip Pizlo.
+
+        * JetStream: Added.
+        * JetStream/JetStream-Logo.png: Added.
+        * JetStream/JetStream-Logo@2x.png: Added.
+        * JetStream/JetStream.css: Added.
+        * JetStream/JetStreamDriver.js: Added.
+        * JetStream/LICENSE.txt: Added.
+        * JetStream/LLVM-test-suite-LICENSE.txt: Added.
+        * JetStream/Octane: Added.
+        * JetStream/Octane/base.js: Added.
+        * JetStream/Octane/code-load.js: Added.
+        * JetStream/Octane2: Added.
+        * JetStream/Octane2/base.js: Added.
+        * JetStream/Octane2/box2d.js: Added.
+        * JetStream/Octane2/code-load.js: Added.
+        * JetStream/Octane2/crypto.js: Added.
+        * JetStream/Octane2/deltablue.js: Added.
+        * JetStream/Octane2/earley-boyer.js: Added.
+        * JetStream/Octane2/gbemu-part1.js: Added.
+        * JetStream/Octane2/gbemu-part2.js: Added.
+        * JetStream/Octane2/mandreel.js: Added.
+        * JetStream/Octane2/navier-stokes.js: Added.
+        * JetStream/Octane2/pdfjs.js: Added.
+        * JetStream/Octane2/raytrace.js: Added.
+        * JetStream/Octane2/regexp.js: Added.
+        * JetStream/Octane2/richards.js: Added.
+        * JetStream/Octane2/run.js: Added.
+        * JetStream/Octane2/splay.js: Added.
+        * JetStream/Octane2/typescript-compiler.js: Added.
+        * JetStream/Octane2/typescript-input.js: Added.
+        * JetStream/Octane2/typescript.js: Added.
+        * JetStream/Octane2/zlib-data.js: Added.
+        * JetStream/Octane2/zlib.js: Added.
+        * JetStream/Octane2Setup.js: Added.
+        * JetStream/OctaneSetup.js: Added.
+        * JetStream/README: Added.
+        * JetStream/Reference.js: Added.
+        * JetStream/SimpleSetup.js: Added.
+        * JetStream/SunSpiderSetup.js: Added.
+        * JetStream/Swoosh.png: Added.
+        * JetStream/Swoosh@2x.png: Added.
+        * JetStream/TestingSetup.js: Added.
+        * JetStream/create.rb: Added.
+        * JetStream/docs: Added.
+        * JetStream/docs/JetStreamBlogPost.html: Added.
+        * JetStream/in-depth-TEMPLATE.html: Added.
+        * JetStream/index-TEMPLATE.html: Added.
+        * JetStream/simple: Added.
+        * JetStream/simple/bigfib.cpp: Added.
+        * JetStream/simple/bigfib.cpp.js: Added.
+        * JetStream/simple/container.cpp: Added.
+        * JetStream/simple/container.cpp.js: Added.
+        * JetStream/simple/dry.c: Added.
+        * JetStream/simple/dry.c.js: Added.
+        * JetStream/simple/float-mm.c: Added.
+        * JetStream/simple/float-mm.c.js: Added.
+        * JetStream/simple/gcc-loops.cpp: Added.
+        * JetStream/simple/gcc-loops.cpp.js: Added.
+        * JetStream/simple/hash-map.js: Added.
+        * JetStream/simple/n-body.c: Added.
+        * JetStream/simple/n-body.c.js: Added.
+        * JetStream/simple/quicksort.c: Added.
+        * JetStream/simple/quicksort.c.js: Added.
+        * JetStream/simple/towers.c: Added.
+        * JetStream/simple/towers.c.js: Added.
+        * JetStream/sunspider: Added.
+        * JetStream/sunspider/3d-cube.js: Added.
+        * JetStream/sunspider/3d-raytrace.js: Added.
+        * JetStream/sunspider/base64.js: Added.
+        * JetStream/sunspider/cordic.js: Added.
+        * JetStream/sunspider/crypto-aes.js: Added.
+        * JetStream/sunspider/crypto-md5.js: Added.
+        * JetStream/sunspider/crypto-sha1.js: Added.
+        * JetStream/sunspider/date-format-tofte.js: Added.
+        * JetStream/sunspider/date-format-xparb.js: Added.
+        * JetStream/sunspider/n-body.js: Added.
+        * JetStream/sunspider/regex-dna.js: Added.
+        * JetStream/sunspider/tagcloud.js: Added.
+
+2015-04-14  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        textPath layout performance improvement.
+        https://bugs.webkit.org/show_bug.cgi?id=141570.
+
+        Reviewed by Darin Adler.
+
+        Cut down the time spent in traversing the path for text by 50%. Instead
+        of traversing the path twice at a certain length: one time for the position
+        and the second time for the angle, we can merge these two passes into one.
+
+        * SVG/TextOnPathSimple.html: Added.
+        * SVG/resources/TextOnPathSimple.svg: Added.
+
+2015-04-13  Zalan Bujtas  <zalan@apple.com>
+
+        Clear up the test content when test is done.
+
+        Unreviewed fix.
+
+        * Layout/simple-line-layout-innertext.html:
+
+2015-04-09  Zalan Bujtas  <zalan@apple.com>
+
+        Simple line layout(regression): Calling innerText on RenderFlow with multiple children is slow.
+        https://bugs.webkit.org/show_bug.cgi?id=143554
+
+        Reviewed by Antti Koivisto.
+
+        Initialize render flow's segments only when the render flow changes in TextIterator.
+        The included performance test shows 6x speedup. (from ~10 runs/sec to ~60 runs/sec)
+
+        * Layout/simple-line-layout-innertext.html: Added.
+
+2015-03-09  Chris Dumez  <cdumez@apple.com>
+
+        [CG] Have Canvas use the IOSurfacePool
+        https://bugs.webkit.org/show_bug.cgi?id=142417
+        <rdar://problem/20044440>
+
+        Reviewed by Darin Adler.
+
+        Lower the number of different canvas sizes from 1000 to 100 so that
+        the test does not require such a huge cache size. With 100, we now
+        get over 90% cache hit rate with the default IOSurfacePool size.
+
+        * Canvas/reuse.html:
+
+2015-01-28  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        Poor performance on IE's Chalkboard benchmark.
+        https://bugs.webkit.org/show_bug.cgi?id=140753.
+
+        Reviewed by Zalan Bujtas.
+
+        * SVG/UnderTheSeeBenchmark.html: Added
+        * SVG/WorldcupBenchmark.html: Added.
+        * SVG/resources/RenderAnimator.css: Added.
+        * SVG/resources/RenderAnimator.js: Added.
+        These are benchmarks for the SVG rendering. Mainly we want to measure how fast
+        the SVG rendering will be when only a small part of it is drawn.
+        
+2015-01-21  Geoffrey Garen  <ggaren@apple.com>
+
+        bmalloc: support aligned allocation
+        https://bugs.webkit.org/show_bug.cgi?id=140732
+
+        Reviewed by Andreas Kling.
+
+        * MallocBench/MallocBench.xcodeproj/project.pbxproj:
+        * MallocBench/MallocBench/Benchmark.cpp:
+        * MallocBench/MallocBench/memalign.cpp:
+        (test):
+        (benchmark_memalign): Added a test for specific interesting memalign values.
+
+        * MallocBench/MallocBench/stress_aligned.cpp: Added.
+        (benchmark_stress_aligned):
+        * MallocBench/MallocBench/stress_aligned.h: Added. Added a stress test
+        for arbitrary memalign values.
+
+2015-01-16  Geoffrey Garen  <ggaren@apple.com>
+
+        bmalloc: added the tiniest bit of testing for aligned allocation
+        https://bugs.webkit.org/show_bug.cgi?id=140573
+
+        Reviewed by Andreas Kling.
+
+        Just good enoug to catch two bugs in a preliminary implementation.
+
+        * MallocBench/MallocBench.xcodeproj/project.pbxproj:
+        * MallocBench/MallocBench/Benchmark.cpp:
+        * MallocBench/MallocBench/mbmalloc.cpp:
+        * MallocBench/MallocBench/mbmalloc.h:
+        * MallocBench/MallocBench/memalign.cpp: Added.
+        (benchmark_memalign):
+        * MallocBench/MallocBench/memalign.h: Added.
+
+2014-12-09  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Add performance test related to font fallback
+        https://bugs.webkit.org/show_bug.cgi?id=139332
+
+        Reviewed by Simon Fraser.
+
+        * Layout/font-fallback.html: Added.
+        * Layout/resources/font-fallback.html: Added.
+
+2014-12-08  Dean Jackson  <dino@apple.com>
+
+        [Apple] Use Accelerate framework to speed-up FEGaussianBlur
+        https://bugs.webkit.org/show_bug.cgi?id=139310
+
+        Reviewed by Simon Fraser.
+
+        Add an interactive performance test that measures the speed of a set
+        of blur operations on a generated images.
+
+        * Interactive/blur-filter-timing.html: Added.
+
+2014-11-13  Zalan Bujtas  <zalan@apple.com>
+
+        Simple line layout: Add performance test case to measure line layout speed of monolithic text content.
+        https://bugs.webkit.org/show_bug.cgi?id=138699
+
+        Reviewed by Antti Koivisto.
+
+        * Layout/line-layout-long-long-text.html: Added.
+
+2014-10-22  Zalan Bujtas  <zalan@apple.com>
+
+        Speed up line parsing for simple line layout (part I)
+        https://bugs.webkit.org/show_bug.cgi?id=137275
+
+        Reviewed by Antti Koivisto.
+
+        Extend simple line layout performance test with a few more cases.
+        Now we've got:
+        <div center
+        <div right
+        <div justify
+        <div white-space: pre (new)
+        <div overflow-wrap: break-word (new)
+        <pre
+        <pre white-space: pre-wrap
+        <pre white-space: pre-line (new)
+        <pre white-space: nowrap (new)
+        <pre white-space: pre-wrap overflow-wrap: break-word
+        <div + embedded <span etc.
+        <div + br
+
+        * Layout/line-layout-simple.html:
+
+2014-10-15  Andrei Bucur  <abucur@adobe.com>
+
+        [Multicol] Start adding performance tests for the multi-column implementation
+        https://bugs.webkit.org/show_bug.cgi?id=137687
+
+        Reviewed by Mihnea Ovidenie.
+
+        This patch creates a Multicol folder inside the Layout performance tests suite. It adds only two tests
+        as described below.
+
+        The tests are skipped until the implementation stabilizes.
+
+        * Layout/Multicol/MulticolManyColumns.html: Added.
+        This test verifies the performance of the multi-column implementation with two nested multi-column
+        containers, the first having 20 columns and the second 10 columns.
+
+        * Layout/Multicol/MulticolNested.html: Added.
+        This test verifies the performance of nesting multi-column containers in the presence
+        of floats.
+
+        * Layout/Multicol/resources/multicol-content-many-columns.html: Added.
+        * Layout/Multicol/resources/multicol-content-nested.html: Added.
+        * Skipped: Skip the Multicol folder for now.
+
+2014-09-29  Filip Pizlo  <fpizlo@apple.com>
+
+        It should be fun and easy to run every possible JavaScript benchmark from the command line
+        https://bugs.webkit.org/show_bug.cgi?id=137245
+
+        Reviewed by Oliver Hunt.
+        
+        This adds the scaffolding for running Octane version 2 inside run-jsc-benchmarks.
+        In the future we should just land Octane2 in this directory, and run-jsc-benchmarks
+        should be changed to point directly at this directory instead of requiring the
+        Octane path to be configured as part of the configuration file.
+
+        * Octane: Added.
+        * Octane/wrappers: Added.
+        * Octane/wrappers/jsc-box2d.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-boyer.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-closure.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-decrypt.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-deltablue.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-earley.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-encrypt.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-gbemu.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-jquery.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-mandreel.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-navier-stokes.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-pdfjs.js: Added.
+        (jscSetUp.PdfJS_window.console.log):
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-raytrace.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-regexp.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-richards.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-splay.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-typescript.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+        * Octane/wrappers/jsc-zlib.js: Added.
+        (jscSetUp):
+        (jscTearDown):
+        (jscRun):
+
+2014-09-28  Sungmann Cho  <sungmann.cho@navercorp.com>
+
+        Fix some minor typos: psuedo -> pseudo
+        https://bugs.webkit.org/show_bug.cgi?id=137192
+
+        Reviewed by Alexey Proskuryakov.
+
+        * Speedometer/resources/todomvc/architecture-examples/emberjs/bower_components/handlebars/handlebars.js:
+
+2014-09-11  Geoffrey Garen  <ggaren@apple.com>
+
+        Some MallocBench refinements
+        https://bugs.webkit.org/show_bug.cgi?id=136750
+
+        Reviewed by Sam Weinig.
+
+        * MallocBench/MallocBench/Interpreter.cpp:
+        (Interpreter::run): Allow for null entries in the object list so that
+        we can test in modes that exclude large or small allocations.
+
+        * MallocBench/MallocBench/churn.cpp:
+        (benchmark_churn):
+        * MallocBench/MallocBench/flickr.cpp:
+        (benchmark_flickr):
+        * MallocBench/MallocBench/fragment.cpp:
+        (benchmark_fragment_iterate):
+        * MallocBench/MallocBench/list.cpp:
+        (benchmark_list_allocate):
+        * MallocBench/MallocBench/reddit.cpp:
+        (benchmark_reddit): Updated test runtimes to weight them more equally,
+        for the sake of arithmetic mean.
+
+        * MallocBench/MallocBench/stress.cpp:
+        (Object::Object):
+        (allocate):
+        (deallocate):
+        (benchmark_stress): Verify the contents of memory as we go. Also,
+        force scavenging each time through the loop to test the scavenging path.
+
+        * MallocBench/MallocBench/theverge.cpp:
+        (benchmark_theverge):
+        * MallocBench/MallocBench/tree.cpp:
+        (benchmark_tree_churn): Re-weighted, as above.
+
+2014-09-08  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        PerformanceTests/SVG/SVG-Text.html has unparsable output
+        https://bugs.webkit.org/show_bug.cgi?id=136648
+
+        Reviewed by Gavin Barraclough.
+
+        I need to clean up the arbitrary text on the page before telling
+        the test runner infrastructure that the test is complete.
+
+        * SVG/SVG-Text.html:
+
+2014-09-05  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Laying out a TextRun using an SVG font is O(n^2)
+        https://bugs.webkit.org/show_bug.cgi?id=136584
+
+        Reviewed by Andreas Kling.
+
+        Time how long it takes to lay out and render some text using an SVG font.
+
+        * SVG/SVG-Text.html: Added.
+        * SVG/resources/graffiti.svg: Added.
+
+2014-09-02  Geoffrey Garen  <ggaren@apple.com>
+
+        MallocBench should have a stress test for correctness
+        https://bugs.webkit.org/show_bug.cgi?id=136468
+
+        Reviewed by Andreas Kling.
+
+        Added a stress test that allocates randomized sizes of randomized
+        lifetimes in randomized order.
+
+        This version of the test reproduces the EWS crash seen in bmalloc
+        (<https://bugs.webkit.org/show_bug.cgi?id=132629>).
+
+        * MallocBench/MallocBench.xcodeproj/project.pbxproj:
+        * MallocBench/MallocBench/Benchmark.cpp: Sort!
+        * MallocBench/MallocBench/stress.cpp: Added.
+        (Object::Object):
+        (SizeStream::SizeStream):
+        (SizeStream::next):
+        (benchmark_stress): Usually, we random(0). Surprisingly, though, only
+        random(1) reproduces the bug I was looking for.
+        * MallocBench/MallocBench/stress.h: Added.
+
 2014-06-02  Ryosuke Niwa  <rniwa@webkit.org>
 
         Rename DoYouEvenBench 0.17 to Speedometer 1.0 and add a new look.

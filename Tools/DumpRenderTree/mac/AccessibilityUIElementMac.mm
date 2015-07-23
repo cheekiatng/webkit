@@ -65,12 +65,17 @@
 #define NSAccessibilityStartTextMarkerForBoundsParameterizedAttribute @"AXStartTextMarkerForBounds"
 #endif
 
+#ifndef NSAccessibilitySelectedTextMarkerRangeAttribute
+#define NSAccessibilitySelectedTextMarkerRangeAttribute @"AXSelectedTextMarkerRange"
+#endif
+
 typedef void (*AXPostedNotificationCallback)(id element, NSString* notification, void* context);
 
 @interface NSObject (WebKitAccessibilityAdditions)
 - (NSArray *)accessibilityArrayAttributeValues:(NSString *)attribute index:(NSUInteger)index maxCount:(NSUInteger)maxCount;
 - (NSUInteger)accessibilityIndexOfChild:(id)child;
 - (NSUInteger)accessibilityArrayAttributeCount:(NSString *)attribute;
+- (void)_accessibilitySetTestValue:(id)value forAttribute:(NSString*)attributeName;
 @end
 
 AccessibilityUIElement::AccessibilityUIElement(PlatformUIElement element)
@@ -578,6 +583,13 @@ bool AccessibilityUIElement::boolAttributeValue(JSStringRef attribute)
     return false;
 }
 
+void AccessibilityUIElement::setBoolAttributeValue(JSStringRef attribute, bool value)
+{
+    BEGIN_AX_OBJC_EXCEPTIONS
+    [m_element _accessibilitySetTestValue:@(value) forAttribute:[NSString stringWithJSStringRef:attribute]];
+    END_AX_OBJC_EXCEPTIONS
+}
+
 bool AccessibilityUIElement::isAttributeSettable(JSStringRef attribute)
 {
     BEGIN_AX_OBJC_EXCEPTIONS
@@ -1080,7 +1092,7 @@ bool AccessibilityUIElement::attributedStringRangeIsMisspelled(unsigned location
 
     NSDictionary* attrs = [string attributesAtIndex:0 effectiveRange:nil];
     BOOL misspelled = [[attrs objectForKey:NSAccessibilityMisspelledTextAttribute] boolValue];
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090
+#if PLATFORM(MAC)
     if (misspelled)
         misspelled = [[attrs objectForKey:NSAccessibilityMarkedMisspelledTextAttribute] boolValue];
 #endif
@@ -1343,6 +1355,13 @@ void AccessibilityUIElement::setSelectedTextRange(unsigned location, unsigned le
     END_AX_OBJC_EXCEPTIONS
 }
 
+void AccessibilityUIElement::setValue(JSStringRef valueText)
+{
+    BEGIN_AX_OBJC_EXCEPTIONS
+    [m_element accessibilitySetValue:[NSString stringWithJSStringRef:valueText] forAttribute:NSAccessibilityValueAttribute];
+    END_AX_OBJC_EXCEPTIONS
+}
+
 void AccessibilityUIElement::increment()
 {
     BEGIN_AX_OBJC_EXCEPTIONS
@@ -1427,6 +1446,7 @@ void AccessibilityUIElement::removeNotificationListener()
     // Mac programmers should not be trying to remove a listener that's already removed.
     ASSERT(m_notificationHandler);
 
+    [m_notificationHandler stopObserving];
     [m_notificationHandler release];
     m_notificationHandler = nil;
 }
@@ -1510,7 +1530,9 @@ bool AccessibilityUIElement::hasPopup() const
 
 void AccessibilityUIElement::takeFocus()
 {
-    // FIXME: implement
+    BEGIN_AX_OBJC_EXCEPTIONS
+    [m_element accessibilitySetValue:@YES forAttribute:NSAccessibilityFocusedAttribute];
+    END_AX_OBJC_EXCEPTIONS
 }
 
 void AccessibilityUIElement::takeSelection()
@@ -1549,6 +1571,32 @@ AccessibilityTextMarkerRange AccessibilityUIElement::textMarkerRangeForElement(A
     END_AX_OBJC_EXCEPTIONS
     
     return nullptr;
+}
+
+AccessibilityTextMarkerRange AccessibilityUIElement::selectedTextMarkerRange()
+{
+    BEGIN_AX_OBJC_EXCEPTIONS
+    id textMarkerRange = [m_element accessibilityAttributeValue:NSAccessibilitySelectedTextMarkerRangeAttribute];
+    return AccessibilityTextMarkerRange(textMarkerRange);
+    END_AX_OBJC_EXCEPTIONS
+    
+    return nullptr;
+}
+
+void AccessibilityUIElement::resetSelectedTextMarkerRange()
+{
+    id start = [m_element accessibilityAttributeValue:@"AXStartTextMarker"];
+    if (!start)
+        return;
+    
+    NSArray* textMarkers = @[start, start];
+    id textMarkerRange = [m_element accessibilityAttributeValue:@"AXTextMarkerRangeForUnorderedTextMarkers" forParameter:textMarkers];
+    if (!textMarkerRange)
+        return;
+    
+    BEGIN_AX_OBJC_EXCEPTIONS
+    [m_element _accessibilitySetTestValue:textMarkerRange forAttribute:NSAccessibilitySelectedTextMarkerRangeAttribute];
+    END_AX_OBJC_EXCEPTIONS
 }
 
 int AccessibilityUIElement::textMarkerRangeLength(AccessibilityTextMarkerRange* range)
@@ -1725,6 +1773,15 @@ AccessibilityTextMarker AccessibilityUIElement::endTextMarker()
     END_AX_OBJC_EXCEPTIONS
     
     return nullptr;
+}
+
+bool AccessibilityUIElement::setSelectedVisibleTextRange(AccessibilityTextMarkerRange* markerRange)
+{
+    BEGIN_AX_OBJC_EXCEPTIONS
+    [m_element accessibilitySetValue:(id)markerRange->platformTextMarkerRange() forAttribute:NSAccessibilitySelectedTextMarkerRangeAttribute];
+    END_AX_OBJC_EXCEPTIONS
+    
+    return true;
 }
 
 #endif // SUPPORTS_AX_TEXTMARKERS
