@@ -201,12 +201,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\wtf\ArrayBuffer.cpp" />
-    <ClCompile Include="..\wtf\ArrayBufferView.cpp" />
     <ClCompile Include="..\wtf\Assertions.cpp" />
     <ClCompile Include="..\wtf\Atomics.cpp" />
     <ClCompile Include="..\wtf\BitVector.cpp" />
     <ClCompile Include="..\wtf\CompilationThread.cpp" />
+    <ClCompile Include="..\wtf\CryptographicUtilities.cpp" />
     <ClCompile Include="..\wtf\CryptographicallyRandomNumber.cpp" />
     <ClCompile Include="..\wtf\CurrentTime.cpp" />
     <ClCompile Include="..\wtf\DataLog.cpp" />
@@ -221,27 +220,58 @@
     <ClCompile Include="..\wtf\dtoa\fast-dtoa.cc" />
     <ClCompile Include="..\wtf\dtoa\fixed-dtoa.cc" />
     <ClCompile Include="..\wtf\dtoa\strtod.cc" />
-    <ClCompile Include="..\wtf\DynamicAnnotations.cpp" />
+    <ClCompile Include="..\wtf\FastBitVector.cpp" />
     <ClCompile Include="..\wtf\FastMalloc.cpp" />
     <ClCompile Include="..\wtf\FilePrintStream.cpp" />
     <ClCompile Include="..\wtf\FunctionDispatcher.cpp" />
+    <ClCompile Include="..\wtf\glib\GLibUtilities.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugSuffix|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugSuffix|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Production|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Production|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\wtf\glib\GMainLoopSource.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugSuffix|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugSuffix|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Production|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Production|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\wtf\glib\GRefPtr.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugSuffix|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugSuffix|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Production|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Production|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\wtf\glib\GThreadSafeMainLoopSource.cpp" />
     <ClCompile Include="..\wtf\GregorianDateTime.cpp" />
     <ClCompile Include="..\wtf\HashTable.cpp" />
     <ClCompile Include="..\wtf\MainThread.cpp" />
     <ClCompile Include="..\wtf\MD5.cpp" />
     <ClCompile Include="..\wtf\MediaTime.cpp" />
     <ClCompile Include="..\wtf\MetaAllocator.cpp" />
-    <ClCompile Include="..\wtf\NullPtr.cpp" />
     <ClCompile Include="..\wtf\NumberOfCores.cpp" />
     <ClCompile Include="..\wtf\OSAllocatorWinPhone.cpp" />
     <ClCompile Include="..\wtf\OSRandomSource.cpp" />
-    <ClCompile Include="..\wtf\PageAllocationAligned.cpp" />
     <ClCompile Include="..\wtf\PageBlock.cpp" />
     <ClCompile Include="..\wtf\ParallelJobsGeneric.cpp" />
     <ClCompile Include="..\wtf\PrintStream.cpp" />
     <ClCompile Include="..\wtf\RAMSize.cpp" />
     <ClCompile Include="..\wtf\RandomNumber.cpp" />
     <ClCompile Include="..\wtf\RefCountedLeakCounter.cpp" />
+    <ClCompile Include="..\wtf\RefCounter.cpp" />
+    <ClCompile Include="..\wtf\RunLoop.cpp" />
     <ClCompile Include="..\wtf\RunLoopTimerCF.cpp" />
     <ClCompile Include="..\wtf\SHA1.cpp" />
     <ClCompile Include="..\wtf\SixCharacterHash.cpp" />
@@ -249,15 +279,21 @@
     <ClCompile Include="..\wtf\StackBounds.cpp" />
     <ClCompile Include="..\wtf\StackStats.cpp" />
     <ClCompile Include="..\wtf\StringPrintStream.cpp" />
-    <ClCompile Include="..\wtf\TCSystemAlloc.cpp" />
     <ClCompile Include="..\wtf\text\AtomicString.cpp" />
+    <ClCompile Include="..\wtf\text\AtomicStringImpl.cpp" />
     <ClCompile Include="..\wtf\text\AtomicStringTable.cpp" />
     <ClCompile Include="..\wtf\text\Base64.cpp" />
     <ClCompile Include="..\wtf\text\CString.cpp" />
     <ClCompile Include="..\wtf\text\StringBuilder.cpp" />
     <ClCompile Include="..\wtf\text\StringImpl.cpp" />
     <ClCompile Include="..\wtf\text\StringStatics.cpp" />
+    <ClCompile Include="..\wtf\text\StringView.cpp" />
+    <ClCompile Include="..\wtf\text\SymbolRegistry.cpp" />
     <ClCompile Include="..\wtf\text\WTFString.cpp" />
+    <ClCompile Include="..\wtf\text\cf\AtomicStringImplCF.cpp" />
+    <ClCompile Include="..\wtf\text\cf\StringCF.cpp" />
+    <ClCompile Include="..\wtf\text\cf\StringImplCF.cpp" />
+    <ClCompile Include="..\wtf\text\cf\StringViewCF.cpp" />
     <ClCompile Include="..\wtf\ThreadIdentifierDataPthreads.cpp" />
     <ClCompile Include="..\wtf\Threading.cpp" />
     <ClCompile Include="..\wtf\ThreadingPthreads.cpp" />
@@ -266,12 +302,16 @@
     <ClCompile Include="..\wtf\ThreadSpecificWin.cpp" />
     <ClCompile Include="..\wtf\ThreadSpecificWinPhone.cpp" />
     <ClCompile Include="..\wtf\threads\BinarySemaphore.cpp" />
-    <ClCompile Include="..\wtf\TypeTraits.cpp" />
     <ClCompile Include="..\wtf\unicode\CollatorDefault.cpp" />
     <ClCompile Include="..\wtf\unicode\icu\CollatorICU.cpp" />
     <ClCompile Include="..\wtf\unicode\UTF8.cpp" />
     <ClCompile Include="..\wtf\unicode\wchar\UnicodeWchar.cpp" />
     <ClCompile Include="..\wtf\win\MainThreadWinPhone.cpp" />
+    <ClCompile Include="..\wtf\win\RunLoopWin.cpp" />
+    <ClCompile Include="..\wtf\win\WorkItemWin.cpp" />
+    <ClCompile Include="..\wtf\win\WorkQueueWin.cpp" />
+    <ClCompile Include="..\wtf\win\WTFDLL.cpp" />
+    <ClCompile Include="..\wtf\WorkQueue.cpp" />
     <ClCompile Include="..\wtf\WTFThreadData.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
