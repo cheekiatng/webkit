@@ -21,9 +21,33 @@
     -webkit-grid-row: 1;
 }
 
+.onlyFirstRowOnlyFirstColumn {
+    background-color: blue;
+    -webkit-grid-column: 1 / 2;
+    -webkit-grid-row: 1 / 2;
+}
+
 .firstRowSecondColumn {
     background-color: lime;
     -webkit-grid-column: 2;
+    -webkit-grid-row: 1;
+}
+
+.onlyFirstRowOnlySecondColumn {
+    background-color: lime;
+    -webkit-grid-column: 2 / 3;
+    -webkit-grid-row: 1 / 2;
+}
+
+.firstRowThirdColumn {
+    background-color: magenta;
+    -webkit-grid-column: 3;
+    -webkit-grid-row: 1;
+}
+
+.firstRowFourthColumn {
+    background-color: green;
+    -webkit-grid-column: 4;
     -webkit-grid-row: 1;
 }
 
@@ -33,10 +57,94 @@
     -webkit-grid-row: 2;
 }
 
+.onlySecondRowOnlyFirstColumn {
+    background-color: purple;
+    -webkit-grid-column: 1 / 2;
+    -webkit-grid-row: 2 / 3;
+}
+
 .secondRowSecondColumn {
     background-color: orange;
     -webkit-grid-column: 2;
     -webkit-grid-row: 2;
+}
+
+.onlySecondRowOnlySecondColumn {
+    background-color: orange;
+    -webkit-grid-column: 2 / 3;
+    -webkit-grid-row: 2 / 3;
+}
+
+.endSecondRowEndSecondColumn {
+    background-color: orange;
+    -webkit-grid-column-end: 3;
+    -webkit-grid-row-end: 3;
+}
+
+.secondRowThirdColumn {
+    background-color: navy;
+    -webkit-grid-column: 3;
+    -webkit-grid-row: 2;
+}
+
+.secondRowFourthColumn {
+    background-color: pink;
+    -webkit-grid-column: 4;
+    -webkitgrid-row: 2;
+}
+
+.thirdRowFirstColumn {
+    background-color: olive;
+    -webkit-grid-column: 1;
+    -webkit-grid-row: 3;
+}
+
+.thirdRowSecondColumn {
+    background-color: maroon;
+    -webkit-grid-column: 2;
+    -webkit-grid-row: 3;
+}
+
+.thirdRowThirdColumn {
+    background-color: yellow;
+    -webkit-grid-column: 3;
+    -webkit-grid-row: 3;
+}
+
+.fourthRowFirstColumn {
+    background-color: red;
+    -webkit-grid-column: 1;
+    -webkit-grid-row: 4;
+}
+
+.fourthRowSecondColumn {
+    background-color: aqua;
+    -webkit-grid-column: 2;
+    -webkit-grid-row: 4;
+}
+
+.firstRowThirdColumn {
+    background-color: magenta;
+    grid-column: 3;
+    grid-row: 1;
+}
+
+.secondRowThirdColumn {
+    background-color: navy;
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.firstRowFourthColumn {
+    background-color: green;
+    grid-column: 4;
+    grid-row: 1;
+}
+
+.secondRowFourthColumn {
+    background-color: pink;
+    grid-column: 4;
+    grid-row: 2;
 }
 
 .firstAutoRowSecondAutoColumn {

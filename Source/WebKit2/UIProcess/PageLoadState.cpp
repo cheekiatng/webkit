@@ -53,7 +53,7 @@ PageLoadState::Transaction::Transaction(PageLoadState& pageLoadState)
 }
 
 PageLoadState::Transaction::Transaction(Transaction&& other)
-    : m_webPageProxy(WTF::move(other.m_webPageProxy))
+    : m_webPageProxy(WTFMove(other.m_webPageProxy))
     , m_pageLoadState(other.m_pageLoadState)
 {
     other.m_pageLoadState = nullptr;
@@ -400,6 +400,16 @@ bool PageLoadState::isLoading(const Data& data)
 
     ASSERT_NOT_REACHED();
     return false;
+}
+
+void PageLoadState::willChangeProcessIsResponsive()
+{
+    callObserverCallback(&Observer::willChangeWebProcessIsResponsive);
+}
+
+void PageLoadState::didChangeProcessIsResponsive()
+{
+    callObserverCallback(&Observer::didChangeWebProcessIsResponsive);
 }
 
 void PageLoadState::callObserverCallback(void (Observer::*callback)())

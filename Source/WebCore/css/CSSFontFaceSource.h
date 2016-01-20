@@ -44,6 +44,8 @@ class CSSFontFace;
 class CSSFontSelector;
 class Font;
 class FontDescription;
+class FontFeatureSettings;
+struct FontVariantSettings;
 
 class CSSFontFaceSource final : public CachedFontClient {
     WTF_MAKE_FAST_ALLOCATED;
@@ -51,7 +53,6 @@ public:
     CSSFontFaceSource(const String&, CachedFont* = nullptr);
     virtual ~CSSFontFaceSource();
 
-    bool isLoaded() const;
     bool isValid() const;
 
     const AtomicString& string() const { return m_string; }
@@ -60,7 +61,7 @@ public:
 
     virtual void fontLoaded(CachedFont*) override;
 
-    RefPtr<Font> font(const FontDescription&, bool syntheticBold, bool syntheticItalic, CSSFontSelector*);
+    RefPtr<Font> font(const FontDescription&, bool syntheticBold, bool syntheticItalic, CSSFontSelector*, const FontFeatureSettings&, const FontVariantSettings&);
 
     void pruneTable();
 

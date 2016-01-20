@@ -1,60 +1,37 @@
 
-PASS Running templatedRSEmpty with ReadableStream (empty) 
-FAIL instances have the correct methods and properties assert_equals: has a tee method expected "function" but got "undefined"
-PASS Running templatedRSEmptyReader with ReadableStream (empty) reader 
-PASS instances have the correct methods and properties 
-PASS locked should be true 
-PASS read() should never settle 
-PASS two read()s should both never settle 
-PASS read() should return distinct promises each time 
-PASS getReader() again on the stream should fail 
-PASS releasing the lock with pending read requests should throw but the read requests should stay pending 
-PASS releasing the lock should cause further read() calls to resolve as if the stream is closed 
-PASS releasing the lock should cause closed to fulfill 
-PASS releasing the lock should cause locked to become false 
-PASS canceling via the reader should cause the reader to act closed 
-PASS canceling via the stream should fail 
 PASS Running templatedRSClosed with ReadableStream (closed via call in start) 
-PASS cancel() should return a distinct fulfilled promise each time 
-PASS locked should be false 
-PASS getReader() should be OK 
-PASS should be able to acquire multiple readers, since they are all auto-released 
-PASS Running templatedRSClosedReader with ReadableStream (closed via call in start) reader 
-PASS read() should fulfill with { value: undefined, done: true } 
-PASS closed should fulfill with undefined 
-PASS cancel() should return a distinct fulfilled promise each time 
+PASS piping to a WritableStream in the writable state should close the writable stream 
+PASS piping to a WritableStream in the writable state with { preventClose: true } should do nothing 
 PASS Running templatedRSClosed with ReadableStream (closed via cancel) 
-PASS cancel() should return a distinct fulfilled promise each time 
-PASS locked should be false 
-PASS getReader() should be OK 
-PASS should be able to acquire multiple readers, since they are all auto-released 
-PASS Running templatedRSClosedReader with ReadableStream (closed via cancel) reader 
-PASS read() should fulfill with { value: undefined, done: true } 
-PASS closed should fulfill with undefined 
-PASS cancel() should return a distinct fulfilled promise each time 
+PASS piping to a WritableStream in the writable state should close the writable stream 
+PASS piping to a WritableStream in the writable state with { preventClose: true } should do nothing 
 PASS Running templatedRSErrored with ReadableStream (errored via call in start) 
-PASS getReader() should return a reader that acts errored 
-PASS locked should be false 
-PASS Running templatedRSErroredSyncOnly with ReadableStream (errored via call in start) 
-PASS cancel() should return a distinct rejected promise each time 
-PASS reader cancel() should return a distinct rejected promise each time 
-PASS should be able to acquire multiple readers, since they are all auto-released 
+PASS piping to a WritableStream in the writable state should abort the writable stream 
 PASS Running templatedRSErrored with ReadableStream (errored via returning a rejected promise in start) 
-PASS getReader() should return a reader that acts errored 
-PASS locked should be false 
-PASS Running templatedRSErroredReader with ReadableStream (errored via returning a rejected promise in start) reader 
-PASS closed should reject with the error 
-PASS read() should reject with the error 
-PASS Running templatedRSTwoChunksOpenReader with ReadableStream (two chunks enqueued, still open) reader 
-PASS calling read() twice without waiting will eventually give both chunks 
-PASS calling read() twice with waiting will eventually give both chunks 
-PASS read() should return distinct promises each time 
-PASS cancel() after a read() should still give that single read result 
-PASS Running templatedRSTwoChunksClosedReader with ReadableStream (two chunks enqueued, then closed) reader 
-PASS third read(), without waiting, should give { value: undefined, done: true } 
-PASS third read, with waiting, should give { value: undefined, done: true } 
-PASS draining the stream via read() should cause the reader closed promise to fulfill and locked to be false 
-PASS releasing the lock after the stream is closed should do nothing 
-PASS releasing the lock should cause read() to act as if the stream is closed 
-PASS reader's closed property always returns the same promise 
+PASS piping to a WritableStream in the writable state should abort the writable stream 
+PASS Running templatedRSErroredAsyncOnly with ReadableStream (errored via returning a rejected promise in start) reader 
+PASS piping with no options 
+PASS piping with { preventAbort: false } 
+PASS piping with { preventAbort: true } 
+PASS Running templatedRSTwoChunksClosed with ReadableStream (two chunks enqueued, then closed) 
+PASS piping with no options and no destination errors 
+PASS piping with { preventClose: false } and no destination errors 
+PASS piping with { preventClose: true } and no destination errors 
+PASS piping with { preventClose: false } and a destination with that errors synchronously 
+PASS piping with { preventClose: true } and a destination with that errors synchronously 
+PASS piping with { preventClose: true } and a destination that errors on the last chunk 
+PASS Running templatedRSTwoChunksClosed with ReadableStream (two chunks enqueued async, then closed) 
+PASS piping with no options and no destination errors 
+PASS piping with { preventClose: false } and no destination errors 
+PASS piping with { preventClose: true } and no destination errors 
+PASS piping with { preventClose: false } and a destination with that errors synchronously 
+PASS piping with { preventClose: true } and a destination with that errors synchronously 
+PASS piping with { preventClose: true } and a destination that errors on the last chunk 
+PASS Running templatedRSTwoChunksClosed with ReadableStream (two chunks enqueued via pull, then closed) 
+PASS piping with no options and no destination errors 
+PASS piping with { preventClose: false } and no destination errors 
+PASS piping with { preventClose: true } and no destination errors 
+PASS piping with { preventClose: false } and a destination with that errors synchronously 
+PASS piping with { preventClose: true } and a destination with that errors synchronously 
+PASS piping with { preventClose: true } and a destination that errors on the last chunk 
 

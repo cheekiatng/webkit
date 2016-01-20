@@ -301,21 +301,28 @@ void TiledCoreAnimationDrawingArea::scaleViewToFitDocumentIfNeeded()
 
     // Our current understanding of the document width is still up to date, and we're in scaling mode.
     // Update the viewScale without doing an extra layout to re-determine the document width.
-    if (m_isScalingViewToFitDocument && !documentWidthChanged) {
-        m_lastViewSizeForScaleToFit = m_webPage.size();
-        float viewScale = (float)viewWidth / (float)m_lastDocumentSizeForScaleToFit.width();
-        if (viewScale < minimumViewScale) {
-            viewScale = minimumViewScale;
-            documentWidth = std::ceil(viewWidth / viewScale);
+    if (m_isScalingViewToFitDocument) {
+        if (!documentWidthChanged) {
+            m_lastViewSizeForScaleToFit = m_webPage.size();
+            float viewScale = (float)viewWidth / (float)m_lastDocumentSizeForScaleToFit.width();
+            if (viewScale < minimumViewScale) {
+                viewScale = minimumViewScale;
+                documentWidth = std::ceil(viewWidth / viewScale);
+            }
+            IntSize fixedLayoutSize(documentWidth, std::ceil((m_webPage.size().height() - m_webPage.corePage()->topContentInset()) / viewScale));
+            m_webPage.setFixedLayoutSize(fixedLayoutSize);
+            m_webPage.scaleView(viewScale);
+
+            LOG(Resize, "  using fixed layout at %dx%d. document width %d unchanged, scaled to %.4f to fit view width %d", fixedLayoutSize.width(), fixedLayoutSize.height(), documentWidth, viewScale, viewWidth);
+            return;
         }
-        IntSize fixedLayoutSize(documentWidth, std::ceil((m_webPage.size().height() - m_webPage.corePage()->topContentInset()) / viewScale));
-        m_webPage.setFixedLayoutSize(fixedLayoutSize);
-        m_webPage.scaleView(viewScale);
-
-        LOG(Resize, "  using fixed layout at %dx%d. document width %d unchanged, scaled to %.4f to fit view width %d", fixedLayoutSize.width(), fixedLayoutSize.height(), documentWidth, viewScale, viewWidth);
-        return;
+    
+        IntSize fixedLayoutSize = m_webPage.fixedLayoutSize();
+        if (documentWidth > fixedLayoutSize.width()) {
+            LOG(Resize, "  page laid out wider than fixed layout width. Not attempting to re-scale");
+            return;
+        }
     }
-
 
     LOG(Resize, "  doing unconstrained layout");
 
@@ -412,7 +419,7 @@ bool TiledCoreAnimationDrawingArea::flushLayers()
         if (m_viewOverlayRootLayer)
             m_viewOverlayRootLayer->flushCompositingState(visibleRect, m_webPage.mainFrameView()->viewportIsStable());
 
-#if (TARGET_OS_IPHONE && __IPHONE_OS_VERSION_MIN_REQUIRED >= 90000) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
+#if TARGET_OS_IPHONE || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100)
         RefPtr<WebPage> retainedPage = &m_webPage;
         [CATransaction addCommitHandler:[retainedPage] {
             if (Page* corePage = retainedPage->corePage()) {
@@ -432,16 +439,6 @@ bool TiledCoreAnimationDrawingArea::flushLayers()
         // that WebCore makes to the relevant layers, so re-apply our changes after flushing.
         if (m_transientZoomScale != 1)
             applyTransientZoomToLayers(m_transientZoomScale, m_transientZoomOrigin);
-
-        if (!m_fenceCallbacksForAfterNextFlush.isEmpty()) {
-            MachSendRight fencePort = m_layerHostingContext->createFencePort();
-
-            for (auto callbackID : m_fenceCallbacksForAfterNextFlush)
-                m_webPage.send(Messages::WebPageProxy::MachSendRightCallback(fencePort, callbackID));
-            m_fenceCallbacksForAfterNextFlush.clear();
-
-            m_layerHostingContext->setFencePort(fencePort.sendRight());
-        }
 
         return returnValue;
     }
@@ -515,8 +512,8 @@ void TiledCoreAnimationDrawingArea::updateScrolledExposedRect()
 
 #if !PLATFORM(IOS)
     if (!m_exposedRect.isInfinite()) {
-        IntPoint scrollPositionWithOrigin = frameView->scrollPosition() + toIntSize(frameView->scrollOrigin());
-        m_scrolledExposedRect.moveBy(scrollPositionWithOrigin);
+        ScrollOffset scrollOffset = frameView->scrollOffsetFromPosition(frameView->scrollPosition());
+        m_scrolledExposedRect.moveBy(scrollOffset);
     }
 #endif
 
@@ -865,11 +862,6 @@ void TiledCoreAnimationDrawingArea::applyTransientZoomToPage(double scale, Float
 void TiledCoreAnimationDrawingArea::addFence(const MachSendRight& fencePort)
 {
     m_layerHostingContext->setFencePort(fencePort.sendRight());
-}
-
-void TiledCoreAnimationDrawingArea::replyWithFenceAfterNextFlush(uint64_t callbackID)
-{
-    m_fenceCallbacksForAfterNextFlush.append(callbackID);
 }
 
 } // namespace WebKit

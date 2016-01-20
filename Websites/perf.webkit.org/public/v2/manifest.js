@@ -214,6 +214,12 @@ App.MetricSerializer = App.PlatformSerializer = DS.RESTSerializer.extend({
             id++;
         }
 
+        var siteTitle = payload['siteTitle'];
+        if (siteTitle) {
+            App.Manifest.set('siteTitle', siteTitle);
+            document.title = siteTitle;
+        }
+
         return results;
     },
     _normalizeIdMap: function (idMap)
@@ -304,7 +310,7 @@ App.Manifest = Ember.Controller.extend({
 
         this.set('bugTrackers', store.all('bugTracker').sortBy('name'));
 
-        var dashboards = store.all('dashboard').sortBy('name');
+        var dashboards = store.all('dashboard').toArray();
         this.set('dashboards', dashboards);
         dashboards.forEach(function (dashboard) { self._dashboardByName[dashboard.get('name')] = dashboard; });
         this._defaultDashboardName = dashboards.length ? dashboards[0].get('name') : null;
@@ -359,14 +365,22 @@ App.Manifest = Ember.Controller.extend({
         var deltaFormatterWithoutSign = this._makeFormatter(unit, 2, false);
 
         var currentTimeSeries = configurations.current.timeSeriesByCommitTime(false);
-        var baselineTimeSeries = configurations.baseline ? configurations.baseline.timeSeriesByCommitTime(false) : null;
-        var targetTimeSeries = configurations.target ? configurations.target.timeSeriesByCommitTime(false) : null;
-        var unfilteredCurrentTimeSeries, unfilteredBaselineTimeSeries, unfilteredTargetTimeSeries;
+        var baselineTimeSeries = configurations.baseline ? configurations.baseline.timeSeriesByCommitTime(false, true) : null;
+        var targetTimeSeries = configurations.target ? configurations.target.timeSeriesByCommitTime(false, true) : null;
+
+        var unfilteredCurrentTimeSeries = configurations.current.timeSeriesByCommitTime(true);
+        var unfilteredBaselineTimeSeries = configurations.baseline ? configurations.baseline.timeSeriesByCommitTime(true, true) : null;
+        var unfilteredTargetTimeSeries = configurations.target ? configurations.target.timeSeriesByCommitTime(true, true) : null;
 
         return {
             current: currentTimeSeries,
             baseline: baselineTimeSeries,
             target: targetTimeSeries,
+
+            unfilteredCurrentTimeSeries: unfilteredCurrentTimeSeries,
+            unfilteredBaselineTimeSeries: unfilteredBaselineTimeSeries,
+            unfilteredTargetTimeSeries: unfilteredTargetTimeSeries,
+
             formatWithDeltaAndUnit: function (value, delta)
             {
                 return this.formatter(value) + (delta && !isNaN(delta) ? ' \u00b1 ' + deltaFormatterWithoutSign(delta) : '');
@@ -376,11 +390,6 @@ App.Manifest = Ember.Controller.extend({
             smallerIsBetter: smallerIsBetter,
             showOutlier: function (show)
             {
-                if (!unfilteredCurrentTimeSeries) {
-                    unfilteredCurrentTimeSeries = configurations.current.timeSeriesByCommitTime(true);
-                    unfilteredBaselineTimeSeries = configurations.baseline ? configurations.baseline.timeSeriesByCommitTime(true) : null;
-                    unfilteredTargetTimeSeries = configurations.target ? configurations.target.timeSeriesByCommitTime(true) : null;
-                }
                 this.current = show ? unfilteredCurrentTimeSeries : currentTimeSeries;
                 this.baseline = show ? unfilteredBaselineTimeSeries : baselineTimeSeries;
                 this.target = show ? unfilteredTargetTimeSeries : targetTimeSeries;

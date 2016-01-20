@@ -123,7 +123,7 @@ void PageClientImpl::toolTipChanged(const String&, const String& newToolTip)
     webkitWebViewBaseSetTooltipText(WEBKIT_WEB_VIEW_BASE(m_viewWidget), newToolTip.utf8().data());
 }
 
-void PageClientImpl::setCursor(const Cursor& cursor)
+void PageClientImpl::setCursor(const WebCore::Cursor& cursor)
 {
     if (!gtk_widget_get_realized(m_viewWidget))
         return;
@@ -206,14 +206,14 @@ void PageClientImpl::doneWithKeyEvent(const NativeWebKeyboardEvent& event, bool 
     gtk_main_do_event(event.nativeEvent());
 }
 
-RefPtr<WebPopupMenuProxy> PageClientImpl::createPopupMenuProxy(WebPageProxy* page)
+RefPtr<WebPopupMenuProxy> PageClientImpl::createPopupMenuProxy(WebPageProxy& page)
 {
     return WebPopupMenuProxyGtk::create(m_viewWidget, page);
 }
 
-RefPtr<WebContextMenuProxy> PageClientImpl::createContextMenuProxy(WebPageProxy* page)
+std::unique_ptr<WebContextMenuProxy> PageClientImpl::createContextMenuProxy(WebPageProxy& page, const ContextMenuContextData& context, const UserData& userData)
 {
-    return WebContextMenuProxyGtk::create(m_viewWidget, page);
+    return std::make_unique<WebContextMenuProxyGtk>(m_viewWidget, page, context, userData);
 }
 
 RefPtr<WebColorPicker> PageClientImpl::createColorPicker(WebPageProxy* page, const WebCore::Color& color, const WebCore::IntRect& rect)
@@ -221,21 +221,6 @@ RefPtr<WebColorPicker> PageClientImpl::createColorPicker(WebPageProxy* page, con
     if (WEBKIT_IS_WEB_VIEW(m_viewWidget))
         return WebKitColorChooser::create(*page, color, rect);
     return WebColorPickerGtk::create(*page, color, rect);
-}
-
-void PageClientImpl::setTextIndicator(Ref<WebCore::TextIndicator>, WebCore::TextIndicatorLifetime)
-{
-    notImplemented();
-}
-
-void PageClientImpl::clearTextIndicator(WebCore::TextIndicatorDismissalAnimation)
-{
-    notImplemented();
-}
-
-void PageClientImpl::setTextIndicatorAnimationProgress(float)
-{
-    notImplemented();
 }
 
 void PageClientImpl::enterAcceleratedCompositingMode(const LayerTreeContext&)
@@ -246,6 +231,11 @@ void PageClientImpl::enterAcceleratedCompositingMode(const LayerTreeContext&)
 void PageClientImpl::exitAcceleratedCompositingMode()
 {
     webkitWebViewBaseExitAcceleratedCompositingMode(WEBKIT_WEB_VIEW_BASE(m_viewWidget));
+}
+
+void PageClientImpl::willEnterAcceleratedCompositingMode()
+{
+    webkitWebViewBaseWillEnterAcceleratedCompositingMode(WEBKIT_WEB_VIEW_BASE(m_viewWidget));
 }
 
 void PageClientImpl::updateAcceleratedCompositingMode(const LayerTreeContext&)
@@ -337,6 +327,7 @@ void PageClientImpl::beganExitFullScreen(const IntRect& /* initialFrame */, cons
 
 #endif // ENABLE(FULLSCREEN_API)
 
+#if ENABLE(TOUCH_EVENTS)
 void PageClientImpl::doneWithTouchEvent(const NativeWebTouchEvent& event, bool wasEventHandled)
 {
     if (wasEventHandled)
@@ -392,6 +383,7 @@ void PageClientImpl::doneWithTouchEvent(const NativeWebTouchEvent& event, bool w
 
     gtk_widget_event(m_viewWidget, pointerEvent.get());
 }
+#endif // ENABLE(TOUCH_EVENTS)
 
 void PageClientImpl::didFinishLoadingDataForCustomContentProvider(const String&, const IPC::DataReference&)
 {
@@ -414,6 +406,10 @@ void PageClientImpl::navigationGestureDidEnd()
 }
 
 void PageClientImpl::willRecordNavigationSnapshot(WebBackForwardListItem&)
+{
+}
+
+void PageClientImpl::didRemoveNavigationGestureSnapshot()
 {
 }
 
@@ -442,5 +438,16 @@ void PageClientImpl::derefView()
 {
     g_object_unref(m_viewWidget);
 }
+
+#if ENABLE(VIDEO) && USE(GSTREAMER)
+bool PageClientImpl::decidePolicyForInstallMissingMediaPluginsPermissionRequest(InstallMissingMediaPluginsPermissionRequest& request)
+{
+    if (!WEBKIT_IS_WEB_VIEW(m_viewWidget))
+        return false;
+
+    webkitWebViewRequestInstallMissingMediaPlugins(WEBKIT_WEB_VIEW(m_viewWidget), request);
+    return true;
+}
+#endif
 
 } // namespace WebKit

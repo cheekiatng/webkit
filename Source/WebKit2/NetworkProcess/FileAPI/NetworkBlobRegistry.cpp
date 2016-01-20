@@ -26,8 +26,6 @@
 #include "config.h"
 #include "NetworkBlobRegistry.h"
 
-#if ENABLE(NETWORK_PROCESS)
-
 #include "BlobDataFileReferenceWithSandboxExtension.h"
 #include "SandboxExtension.h"
 #include <WebCore/BlobPart.h>
@@ -63,7 +61,7 @@ void NetworkBlobRegistry::registerFileBlobURL(NetworkConnectionToWebProcess* con
 
 void NetworkBlobRegistry::registerBlobURL(NetworkConnectionToWebProcess* connection, const URL& url, Vector<WebCore::BlobPart> blobParts, const String& contentType)
 {
-    blobRegistry().registerBlobURL(url, WTF::move(blobParts), contentType);
+    blobRegistry().registerBlobURL(url, WTFMove(blobParts), contentType);
 
     ASSERT(!m_blobsForConnection.get(connection).contains(url));
     BlobForConnectionMap::iterator mapIterator = m_blobsForConnection.find(connection);
@@ -131,9 +129,9 @@ void NetworkBlobRegistry::connectionToWebProcessDidClose(NetworkConnectionToWebP
     m_blobsForConnection.remove(connection);
 }
 
-Vector<RefPtr<BlobDataFileReference>> NetworkBlobRegistry::filesInBlob(NetworkConnectionToWebProcess* connection, const WebCore::URL& url)
+Vector<RefPtr<BlobDataFileReference>> NetworkBlobRegistry::filesInBlob(NetworkConnectionToWebProcess& connection, const WebCore::URL& url)
 {
-    if (!m_blobsForConnection.contains(connection) || !m_blobsForConnection.find(connection)->value.contains(url))
+    if (!m_blobsForConnection.contains(&connection) || !m_blobsForConnection.find(&connection)->value.contains(url))
         return Vector<RefPtr<BlobDataFileReference>>();
 
     ASSERT(blobRegistry().isBlobRegistryImpl());
@@ -151,5 +149,3 @@ Vector<RefPtr<BlobDataFileReference>> NetworkBlobRegistry::filesInBlob(NetworkCo
 }
 
 }
-
-#endif

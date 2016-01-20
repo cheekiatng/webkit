@@ -30,6 +30,17 @@
 
 namespace WebKit {
 
+bool isValidEnum(WebCore::ShouldOpenExternalURLsPolicy policy)
+{
+    switch (policy) {
+    case WebCore::ShouldOpenExternalURLsPolicy::ShouldAllow:
+    case WebCore::ShouldOpenExternalURLsPolicy::ShouldAllowExternalSchemes:
+    case WebCore::ShouldOpenExternalURLsPolicy::ShouldNotAllow:
+        return true;
+    }
+    return false;
+}
+
 void HTTPBody::Element::encode(IPC::ArgumentEncoder& encoder) const
 {
     encoder.encodeEnum(type);
@@ -102,7 +113,7 @@ void FrameState::encode(IPC::ArgumentEncoder& encoder) const
     encoder << documentSequenceNumber;
     encoder << itemSequenceNumber;
 
-    encoder << scrollPoint;
+    encoder << scrollPosition;
     encoder << pageScaleFactor;
 
     encoder << httpBody;
@@ -139,7 +150,7 @@ bool FrameState::decode(IPC::ArgumentDecoder& decoder, FrameState& result)
     if (!decoder.decode(result.itemSequenceNumber))
         return false;
 
-    if (!decoder.decode(result.scrollPoint))
+    if (!decoder.decode(result.scrollPosition))
         return false;
     if (!decoder.decode(result.pageScaleFactor))
         return false;
@@ -170,6 +181,7 @@ void PageState::encode(IPC::ArgumentEncoder& encoder) const
 {
     encoder << title;
     encoder << mainFrameState;
+    encoder.encodeEnum(shouldOpenExternalURLsPolicy);
 }
 
 bool PageState::decode(IPC::ArgumentDecoder& decoder, PageState& result)
@@ -177,6 +189,8 @@ bool PageState::decode(IPC::ArgumentDecoder& decoder, PageState& result)
     if (!decoder.decode(result.title))
         return false;
     if (!decoder.decode(result.mainFrameState))
+        return false;
+    if (!decoder.decodeEnum(result.shouldOpenExternalURLsPolicy) || !isValidEnum(result.shouldOpenExternalURLsPolicy))
         return false;
 
     return true;

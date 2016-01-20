@@ -36,7 +36,6 @@ WebInspector.ObjectTreeBaseTreeElement = class ObjectTreeBaseTreeElement extends
         this._property = property;
         this._propertyPath = propertyPath;
 
-        this.small = true;
         this.toggleOnClick = true;
         this.selectable = false;
         this.tooltipHandledSeparately = true;
@@ -182,29 +181,33 @@ WebInspector.ObjectTreeBaseTreeElement = class ObjectTreeBaseTreeElement extends
 
     _contextMenuHandler(event)
     {
-        var resolvedValue = this.resolvedValue();
+        let contextMenu = WebInspector.ContextMenu.createFromEvent(event);
+
+        if (typeof this.treeOutline.objectTreeElementAddContextMenuItems === "function") {
+            this.treeOutline.objectTreeElementAddContextMenuItems(this, contextMenu);
+            if (!contextMenu.isEmpty())
+                contextMenu.appendSeparator();
+        }             
+
+        let resolvedValue = this.resolvedValue();
         if (!resolvedValue)
             return;
-
-        var contextMenu = new WebInspector.ContextMenu(event);
 
         if (this._property && this._property.symbol)
             contextMenu.appendItem(WebInspector.UIString("Log Symbol"), this._logSymbolProperty.bind(this));
 
         contextMenu.appendItem(WebInspector.UIString("Log Value"), this._logValue.bind(this));
 
-        var propertyPath = this.resolvedValuePropertyPath();
+        let propertyPath = this.resolvedValuePropertyPath();
         if (propertyPath && !propertyPath.isFullPathImpossible()) {
-            contextMenu.appendItem(WebInspector.UIString("Copy Path to Property"), function() {
+            contextMenu.appendItem(WebInspector.UIString("Copy Path to Property"), () => {
                 InspectorFrontendHost.copyText(propertyPath.displayPath(WebInspector.PropertyPath.Type.Value));
-            }.bind(this));
+            });
         }
 
         contextMenu.appendSeparator();
 
         this._appendMenusItemsForObject(contextMenu, resolvedValue);
-
-        contextMenu.show();
     }
 
     _appendMenusItemsForObject(contextMenu, resolvedValue)
@@ -217,12 +220,12 @@ WebInspector.ObjectTreeBaseTreeElement = class ObjectTreeBaseTreeElement extends
                         if (error)
                             return;
 
-                        var location = response.location;
-                        var sourceCode = WebInspector.debuggerManager.scriptForIdentifier(location.scriptId);
+                        let location = response.location;
+                        let sourceCode = WebInspector.debuggerManager.scriptForIdentifier(location.scriptId);
                         if (!sourceCode)
                             return;
 
-                        var sourceCodeLocation = sourceCode.createSourceCodeLocation(location.lineNumber, location.columnNumber || 0);
+                        let sourceCodeLocation = sourceCode.createSourceCodeLocation(location.lineNumber, location.columnNumber || 0);
                         WebInspector.showSourceCodeLocation(sourceCodeLocation);
                     });
                 });
@@ -235,6 +238,11 @@ WebInspector.ObjectTreeBaseTreeElement = class ObjectTreeBaseTreeElement extends
                 resolvedValue.pushNodeToFrontend(function(nodeId) {
                     WebInspector.domTreeManager.nodeForId(nodeId).copyNode();
                 });
+            });
+
+            contextMenu.appendItem(WebInspector.UIString("Scroll Into View"), function() {
+                function scrollIntoView() { this.scrollIntoViewIfNeeded(true); }
+                resolvedValue.callFunction(scrollIntoView, undefined, false, function() {});
             });
 
             contextMenu.appendSeparator();

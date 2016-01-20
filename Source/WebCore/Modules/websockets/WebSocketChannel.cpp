@@ -104,7 +104,7 @@ void WebSocketChannel::connect(const URL& url, const String& protocol)
     if (m_deflateFramer.canDeflate())
         m_handshake->addExtensionProcessor(m_deflateFramer.createExtensionProcessor());
     if (m_identifier)
-        InspectorInstrumentation::didCreateWebSocket(m_document, m_identifier, url, m_document->url(), protocol);
+        InspectorInstrumentation::didCreateWebSocket(m_document, m_identifier, url);
 
     if (Frame* frame = m_document->frame()) {
         if (NetworkingContext* networkingContext = frame->loader().networkingContext()) {
@@ -201,7 +201,14 @@ void WebSocketChannel::fail(const String& reason)
     ASSERT(!m_suspended);
     if (m_document) {
         InspectorInstrumentation::didReceiveWebSocketFrameError(m_document, m_identifier, reason);
-        m_document->addConsoleMessage(MessageSource::Network, MessageLevel::Error, "WebSocket connection to '" + m_handshake->url().stringCenterEllipsizedToLength() + "' failed: " + reason);
+
+        String consoleMessage;
+        if (m_handshake)
+            consoleMessage = makeString("WebSocket connection to '", m_handshake->url().stringCenterEllipsizedToLength(), "' failed: ", reason);
+        else
+            consoleMessage = makeString("WebSocket connection failed: ", reason);
+
+        m_document->addConsoleMessage(MessageSource::Network, MessageLevel::Error, consoleMessage);
     }
 
     // Hybi-10 specification explicitly states we must not continue to handle incoming data
@@ -218,7 +225,8 @@ void WebSocketChannel::fail(const String& reason)
     if (m_handle && !m_closed)
         m_handle->disconnect(); // Will call didClose().
 
-    ASSERT(m_closed);
+    // We should be closed by now, but if we never got a handshake then we never even opened.
+    ASSERT(m_closed || !m_handshake);
 }
 
 void WebSocketChannel::disconnect()
@@ -578,7 +586,7 @@ bool WebSocketChannel::processFrame()
             // so we should pretend that we have finished to read this frame and
             // make sure that the member variables are in a consistent state before
             // the handler is invoked.
-            Vector<char> continuousFrameData = WTF::move(m_continuousFrameData);
+            Vector<char> continuousFrameData = WTFMove(m_continuousFrameData);
             m_hasContinuousFrame = false;
             if (m_continuousFrameOpCode == WebSocketFrame::OpCodeText) {
                 String message;
@@ -591,7 +599,7 @@ bool WebSocketChannel::processFrame()
                 else
                     m_client->didReceiveMessage(message);
             } else if (m_continuousFrameOpCode == WebSocketFrame::OpCodeBinary)
-                m_client->didReceiveBinaryData(WTF::move(continuousFrameData));
+                m_client->didReceiveBinaryData(WTFMove(continuousFrameData));
         }
         break;
 
@@ -621,7 +629,7 @@ bool WebSocketChannel::processFrame()
             Vector<char> binaryData(frame.payloadLength);
             memcpy(binaryData.data(), frame.payload, frame.payloadLength);
             skipBuffer(frameEnd - m_buffer.data());
-            m_client->didReceiveBinaryData(WTF::move(binaryData));
+            m_client->didReceiveBinaryData(WTFMove(binaryData));
         } else {
             m_hasContinuousFrame = true;
             m_continuousFrameOpCode = WebSocketFrame::OpCodeBinary;

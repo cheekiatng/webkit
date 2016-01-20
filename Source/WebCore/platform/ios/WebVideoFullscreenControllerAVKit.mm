@@ -46,7 +46,7 @@ SOFT_LINK_CLASS(UIKit, UIView)
 
 using namespace WebCore;
 
-#if __IPHONE_OS_VERSION_MIN_REQUIRED <= 80200 || !HAVE(AVKIT)
+#if !HAVE(AVKIT)
 
 @implementation WebVideoFullscreenController
 - (void)setVideoElement:(WebCore::HTMLVideoElement*)videoElement
@@ -130,7 +130,8 @@ private:
     virtual void setAudioMediaSelectionOptions(const Vector<String>& options, uint64_t selectedIndex) override;
     virtual void setLegibleMediaSelectionOptions(const Vector<String>& options, uint64_t selectedIndex) override;
     virtual void setExternalPlayback(bool enabled, ExternalPlaybackTargetType, String localizedDeviceName) override;
-    
+    virtual void setWirelessVideoPlaybackDisabled(bool) override;
+
     // WebVideoFullscreenModel
     virtual void play() override;
     virtual void pause() override;
@@ -142,13 +143,14 @@ private:
     virtual void beginScanningForward() override;
     virtual void beginScanningBackward() override;
     virtual void endScanning() override;
-    virtual void requestExitFullscreen() override;
+    virtual void requestFullscreenMode(HTMLMediaElementEnums::VideoFullscreenMode) override;
     virtual void setVideoLayerFrame(FloatRect) override;
     virtual void setVideoLayerGravity(WebVideoFullscreenModel::VideoGravity) override;
     virtual void selectAudioMediaOption(uint64_t index) override;
     virtual void selectLegibleMediaOption(uint64_t index) override;
     virtual void fullscreenModeChanged(HTMLMediaElementEnums::VideoFullscreenMode) override;
-    
+    virtual bool isVisible() const override;
+
     RefPtr<WebVideoFullscreenInterfaceAVKit> m_interface;
     RefPtr<WebVideoFullscreenModelVideoElement> m_model;
     RefPtr<HTMLVideoElement> m_videoElement;
@@ -164,7 +166,7 @@ void WebVideoFullscreenControllerContext::didSetupFullscreen()
     RefPtr<WebVideoFullscreenControllerContext> strongThis(this);
     RetainPtr<CALayer> videoFullscreenLayer = [m_videoFullscreenView layer];
     WebThreadRun([strongThis, this, videoFullscreenLayer] {
-        [videoFullscreenLayer setBackgroundColor:cachedCGColor(WebCore::Color::transparent, WebCore::ColorSpaceDeviceRGB)];
+        [videoFullscreenLayer setBackgroundColor:cachedCGColor(WebCore::Color::transparent)];
         m_model->setVideoFullscreenLayer(videoFullscreenLayer.get());
         dispatch_async(dispatch_get_main_queue(), [strongThis, this] {
             m_interface->enterFullscreen();
@@ -348,6 +350,16 @@ void WebVideoFullscreenControllerContext::setExternalPlayback(bool enabled, Exte
     });
 }
 
+void WebVideoFullscreenControllerContext::setWirelessVideoPlaybackDisabled(bool disabled)
+{
+    ASSERT(WebThreadIsCurrent());
+    RefPtr<WebVideoFullscreenControllerContext> strongThis(this);
+    dispatch_async(dispatch_get_main_queue(), [strongThis, this, disabled] {
+        if (m_interface)
+            m_interface->setWirelessVideoPlaybackDisabled(disabled);
+    });
+}
+
 #pragma mark WebVideoFullscreenModel
 
 void WebVideoFullscreenControllerContext::play()
@@ -450,13 +462,13 @@ void WebVideoFullscreenControllerContext::endScanning()
     });
 }
 
-void WebVideoFullscreenControllerContext::requestExitFullscreen()
+void WebVideoFullscreenControllerContext::requestFullscreenMode(HTMLMediaElementEnums::VideoFullscreenMode mode)
 {
     ASSERT(isUIThread());
     RefPtr<WebVideoFullscreenControllerContext> strongThis(this);
-    WebThreadRun([strongThis, this] {
+    WebThreadRun([strongThis, this, mode] {
         if (m_model)
-            m_model->requestExitFullscreen();
+            m_model->requestFullscreenMode(mode);
     });
 }
 
@@ -521,6 +533,12 @@ void WebVideoFullscreenControllerContext::fullscreenModeChanged(HTMLMediaElement
         if (m_model)
             m_model->fullscreenModeChanged(mode);
     });
+}
+
+bool WebVideoFullscreenControllerContext::isVisible() const
+{
+    ASSERT(isUIThread());
+    return m_model ? m_model->isVisible() : false;
 }
 
 #pragma mark Other
@@ -627,6 +645,6 @@ void WebVideoFullscreenControllerContext::requestHideAndExitFullscreen()
 
 @end
 
-#endif // __IPHONE_OS_VERSION_MIN_REQUIRED < 80000
+#endif // !HAVE(AVKIT)
 
 #endif // PLATFORM(IOS)

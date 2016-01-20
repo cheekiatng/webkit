@@ -37,6 +37,7 @@
 #include "RenderBlock.h"
 #include "RootInlineBox.h"
 #include "Text.h"
+#include "TextStream.h"
 #include "VisibleUnits.h"
 #include "htmlediting.h"
 #include <stdio.h>
@@ -173,7 +174,7 @@ Position VisiblePosition::leftVisuallyDistinctCandidate() const
 
             if (box->direction() == primaryDirection) {
                 if (!prevBox) {
-                    InlineBox* logicalStart = 0;
+                    InlineBox* logicalStart = nullptr;
                     if (primaryDirection == LTR ? box->root().getLogicalStartBoxWithNode(logicalStart) : box->root().getLogicalEndBoxWithNode(logicalStart)) {
                         box = logicalStart;
                         renderer = &box->renderer();
@@ -338,7 +339,7 @@ Position VisiblePosition::rightVisuallyDistinctCandidate() const
 
             if (box->direction() == primaryDirection) {
                 if (!nextBox) {
-                    InlineBox* logicalEnd = 0;
+                    InlineBox* logicalEnd = nullptr;
                     if (primaryDirection == LTR ? box->root().getLogicalEndBoxWithNode(logicalEnd) : box->root().getLogicalStartBoxWithNode(logicalEnd)) {
                         box = logicalEnd;
                         renderer = &box->renderer();
@@ -600,7 +601,7 @@ UChar32 VisiblePosition::characterAfter() const
 LayoutRect VisiblePosition::localCaretRect(RenderObject*& renderer) const
 {
     if (m_deepPosition.isNull()) {
-        renderer = 0;
+        renderer = nullptr;
         return IntRect();
     }
     Node* node = m_deepPosition.anchorNode();
@@ -670,12 +671,12 @@ void VisiblePosition::showTreeForThis() const
 PassRefPtr<Range> makeRange(const VisiblePosition &start, const VisiblePosition &end)
 {
     if (start.isNull() || end.isNull())
-        return 0;
+        return nullptr;
     
     Position s = start.deepEquivalent().parentAnchoredEquivalent();
     Position e = end.deepEquivalent().parentAnchoredEquivalent();
     if (s.isNull() || e.isNull())
-        return 0;
+        return nullptr;
 
     return Range::create(s.containerNode()->document(), s.containerNode(), s.offsetInContainerNode(), e.containerNode(), e.offsetInContainerNode());
 }
@@ -714,7 +715,7 @@ bool setEnd(Range *r, const VisiblePosition &visiblePosition)
 Element* enclosingBlockFlowElement(const VisiblePosition& visiblePosition)
 {
     if (visiblePosition.isNull())
-        return NULL;
+        return nullptr;
 
     return deprecatedEnclosingBlockFlowElement(visiblePosition.deepEquivalent().deprecatedNode());
 }
@@ -741,6 +742,35 @@ bool isLastVisiblePositionInNode(const VisiblePosition &visiblePosition, const N
 
     VisiblePosition next = visiblePosition.next();
     return next.isNull() || !next.deepEquivalent().deprecatedNode()->isDescendantOf(node);
+}
+
+bool VisiblePosition::equals(const VisiblePosition& other) const
+{
+    return m_affinity == other.m_affinity && m_deepPosition.equals(other.m_deepPosition);
+}
+
+TextStream& operator<<(TextStream& stream, EAffinity affinity)
+{
+    switch (affinity) {
+    case UPSTREAM:
+        stream << "upstream";
+        break;
+    case DOWNSTREAM:
+        stream << "downstream";
+        break;
+    }
+    return stream;
+}
+
+TextStream& operator<<(TextStream& stream, const VisiblePosition& visiblePosition)
+{
+    TextStream::GroupScope scope(stream);
+    stream << "VisiblePosition " << &visiblePosition;
+
+    stream.dumpProperty("position", visiblePosition.deepEquivalent());
+    stream.dumpProperty("affinity", visiblePosition.affinity());
+
+    return stream;
 }
 
 }  // namespace WebCore

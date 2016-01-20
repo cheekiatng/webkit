@@ -241,6 +241,13 @@ int TestRunner::numberOfPendingGeolocationPermissionRequests()
     return -1;
 }
 
+bool TestRunner::isGeolocationProviderActive()
+{
+    // FIXME: Implement for Geolocation layout tests.
+    printf("ERROR: TestRunner::isGeolocationProviderActive() not implemented\n");
+    return false;
+}
+
 size_t TestRunner::webHistoryItemCount()
 {
     COMPtr<IWebHistory> history;
@@ -255,7 +262,7 @@ size_t TestRunner::webHistoryItemCount()
     if (FAILED(sharedHistory->QueryInterface(&sharedHistoryPrivate)))
         return 0;
 
-    int count;
+    int count = 0;
     if (FAILED(sharedHistoryPrivate->allItems(&count, 0)))
         return 0;
 
@@ -997,7 +1004,9 @@ void TestRunner::addUserScript(JSStringRef source, bool runAtStart, bool allFram
     if (FAILED(WebKitCreateInstance(__uuidof(WebScriptWorld), 0, __uuidof(world), reinterpret_cast<void**>(&world))))
         return;
 
-    webView->addUserScriptToGroup(_bstr_t(L"org.webkit.DumpRenderTree").GetBSTR(), world.get(), bstrT(source).GetBSTR(), 0, 0, 0, 0, 0, runAtStart ? WebInjectAtDocumentStart : WebInjectAtDocumentEnd);
+    webView->addUserScriptToGroup(_bstr_t(L"org.webkit.DumpRenderTree").GetBSTR(), world.get(), bstrT(source).GetBSTR(),
+        nullptr, 0, nullptr, 0, nullptr, runAtStart ? WebInjectAtDocumentStart : WebInjectAtDocumentEnd,
+        allFrames ? WebInjectInAllFrames : WebInjectInTopFrameOnly);
 }
 
 void TestRunner::addUserStyleSheet(JSStringRef source, bool allFrames)
@@ -1010,7 +1019,8 @@ void TestRunner::addUserStyleSheet(JSStringRef source, bool allFrames)
     if (FAILED(WebKitCreateInstance(__uuidof(WebScriptWorld), 0, __uuidof(world), reinterpret_cast<void**>(&world))))
         return;
 
-    webView->addUserStyleSheetToGroup(_bstr_t(L"org.webkit.DumpRenderTree").GetBSTR(), world.get(), bstrT(source).GetBSTR(), 0, 0, 0, 0, 0);
+    webView->addUserStyleSheetToGroup(_bstr_t(L"org.webkit.DumpRenderTree").GetBSTR(), world.get(), bstrT(source).GetBSTR(),
+        nullptr, 0, nullptr, 0, nullptr, allFrames ? WebInjectInAllFrames : WebInjectInTopFrameOnly);
 }
 
 void TestRunner::setDeveloperExtrasEnabled(bool enabled)
@@ -1081,6 +1091,19 @@ void TestRunner::evaluateInWebInspector(JSStringRef script)
         return;
 
     inspectorPrivate->evaluateInFrontend(bstrT(script).GetBSTR());
+}
+
+JSStringRef TestRunner::inspectorTestStubURL()
+{
+    CFBundleRef webkitBundle = webKitBundle();
+    if (!webkitBundle)
+        return nullptr;
+
+    RetainPtr<CFURLRef> url = adoptCF(CFBundleCopyResourceURL(webkitBundle, CFSTR("TestStub"), CFSTR("html"), CFSTR("WebInspectorUI")));
+    if (!url)
+        return nullptr;
+
+    return JSStringCreateWithCFString(CFURLGetString(url.get()));
 }
 
 typedef HashMap<unsigned, COMPtr<IWebScriptWorld> > WorldMap;

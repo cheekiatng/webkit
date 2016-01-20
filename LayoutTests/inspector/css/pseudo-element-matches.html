@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<script type="text/javascript" src="../../http/tests/inspector/inspector-test.js"></script>
+<script type="text/javascript" src="../../http/tests/inspector/resources/inspector-test.js"></script>
 <script>
 function test() {
     var nodeStyles;
@@ -12,7 +12,7 @@ function test() {
 
         for (var i = 0; i < nodeStyles.matchedRules.length; ++i) {
             var rule = nodeStyles.matchedRules[i];
-            if (rule.type !== WebInspector.CSSRule.Type.UserAgent)
+            if (rule.type !== WebInspector.CSSStyleSheet.Type.UserAgent)
                 continue;
             if (rule.selectorText.indexOf("::-webkit-media-text-track-container") === -1)
                 continue;

@@ -35,6 +35,7 @@
 #include <WebCore/Timer.h>
 #include <functional>
 #include <wtf/HashSet.h>
+#include <wtf/Lock.h>
 #include <wtf/RunLoop.h>
 #include <wtf/ThreadingPrimitives.h>
 #include <wtf/Vector.h>
@@ -42,6 +43,10 @@
 #if USE(GRAPHICS_SURFACE)
 #include <WebCore/GraphicsSurface.h>
 #include <WebCore/TextureMapperSurfaceBackingStore.h>
+#endif
+
+#if USE(COORDINATED_GRAPHICS_THREADED)
+#include <WebCore/TextureMapperPlatformLayerProxy.h>
 #endif
 
 namespace WebKit {
@@ -57,7 +62,11 @@ public:
     virtual void commitScrollOffset(uint32_t layerID, const WebCore::IntSize& offset) = 0;
 };
 
-class CoordinatedGraphicsScene : public ThreadSafeRefCounted<CoordinatedGraphicsScene>, public WebCore::TextureMapperLayer::ScrollingClient {
+class CoordinatedGraphicsScene : public ThreadSafeRefCounted<CoordinatedGraphicsScene>, public WebCore::TextureMapperLayer::ScrollingClient
+#if USE(COORDINATED_GRAPHICS_THREADED)
+    , public WebCore::TextureMapperPlatformLayerProxy::Compositor
+#endif
+{
 public:
     explicit CoordinatedGraphicsScene(CoordinatedGraphicsSceneClient*);
     virtual ~CoordinatedGraphicsScene();
@@ -93,9 +102,9 @@ private:
     void removeTilesIfNeeded(WebCore::TextureMapperLayer*, const WebCore::CoordinatedGraphicsLayerState&);
     void setLayerFiltersIfNeeded(WebCore::TextureMapperLayer*, const WebCore::CoordinatedGraphicsLayerState&);
     void setLayerAnimationsIfNeeded(WebCore::TextureMapperLayer*, const WebCore::CoordinatedGraphicsLayerState&);
+    void syncPlatformLayerIfNeeded(WebCore::TextureMapperLayer*, const WebCore::CoordinatedGraphicsLayerState&);
 #if USE(GRAPHICS_SURFACE)
     void createPlatformLayerIfNeeded(WebCore::TextureMapperLayer*, const WebCore::CoordinatedGraphicsLayerState&);
-    void syncPlatformLayerIfNeeded(WebCore::TextureMapperLayer*, const WebCore::CoordinatedGraphicsLayerState&);
     void destroyPlatformLayerIfNeeded(WebCore::TextureMapperLayer*, const WebCore::CoordinatedGraphicsLayerState&);
 #endif
     void setLayerRepaintCountIfNeeded(WebCore::TextureMapperLayer*, const WebCore::CoordinatedGraphicsLayerState&);
@@ -143,9 +152,13 @@ private:
 
     void dispatchCommitScrollOffset(uint32_t layerID, const WebCore::IntSize& offset);
 
+#if USE(COORDINATED_GRAPHICS_THREADED)
+    virtual void onNewBufferAvailable() override;
+#endif
+
     // Render queue can be accessed ony from main thread or updatePaintNode call stack!
     Vector<std::function<void()>> m_renderQueue;
-    Mutex m_renderQueueMutex;
+    Lock m_renderQueueMutex;
 
     std::unique_ptr<WebCore::TextureMapper> m_textureMapper;
 
@@ -161,6 +174,11 @@ private:
 #if USE(GRAPHICS_SURFACE)
     typedef HashMap<WebCore::TextureMapperLayer*, RefPtr<WebCore::TextureMapperSurfaceBackingStore>> SurfaceBackingStoreMap;
     SurfaceBackingStoreMap m_surfaceBackingStores;
+#endif
+
+#if USE(COORDINATED_GRAPHICS_THREADED)
+    typedef HashMap<WebCore::TextureMapperLayer*, RefPtr<WebCore::TextureMapperPlatformLayerProxy>> PlatformLayerProxyMap;
+    PlatformLayerProxyMap m_platformLayerProxies;
 #endif
 
     typedef HashMap<uint32_t /* atlasID */, RefPtr<WebCore::CoordinatedSurface>> SurfaceMap;

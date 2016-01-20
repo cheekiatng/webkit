@@ -94,7 +94,7 @@ private:
 class RenderTextControlInnerContainer final : public RenderFlexibleBox {
 public:
     explicit RenderTextControlInnerContainer(Element& element, Ref<RenderStyle>&& style)
-        : RenderFlexibleBox(element, WTF::move(style))
+        : RenderFlexibleBox(element, WTFMove(style))
     { }
     virtual ~RenderTextControlInnerContainer() { }
 
@@ -105,6 +105,8 @@ public:
     virtual Optional<int> firstLineBaseline() const override { return RenderBlock::firstLineBaseline(); }
     virtual Optional<int> inlineBlockBaseline(LineDirectionMode direction) const override { return RenderBlock::inlineBlockBaseline(direction); }
 
+private:
+    bool isFlexibleBoxImpl() const override { return true; }
 };
 
 } // namespace WebCore

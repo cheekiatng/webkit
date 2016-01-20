@@ -294,9 +294,9 @@ NPObject* HTMLPlugInElement::getNPObject()
 RenderPtr<RenderElement> HTMLPlugInElement::createElementRenderer(Ref<RenderStyle>&& style, const RenderTreePosition& insertionPosition)
 {
     if (m_pluginReplacement && m_pluginReplacement->willCreateRenderer())
-        return m_pluginReplacement->createElementRenderer(*this, WTF::move(style), insertionPosition);
+        return m_pluginReplacement->createElementRenderer(*this, WTFMove(style), insertionPosition);
 
-    return createRenderer<RenderEmbeddedObject>(*this, WTF::move(style));
+    return createRenderer<RenderEmbeddedObject>(*this, WTFMove(style));
 }
 
 void HTMLPlugInElement::swapRendererTimerFired()
@@ -336,7 +336,7 @@ static void registrar(const ReplacementPlugin&);
 
 static Vector<ReplacementPlugin*>& registeredPluginReplacements()
 {
-    DEPRECATED_DEFINE_STATIC_LOCAL(Vector<ReplacementPlugin*>, registeredReplacements, ());
+    static NeverDestroyed<Vector<ReplacementPlugin*>> registeredReplacements;
     static bool enginesQueried = false;
     
     if (enginesQueried)

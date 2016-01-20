@@ -345,6 +345,13 @@ WebInspector.NativePrototypeFunctionParameters = {
         __proto__: null,
     },
 
+    Generator: {
+        next: "value",
+        return: "value",
+        throw: "exception",
+        __proto__: null,
+    },
+
     // Curated DOM Interfaces.
 
     Element: {
@@ -1101,7 +1108,7 @@ WebInspector.NativePrototypeFunctionParameters = {
     },
 
     Navigator: {
-        webkitGetUserMedia: "options, successCallback, [errorCallback]",
+        webkitGetUserMedia: "options, successCallback, errorCallback",
         __proto__: null,
     },
 
@@ -1259,6 +1266,13 @@ WebInspector.NativePrototypeFunctionParameters = {
         cancel: "reason",
         pipeThrough: "dest, options",
         pipeTo: "streams, options",
+        __proto__: null,
+    },
+
+    WritableStream: {
+        abort: "reason",
+        close: "",
+        write: "chunk",
         __proto__: null,
     },
 
@@ -2114,7 +2128,22 @@ WebInspector.NativePrototypeFunctionParameters = {
         querySelector: "selectors",
         querySelectorAll: "selectors",
     };
-
     Object.assign(WebInspector.NativePrototypeFunctionParameters.Element, ElementQueries);
     Object.assign(WebInspector.NativePrototypeFunctionParameters.Document, ElementQueries);
+
+    var ChildNode = {
+        after: "[node|string]...",
+        before: "[node|string]...",
+        replaceWith: "[node|string]...",
+    };
+    Object.assign(WebInspector.NativePrototypeFunctionParameters.Element, ChildNode)
+    Object.assign(WebInspector.NativePrototypeFunctionParameters.CharacterData, ChildNode);
+
+    var ParentNode = {
+        append: "[node|string]...",
+        prepend: "[node|string]...",
+    };
+    Object.assign(WebInspector.NativePrototypeFunctionParameters.Element, ParentNode);
+    Object.assign(WebInspector.NativePrototypeFunctionParameters.Document, ParentNode);
+    Object.assign(WebInspector.NativePrototypeFunctionParameters.DocumentFragment, ParentNode);
 })();

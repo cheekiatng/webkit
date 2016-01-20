@@ -55,9 +55,9 @@ public:
     // For storing data loaded from the memory
     static const RegisterID dataTempRegister = MIPSRegisters::t1;
     // For storing address base
-    static const RegisterID addrTempRegister = MIPSRegisters::t2;
+    static const RegisterID addrTempRegister = MIPSRegisters::t7;
     // For storing compare result
-    static const RegisterID cmpTempRegister = MIPSRegisters::t3;
+    static const RegisterID cmpTempRegister = MIPSRegisters::t8;
 
     // FP temp register
     static const FPRegisterID fpTempRegister = MIPSRegisters::f16;
@@ -289,7 +289,7 @@ public:
     {
         if (!imm.m_value && !m_fixedWidth)
             move(MIPSRegisters::zero, dest);
-        else if (imm.m_value > 0 && imm.m_value < 65535 && !m_fixedWidth)
+        else if (imm.m_value > 0 && imm.m_value <= 65535 && !m_fixedWidth)
             m_assembler.andi(dest, dest, imm.m_value);
         else {
             /*
@@ -305,12 +305,21 @@ public:
     {
         if (!imm.m_value && !m_fixedWidth)
             move(MIPSRegisters::zero, dest);
-        else if (imm.m_value > 0 && imm.m_value < 65535 && !m_fixedWidth)
+        else if (imm.m_value > 0 && imm.m_value <= 65535 && !m_fixedWidth)
             m_assembler.andi(dest, src, imm.m_value);
         else {
             move(imm, immTempRegister);
             m_assembler.andInsn(dest, src, immTempRegister);
         }
+    }
+
+    void countLeadingZeros32(RegisterID src, RegisterID dest)
+    {
+#if WTF_MIPS_ISA_AT_LEAST(32)
+        m_assembler.clz(dest, src);
+#else
+        static_assert(false, "CLZ opcode is not available for this ISA");
+#endif
     }
 
     void lshift32(RegisterID shiftAmount, RegisterID dest)
@@ -376,12 +385,23 @@ public:
         m_assembler.orInsn(dest, op1, op2);
     }
 
+    void or32(TrustedImm32 imm, AbsoluteAddress dest)
+    {
+        if (!imm.m_value && !m_fixedWidth)
+            return;
+
+        // TODO: Swap dataTempRegister and immTempRegister usage
+        load32(dest.m_ptr, immTempRegister);
+        or32(imm, immTempRegister);
+        store32(immTempRegister, dest.m_ptr);
+    }
+
     void or32(TrustedImm32 imm, RegisterID dest)
     {
         if (!imm.m_value && !m_fixedWidth)
             return;
 
-        if (imm.m_value > 0 && imm.m_value < 65535
+        if (imm.m_value > 0 && imm.m_value <= 65535
             && !m_fixedWidth) {
             m_assembler.ori(dest, dest, imm.m_value);
             return;
@@ -397,10 +417,12 @@ public:
 
     void or32(TrustedImm32 imm, RegisterID src, RegisterID dest)
     {
-        if (!imm.m_value && !m_fixedWidth)
+        if (!imm.m_value && !m_fixedWidth) {
+            move(src, dest);
             return;
+        }
 
-        if (imm.m_value > 0 && imm.m_value < 65535 && !m_fixedWidth) {
+        if (imm.m_value > 0 && imm.m_value <= 65535 && !m_fixedWidth) {
             m_assembler.ori(dest, src, imm.m_value);
             return;
         }
@@ -623,6 +645,12 @@ public:
     void absDouble(FPRegisterID, FPRegisterID)
     {
         RELEASE_ASSERT_NOT_REACHED();
+    }
+
+    NO_RETURN_DUE_TO_CRASH void ceilDouble(FPRegisterID, FPRegisterID)
+    {
+        ASSERT(!supportsFloatingPointCeil());
+        CRASH();
     }
 
     ConvertibleLoadLabel convertibleLoadPtr(Address address, RegisterID dest)
@@ -1209,6 +1237,7 @@ public:
 #endif
     }
     static bool supportsFloatingPointAbs() { return false; }
+    static bool supportsFloatingPointCeil() { return false; }
 
     // Stack manipulation operations:
     //
@@ -1222,6 +1251,13 @@ public:
     {
         m_assembler.lw(dest, MIPSRegisters::sp, 0);
         m_assembler.addiu(MIPSRegisters::sp, MIPSRegisters::sp, 4);
+    }
+
+    void popPair(RegisterID dest1, RegisterID dest2)
+    {
+        m_assembler.lw(dest1, MIPSRegisters::sp, 0);
+        m_assembler.lw(dest2, MIPSRegisters::sp, 4);
+        m_assembler.addiu(MIPSRegisters::sp, MIPSRegisters::sp, 8);
     }
 
     void push(RegisterID src)
@@ -1240,6 +1276,13 @@ public:
     {
         move(imm, immTempRegister);
         push(immTempRegister);
+    }
+
+    void pushPair(RegisterID src1, RegisterID src2)
+    {
+        m_assembler.addiu(MIPSRegisters::sp, MIPSRegisters::sp, -8);
+        m_assembler.sw(src2, MIPSRegisters::sp, 4);
+        m_assembler.sw(src1, MIPSRegisters::sp, 0);
     }
 
     // Register move operations:
@@ -1657,6 +1700,12 @@ public:
         return branchAdd32(cond, immTempRegister, dest);
     }
 
+    Jump branchAdd32(ResultCondition cond, Address address, RegisterID dest)
+    {
+        load32(address, immTempRegister);
+        return branchAdd32(cond, immTempRegister, dest);
+    }
+
     Jump branchAdd32(ResultCondition cond, RegisterID src, TrustedImm32 imm, RegisterID dest)
     {
         move(imm, immTempRegister);
@@ -1819,7 +1868,7 @@ public:
         return Jump();
     }
 
-    Jump branchMul32(ResultCondition cond, TrustedImm32 imm, RegisterID src, RegisterID dest)
+    Jump branchMul32(ResultCondition cond, RegisterID src, TrustedImm32 imm, RegisterID dest)
     {
         move(imm, immTempRegister);
         return branchMul32(cond, immTempRegister, src, dest);
@@ -1973,6 +2022,16 @@ public:
         m_assembler.jal();
         m_assembler.nop();
         return Call(m_assembler.label(), Call::LinkableNear);
+    }
+
+    Call nearTailCall()
+    {
+        m_assembler.nop();
+        m_assembler.nop();
+        m_assembler.beq(MIPSRegisters::zero, MIPSRegisters::zero, 0);
+        m_assembler.nop();
+        insertRelaxationWords();
+        return Call(m_assembler.label(), Call::LinkableNearTail);
     }
 
     Call call()
@@ -2666,7 +2725,7 @@ public:
     {
         m_assembler.truncwd(fpTempRegister, src);
         m_assembler.mfc1(dest, fpTempRegister);
-        return branch32(branchType == BranchIfTruncateFailed ? Equal : NotEqual, dest, TrustedImm32(0));
+        return branch32(branchType == BranchIfTruncateFailed ? Equal : NotEqual, dest, TrustedImm32(0x7fffffff));
     }
 
     // Result is undefined if the value is outside of the integer range.
@@ -2750,6 +2809,18 @@ public:
         m_assembler.sync();
     }
 
+    void abortWithReason(AbortReason reason)
+    {
+        move(TrustedImm32(reason), dataTempRegister);
+        breakpoint();
+    }
+
+    void abortWithReason(AbortReason reason, intptr_t misc)
+    {
+        move(TrustedImm32(misc), immTempRegister);
+        abortWithReason(reason);
+    }
+
     static FunctionPtr readCallTarget(CodeLocationCall call)
     {
         return FunctionPtr(reinterpret_cast<void(*)()>(MIPSAssembler::readCallTarget(call.dataLocation())));
@@ -2767,6 +2838,13 @@ public:
     }
 
     static bool canJumpReplacePatchableBranchPtrWithPatch() { return false; }
+    static bool canJumpReplacePatchableBranch32WithPatch() { return false; }
+
+    static CodeLocationLabel startOfPatchableBranch32WithPatchOnAddress(CodeLocationDataLabel32)
+    {
+        UNREACHABLE_FOR_PLATFORM();
+        return CodeLocationLabel();
+    }
 
     static CodeLocationLabel startOfBranchPtrWithPatchOnRegister(CodeLocationDataLabelPtr label)
     {
@@ -2784,23 +2862,14 @@ public:
         return CodeLocationLabel();
     }
 
-    static void revertJumpReplacementToPatchableBranchPtrWithPatch(CodeLocationLabel, Address, void*)
+    static void revertJumpReplacementToPatchableBranch32WithPatch(CodeLocationLabel, Address, int32_t)
     {
         UNREACHABLE_FOR_PLATFORM();
     }
 
-
-private:
-    // If m_fixedWidth is true, we will generate a fixed number of instructions.
-    // Otherwise, we can emit any number of instructions.
-    bool m_fixedWidth;
-
-    friend class LinkBuffer;
-    friend class RepatchBuffer;
-
-    static void linkCall(void* code, Call call, FunctionPtr function)
+    static void revertJumpReplacementToPatchableBranchPtrWithPatch(CodeLocationLabel, Address, void*)
     {
-        MIPSAssembler::linkCall(code, call.m_label, function.value());
+        UNREACHABLE_FOR_PLATFORM();
     }
 
     static void repatchCall(CodeLocationCall call, CodeLocationLabel destination)
@@ -2811,6 +2880,21 @@ private:
     static void repatchCall(CodeLocationCall call, FunctionPtr destination)
     {
         MIPSAssembler::relinkCall(call.dataLocation(), destination.executableAddress());
+    }
+
+private:
+    // If m_fixedWidth is true, we will generate a fixed number of instructions.
+    // Otherwise, we can emit any number of instructions.
+    bool m_fixedWidth;
+
+    friend class LinkBuffer;
+
+    static void linkCall(void* code, Call call, FunctionPtr function)
+    {
+        if (call.isFlagSet(Call::Tail))
+            MIPSAssembler::linkJump(code, call.m_label, function.value());
+        else
+            MIPSAssembler::linkCall(code, call.m_label, function.value());
     }
 
 };

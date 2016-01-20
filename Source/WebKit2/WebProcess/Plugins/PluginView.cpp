@@ -31,6 +31,7 @@
 #include "ShareableBitmap.h"
 #include "WebCoreArgumentCoders.h"
 #include "WebEvent.h"
+#include "WebLoaderStrategy.h"
 #include "WebPage.h"
 #include "WebPageProxyMessages.h"
 #include "WebProcess.h"
@@ -62,7 +63,6 @@
 #include <WebCore/ProtectionSpace.h>
 #include <WebCore/ProxyServer.h>
 #include <WebCore/RenderEmbeddedObject.h>
-#include <WebCore/ResourceLoadScheduler.h>
 #include <WebCore/ScriptController.h>
 #include <WebCore/ScrollView.h>
 #include <WebCore/SecurityOrigin.h>
@@ -115,6 +115,7 @@ public:
 
     void start();
     void cancel();
+    void continueLoad();
 
     uint64_t streamID() const { return m_streamID; }
 
@@ -128,15 +129,17 @@ private:
     }
 
     // NetscapePluginStreamLoaderClient
-    virtual void didReceiveResponse(NetscapePlugInStreamLoader*, const ResourceResponse&);
-    virtual void didReceiveData(NetscapePlugInStreamLoader*, const char*, int);
-    virtual void didFail(NetscapePlugInStreamLoader*, const ResourceError&);
-    virtual void didFinishLoading(NetscapePlugInStreamLoader*);
+    void willSendRequest(NetscapePlugInStreamLoader*, ResourceRequest&&, const ResourceResponse& redirectResponse, std::function<void (ResourceRequest&&)>&&) override;
+    void didReceiveResponse(NetscapePlugInStreamLoader*, const ResourceResponse&) override;
+    void didReceiveData(NetscapePlugInStreamLoader*, const char*, int) override;
+    void didFail(NetscapePlugInStreamLoader*, const ResourceError&) override;
+    void didFinishLoading(NetscapePlugInStreamLoader*) override;
 
     PluginView* m_pluginView;
     uint64_t m_streamID;
-    const ResourceRequest m_request;
-    
+    ResourceRequest m_request;
+    std::function<void (ResourceRequest)> m_loadCallback;
+
     // True if the stream was explicitly cancelled by calling cancel().
     // (As opposed to being cancelled by the user hitting the stop button for example.
     bool m_streamWasCancelled;
@@ -157,7 +160,7 @@ void PluginView::Stream::start()
     Frame* frame = m_pluginView->m_pluginElement->document().frame();
     ASSERT(frame);
 
-    m_loader = resourceLoadScheduler()->schedulePluginStreamLoad(frame, this, m_request);
+    m_loader = WebProcess::singleton().webLoaderStrategy().schedulePluginStreamLoad(frame, this, m_request);
 }
 
 void PluginView::Stream::cancel()
@@ -167,6 +170,14 @@ void PluginView::Stream::cancel()
     m_streamWasCancelled = true;
     m_loader->cancel(m_loader->cancelledError());
     m_loader = nullptr;
+}
+
+void PluginView::Stream::continueLoad()
+{
+    ASSERT(m_pluginView->m_plugin);
+    ASSERT(m_loadCallback);
+
+    m_loadCallback(m_request);
 }
 
 static String buildHTTPHeaders(const ResourceResponse& response, long long& expectedContentLength)
@@ -208,6 +219,16 @@ static uint32_t lastModifiedDateMS(const ResourceResponse& response)
         return 0;
 
     return std::chrono::duration_cast<std::chrono::milliseconds>(lastModified.value().time_since_epoch()).count();
+}
+
+void PluginView::Stream::willSendRequest(NetscapePlugInStreamLoader*, ResourceRequest&& request, const ResourceResponse& redirectResponse, std::function<void (ResourceRequest&&)>&& decisionHandler)
+{
+    const URL& requestURL = request.url();
+    const URL& redirectResponseURL = redirectResponse.url();
+
+    m_loadCallback = decisionHandler;
+    m_request = request;
+    m_pluginView->m_plugin->streamWillSendRequest(m_streamID, requestURL, redirectResponseURL, redirectResponse.httpStatusCode());
 }
 
 void PluginView::Stream::didReceiveResponse(NetscapePlugInStreamLoader*, const ResourceResponse& response)
@@ -500,6 +521,14 @@ bool PluginView::handlesPageScaleFactor() const
     return m_plugin->handlesPageScaleFactor();
 }
 
+bool PluginView::requiresUnifiedScaleFactor() const
+{
+    if (!m_plugin || !m_isInitialized)
+        return false;
+
+    return m_plugin->requiresUnifiedScaleFactor();
+}
+
 void PluginView::webPageDestroyed()
 {
     m_webPage = 0;
@@ -771,13 +800,13 @@ void PluginView::setFrameRect(const WebCore::IntRect& rect)
     viewGeometryDidChange();
 }
 
-void PluginView::paint(GraphicsContext* context, const IntRect& /*dirtyRect*/)
+void PluginView::paint(GraphicsContext& context, const IntRect& /*dirtyRect*/)
 {
     if (!m_plugin || !m_isInitialized || m_pluginElement->displayState() < HTMLPlugInElement::Restarting)
         return;
 
-    if (context->paintingDisabled()) {
-        if (context->updatingControlTints())
+    if (context.paintingDisabled()) {
+        if (context.updatingControlTints())
             m_plugin->updateControlTints(context);
         return;
     }
@@ -789,14 +818,14 @@ void PluginView::paint(GraphicsContext* context, const IntRect& /*dirtyRect*/)
         return;
 
     if (m_transientPaintingSnapshot) {
-        m_transientPaintingSnapshot->paint(*context, contentsScaleFactor(), frameRect().location(), m_transientPaintingSnapshot->bounds());
+        m_transientPaintingSnapshot->paint(context, contentsScaleFactor(), frameRect().location(), m_transientPaintingSnapshot->bounds());
         return;
     }
     
-    GraphicsContextStateSaver stateSaver(*context);
+    GraphicsContextStateSaver stateSaver(context);
 
     // Translate the coordinate system so that the origin is in the top-left corner of the plug-in.
-    context->translate(frameRect().location().x(), frameRect().location().y());
+    context.translate(frameRect().location().x(), frameRect().location().y());
 
     m_plugin->paint(context, paintRect);
 }
@@ -1404,6 +1433,15 @@ void PluginView::cancelStreamLoad(uint64_t streamID)
     ASSERT(!m_streams.contains(streamID));
 }
 
+void PluginView::continueStreamLoad(uint64_t streamID)
+{
+    RefPtr<Stream> stream = m_streams.get(streamID);
+    if (!stream)
+        return;
+
+    stream->continueLoad();
+}
+
 void PluginView::cancelManualStreamLoad()
 {
     if (!frame())
@@ -1832,6 +1870,9 @@ bool PluginView::shouldCreateTransientPaintingSnapshot() const
             return false;
         }
     }
+
+    if (!m_plugin->canCreateTransientPaintingSnapshot())
+        return false;
 
     return true;
 }

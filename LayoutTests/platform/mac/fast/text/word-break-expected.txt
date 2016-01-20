@@ -17,9 +17,9 @@ layer at (0,0) size 785x1016
                 text run at (6,51) width 8: "r"
                 text run at (6,66) width 8: "o"
                 text run at (6,81) width 8: "w"
-            RenderTableCell {TD} at (20,37) size 747x27 [border: (1px inset #808080)] [r=0 c=1 rs=1 cs=1]
-              RenderText {#text} at (6,6) size 164x15
-                text run at (6,6) width 164: "This cell should grow"
+            RenderTableCell {TD} at (19,37) size 748x28 [border: (1px inset #808080)] [r=0 c=1 rs=1 cs=1]
+              RenderText {#text} at (6,6) size 164x16
+                text run at (6,7) width 164: "This cell should grow"
       RenderBlock (anonymous) at (0,122) size 769x36
         RenderBR {BR} at (0,0) size 0x18
         RenderText {#text} at (0,18) size 438x18
@@ -27,7 +27,6 @@ layer at (0,0) size 785x1016
       RenderBlock {PRE} at (0,171) size 110x25 [border: (5px solid #000000)]
         RenderText {#text} at (5,5) size 437x15
           text run at (5,5) width 437: "Thislongwordshouldnotgetbrokenbutshouldstickoutofthepre."
-          text run at (441,5) width 1: " "
       RenderBlock (anonymous) at (0,209) size 769x72
         RenderBR {BR} at (0,0) size 0x18
         RenderText {#text} at (0,18) size 751x54
@@ -46,9 +45,9 @@ layer at (0,0) size 785x1016
                 text run at (6,51) width 8: "r"
                 text run at (6,66) width 8: "o"
                 text run at (6,81) width 8: "w"
-            RenderTableCell {TD} at (20,37) size 747x27 [border: (1px inset #808080)] [r=0 c=1 rs=1 cs=1]
-              RenderText {#text} at (6,6) size 164x15
-                text run at (6,6) width 164: "This cell should grow"
+            RenderTableCell {TD} at (19,37) size 748x28 [border: (1px inset #808080)] [r=0 c=1 rs=1 cs=1]
+              RenderText {#text} at (6,6) size 164x16
+                text run at (6,7) width 164: "This cell should grow"
       RenderBlock (anonymous) at (0,385) size 769x18
         RenderBR {BR} at (0,0) size 0x18
       RenderBlock {PRE} at (0,416) size 110x85 [border: (5px solid #000000)]
@@ -58,7 +57,6 @@ layer at (0,0) size 785x1016
           text run at (5,35) width 94: "brokenbutsho"
           text run at (5,50) width 94: "uldstickouto"
           text run at (5,65) width 63: "fthepre."
-          text run at (67,65) width 1: " "
       RenderBlock (anonymous) at (0,514) size 769x72
         RenderBR {BR} at (0,0) size 0x18
         RenderText {#text} at (0,18) size 750x54

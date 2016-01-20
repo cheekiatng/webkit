@@ -1,0 +1,4 @@
+
+FAIL Default event values. assert_equals: expected (boolean) false but got (undefined) undefined
+PASS document.createEvent() should not work with ProgressEvent. 
+

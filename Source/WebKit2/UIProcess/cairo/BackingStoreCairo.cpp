@@ -36,6 +36,10 @@
 #include <WebCore/RefPtrCairo.h>
 #include <cairo.h>
 
+#if PLATFORM(GTK)
+#include <gtk/gtk.h>
+#endif
+
 #if PLATFORM(GTK) && PLATFORM(X11) && defined(GDK_WINDOWING_X11)
 #include <WebCore/BackingStoreBackendCairoX11.h>
 #include <WebCore/PlatformDisplayX11.h>
@@ -48,7 +52,7 @@ namespace WebKit {
 
 std::unique_ptr<BackingStoreBackendCairo> BackingStore::createBackend()
 {
-#if PLATFORM(GTK) && PLATFORM(X11)
+#if PLATFORM(GTK) && PLATFORM(X11) && defined(GDK_WINDOWING_X11)
     const auto& sharedDisplay = PlatformDisplay::sharedDisplay();
     if (is<PlatformDisplayX11>(sharedDisplay)) {
         GdkVisual* visual = gtk_widget_get_visual(m_webPageProxy.viewWidget());
@@ -63,7 +67,9 @@ std::unique_ptr<BackingStoreBackendCairo> BackingStore::createBackend()
     scaledSize.scale(m_deviceScaleFactor);
 
 #if PLATFORM(GTK)
-    RefPtr<cairo_surface_t> surface = adoptRef(gdk_window_create_similar_surface(gtk_widget_get_window(m_webPageProxy.viewWidget()),
+    GtkWidget* viewWidget = m_webPageProxy.viewWidget();
+    gtk_widget_realize(viewWidget);
+    RefPtr<cairo_surface_t> surface = adoptRef(gdk_window_create_similar_surface(gtk_widget_get_window(viewWidget),
         CAIRO_CONTENT_COLOR_ALPHA, scaledSize.width(), scaledSize.height()));
 #else
     RefPtr<cairo_surface_t> surface = adoptRef(cairo_image_surface_create(CAIRO_FORMAT_ARGB32, scaledSize.width(), scaledSize.height()));
@@ -103,7 +109,7 @@ void BackingStore::incorporateUpdate(ShareableBitmap* bitmap, const UpdateInfo& 
             if (color.hasAlpha())
                 graphicsContext.clearRect(srcRect);
             if (color.alpha() > 0)
-                graphicsContext.fillRect(srcRect, color, ColorSpaceDeviceRGB);
+                graphicsContext.fillRect(srcRect, color);
         }
 #endif
         bitmap->paint(graphicsContext, deviceScaleFactor(), updateRect.location(), srcRect);

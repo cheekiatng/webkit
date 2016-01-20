@@ -78,8 +78,6 @@ PASS: canGetDescriptor(targetWindow, 'Document') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'DocumentFragment') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'DocumentType') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'Element') should be 'false' and is.
-PASS: canGetDescriptor(targetWindow, 'Entity') should be 'false' and is.
-PASS: canGetDescriptor(targetWindow, 'EntityReference') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'EvalError') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'Event') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'HTMLAnchorElement') should be 'false' and is.
@@ -88,7 +86,6 @@ PASS: canGetDescriptor(targetWindow, 'HTMLAppletElement') should be 'false' and 
 PASS: canGetDescriptor(targetWindow, 'HTMLAreaElement') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'HTMLBRElement') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'HTMLBaseElement') should be 'false' and is.
-PASS: canGetDescriptor(targetWindow, 'HTMLBaseFontElement') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'HTMLBodyElement') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'HTMLButtonElement') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'HTMLCanvasElement') should be 'false' and is.
@@ -149,7 +146,6 @@ PASS: canGetDescriptor(targetWindow, 'Option') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'ProcessingInstruction') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'Range') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'RangeError') should be 'false' and is.
-PASS: canGetDescriptor(targetWindow, 'RangeException') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'ReferenceError') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'SyntaxError') should be 'false' and is.
 PASS: canGetDescriptor(targetWindow, 'Text') should be 'false' and is.

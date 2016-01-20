@@ -36,6 +36,9 @@
 #import <WebCore/SoftLinking.h>
 #import <wtf/RetainPtr.h>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 SOFT_LINK_FRAMEWORK(MediaPlayer)
 SOFT_LINK_CLASS(MediaPlayer, MPAVRoutingController)
 SOFT_LINK_CLASS(MediaPlayer, MPAudioVideoRoutingPopoverController)
@@ -93,6 +96,10 @@ using namespace WebKit;
 
 - (void)_dismissAirPlayRoutePickerIPad
 {
+    if (!_routingController)
+        return;
+
+    [_routingController setDiscoveryMode:MPRouteDiscoveryModeDisabled];
     _routingController = nil;
 
     if (!_popoverController)
@@ -134,6 +141,7 @@ using namespace WebKit;
             return UIInterfaceOrientationMaskPortrait;
         }
         completionHandler:^{
+            [_routingController setDiscoveryMode:MPRouteDiscoveryModeDisabled];
             _routingController = nil;
             _actionSheet = nil;
         }
@@ -153,5 +161,7 @@ using namespace WebKit;
 }
 
 @end
+
+#pragma clang diagnostic pop
 
 #endif // PLATFORM(IOS)

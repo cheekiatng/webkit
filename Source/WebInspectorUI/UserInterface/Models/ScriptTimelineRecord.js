@@ -58,6 +58,11 @@ WebInspector.ScriptTimelineRecord = class ScriptTimelineRecord extends WebInspec
         return this._profile;
     }
 
+    isGarbageCollection()
+    {
+        return this._eventType === WebInspector.ScriptTimelineRecord.EventType.GarbageCollected;
+    }
+
     saveIdentityToCookie(cookie)
     {
         super.saveIdentityToCookie(cookie);
@@ -66,19 +71,22 @@ WebInspector.ScriptTimelineRecord = class ScriptTimelineRecord extends WebInspec
         cookie[WebInspector.ScriptTimelineRecord.DetailsCookieKey] = this._details;
     }
 
+    get profilePayload()
+    {
+        return this._profilePayload;
+    }
+
+    set profilePayload(payload)
+    {
+        this._profilePayload = payload;
+    }
+
     // Private
 
     _initializeProfileFromPayload(payload)
     {
         if (this._profile || !this._profilePayload)
             return;
-
-        // FIXME: <https://webkit.org/b/147029> Web Inspector: Better share objects generated from timeline events (Records)
-        if (this._profilePayload.__profile) {
-            this._profile = this._profilePayload.__profile;
-            this._profilePayload = undefined;
-            return;
-        }
 
         var payload = this._profilePayload;
         this._profilePayload = undefined;
@@ -106,7 +114,7 @@ WebInspector.ScriptTimelineRecord = class ScriptTimelineRecord extends WebInspec
             var type = isProgramCode ? WebInspector.ProfileNode.Type.Program : WebInspector.ProfileNode.Type.Function;
             var functionName = !isProgramCode && !isAnonymousFunction && nodePayload.functionName !== "(unknown)" ? nodePayload.functionName : null;
 
-            // COMPATIBILITY (iOS8): Timeline.CPUProfileNodes used to include an array of complete
+            // COMPATIBILITY (iOS 8): Timeline.CPUProfileNodes used to include an array of complete
             // call information instead of the aggregated "callInfo" data.
             var calls = null;
             if ("calls" in nodePayload) {
@@ -151,13 +159,15 @@ WebInspector.ScriptTimelineRecord = class ScriptTimelineRecord extends WebInspec
             }
         }
 
-        this._profile = payload.__profile = new WebInspector.Profile(rootNodes);
+        this._profile = new WebInspector.Profile(rootNodes);
     }
 };
 
 WebInspector.ScriptTimelineRecord.EventType = {
     ScriptEvaluated: "script-timeline-record-script-evaluated",
-    EventDispatched: "script-timeline-record-event-dispatch",
+    APIScriptEvaluated: "script-timeline-record-api-script-evaluated",
+    MicrotaskDispatched: "script-timeline-record-microtask-dispatched",
+    EventDispatched: "script-timeline-record-event-dispatched",
     ProbeSampleRecorded: "script-timeline-record-probe-sample-recorded",
     TimerFired: "script-timeline-record-timer-fired",
     TimerInstalled: "script-timeline-record-timer-installed",
@@ -165,10 +175,11 @@ WebInspector.ScriptTimelineRecord.EventType = {
     AnimationFrameFired: "script-timeline-record-animation-frame-fired",
     AnimationFrameRequested: "script-timeline-record-animation-frame-requested",
     AnimationFrameCanceled: "script-timeline-record-animation-frame-canceled",
-    ConsoleProfileRecorded: "script-timeline-record-console-profile-recorded"
+    ConsoleProfileRecorded: "script-timeline-record-console-profile-recorded",
+    GarbageCollected: "script-timeline-record-garbage-collected",
 };
 
-WebInspector.ScriptTimelineRecord.EventType.displayName = function(eventType, details, includeTimerIdentifierInMainTitle)
+WebInspector.ScriptTimelineRecord.EventType.displayName = function(eventType, details, includeDetailsInMainTitle)
 {
     if (details && !WebInspector.ScriptTimelineRecord._eventDisplayNames) {
         // These display names are not localized because they closely represent
@@ -328,13 +339,15 @@ WebInspector.ScriptTimelineRecord.EventType.displayName = function(eventType, de
 
     switch(eventType) {
     case WebInspector.ScriptTimelineRecord.EventType.ScriptEvaluated:
+    case WebInspector.ScriptTimelineRecord.EventType.APIScriptEvaluated:
         return WebInspector.UIString("Script Evaluated");
+    case WebInspector.ScriptTimelineRecord.EventType.MicrotaskDispatched:
+        return WebInspector.UIString("Microtask Dispatched");
     case WebInspector.ScriptTimelineRecord.EventType.EventDispatched:
         if (details && (details instanceof String || typeof details === "string")) {
             var eventDisplayName = WebInspector.ScriptTimelineRecord._eventDisplayNames.get(details) || details.capitalize();
             return WebInspector.UIString("%s Event Dispatched").format(eventDisplayName);
         }
-
         return WebInspector.UIString("Event Dispatched");
     case WebInspector.ScriptTimelineRecord.EventType.ProbeSampleRecorded:
         return WebInspector.UIString("Probe Sample Recorded");
@@ -342,23 +355,40 @@ WebInspector.ScriptTimelineRecord.EventType.displayName = function(eventType, de
         if (details && (details instanceof String || typeof details === "string"))
             return WebInspector.UIString("“%s” Profile Recorded").format(details);
         return WebInspector.UIString("Console Profile Recorded");
+    case WebInspector.ScriptTimelineRecord.EventType.GarbageCollected:
+        console.assert(details);
+        if (details && (details instanceof WebInspector.GarbageCollection) && includeDetailsInMainTitle) {
+            switch (details.type) {
+            case WebInspector.GarbageCollection.Type.Partial:
+                return WebInspector.UIString("Partial Garbage Collection");
+            case WebInspector.GarbageCollection.Type.Full:
+                return WebInspector.UIString("Full Garbage Collection");
+            }
+        }
+        return WebInspector.UIString("Garbage Collection");
     case WebInspector.ScriptTimelineRecord.EventType.TimerFired:
-        if (details && includeTimerIdentifierInMainTitle)
+        if (details && includeDetailsInMainTitle)
             return WebInspector.UIString("Timer %s Fired").format(details);
         return WebInspector.UIString("Timer Fired");
     case WebInspector.ScriptTimelineRecord.EventType.TimerInstalled:
-        if (details && includeTimerIdentifierInMainTitle)
-            return WebInspector.UIString("Timer %s Installed").format(details);
+        if (details && includeDetailsInMainTitle)
+            return WebInspector.UIString("Timer %s Installed").format(details.timerId);
         return WebInspector.UIString("Timer Installed");
     case WebInspector.ScriptTimelineRecord.EventType.TimerRemoved:
-        if (details && includeTimerIdentifierInMainTitle)
+        if (details && includeDetailsInMainTitle)
             return WebInspector.UIString("Timer %s Removed").format(details);
         return WebInspector.UIString("Timer Removed");
     case WebInspector.ScriptTimelineRecord.EventType.AnimationFrameFired:
+        if (details && includeDetailsInMainTitle)
+            return WebInspector.UIString("Animation Frame %s Fired").format(details);
         return WebInspector.UIString("Animation Frame Fired");
     case WebInspector.ScriptTimelineRecord.EventType.AnimationFrameRequested:
+        if (details && includeDetailsInMainTitle)
+            return WebInspector.UIString("Animation Frame %s Requested").format(details);
         return WebInspector.UIString("Animation Frame Requested");
     case WebInspector.ScriptTimelineRecord.EventType.AnimationFrameCanceled:
+        if (details && includeDetailsInMainTitle)
+            return WebInspector.UIString("Animation Frame %s Canceled").format(details);
         return WebInspector.UIString("Animation Frame Canceled");
     }
 };

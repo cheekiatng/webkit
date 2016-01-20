@@ -35,9 +35,9 @@
 #include "JSGlobalObject.h"
 #include "JSObject.h"
 #include "JSCInlines.h"
-#include "RuntimeFlags.h"
 #include "SourceProvider.h"
 #include "StackVisitor.h"
+#include "Watchdog.h"
 #include <wtf/text/StringBuilder.h>
 #include <wtf/text/StringHash.h>
 
@@ -58,8 +58,6 @@ static const int32_t webkitFirstVersionWithConcurrentGlobalContexts = 0x2100500;
 #endif
 
 using namespace JSC;
-
-const GlobalObjectMethodTable JSC::javaScriptCoreAPIGlobalObjectMethodTable = { &JSGlobalObject::allowsAccessFrom, &JSGlobalObject::supportsProfiling, &JSGlobalObject::supportsRichSourceInfo, &JSGlobalObject::shouldInterruptScript, &JSGlobalObject::javaScriptRuntimeFlags, nullptr, &JSGlobalObject::shouldInterruptScriptBeforeTimeout };
 
 // From the API's perspective, a context group remains alive iff
 //     (a) it has been JSContextGroupRetained
@@ -94,38 +92,24 @@ static bool internalScriptTimeoutCallback(ExecState* exec, void* callbackPtr, vo
     return callback(contextRef, callbackData);
 }
 
-static void createWatchdogIfNeeded(VM& vm)
-{
-    if (!vm.watchdog) {
-        vm.watchdog = std::make_unique<Watchdog>();
-
-        // The LLINT peeks into the Watchdog object directly. In order to do that,
-        // the LLINT assumes that the internal shape of a std::unique_ptr is the
-        // same as a plain C++ pointer, and loads the address of Watchdog from it.
-        RELEASE_ASSERT(*reinterpret_cast<Watchdog**>(&vm.watchdog) == vm.watchdog.get());
-    }
-}
-
 void JSContextGroupSetExecutionTimeLimit(JSContextGroupRef group, double limit, JSShouldTerminateCallback callback, void* callbackData)
 {
     VM& vm = *toJS(group);
     JSLockHolder locker(&vm);
-    createWatchdogIfNeeded(vm);
-    Watchdog& watchdog = *vm.watchdog;
+    Watchdog& watchdog = vm.ensureWatchdog();
     if (callback) {
         void* callbackPtr = reinterpret_cast<void*>(callback);
-        watchdog.setTimeLimit(vm, std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::duration<double>(limit)), internalScriptTimeoutCallback, callbackPtr, callbackData);
+        watchdog.setTimeLimit(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::duration<double>(limit)), internalScriptTimeoutCallback, callbackPtr, callbackData);
     } else
-        watchdog.setTimeLimit(vm, std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::duration<double>(limit)));
+        watchdog.setTimeLimit(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::duration<double>(limit)));
 }
 
 void JSContextGroupClearExecutionTimeLimit(JSContextGroupRef group)
 {
     VM& vm = *toJS(group);
     JSLockHolder locker(&vm);
-    createWatchdogIfNeeded(vm);
-    Watchdog& watchdog = *vm.watchdog;
-    watchdog.setTimeLimit(vm, std::chrono::microseconds::max());
+    if (vm.watchdog())
+        vm.watchdog()->setTimeLimit(Watchdog::noTimeLimit);
 }
 
 // From the API's perspective, a global context remains alive iff it has been JSGlobalContextRetained.
@@ -154,7 +138,7 @@ JSGlobalContextRef JSGlobalContextCreateInGroup(JSContextGroupRef group, JSClass
     JSLockHolder locker(vm.get());
 
     if (!globalObjectClass) {
-        JSGlobalObject* globalObject = JSGlobalObject::create(*vm, JSGlobalObject::createStructure(*vm, jsNull()), &javaScriptCoreAPIGlobalObjectMethodTable);
+        JSGlobalObject* globalObject = JSGlobalObject::create(*vm, JSGlobalObject::createStructure(*vm, jsNull()));
 #if ENABLE(REMOTE_INSPECTOR)
         if (JSRemoteInspectorGetInspectionEnabledByDefault())
             globalObject->setRemoteDebuggingEnabled(true);
@@ -405,7 +389,7 @@ CFRunLoopRef JSGlobalContextGetDebuggerRunLoop(JSGlobalContextRef ctx)
     ExecState* exec = toJS(ctx);
     JSLockHolder lock(exec);
 
-    return exec->vmEntryGlobalObject()->inspectorDebuggable().debuggerRunLoop();
+    return exec->vmEntryGlobalObject()->inspectorDebuggable().targetRunLoop();
 #else
     UNUSED_PARAM(ctx);
     return nullptr;
@@ -423,7 +407,7 @@ void JSGlobalContextSetDebuggerRunLoop(JSGlobalContextRef ctx, CFRunLoopRef runL
     ExecState* exec = toJS(ctx);
     JSLockHolder lock(exec);
 
-    exec->vmEntryGlobalObject()->inspectorDebuggable().setDebuggerRunLoop(runLoop);
+    exec->vmEntryGlobalObject()->inspectorDebuggable().setTargetRunLoop(runLoop);
 #else
     UNUSED_PARAM(ctx);
     UNUSED_PARAM(runLoop);

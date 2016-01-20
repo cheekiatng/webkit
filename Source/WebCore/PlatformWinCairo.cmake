@@ -1,16 +1,15 @@
 list(APPEND WebCore_INCLUDE_DIRECTORIES
     "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore"
     "${DirectX_INCLUDE_DIRS}"
-    "$ENV{WEBKIT_LIBRARIES}/include"
-    "$ENV{WEBKIT_LIBRARIES}/include/cairo"
-    "$ENV{WEBKIT_LIBRARIES}/include/SQLite"
-    "$ENV{WEBKIT_LIBRARIES}/include/zlib"
+    "${WEBKIT_LIBRARIES_DIR}/include"
+    "${WEBKIT_LIBRARIES_DIR}/include/cairo"
+    "${WEBKIT_LIBRARIES_DIR}/include/SQLite"
+    "${WEBKIT_LIBRARIES_DIR}/include/zlib"
     "${JAVASCRIPTCORE_DIR}/wtf/text"
     "${WEBCORE_DIR}/loader/archive/cf"
     "${WEBCORE_DIR}/platform/cf"
     "${WEBCORE_DIR}/platform/graphics/cairo"
     "${WEBCORE_DIR}/platform/network/curl"
-    "${WEBCORE_DIR}/platform/network/win"
 )
 
 list(APPEND WebCore_SOURCES
@@ -33,7 +32,6 @@ list(APPEND WebCore_SOURCES
 
     platform/cf/win/CertificateCFWin.cpp
 
-    platform/graphics/FontPlatformData.cpp
     platform/graphics/GLContext.cpp
     platform/graphics/GraphicsLayer.cpp
     platform/graphics/ImageSource.cpp
@@ -61,6 +59,7 @@ list(APPEND WebCore_SOURCES
     platform/graphics/texmap/BitmapTexture.cpp
     platform/graphics/texmap/BitmapTextureGL.cpp
     platform/graphics/texmap/BitmapTexturePool.cpp
+    platform/graphics/texmap/ClipStack.cpp
     platform/graphics/texmap/GraphicsLayerTextureMapper.cpp
     platform/graphics/texmap/TextureMapper.cpp
     platform/graphics/texmap/TextureMapperAnimation.cpp
@@ -77,13 +76,13 @@ list(APPEND WebCore_SOURCES
     platform/graphics/win/FontCacheWin.cpp
     platform/graphics/win/FontCustomPlatformDataCairo.cpp
     platform/graphics/win/FontPlatformDataCairoWin.cpp
-    platform/graphics/win/FontPlatformDataWin.cpp
     platform/graphics/win/FontWin.cpp
     platform/graphics/win/FullScreenController.cpp
     platform/graphics/win/GlyphPageTreeNodeCairoWin.cpp
     platform/graphics/win/GraphicsContextCairoWin.cpp
     platform/graphics/win/GraphicsContextWin.cpp
     platform/graphics/win/ImageCairoWin.cpp
+    platform/graphics/win/MediaPlayerPrivateMediaFoundation.cpp
     platform/graphics/win/SimpleFontDataCairoWin.cpp
     platform/graphics/win/SimpleFontDataWin.cpp
     platform/graphics/win/TransformationMatrixWin.cpp
@@ -140,20 +139,9 @@ list(APPEND WebCore_SOURCES
     platform/win/LoggingWin.cpp
     platform/win/PEImage.cpp
     platform/win/PathWalker.cpp
-    platform/win/ScrollbarThemeSafari.cpp
     platform/win/WebCoreBundleWin.cpp
     platform/win/WebCoreTextRenderer.cpp
     platform/win/WindowMessageBroadcaster.cpp
-
-    rendering/RenderLayerBacking.cpp
-    rendering/RenderLayerCompositor.cpp
-    rendering/RenderThemeSafari.cpp
-    rendering/RenderThemeWin.cpp
-)
-
-list(APPEND WebCore_USER_AGENT_STYLE_SHEETS
-    ${WEBCORE_DIR}/css/themeWin.css
-    ${WEBCORE_DIR}/css/themeWinQuirks.css
 )
 
 list(APPEND WebCore_LIBRARIES
@@ -184,83 +172,8 @@ list(APPEND WebCoreTestSupport_LIBRARIES
     shlwapi
 )
 
-set(WebCore_FORWARDING_HEADERS_DIRECTORIES
-    accessibility
-    bindings
-    bridge
-    css
-    dom
-    editing
-    history
-    html
-    inspector
-    loader
-    page
-    platform
-    plugins
-    rendering
-    storage
-    svg
-    websockets
-    workers
-    xml
-
-    Modules/geolocation
-    Modules/notifications
-    Modules/webdatabase
-
-    accessibility/win
-
-    bindings/generic
-    bindings/js
-
-    bridge/jsc
-
-    history/cf
-
-    html/forms
-    html/parser
-
-    loader/appcache
-    loader/archive
-    loader/cache
-    loader/icon
-
-    loader/archive/cf
-
-    page/animation
-    page/win
-
-    platform/animation
-    platform/cf
-    platform/graphics
-    platform/mock
-    platform/network
-    platform/sql
-    platform/text
-    platform/win
-
-    platform/cf/win
-
+list(APPEND WebCore_FORWARDING_HEADERS_DIRECTORIES
     platform/graphics/cairo
-    platform/graphics/opentype
-    platform/graphics/transforms
-    platform/graphics/win
-
-    platform/graphics/ca/win
 
     platform/network/curl
-
-    platform/text/transcoder
-
-    rendering/style
-    rendering/svg
-
-    svg/animation
-    svg/graphics
-    svg/properties
-
-    svg/graphics/filters
 )
-
-WEBKIT_CREATE_FORWARDING_HEADERS(WebCore DIRECTORIES ${WebCore_FORWARDING_HEADERS_DIRECTORIES})

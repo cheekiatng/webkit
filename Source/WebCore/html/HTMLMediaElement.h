@@ -106,9 +106,6 @@ class HTMLMediaElement
     , private TextTrackClient
     , private VideoTrackClient
 #endif
-#if USE(PLATFORM_TEXT_TRACK_MENU)
-    , public PlatformTextTrackMenuClient
-#endif
 {
 public:
     MediaPlayer* player() const { return m_player.get(); }
@@ -203,7 +200,8 @@ public:
     virtual PassRefPtr<TimeRanges> seekable() const override;
     WEBCORE_EXPORT bool ended() const;
     bool autoplay() const;
-    bool loop() const;    
+    bool isAutoplaying() const { return m_autoplaying; }
+    bool loop() const;
     void setLoop(bool b);
     WEBCORE_EXPORT virtual void play() override;
     WEBCORE_EXPORT virtual void pause() override;
@@ -304,12 +302,6 @@ public:
     virtual Vector<RefPtr<PlatformTextTrack>> outOfBandTrackSources() override;
 #endif
 
-#if USE(PLATFORM_TEXT_TRACK_MENU)
-    virtual void setSelectedTextTrack(PassRefPtr<PlatformTextTrack>) override;
-    virtual Vector<RefPtr<PlatformTextTrack>> platformTextTracks() override;
-    PlatformTextTrackMenuInterface* platformTextTrackMenu();
-#endif
-
     struct TrackGroup;
     void configureTextTrackGroupForLanguage(const TrackGroup&) const;
     void configureTextTracks();
@@ -344,7 +336,7 @@ public:
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
     void webkitShowPlaybackTargetPicker();
-    virtual bool addEventListener(const AtomicString& eventType, PassRefPtr<EventListener>, bool useCapture) override;
+    virtual bool addEventListener(const AtomicString& eventType, RefPtr<EventListener>&&, bool useCapture) override;
     virtual bool removeEventListener(const AtomicString& eventType, EventListener*, bool useCapture) override;
 
     virtual void wirelessRoutesAvailableDidChange() override;
@@ -420,11 +412,18 @@ public:
     void mediaLoadingFailedFatally(MediaPlayerEnums::NetworkState);
 
 #if ENABLE(MEDIA_SESSION)
+    WEBCORE_EXPORT double playerVolume() const;
+
     const String& kind() const { return m_kind; }
     void setKind(const String& kind) { m_kind = kind; }
 
     MediaSession* session() const;
     void setSession(MediaSession*);
+
+    void setShouldDuck(bool);
+
+    static HTMLMediaElement* elementWithID(uint64_t);
+    uint64_t elementID() const { return m_elementID; }
 #endif
 
 #if ENABLE(MEDIA_SOURCE)
@@ -436,6 +435,7 @@ public:
 
 #if ENABLE(MEDIA_CONTROLS_SCRIPT)
     void pageScaleFactorChanged();
+    WEBCORE_EXPORT String getCurrentMediaControlsStatus();
 #endif
 
     MediaControlsHost* mediaControlsHost() { return m_mediaControlsHost.get(); }
@@ -447,18 +447,23 @@ public:
     virtual MediaProducer::MediaStateFlags mediaState() const override;
 
     void layoutSizeChanged();
+    void visibilityDidChange();
+
+    void allowsMediaDocumentInlinePlaybackChanged();
 
 protected:
     HTMLMediaElement(const QualifiedName&, Document&, bool);
     virtual ~HTMLMediaElement();
 
-    virtual void parseAttribute(const QualifiedName&, const AtomicString&) override;
-    virtual void finishParsingChildren() override;
-    virtual bool isURLAttribute(const Attribute&) const override;
-    virtual void willAttachRenderers() override;
-    virtual void didAttachRenderers() override;
+    void parseAttribute(const QualifiedName&, const AtomicString&) override;
+    void finishParsingChildren() override;
+    bool isURLAttribute(const Attribute&) const override;
+    void willAttachRenderers() override;
+    void didAttachRenderers() override;
+    void willDetachRenderers() override;
+    void didDetachRenderers() override;
 
-    virtual void didMoveToNewDocument(Document* oldDocument) override;
+    void didMoveToNewDocument(Document* oldDocument) override;
 
     enum DisplayMode { Unknown, None, Poster, PosterWaitingForVideo, Video };
     DisplayMode displayMode() const { return m_displayMode; }
@@ -486,6 +491,9 @@ private:
 
     virtual bool alwaysCreateUserAgentShadowRoot() const override { return true; }
 
+    // FIXME: Shadow DOM spec says we should be able to create shadow root on audio and video elements
+    virtual bool canHaveUserAgentShadowRoot() const override final { return true; }
+
     virtual bool hasCustomFocusLogic() const override;
     virtual bool supportsFocus() const override;
     virtual bool isMouseFocusable() const override;
@@ -500,11 +508,12 @@ private:
 
     // ActiveDOMObject API.
     const char* activeDOMObjectName() const override;
-    bool canSuspendForPageCache() const override;
+    bool canSuspendForDocumentSuspension() const override;
     void suspend(ReasonForSuspension) override;
     void resume() override;
     void stop() override;
     void stopWithoutDestroyingMediaPlayer();
+    virtual void contextDestroyed() override;
     
     virtual void mediaVolumeDidChange() override;
 
@@ -549,13 +558,17 @@ private:
     virtual bool mediaPlayerKeyNeeded(MediaPlayer*, Uint8Array*) override;
     virtual String mediaPlayerMediaKeysStorageDirectory() const override;
 #endif
+    
+#if ENABLE(MEDIA_STREAM)
+    virtual String mediaPlayerMediaDeviceIdentifierStorageDirectory() const override;
+#endif
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
     virtual void mediaPlayerCurrentPlaybackTargetIsWirelessChanged(MediaPlayer*) override;
     void enqueuePlaybackTargetAvailabilityChangedEvent();
 
     using EventTarget::dispatchEvent;
-    virtual bool dispatchEvent(PassRefPtr<Event>) override;
+    virtual bool dispatchEvent(Event&) override;
 #endif
 
 #if ENABLE(MEDIA_SESSION)
@@ -604,6 +617,10 @@ private:
     virtual double mediaPlayerRequestedPlaybackRate() const override final;
     virtual VideoFullscreenMode mediaPlayerFullscreenMode() const override final { return fullscreenMode(); }
 
+#if USE(GSTREAMER)
+    virtual void requestInstallMissingPlugins(const String& details, const String& description, MediaPlayerRequestInstallMissingPluginsCallback&) override final;
+#endif
+
     void pendingActionTimerFired();
     void progressEventTimerFired();
     void playbackProgressTimerFired();
@@ -617,7 +634,7 @@ private:
     void seekInternal(const MediaTime&);
     void seekWithTolerance(const MediaTime&, const MediaTime& negativeTolerance, const MediaTime& positiveTolerance, bool fromDOM);
     void finishSeek();
-    void checkIfSeekNeeded();
+    void clearSeeking();
     void addPlayedRange(const MediaTime& start, const MediaTime& end);
     
     void scheduleTimeupdateEvent(bool periodicEvent);
@@ -700,7 +717,6 @@ private:
     bool isBlockedOnMediaController() const;
     virtual bool hasCurrentSrc() const override { return !m_currentSrc.isEmpty(); }
     virtual bool isLiveStream() const override { return movieLoadType() == MediaPlayerEnums::LiveStream; }
-    bool isAutoplaying() const { return m_autoplaying; }
 
     void updateSleepDisabling();
     bool shouldDisableSleep() const;
@@ -712,17 +728,18 @@ private:
 #endif
 
     // PlatformMediaSessionClient Overrides
-    virtual PlatformMediaSession::MediaType mediaType() const override;
-    virtual PlatformMediaSession::MediaType presentationType() const override;
-    virtual PlatformMediaSession::DisplayType displayType() const override;
-    virtual void suspendPlayback() override;
-    virtual void mayResumePlayback(bool shouldResume) override;
-    virtual String mediaSessionTitle() const override;
-    virtual double mediaSessionDuration() const override { return duration(); }
-    virtual double mediaSessionCurrentTime() const override { return currentTime(); }
-    virtual bool canReceiveRemoteControlCommands() const override { return true; }
-    virtual void didReceiveRemoteControlCommand(PlatformMediaSession::RemoteControlCommandType) override;
-    virtual bool overrideBackgroundPlaybackRestriction() const override;
+    PlatformMediaSession::MediaType mediaType() const override;
+    PlatformMediaSession::MediaType presentationType() const override;
+    PlatformMediaSession::DisplayType displayType() const override;
+    void suspendPlayback() override;
+    void resumeAutoplaying() override;
+    void mayResumePlayback(bool shouldResume) override;
+    String mediaSessionTitle() const override;
+    double mediaSessionDuration() const override { return duration(); }
+    double mediaSessionCurrentTime() const override { return currentTime(); }
+    bool canReceiveRemoteControlCommands() const override { return true; }
+    void didReceiveRemoteControlCommand(PlatformMediaSession::RemoteControlCommandType) override;
+    bool shouldOverrideBackgroundPlaybackRestriction(PlatformMediaSession::InterruptionType) const override;
 
     virtual void pageMutedStateDidChange() override;
 
@@ -734,15 +751,19 @@ private:
     void updateCaptionContainer();
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
-    virtual void documentWillSuspendForPageCache() override final;
-    virtual void documentDidResumeFromPageCache() override final;
+    virtual void prepareForDocumentSuspension() override final;
+    virtual void resumeFromDocumentSuspension() override final;
 
     enum class UpdateMediaState {
         Asynchronously,
         Synchronously,
     };
     void updateMediaState(UpdateMediaState updateState = UpdateMediaState::Synchronously);
+    bool hasPlaybackTargetAvailabilityListeners() const { return m_hasPlaybackTargetAvailabilityListeners; }
 #endif
+
+    void isVisibleInViewportChanged() override final;
+    void updateShouldAutoplay();
 
     Timer m_pendingActionTimer;
     Timer m_progressEventTimer;
@@ -779,6 +800,7 @@ private:
         MediaTime positiveTolerance;
     };
     std::unique_ptr<PendingSeek> m_pendingSeek;
+    SeekType m_pendingSeekType { NoSeek };
 
     double m_volume;
     bool m_volumeInitialized;
@@ -818,6 +840,8 @@ private:
 #if ENABLE(MEDIA_SESSION)
     String m_kind;
     RefPtr<MediaSession> m_session;
+    bool m_shouldDuck { false };
+    uint64_t m_elementID;
 #endif
 
 #if ENABLE(MEDIA_SOURCE)
@@ -920,10 +944,6 @@ private:
 
 #if ENABLE(ENCRYPTED_MEDIA_V2)
     RefPtr<MediaKeys> m_mediaKeys;
-#endif
-
-#if USE(PLATFORM_TEXT_TRACK_MENU)
-    RefPtr<PlatformTextTrackMenuInterface> m_platformMenu;
 #endif
 
     std::unique_ptr<MediaElementSession> m_mediaSession;

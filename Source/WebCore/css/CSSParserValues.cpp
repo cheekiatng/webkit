@@ -21,11 +21,14 @@
 #include "config.h"
 #include "CSSParserValues.h"
 
+#include "CSSCustomPropertyValue.h"
 #include "CSSPrimitiveValue.h"
 #include "CSSFunctionValue.h"
 #include "CSSSelector.h"
 #include "CSSSelectorList.h"
+#include "CSSVariableValue.h"
 #include "SelectorPseudoTypeMap.h"
+#include <wtf/text/StringBuilder.h>
 
 namespace WebCore {
 
@@ -37,6 +40,8 @@ void destroy(const CSSParserValue& value)
         delete value.function;
     else if (value.unit == CSSParserValue::ValueList)
         delete value.valueList;
+    else if (value.unit == CSSParserValue::Variable)
+        delete value.variable;
 }
 
 CSSParserValueList::~CSSParserValueList()
@@ -66,6 +71,21 @@ void CSSParserValueList::extend(CSSParserValueList& valueList)
         m_values.append(*(valueList.valueAt(i)));
 }
 
+bool CSSParserValueList::containsVariables() const
+{
+    for (unsigned i = 0; i < size(); i++) {
+        auto* parserValue = &m_values[i];
+        if (parserValue->unit == CSSParserValue::Variable)
+            return true;
+        if (parserValue->unit == CSSParserValue::Function && parserValue->function->args
+            && parserValue->function->args->containsVariables())
+            return true;
+        if (parserValue->unit == CSSParserValue::ValueList && parserValue->valueList->containsVariables())
+            return true;
+    }
+    return false;
+}
+
 PassRefPtr<CSSValue> CSSParserValue::createCSSValue()
 {
     RefPtr<CSSValue> parsedValue;
@@ -79,8 +99,11 @@ PassRefPtr<CSSValue> CSSParserValue::createCSSValue()
     }
     if (unit == CSSParserValue::Function)
         return CSSFunctionValue::create(function);
+    if (unit == CSSParserValue::Variable)
+        return CSSVariableValue::create(variable);
     if (unit == CSSParserValue::ValueList)
         return CSSValueList::createFromParserValueList(*valueList);
+
     if (unit >= CSSParserValue::Q_EMS)
         return CSSPrimitiveValue::createAllowingMarginQuirk(fValue, CSSPrimitiveValue::CSS_EMS);
 
@@ -95,6 +118,9 @@ PassRefPtr<CSSValue> CSSParserValue::createCSSValue()
     case CSSPrimitiveValue::CSS_STRING:
     case CSSPrimitiveValue::CSS_URI:
     case CSSPrimitiveValue::CSS_PARSER_HEXCOLOR:
+    case CSSPrimitiveValue::CSS_DIMENSION:
+    case CSSPrimitiveValue::CSS_UNICODE_RANGE:
+    case CSSPrimitiveValue::CSS_PARSER_WHITESPACE:
         return CSSPrimitiveValue::create(string, primitiveUnit);
     case CSSPrimitiveValue::CSS_PERCENTAGE:
     case CSSPrimitiveValue::CSS_EMS:
@@ -122,7 +148,6 @@ PassRefPtr<CSSValue> CSSParserValue::createCSSValue()
     case CSSPrimitiveValue::CSS_FR:
         return CSSPrimitiveValue::create(fValue, primitiveUnit);
     case CSSPrimitiveValue::CSS_UNKNOWN:
-    case CSSPrimitiveValue::CSS_DIMENSION:
     case CSSPrimitiveValue::CSS_ATTR:
     case CSSPrimitiveValue::CSS_COUNTER:
     case CSSPrimitiveValue::CSS_RECT:
@@ -134,7 +159,6 @@ PassRefPtr<CSSValue> CSSParserValue::createCSSValue()
 #if ENABLE(DASHBOARD_SUPPORT)
     case CSSPrimitiveValue::CSS_DASHBOARD_REGION:
 #endif
-    case CSSPrimitiveValue::CSS_UNICODE_RANGE:
     case CSSPrimitiveValue::CSS_PARSER_OPERATOR:
     case CSSPrimitiveValue::CSS_PARSER_INTEGER:
     case CSSPrimitiveValue::CSS_PARSER_IDENTIFIER:
@@ -245,13 +269,13 @@ CSSParserSelector::~CSSParserSelector()
     if (!m_tagHistory)
         return;
     Vector<std::unique_ptr<CSSParserSelector>, 16> toDelete;
-    std::unique_ptr<CSSParserSelector> selector = WTF::move(m_tagHistory);
+    std::unique_ptr<CSSParserSelector> selector = WTFMove(m_tagHistory);
     while (true) {
-        std::unique_ptr<CSSParserSelector> next = WTF::move(selector->m_tagHistory);
-        toDelete.append(WTF::move(selector));
+        std::unique_ptr<CSSParserSelector> next = WTFMove(selector->m_tagHistory);
+        toDelete.append(WTFMove(selector));
         if (!next)
             break;
-        selector = WTF::move(next);
+        selector = WTFMove(next);
     }
 }
 
@@ -259,7 +283,7 @@ void CSSParserSelector::adoptSelectorVector(Vector<std::unique_ptr<CSSParserSele
 {
     auto selectorList = std::make_unique<CSSSelectorList>();
     selectorList->adoptSelectorVector(selectorVector);
-    m_selector->setSelectorList(WTF::move(selectorList));
+    m_selector->setSelectorList(WTFMove(selectorList));
 }
 
 void CSSParserSelector::setLangArgumentList(const Vector<CSSParserString>& stringVector)
@@ -269,7 +293,7 @@ void CSSParserSelector::setLangArgumentList(const Vector<CSSParserString>& strin
     argumentList->reserveInitialCapacity(stringVector.size());
     for (const AtomicString& languageArgument : stringVector)
         argumentList->append(languageArgument);
-    m_selector->setLangArgumentList(WTF::move(argumentList));
+    m_selector->setLangArgumentList(WTFMove(argumentList));
 }
 
 void CSSParserSelector::setPseudoClassValue(const CSSParserString& pseudoClassString)
@@ -306,10 +330,10 @@ bool CSSParserSelector::matchesPseudoElement() const
 void CSSParserSelector::insertTagHistory(CSSSelector::Relation before, std::unique_ptr<CSSParserSelector> selector, CSSSelector::Relation after)
 {
     if (m_tagHistory)
-        selector->setTagHistory(WTF::move(m_tagHistory));
+        selector->setTagHistory(WTFMove(m_tagHistory));
     setRelation(before);
     selector->setRelation(after);
-    m_tagHistory = WTF::move(selector);
+    m_tagHistory = WTFMove(selector);
 }
 
 void CSSParserSelector::appendTagHistory(CSSSelector::Relation relation, std::unique_ptr<CSSParserSelector> selector)
@@ -319,7 +343,7 @@ void CSSParserSelector::appendTagHistory(CSSSelector::Relation relation, std::un
         end = end->tagHistory();
 
     end->setRelation(relation);
-    end->setTagHistory(WTF::move(selector));
+    end->setTagHistory(WTFMove(selector));
 }
 
 void CSSParserSelector::appendTagHistory(CSSParserSelectorCombinator relation, std::unique_ptr<CSSParserSelector> selector)
@@ -336,7 +360,7 @@ void CSSParserSelector::appendTagHistory(CSSParserSelectorCombinator relation, s
     case CSSParserSelectorCombinator::DescendantSpace:
         selectorRelation = CSSSelector::Descendant;
         break;
-#if ENABLE_CSS_SELECTORS_LEVEL4
+#if ENABLE(CSS_SELECTORS_LEVEL4)
     case CSSParserSelectorCombinator::DescendantDoubleChild:
         selectorRelation = CSSSelector::Descendant;
         break;
@@ -350,20 +374,20 @@ void CSSParserSelector::appendTagHistory(CSSParserSelectorCombinator relation, s
     }
     end->setRelation(selectorRelation);
 
-#if ENABLE_CSS_SELECTORS_LEVEL4
+#if ENABLE(CSS_SELECTORS_LEVEL4)
     if (relation == CSSParserSelectorCombinator::DescendantDoubleChild)
         end->setDescendantUseDoubleChildSyntax();
 #endif
 
-    end->setTagHistory(WTF::move(selector));
+    end->setTagHistory(WTFMove(selector));
 }
 
 void CSSParserSelector::prependTagSelector(const QualifiedName& tagQName, bool tagIsForNamespaceRule)
 {
     auto second = std::make_unique<CSSParserSelector>();
-    second->m_selector = WTF::move(m_selector);
-    second->m_tagHistory = WTF::move(m_tagHistory);
-    m_tagHistory = WTF::move(second);
+    second->m_selector = WTFMove(m_selector);
+    second->m_tagHistory = WTFMove(m_tagHistory);
+    m_tagHistory = WTFMove(second);
 
     m_selector = std::make_unique<CSSSelector>(tagQName, tagIsForNamespaceRule);
     m_selector->setRelation(CSSSelector::SubSelector);

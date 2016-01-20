@@ -97,29 +97,15 @@ static const char* copyASanDynamicLibraryPath()
 static RetainPtr<NSString> computeProcessShimPath(const ProcessLauncher::LaunchOptions& launchOptions, NSBundle *webKitBundle)
 {
 #if ENABLE(NETSCAPE_PLUGIN_API)
-    if (launchOptions.processType == ProcessLauncher::PluginProcess) {
-        NSString *processPath = [webKitBundle pathForAuxiliaryExecutable:@"PluginProcess.app"];
-        NSString *processAppExecutablePath = [[NSBundle bundleWithPath:processPath] executablePath];
-
-        return [[processAppExecutablePath stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"PluginProcessShim.dylib"];
-    }
+    if (launchOptions.processType == ProcessLauncher::PluginProcess)
+        return [[webKitBundle privateFrameworksPath] stringByAppendingPathComponent:@"PluginProcessShim.dylib"];
 #endif
 
-#if ENABLE(NETWORK_PROCESS)
-    if (launchOptions.processType == ProcessLauncher::NetworkProcess) {
-        NSString *processPath = [webKitBundle pathForAuxiliaryExecutable:@"NetworkProcess.app"];
-        NSString *processAppExecutablePath = [[NSBundle bundleWithPath:processPath] executablePath];
+    if (launchOptions.processType == ProcessLauncher::NetworkProcess)
+        return [[webKitBundle privateFrameworksPath] stringByAppendingPathComponent:@"SecItemShim.dylib"];
 
-        return [[processAppExecutablePath stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"SecItemShim.dylib"];
-    }
-#endif
-
-    if (launchOptions.processType == ProcessLauncher::WebProcess) {
-        NSString *processPath = [webKitBundle pathForAuxiliaryExecutable:@"WebProcess.app"];
-        NSString *processAppExecutablePath = [[NSBundle bundleWithPath:processPath] executablePath];
-
-        return [[processAppExecutablePath stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"WebProcessShim.dylib"];
-    }
+    if (launchOptions.processType == ProcessLauncher::WebProcess)
+        return [[webKitBundle privateFrameworksPath] stringByAppendingPathComponent:@"WebProcessShim.dylib"];
 
     return nil;
 }
@@ -136,8 +122,10 @@ static void addDYLDEnvironmentAdditions(const ProcessLauncher::LaunchOptions& la
     // To make engineering builds work, if the path is outside of /System set up
     // DYLD_FRAMEWORK_PATH to pick up other frameworks, but don't do it for the
     // production configuration because it involves extra file system access.
-    if (isWebKitDevelopmentBuild)
+    if (isWebKitDevelopmentBuild) {
         environmentVariables.appendValue("DYLD_FRAMEWORK_PATH", [frameworksPath fileSystemRepresentation], ':');
+        environmentVariables.appendValue("DYLD_LIBRARY_PATH", webKitBundle.privateFrameworksPath.fileSystemRepresentation, ':');
+    }
 
 #if ASAN_ENABLED
     static const char* asanLibraryPath = copyASanDynamicLibraryPath();
@@ -148,6 +136,7 @@ static void addDYLDEnvironmentAdditions(const ProcessLauncher::LaunchOptions& la
 #endif
 
 #if PLATFORM(MAC)
+    // FIXME: In El Capitan and later, do this only for development builds, because in production, the executables link directly against the shims.
     if (auto shimPath = computeProcessShimPath(launchOptions, webKitBundle)) {
         // Make sure that the shim library file exists and insert it.
         const char* processShimPath = [shimPath fileSystemRepresentation];
@@ -167,12 +156,10 @@ static const char* serviceName(const ProcessLauncher::LaunchOptions& launchOptio
         if (forDevelopment)
             return "com.apple.WebKit.WebContent.Development";
         return "com.apple.WebKit.WebContent";
-#if ENABLE(NETWORK_PROCESS)
     case ProcessLauncher::NetworkProcess:
         if (forDevelopment)
             return "com.apple.WebKit.Networking.Development";
         return "com.apple.WebKit.Networking";
-#endif
 #if ENABLE(DATABASE_PROCESS)
     case ProcessLauncher::DatabaseProcess:
         if (forDevelopment)
@@ -206,12 +193,9 @@ static bool shouldLeakBoost(const ProcessLauncher::LaunchOptions& launchOptions)
     // On iOS, leak a boost onto all child processes
     UNUSED_PARAM(launchOptions);
     return true;
-#elif ENABLE(NETWORK_PROCESS)
+#else
     // On Mac, leak a boost onto the NetworkProcess.
     return launchOptions.processType == ProcessLauncher::NetworkProcess;
-#else
-    UNUSED_PARAM(launchOptions);
-    return false;
 #endif
 }
     
@@ -219,13 +203,8 @@ static void connectToService(const ProcessLauncher::LaunchOptions& launchOptions
 {
     // Create a connection to the WebKit XPC service.
     auto connection = adoptOSObject(xpc_connection_create(serviceName(launchOptions, forDevelopment), 0));
-#if PLATFORM(IOS) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
     xpc_connection_set_oneshot_instance(connection.get(), instanceUUID->uuid);
-#else
-    xpc_connection_set_instance(connection.get(), instanceUUID->uuid);
-#endif
 
-#if PLATFORM(IOS) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
     // Inherit UI process localization. It can be different from child process default localization:
     // 1. When the application and system frameworks simply have different localized resources available, we should match the application.
     // 1.1. An important case is WebKitTestRunner, where we should use English localizations for all system frameworks.
@@ -243,8 +222,18 @@ static void connectToService(const ProcessLauncher::LaunchOptions& launchOptions
         xpc_dictionary_set_string(containerEnvironmentVariables.get(), "TMPDIR", environmentTMPDIR);
     xpc_dictionary_set_value(initializationMessage.get(), "ContainerEnvironmentVariables", containerEnvironmentVariables.get());
 #endif
+
+    auto languagesIterator = launchOptions.extraInitializationData.find("OverrideLanguages");
+    if (languagesIterator != launchOptions.extraInitializationData.end()) {
+        auto languages = adoptOSObject(xpc_array_create(nullptr, 0));
+        Vector<String> languageVector;
+        languagesIterator->value.split(",", false, languageVector);
+        for (auto& language : languageVector)
+            xpc_array_set_string(languages.get(), XPC_ARRAY_APPEND, language.utf8().data());
+        xpc_dictionary_set_value(initializationMessage.get(), "OverrideLanguages", languages.get());
+    }
+
     xpc_connection_set_bootstrap(connection.get(), initializationMessage.get());
-#endif
 
     // XPC requires having an event handler, even if it is not used.
     xpc_connection_set_event_handler(connection.get(), ^(xpc_object_t event) { });
@@ -340,11 +329,7 @@ static void connectToReExecService(const ProcessLauncher::LaunchOptions& launchO
     // FIXME: It would be nice if we could use OSObjectPtr for this connection as well, but we'd have to be careful
     // not to introduce any retain cycles in the call to xpc_connection_set_event_handler below.
     xpc_connection_t reExecConnection = xpc_connection_create(serviceName(launchOptions, true), 0);
-#if PLATFORM(IOS) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
     xpc_connection_set_oneshot_instance(reExecConnection, instanceUUID->uuid);
-#else
-    xpc_connection_set_instance(reExecConnection, instanceUUID->uuid);
-#endif
 
     // Keep the ProcessLauncher alive while we do the re-execing (balanced in event handler).
     that->ref();
@@ -472,11 +457,9 @@ static void createProcess(const ProcessLauncher::LaunchOptions& launchOptions, b
         processPath = [webKitBundle pathForAuxiliaryExecutable:@"PluginProcess.app"];
         break;
 #endif
-#if ENABLE(NETWORK_PROCESS)
     case ProcessLauncher::NetworkProcess:
         processPath = [webKitBundle pathForAuxiliaryExecutable:@"NetworkProcess.app"];
         break;
-#endif
 #if ENABLE(DATABASE_PROCESS)
     case ProcessLauncher::DatabaseProcess:
         processPath = [webKitBundle pathForAuxiliaryExecutable:@"DatabaseProcess.app"];

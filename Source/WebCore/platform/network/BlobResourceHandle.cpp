@@ -594,7 +594,7 @@ void BlobResourceHandle::notifyResponseOnSuccess()
     // BlobResourceHandle cannot be used with downloading, and doesn't even wait for continueDidReceiveResponse.
     // It's currently client's responsibility to know that didReceiveResponseAsync cannot be used to convert a
     // load into a download or blobs.
-    if (client()->usesAsyncCallbacks())
+    if (usesAsyncCallbacks())
         client()->didReceiveResponseAsync(this, response);
     else
         client()->didReceiveResponse(this, response);
@@ -626,7 +626,7 @@ void BlobResourceHandle::notifyResponseOnError()
 
     // Note that we don't wait for continueDidReceiveResponse when using didReceiveResponseAsync.
     // This is not formally correct, but the client has to be a no-op anyway, because blobs can't be downloaded.
-    if (client()->usesAsyncCallbacks())
+    if (usesAsyncCallbacks())
         client()->didReceiveResponseAsync(this, response);
     else
         client()->didReceiveResponse(this, response);
@@ -644,29 +644,31 @@ void BlobResourceHandle::notifyFail(int errorCode)
         client()->didFail(this, ResourceError(webKitBlobResourceDomain, errorCode, firstRequest().url(), String()));
 }
 
-static void doNotifyFinish(void* context)
+static void doNotifyFinish(BlobResourceHandle& handle)
 {
-    BlobResourceHandle* handle = static_cast<BlobResourceHandle*>(context);
-    if (!handle->aborted() && handle->client())
-        handle->client()->didFinishLoading(handle, 0);
+    if (handle.aborted())
+        return;
 
-    // Balance the ref() in BlobResourceHandle::notfyFinish().
-    handle->deref();
+    if (!handle.client())
+        return;
+
+    handle.client()->didFinishLoading(&handle, 0);
 }
 
 void BlobResourceHandle::notifyFinish()
 {
-    // Balanced in doNotifyFinish().
-    ref();
-
-    if (m_async) {
-        // Schedule to notify the client from a standalone function because the client might dispose the handle immediately from the callback function
-        // while we still have BlobResourceHandle calls in the stack.
-        callOnMainThread(doNotifyFinish, this);
+    if (!m_async) {
+        doNotifyFinish(*this);
         return;
     }
 
-    doNotifyFinish(this);
+    // Schedule to notify the client from a standalone function because the client might dispose the handle immediately from the callback function
+    // while we still have BlobResourceHandle calls in the stack.
+    RefPtr<BlobResourceHandle> handle(this);
+    callOnMainThread([handle] {
+        doNotifyFinish(*handle);
+    });
+
 }
 
 } // namespace WebCore

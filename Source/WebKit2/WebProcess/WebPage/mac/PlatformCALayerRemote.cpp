@@ -158,9 +158,9 @@ void PlatformCALayerRemote::recursiveBuildTransaction(RemoteLayerTreeContext& co
 
     if (m_properties.changedProperties != RemoteLayerTreeTransaction::NoChange) {
         if (m_properties.changedProperties & RemoteLayerTreeTransaction::ChildrenChanged) {
-            m_properties.children.clear();
-            for (const auto& layer : m_children)
-                m_properties.children.append(layer->layerID());
+            m_properties.children.resize(m_children.size());
+            for (size_t i = 0; i < m_children.size(); ++i)
+                m_properties.children[i] = m_children[i]->layerID();
         }
 
         if (isPlatformCALayerRemoteCustom()) {
@@ -522,6 +522,11 @@ void PlatformCALayerRemote::setGeometryFlipped(bool value)
     m_properties.notePropertiesChanged(RemoteLayerTreeTransaction::GeometryFlippedChanged);
 }
 
+bool PlatformCALayerRemote::geometryFlipped() const
+{
+    return m_properties.geometryFlipped;
+}
+
 bool PlatformCALayerRemote::isDoubleSided() const
 {
     return m_properties.doubleSided;
@@ -775,6 +780,14 @@ uint32_t PlatformCALayerRemote::hostingContextID()
 {
     ASSERT_NOT_REACHED();
     return 0;
+}
+
+unsigned PlatformCALayerRemote::backingStoreBytesPerPixel() const
+{
+    if (!m_properties.backingStore)
+        return 4;
+
+    return m_properties.backingStore->bytesPerPixel();
 }
 
 LayerPool& PlatformCALayerRemote::layerPool()

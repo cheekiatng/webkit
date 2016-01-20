@@ -23,25 +23,26 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-WebInspector.SidebarPanel = class SidebarPanel extends WebInspector.Object
+WebInspector.SidebarPanel = class SidebarPanel extends WebInspector.View
 {
     constructor(identifier, displayName, element, role, label)
     {
-        super();
+        super(element);
 
         this._identifier = identifier;
+        this._displayName = displayName;
+        this._selected = false;
 
         this._savedScrollPosition = 0;
 
-        this._element = element || document.createElement("div");
-        this._element.classList.add("panel", identifier);
+        this.element.classList.add("panel", identifier);
 
-        this._element.setAttribute("role", role || "group");
-        this._element.setAttribute("aria-label", label || displayName);
+        this.element.setAttribute("role", role || "group");
+        this.element.setAttribute("aria-label", label || displayName);
 
-        this._contentElement = document.createElement("div");
-        this._contentElement.className = "content";
-        this._element.appendChild(this._contentElement);
+        this._contentView = new WebInspector.View;
+        this._contentView.element.classList.add("content");
+        this.addSubview(this._contentView);
     }
 
     // Public
@@ -51,55 +52,57 @@ WebInspector.SidebarPanel = class SidebarPanel extends WebInspector.Object
         return this._identifier;
     }
 
-    get element()
+    get contentView()
     {
-        return this._element;
-    }
-
-    get contentElement()
-    {
-        return this._contentElement;
+        return this._contentView;
     }
 
     get visible()
     {
-        return this.selected && this._parentSidebar && !this._parentSidebar.collapsed;
+        return this.selected && this.parentSidebar && !this.parentSidebar.collapsed;
     }
 
     get selected()
     {
-        return this._element.classList.contains(WebInspector.SidebarPanel.SelectedStyleClassName);
+        return this._selected;
     }
 
     set selected(flag)
     {
-        if (flag)
-            this._element.classList.add(WebInspector.SidebarPanel.SelectedStyleClassName);
-        else
-            this._element.classList.remove(WebInspector.SidebarPanel.SelectedStyleClassName);
+        if (flag === this._selected)
+            return;
+
+        this._selected = flag || false;
+        this.element.classList.toggle("selected", this._selected);
     }
 
     get parentSidebar()
     {
-        return this._parentSidebar;
+        return this.parentView;
+    }
+
+    get minimumWidth()
+    {
+        // Implemented by subclasses.
+        return 0;
     }
 
     show()
     {
-        if (!this._parentSidebar)
+        if (!this.parentSidebar)
             return;
 
-        this._parentSidebar.collapsed = false;
-        this._parentSidebar.selectedSidebarPanel = this;
+        this.parentSidebar.collapsed = false;
+        this.parentSidebar.selectedSidebarPanel = this;
     }
 
     hide()
     {
-        if (!this._parentSidebar)
+        if (!this.parentSidebar)
             return;
 
-        this._parentSidebar.collapsed = true;
-        this._parentSidebar.selectedSidebarPanel = null;
+        this.parentSidebar.collapsed = true;
+        this.parentSidebar.selectedSidebarPanel = null;
     }
 
     toggle()
@@ -112,14 +115,14 @@ WebInspector.SidebarPanel = class SidebarPanel extends WebInspector.Object
 
     added()
     {
-        console.assert(this._parentSidebar);
+        console.assert(this.parentSidebar);
 
         // Implemented by subclasses.
     }
 
     removed()
     {
-        console.assert(!this._parentSidebar);
+        console.assert(!this.parentSidebar);
 
         // Implemented by subclasses.
     }
@@ -131,14 +134,14 @@ WebInspector.SidebarPanel = class SidebarPanel extends WebInspector.Object
 
     shown()
     {
-        this._contentElement.scrollTop = this._savedScrollPosition;
+        this._contentView.element.scrollTop = this._savedScrollPosition;
 
         // Implemented by subclasses.
     }
 
     hidden()
     {
-        this._savedScrollPosition = this._contentElement.scrollTop;
+        this._savedScrollPosition = this._contentView.element.scrollTop;
 
         // Implemented by subclasses.
     }
@@ -153,5 +156,3 @@ WebInspector.SidebarPanel = class SidebarPanel extends WebInspector.Object
         // Implemented by subclasses.
     }
 };
-
-WebInspector.SidebarPanel.SelectedStyleClassName = "selected";

@@ -324,7 +324,7 @@ RefPtr<Element> HTMLTreeBuilder::takeScriptToProcess(TextPosition& scriptStartPo
     // We pause the parser to exit the tree builder, and then resume before running scripts.
     scriptStartPosition = m_scriptToProcessStartPosition;
     m_scriptToProcessStartPosition = uninitializedPositionValue1();
-    return WTF::move(m_scriptToProcess);
+    return WTFMove(m_scriptToProcess);
 }
 
 void HTMLTreeBuilder::constructTree(AtomicHTMLToken& token)
@@ -407,7 +407,7 @@ void HTMLTreeBuilder::processDoctypeToken(AtomicHTMLToken& token)
 void HTMLTreeBuilder::processFakeStartTag(const QualifiedName& tagName, Vector<Attribute>&& attributes)
 {
     // FIXME: We'll need a fancier conversion than just "localName" for SVG/MathML tags.
-    AtomicHTMLToken fakeToken(HTMLToken::StartTag, tagName.localName(), WTF::move(attributes));
+    AtomicHTMLToken fakeToken(HTMLToken::StartTag, tagName.localName(), WTFMove(attributes));
     processStartTag(fakeToken);
 }
 
@@ -774,9 +774,9 @@ void HTMLTreeBuilder::processStartTagForInBody(AtomicHTMLToken& token)
         return;
     }
     if (token.name() == inputTag) {
-        Attribute* typeAttribute = findAttribute(token.attributes(), typeAttr);
         m_tree.reconstructTheActiveFormattingElements();
         m_tree.insertSelfClosingHTMLElement(&token);
+        Attribute* typeAttribute = findAttribute(token.attributes(), typeAttr);
         if (!typeAttribute || !equalIgnoringCase(typeAttribute->value(), "hidden"))
             m_framesetOk = false;
         return;
@@ -2282,7 +2282,7 @@ void HTMLTreeBuilder::insertPhoneNumberLink(const String& string)
     attributes.append(Attribute(HTMLNames::hrefAttr, ASCIILiteral("tel:") + string));
 
     const AtomicString& aTagLocalName = aTag.localName();
-    AtomicHTMLToken aStartToken(HTMLToken::StartTag, aTagLocalName, WTF::move(attributes));
+    AtomicHTMLToken aStartToken(HTMLToken::StartTag, aTagLocalName, WTFMove(attributes));
     AtomicHTMLToken aEndToken(HTMLToken::EndTag, aTagLocalName);
 
     processStartTag(aStartToken);
@@ -2336,10 +2336,9 @@ void HTMLTreeBuilder::linkifyPhoneNumbers(const String& string)
 }
 
 // Looks at the ancestors of the element to determine whether we're inside an element which disallows parsing phone numbers.
-static inline bool disallowTelephoneNumberParsing(const Node& node)
+static inline bool disallowTelephoneNumberParsing(const ContainerNode& node)
 {
     return node.isLink()
-        || node.nodeType() == Node::COMMENT_NODE
         || node.hasTagName(scriptTag)
         || is<HTMLFormControlElement>(node)
         || node.hasTagName(styleTag)
@@ -2350,12 +2349,10 @@ static inline bool disallowTelephoneNumberParsing(const Node& node)
 
 static inline bool shouldParseTelephoneNumbersInNode(const ContainerNode& node)
 {
-    const ContainerNode* currentNode = &node;
-    do {
-        if (currentNode->isElementNode() && disallowTelephoneNumberParsing(*currentNode))
+    for (const ContainerNode* ancestor = &node; ancestor; ancestor = ancestor->parentNode()) {
+        if (disallowTelephoneNumberParsing(*ancestor))
             return false;
-        currentNode = currentNode->parentNode();
-    } while (currentNode);
+    }
     return true;
 }
 

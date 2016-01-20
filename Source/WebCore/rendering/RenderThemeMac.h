@@ -61,7 +61,6 @@ public:
     virtual Color platformInactiveListBoxSelectionBackgroundColor() const override;
     virtual Color platformInactiveListBoxSelectionForegroundColor() const override;
     virtual Color platformFocusRingColor() const override;
-    virtual int platformFocusRingMaxWidth() const override;
 
     virtual ScrollbarControlSize scrollbarControlSizeForPart(ControlPart) override { return SmallScrollbar; }
 
@@ -101,14 +100,12 @@ public:
     // A view associated to the contained document.
     NSView* documentViewFor(const RenderObject&) const;
 
-    virtual bool defaultButtonHasAnimation() const override;
-
 protected:
     RenderThemeMac();
     virtual ~RenderThemeMac();
 
     // System fonts.
-    virtual void updateCachedSystemFontDescription(CSSValueID, FontDescription&) const override;
+    virtual void updateCachedSystemFontDescription(CSSValueID, FontCascadeDescription&) const override;
 
 #if ENABLE(VIDEO)
     // Media controls
@@ -131,7 +128,7 @@ protected:
     virtual bool paintMenuList(const RenderObject&, const PaintInfo&, const FloatRect&) override;
     virtual void adjustMenuListStyle(StyleResolver&, RenderStyle&, Element*) const override;
 
-    virtual bool paintMenuListButtonDecorations(const RenderObject&, const PaintInfo&, const FloatRect&) override;
+    virtual bool paintMenuListButtonDecorations(const RenderBox&, const PaintInfo&, const FloatRect&) override;
     virtual void adjustMenuListButtonStyle(StyleResolver&, RenderStyle&, Element*) const override;
 
     virtual void adjustProgressBarStyle(StyleResolver&, RenderStyle&, Element*) const override;
@@ -147,16 +144,16 @@ protected:
     virtual void adjustSearchFieldStyle(StyleResolver&, RenderStyle&, Element*) const override;
 
     virtual void adjustSearchFieldCancelButtonStyle(StyleResolver&, RenderStyle&, Element*) const override;
-    virtual bool paintSearchFieldCancelButton(const RenderObject&, const PaintInfo&, const IntRect&) override;
+    virtual bool paintSearchFieldCancelButton(const RenderBox&, const PaintInfo&, const IntRect&) override;
 
     virtual void adjustSearchFieldDecorationPartStyle(StyleResolver&, RenderStyle&, Element*) const override;
     virtual bool paintSearchFieldDecorationPart(const RenderObject&, const PaintInfo&, const IntRect&) override;
 
     virtual void adjustSearchFieldResultsDecorationPartStyle(StyleResolver&, RenderStyle&, Element*) const override;
-    virtual bool paintSearchFieldResultsDecorationPart(const RenderObject&, const PaintInfo&, const IntRect&) override;
+    virtual bool paintSearchFieldResultsDecorationPart(const RenderBox&, const PaintInfo&, const IntRect&) override;
 
     virtual void adjustSearchFieldResultsButtonStyle(StyleResolver&, RenderStyle&, Element*) const override;
-    virtual bool paintSearchFieldResultsButton(const RenderObject&, const PaintInfo&, const IntRect&) override;
+    virtual bool paintSearchFieldResultsButton(const RenderBox&, const PaintInfo&, const IntRect&) override;
 
 #if ENABLE(VIDEO)
     virtual bool supportsClosedCaptioning() const override { return true; }
@@ -174,8 +171,6 @@ protected:
 
 private:
     virtual String fileListNameForWidth(const FileList*, const FontCascade&, int width, bool multipleFilesAllowed) const override;
-
-    FloatRect convertToPaintingRect(const RenderObject& inputRenderer, const RenderObject& partRenderer, const FloatRect& inputRect, const IntRect&) const;
 
     virtual Color systemColor(CSSValueID) const override;
 
@@ -196,6 +191,7 @@ private:
 
     // Helpers for adjusting appearance and for painting
 
+    void paintCellAndSetFocusedElementNeedsRepaintIfNecessary(NSCell*, const RenderObject&, const PaintInfo&, const FloatRect&);
     void setPopupButtonCellState(const RenderObject&, const IntSize&);
     const IntSize* popupButtonSizes() const;
     const int* popupButtonMargins() const;

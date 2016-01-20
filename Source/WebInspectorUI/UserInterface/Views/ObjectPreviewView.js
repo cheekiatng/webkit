@@ -152,18 +152,18 @@ WebInspector.ObjectPreviewView = class ObjectPreviewView extends WebInspector.Ob
 
         var isIterator = preview.subtype === "iterator";
 
-        element.appendChild(document.createTextNode(isIterator ? "[" : "{"));
+        element.append(isIterator ? "[" : "{");
 
         var limit = Math.min(preview.collectionEntryPreviews.length, this._numberOfPropertiesToShowInMode());
         for (var i = 0; i < limit; ++i) {
             if (i > 0)
-                element.appendChild(document.createTextNode(", "));
+                element.append(", ");
 
             var keyPreviewLossless = true;
             var entry = preview.collectionEntryPreviews[i];
             if (entry.keyPreview) {
                 keyPreviewLossless = this._appendPreview(element, entry.keyPreview);
-                element.appendChild(document.createTextNode(" => "));
+                element.append(" => ");
             }
 
             var valuePreviewLossless = this._appendPreview(element, entry.valuePreview);
@@ -177,9 +177,13 @@ WebInspector.ObjectPreviewView = class ObjectPreviewView extends WebInspector.Ob
             overflow = true;
         }
 
-        if (overflow)
-            element.appendChild(document.createTextNode(", \u2026"));
-        element.appendChild(document.createTextNode(isIterator ? "]" : "}"));
+        if (overflow) {
+            if (limit > 0)
+                element.append(", ");
+            element.append("\u2026");
+        }
+
+        element.append(isIterator ? "]" : "}");
 
         return lossless;
     }
@@ -200,7 +204,7 @@ WebInspector.ObjectPreviewView = class ObjectPreviewView extends WebInspector.Ob
         // FIXME: Array previews should have better sparse support: (undefined × 10).
         var isArray = preview.subtype === "array";
 
-        element.appendChild(document.createTextNode(isArray ? "[" : "{"));
+        element.append(isArray ? "[" : "{");
 
         var numberAdded = 0;
         var limit = this._numberOfPropertiesToShowInMode();
@@ -216,13 +220,13 @@ WebInspector.ObjectPreviewView = class ObjectPreviewView extends WebInspector.Ob
                 continue;
 
             if (numberAdded++ > 0)
-                element.appendChild(document.createTextNode(", "));
+                element.append(", ");
 
             if (!isArray || property.name != i) {
                 var nameElement = element.appendChild(document.createElement("span"));
                 nameElement.className = "name";
                 nameElement.textContent = property.name;
-                element.appendChild(document.createTextNode(": "));
+                element.append(": ");
             }
 
             if (property.valuePreview)
@@ -238,9 +242,13 @@ WebInspector.ObjectPreviewView = class ObjectPreviewView extends WebInspector.Ob
             overflow = true;
         }
 
-        if (overflow)
-            element.appendChild(document.createTextNode(", \u2026"));
-        element.appendChild(document.createTextNode(isArray ? "]" : "}"));
+        if (overflow) {
+            if (limit > 0)
+                element.append(", ");
+            element.append("\u2026");
+        }
+
+        element.append(isArray ? "]" : "}");
 
         return lossless;
     }
@@ -253,20 +261,18 @@ WebInspector.ObjectPreviewView = class ObjectPreviewView extends WebInspector.Ob
 
     _contextMenuHandler(event)
     {
-        var contextMenu = new WebInspector.ContextMenu(event);
+        let contextMenu = WebInspector.ContextMenu.createFromEvent(event);
 
-        contextMenu.appendItem(WebInspector.UIString("Log Value"), function() {
-            var remoteObject = this._remoteObject;
-            var isImpossible = !this._propertyPath || this._propertyPath.isFullPathImpossible();
-            var text = isImpossible ? WebInspector.UIString("Selected Value") : this._propertyPath.displayPath(WebInspector.PropertyPath.Type.Value);
+        contextMenu.appendItem(WebInspector.UIString("Log Value"), () => {
+            let remoteObject = this._remoteObject;
+            let isImpossible = !this._propertyPath || this._propertyPath.isFullPathImpossible();
+            let text = isImpossible ? WebInspector.UIString("Selected Value") : this._propertyPath.displayPath(WebInspector.PropertyPath.Type.Value);
 
             if (!isImpossible)
                 WebInspector.quickConsole.prompt.pushHistoryItem(text);
 
             WebInspector.consoleLogViewController.appendImmediateExecutionWithResult(text, this._remoteObject, isImpossible);
-        }.bind(this));
-
-        contextMenu.show();        
+        });
     }
 };
 

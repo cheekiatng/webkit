@@ -66,7 +66,7 @@ static JSValue *jsValueWithAVMetadataItemInContext(AVMetadataItemType *, JSConte
 
 static String quickTimePluginReplacementScript()
 {
-    DEPRECATED_DEFINE_STATIC_LOCAL(String, script, (QuickTimePluginReplacementJavaScript, sizeof(QuickTimePluginReplacementJavaScript)));
+    static NeverDestroyed<String> script(QuickTimePluginReplacementJavaScript, sizeof(QuickTimePluginReplacementJavaScript));
     return script;
 }
 
@@ -89,13 +89,13 @@ bool QuickTimePluginReplacement::supportsMimeType(const String& mimeType)
         "audio/x-m4r", "audio/x-mp3", "audio/x-mpeg", "audio/x-mpeg3", "audio/x-mpegurl", "audio/x-scpls", "audio/x-wav",
         "video/3gpp", "video/3gpp2", "video/mp4", "video/quicktime", "video/x-m4v"
     };
-    DEPRECATED_DEFINE_STATIC_LOCAL(HashSet<String>, typeHash, ());
-    if (!typeHash.size()) {
+    static NeverDestroyed<HashSet<String>> typeHash;
+    if (!typeHash.get().size()) {
         for (size_t i = 0; i < WTF_ARRAY_LENGTH(types); ++i)
-            typeHash.add(types[i]);
+            typeHash.get().add(types[i]);
     }
 
-    return typeHash.contains(mimeType);
+    return typeHash.get().contains(mimeType);
 }
 
 bool QuickTimePluginReplacement::supportsFileExtension(const String& extension)
@@ -105,13 +105,13 @@ bool QuickTimePluginReplacement::supportsFileExtension(const String& extension)
         "m3u8", "m4a", "m4b", "m4p", "m4r", "m4v", "mov", "mp3", "mp3", "mp4", "mpeg", "mpg", "mqv", "pls", "qt",
         "snd", "swa", "ts", "ulw", "wav"
     };
-    DEPRECATED_DEFINE_STATIC_LOCAL(HashSet<String>, extensionHash, ());
-    if (!extensionHash.size()) {
+    static NeverDestroyed<HashSet<String>> extensionHash;
+    if (!extensionHash.get().size()) {
         for (size_t i = 0; i < WTF_ARRAY_LENGTH(extensions); ++i)
-            extensionHash.add(extensions[i]);
+            extensionHash.get().add(extensions[i]);
     }
 
-    return extensionHash.contains(extension);
+    return extensionHash.get().contains(extension);
 }
 
 QuickTimePluginReplacement::QuickTimePluginReplacement(HTMLPlugInElement& plugin, const Vector<String>& paramNames, const Vector<String>& paramValues)
@@ -135,7 +135,7 @@ RenderPtr<RenderElement> QuickTimePluginReplacement::createElementRenderer(HTMLP
     ASSERT_UNUSED(plugin, m_parentElement == &plugin);
 
     if (m_mediaElement)
-        return m_mediaElement->createElementRenderer(WTF::move(style), insertionPosition);
+        return m_mediaElement->createElementRenderer(WTFMove(style), insertionPosition);
 
     return nullptr;
 }
@@ -243,8 +243,8 @@ unsigned long long QuickTimePluginReplacement::movieSize() const
 void QuickTimePluginReplacement::postEvent(const String& eventName)
 {
     Ref<HTMLPlugInElement> protect(*m_parentElement);
-    RefPtr<Event> event = Event::create(eventName, false, true);
-    m_parentElement->dispatchEvent(event.get());
+    Ref<Event> event = Event::create(eventName, false, true);
+    m_parentElement->dispatchEvent(event);
 }
 
 #if PLATFORM(IOS)
@@ -366,10 +366,10 @@ static JSValue *jsValueWithAVMetadataItemInContext(AVMetadataItemType *item, JSC
 }
 #endif
 
-JSC::JSValue JSQuickTimePluginReplacement::timedMetaData(JSC::ExecState* exec) const
+JSC::JSValue JSQuickTimePluginReplacement::timedMetaData(JSC::ExecState& state) const
 {
 #if PLATFORM(IOS)
-    HTMLVideoElement* parent = impl().parentElement();
+    HTMLVideoElement* parent = wrapped().parentElement();
     if (!parent || !parent->player())
         return JSC::jsNull();
 
@@ -384,17 +384,17 @@ JSC::JSValue JSQuickTimePluginReplacement::timedMetaData(JSC::ExecState* exec) c
     JSContext *jsContext = frame->script().javaScriptContext();
     JSValue *metaDataValue = jsValueWithValueInContext(metaData, jsContext);
     
-    return toJS(exec, [metaDataValue JSValueRef]);
+    return toJS(&state, [metaDataValue JSValueRef]);
 #else
-    UNUSED_PARAM(exec);
+    UNUSED_PARAM(state);
     return JSC::jsNull();
 #endif
 }
 
-JSC::JSValue JSQuickTimePluginReplacement::accessLog(JSC::ExecState* exec) const
+JSC::JSValue JSQuickTimePluginReplacement::accessLog(JSC::ExecState& state) const
 {
 #if PLATFORM(IOS)
-    HTMLVideoElement* parent = impl().parentElement();
+    HTMLVideoElement* parent = wrapped().parentElement();
     if (!parent || !parent->player())
         return JSC::jsNull();
 
@@ -406,17 +406,17 @@ JSC::JSValue JSQuickTimePluginReplacement::accessLog(JSC::ExecState* exec) const
     String accessLogString = parent->player()->accessLog();
     [dictionary setValue:static_cast<NSString *>(accessLogString) forProperty:(NSString *)CFSTR("extendedLog")];
 
-    return toJS(exec, [dictionary JSValueRef]);
+    return toJS(&state, [dictionary JSValueRef]);
 #else
-    UNUSED_PARAM(exec);
+    UNUSED_PARAM(state);
     return JSC::jsNull();
 #endif
 }
 
-JSC::JSValue JSQuickTimePluginReplacement::errorLog(JSC::ExecState* exec) const
+JSC::JSValue JSQuickTimePluginReplacement::errorLog(JSC::ExecState& state) const
 {
 #if PLATFORM(IOS)
-    HTMLVideoElement* parent = impl().parentElement();
+    HTMLVideoElement* parent = wrapped().parentElement();
     if (!parent || !parent->player())
         return JSC::jsNull();
 
@@ -428,9 +428,9 @@ JSC::JSValue JSQuickTimePluginReplacement::errorLog(JSC::ExecState* exec) const
     String errorLogString = parent->player()->errorLog();
     [dictionary setValue:static_cast<NSString *>(errorLogString) forProperty:(NSString *)CFSTR("extendedLog")];
 
-    return toJS(exec, [dictionary JSValueRef]);
+    return toJS(&state, [dictionary JSValueRef]);
 #else
-    UNUSED_PARAM(exec);
+    UNUSED_PARAM(state);
     return JSC::jsNull();
 #endif
 }

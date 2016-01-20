@@ -61,6 +61,71 @@ using namespace WebCore;
 
 namespace WebKit {
 
+LayerTreeHostGtk::RenderFrameScheduler::RenderFrameScheduler(std::function<bool()> renderer)
+    : m_renderer(WTFMove(renderer))
+    , m_timer(RunLoop::main(), this, &LayerTreeHostGtk::RenderFrameScheduler::renderFrame)
+{
+    // We use a RunLoop timer because otherwise GTK+ event handling during dragging can starve WebCore timers, which have a lower priority.
+    // Use a higher priority than WebCore timers.
+    m_timer.setPriority(GDK_PRIORITY_REDRAW - 1);
+}
+
+LayerTreeHostGtk::RenderFrameScheduler::~RenderFrameScheduler()
+{
+}
+
+void LayerTreeHostGtk::RenderFrameScheduler::start()
+{
+    if (m_timer.isActive())
+        return;
+    m_fireTime = 0;
+    nextFrame();
+}
+
+void LayerTreeHostGtk::RenderFrameScheduler::stop()
+{
+    m_timer.stop();
+}
+
+static inline bool shouldSkipNextFrameBecauseOfContinousImmediateFlushes(double current, double lastImmediateFlushTime)
+{
+    // 100ms is about a perceptable delay in UI, so when scheduling layer flushes immediately for more than 100ms,
+    // we skip the next frame to ensure pending timers have a change to be fired.
+    static const double maxDurationOfImmediateFlushes = 0.100;
+    if (!lastImmediateFlushTime)
+        return false;
+    return lastImmediateFlushTime + maxDurationOfImmediateFlushes < current;
+}
+
+void LayerTreeHostGtk::RenderFrameScheduler::nextFrame()
+{
+    static const double targetFramerate = 1 / 60.0;
+    // When rendering layers takes more time than the target delay (0.016), we end up scheduling layer flushes
+    // immediately. Since the layer flush timer has a higher priority than WebCore timers, these are never
+    // fired while we keep scheduling layer flushes immediately.
+    double current = monotonicallyIncreasingTime();
+    double timeToNextFlush = std::max(targetFramerate - (current - m_fireTime), 0.0);
+    if (timeToNextFlush)
+        m_lastImmediateFlushTime = 0;
+    else if (!m_lastImmediateFlushTime)
+        m_lastImmediateFlushTime = current;
+
+    if (shouldSkipNextFrameBecauseOfContinousImmediateFlushes(current, m_lastImmediateFlushTime)) {
+        timeToNextFlush = targetFramerate;
+        m_lastImmediateFlushTime = 0;
+    }
+
+    m_timer.startOneShot(timeToNextFlush);
+}
+
+void LayerTreeHostGtk::RenderFrameScheduler::renderFrame()
+{
+    m_fireTime = monotonicallyIncreasingTime();
+    if (!m_renderer() || m_timer.isActive())
+        return;
+    nextFrame();
+}
+
 PassRefPtr<LayerTreeHostGtk> LayerTreeHostGtk::create(WebPage* webPage)
 {
     RefPtr<LayerTreeHostGtk> host = adoptRef(new LayerTreeHostGtk(webPage));
@@ -72,18 +137,20 @@ LayerTreeHostGtk::LayerTreeHostGtk(WebPage* webPage)
     : LayerTreeHost(webPage)
     , m_isValid(true)
     , m_notifyAfterScheduledLayerFlush(false)
-    , m_lastImmediateFlushTime(0)
     , m_layerFlushSchedulingEnabled(true)
     , m_viewOverlayRootLayer(nullptr)
+    , m_renderFrameScheduler(std::bind(&LayerTreeHostGtk::renderFrame, this))
 {
 }
 
 bool LayerTreeHostGtk::makeContextCurrent()
 {
-    if (!m_context) {
-        if (!m_layerTreeContext.contextID)
-            return false;
+    if (!m_layerTreeContext.contextID) {
+        m_context = nullptr;
+        return false;
+    }
 
+    if (!m_context) {
         m_context = GLContext::createContextForWindow(reinterpret_cast<GLNativeWindowType>(m_layerTreeContext.contextID), GLContext::sharingContext());
         if (!m_context)
             return false;
@@ -98,10 +165,15 @@ void LayerTreeHostGtk::initialize()
     m_rootLayer->setDrawsContent(false);
     m_rootLayer->setSize(m_webPage->size());
 
+    m_scaleMatrix.makeIdentity();
+    m_scaleMatrix.scale(m_webPage->deviceScaleFactor() * m_webPage->pageScaleFactor());
+    downcast<GraphicsLayerTextureMapper>(*m_rootLayer).layer().setAnchorPoint(FloatPoint3D());
+    downcast<GraphicsLayerTextureMapper>(*m_rootLayer).layer().setTransform(m_scaleMatrix);
+
     // The non-composited contents are a child of the root layer.
     m_nonCompositedContentLayer = GraphicsLayer::create(graphicsLayerFactory(), *this);
     m_nonCompositedContentLayer->setDrawsContent(true);
-    m_nonCompositedContentLayer->setContentsOpaque(m_webPage->drawsBackground() && !m_webPage->drawsTransparentBackground());
+    m_nonCompositedContentLayer->setContentsOpaque(m_webPage->drawsBackground());
     m_nonCompositedContentLayer->setSize(m_webPage->size());
     if (m_webPage->corePage()->settings().acceleratedDrawingEnabled())
         m_nonCompositedContentLayer->setAcceleratesDrawing(true);
@@ -205,6 +277,10 @@ void LayerTreeHostGtk::deviceOrPageScaleFactorChanged()
 {
     // Other layers learn of the scale factor change via WebPage::setDeviceScaleFactor.
     m_nonCompositedContentLayer->deviceOrPageScaleFactorChanged();
+
+    m_scaleMatrix.makeIdentity();
+    m_scaleMatrix.scale(m_webPage->deviceScaleFactor() * m_webPage->pageScaleFactor());
+    downcast<GraphicsLayerTextureMapper>(*m_rootLayer).layer().setTransform(m_scaleMatrix);
 }
 
 void LayerTreeHostGtk::forceRepaint()
@@ -218,44 +294,20 @@ void LayerTreeHostGtk::paintContents(const GraphicsLayer* graphicsLayer, Graphic
         m_webPage->drawRect(graphicsContext, enclosingIntRect(clipRect));
 }
 
-static inline bool shouldSkipNextFrameBecauseOfContinousImmediateFlushes(double current, double lastImmediateFlushTime)
+float LayerTreeHostGtk::deviceScaleFactor() const
 {
-    // 100ms is about a perceptable delay in UI, so when scheduling layer flushes immediately for more than 100ms,
-    // we skip the next frame to ensure pending timers have a change to be fired.
-    static const double maxDurationOfImmediateFlushes = 0.100;
-    if (!lastImmediateFlushTime)
-        return false;
-    return lastImmediateFlushTime + maxDurationOfImmediateFlushes < current;
+    return m_webPage->deviceScaleFactor();
 }
 
-// Use a higher priority than WebCore timers.
-static const int layerFlushTimerPriority = GDK_PRIORITY_REDRAW - 1;
-
-void LayerTreeHostGtk::layerFlushTimerFired()
+float LayerTreeHostGtk::pageScaleFactor() const
 {
-    double fireTime = monotonicallyIncreasingTime();
+    return m_webPage->pageScaleFactor();
+}
+
+bool LayerTreeHostGtk::renderFrame()
+{
     flushAndRenderLayers();
-    if (m_layerFlushTimerCallback.isScheduled() || !downcast<GraphicsLayerTextureMapper>(*m_rootLayer).layer().descendantsOrSelfHaveRunningAnimations())
-        return;
-
-    static const double targetFramerate = 1 / 60.0;
-    // When rendering layers takes more time than the target delay (0.016), we end up scheduling layer flushes
-    // immediately. Since the layer flush timer has a higher priority than WebCore timers, these are never
-    // fired while we keep scheduling layer flushes immediately.
-    double current = monotonicallyIncreasingTime();
-    double timeToNextFlush = std::max(targetFramerate - (current - fireTime), 0.0);
-    if (timeToNextFlush)
-        m_lastImmediateFlushTime = 0;
-    else if (!m_lastImmediateFlushTime)
-        m_lastImmediateFlushTime = current;
-
-    if (shouldSkipNextFrameBecauseOfContinousImmediateFlushes(current, m_lastImmediateFlushTime)) {
-        timeToNextFlush = targetFramerate;
-        m_lastImmediateFlushTime = 0;
-    }
-
-    m_layerFlushTimerCallback.scheduleAfterDelay("[WebKit] layerFlushTimer", std::bind(&LayerTreeHostGtk::layerFlushTimerFired, this),
-        std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::duration<double>(timeToNextFlush)), layerFlushTimerPriority);
+    return downcast<GraphicsLayerTextureMapper>(*m_rootLayer).layer().descendantsOrSelfHaveRunningAnimations();
 }
 
 bool LayerTreeHostGtk::flushPendingLayerChanges()
@@ -329,9 +381,7 @@ void LayerTreeHostGtk::scheduleLayerFlush()
     if (!m_layerFlushSchedulingEnabled || !m_textureMapper)
         return;
 
-    // We use a GLib timer because otherwise GTK+ event handling during dragging can starve WebCore timers, which have a lower priority.
-    if (!m_layerFlushTimerCallback.isScheduled())
-        m_layerFlushTimerCallback.schedule("[WebKit] layerFlushTimer", std::bind(&LayerTreeHostGtk::layerFlushTimerFired, this), layerFlushTimerPriority);
+    m_renderFrameScheduler.start();
 }
 
 void LayerTreeHostGtk::setLayerFlushSchedulingEnabled(bool layerFlushingEnabled)
@@ -351,12 +401,12 @@ void LayerTreeHostGtk::setLayerFlushSchedulingEnabled(bool layerFlushingEnabled)
 
 void LayerTreeHostGtk::pageBackgroundTransparencyChanged()
 {
-    m_nonCompositedContentLayer->setContentsOpaque(m_webPage->drawsBackground() && !m_webPage->drawsTransparentBackground());
+    m_nonCompositedContentLayer->setContentsOpaque(m_webPage->drawsBackground());
 }
 
 void LayerTreeHostGtk::cancelPendingLayerFlush()
 {
-    m_layerFlushTimerCallback.cancel();
+    m_renderFrameScheduler.stop();
 }
 
 void LayerTreeHostGtk::setViewOverlayRootLayer(WebCore::GraphicsLayer* viewOverlayRootLayer)
@@ -368,6 +418,7 @@ void LayerTreeHostGtk::setViewOverlayRootLayer(WebCore::GraphicsLayer* viewOverl
 
 void LayerTreeHostGtk::setNativeSurfaceHandleForCompositing(uint64_t handle)
 {
+    cancelPendingLayerFlush();
     m_layerTreeContext.contextID = handle;
 
     // The creation of the TextureMapper needs an active OpenGL context.

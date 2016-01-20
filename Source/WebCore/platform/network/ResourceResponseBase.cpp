@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006, 2008 Apple Inc. All rights reserved.
+ * Copyright (C) 2006, 2008, 2016 Apple Inc. All rights reserved.
  * Copyright (C) 2009 Google Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -72,11 +72,12 @@ std::unique_ptr<ResourceResponse> ResourceResponseBase::adopt(std::unique_ptr<Cr
 
     response->setHTTPStatusCode(data->m_httpStatusCode);
     response->setHTTPStatusText(data->m_httpStatusText);
+    response->setHTTPVersion(data->m_httpVersion);
 
     response->lazyInit(AllFields);
-    response->m_httpHeaderFields.adopt(WTF::move(data->m_httpHeaders));
+    response->m_httpHeaderFields.adopt(WTFMove(data->m_httpHeaders));
     response->m_resourceLoadTiming = data->m_resourceLoadTiming;
-    response->doPlatformAdopt(WTF::move(data));
+    response->doPlatformAdopt(WTFMove(data));
     return response;
 }
 
@@ -89,9 +90,10 @@ std::unique_ptr<CrossThreadResourceResponseData> ResourceResponseBase::copyData(
     data->m_textEncodingName = textEncodingName().isolatedCopy();
     data->m_httpStatusCode = httpStatusCode();
     data->m_httpStatusText = httpStatusText().isolatedCopy();
+    data->m_httpVersion = httpVersion().isolatedCopy();
     data->m_httpHeaders = httpHeaderFields().copyData();
     data->m_resourceLoadTiming = m_resourceLoadTiming;
-    return asResourceResponse().doPlatformCopyData(WTF::move(data));
+    return asResourceResponse().doPlatformCopyData(WTFMove(data));
 }
 
 bool ResourceResponseBase::isHTTP() const
@@ -222,6 +224,29 @@ void ResourceResponseBase::setHTTPStatusText(const String& statusText)
     m_httpStatusText = statusText; 
 
     // FIXME: Should invalidate or update platform response if present.
+}
+
+const String& ResourceResponseBase::httpVersion() const
+{
+    lazyInit(AllFields);
+    
+    return m_httpVersion;
+}
+
+void ResourceResponseBase::setHTTPVersion(const String& versionText)
+{
+    lazyInit(AllFields);
+    
+    m_httpVersion = versionText;
+    
+    // FIXME: Should invalidate or update platform response if present.
+}
+
+bool ResourceResponseBase::isHttpVersion0_9() const
+{
+    lazyInit(AllFields);
+
+    return m_httpVersion.startsWith("HTTP/0.9");
 }
 
 String ResourceResponseBase::httpHeaderField(const String& name) const
@@ -425,6 +450,13 @@ Optional<std::chrono::system_clock::time_point> ResourceResponseBase::lastModifi
 
     if (!m_haveParsedLastModifiedHeader) {
         m_lastModified = parseDateValueInHeader(m_httpHeaderFields, HTTPHeaderName::LastModified);
+#if PLATFORM(COCOA)
+        // CFNetwork converts malformed dates into Epoch so we need to treat Epoch as
+        // an invalid value (rdar://problem/22352838).
+        const std::chrono::system_clock::time_point epoch;
+        if (m_lastModified && m_lastModified.value() == epoch)
+            m_lastModified = Nullopt;
+#endif
         m_haveParsedLastModifiedHeader = true;
     }
     return m_lastModified;

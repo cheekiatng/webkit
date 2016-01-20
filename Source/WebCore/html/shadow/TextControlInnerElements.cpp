@@ -59,7 +59,7 @@ Ref<TextControlInnerContainer> TextControlInnerContainer::create(Document& docum
     
 RenderPtr<RenderElement> TextControlInnerContainer::createElementRenderer(Ref<RenderStyle>&& style, const RenderTreePosition&)
 {
-    return createRenderer<RenderTextControlInnerContainer>(*this, WTF::move(style));
+    return createRenderer<RenderTextControlInnerContainer>(*this, WTFMove(style));
 }
 
 TextControlInnerElement::TextControlInnerElement(Document& document)
@@ -113,7 +113,7 @@ void TextControlInnerTextElement::defaultEventHandler(Event* event)
 
 RenderPtr<RenderElement> TextControlInnerTextElement::createElementRenderer(Ref<RenderStyle>&& style, const RenderTreePosition&)
 {
-    return createRenderer<RenderTextControlInnerBlock>(*this, WTF::move(style));
+    return createRenderer<RenderTextControlInnerBlock>(*this, WTFMove(style));
 }
 
 RenderTextControlInnerBlock* TextControlInnerTextElement::renderer() const
@@ -147,11 +147,13 @@ void SearchFieldResultsButtonElement::defaultEventHandler(Event* event)
         input->focus();
         input->select();
 #if !PLATFORM(IOS)
-        RenderSearchField& renderer = downcast<RenderSearchField>(*input->renderer());
-        if (renderer.popupIsVisible())
-            renderer.hidePopup();
-        else if (input->maxResults() > 0)
-            renderer.showPopup();
+        if (RenderObject* renderer = input->renderer()) {
+            RenderSearchField& searchFieldRenderer = downcast<RenderSearchField>(*renderer);
+            if (searchFieldRenderer.popupIsVisible())
+                searchFieldRenderer.hidePopup();
+            else if (input->maxResults() > 0)
+                searchFieldRenderer.showPopup();
+        }
 #endif
         event->setDefaultHandled();
     }

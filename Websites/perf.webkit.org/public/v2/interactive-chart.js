@@ -142,8 +142,7 @@ App.InteractiveChartComponent = Ember.Component.extend({
             .selectAll(".dot")
                 .data(this._currentTimeSeriesData)
             .enter().append("circle")
-                .attr("class", "dot" + foregroundClass)
-                .attr("r", this.get('chartPointRadius') || 1));
+                .attr("class", "dot" + foregroundClass));
 
         if (movingAverageIsVisible) {
             this._paths.push(this._clippedContainer
@@ -611,31 +610,17 @@ App.InteractiveChartComponent = Ember.Component.extend({
             .selectAll(".highlight")
                 .data(data)
             .enter().append("circle")
-                .attr("class", "highlight")
-                .attr("r", (this.get('chartPointRadius') || 1) * 1.8);
+                .attr("class", "highlight");
 
         this._domainChanged();
     }.observes('highlightedItems'),
     _rangesChanged: function ()
     {
-        if (!this._currentTimeSeries)
-            return;
-
-        function midPoint(firstPoint, secondPoint) {
-            if (firstPoint && secondPoint)
-                return (+firstPoint.time + +secondPoint.time) / 2;
-            if (firstPoint)
-                return firstPoint.time;
-            return secondPoint.time;
-        }
-        var currentTimeSeries = this._currentTimeSeries;
         var linkRoute = this.get('rangeRoute');
         this.set('rangeBars', (this.get('ranges') || []).map(function (range) {
-            var start = currentTimeSeries.findPointByMeasurementId(range.get('startRun'));
-            var end = currentTimeSeries.findPointByMeasurementId(range.get('endRun'));
             return Ember.Object.create({
-                startTime: midPoint(currentTimeSeries.previousPoint(start), start),
-                endTime: midPoint(end, currentTimeSeries.nextPoint(end)),
+                startTime: range.get('startTime'),
+                endTime: range.get('endTime'),
                 range: range,
                 left: null,
                 right: null,
@@ -658,6 +643,8 @@ App.InteractiveChartComponent = Ember.Component.extend({
 
         var xScale = this._x;
         var yScale = this._y;
+        if (!xScale || !yScale)
+            return;
 
         // Expand the width of each range as needed and sort ranges by the left-edge of ranges.
         var minWidth = 3;

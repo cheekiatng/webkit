@@ -66,6 +66,15 @@ void AccessibilityUIElement::decreaseTextSelection() { }
 PassRefPtr<AccessibilityUIElement> AccessibilityUIElement::linkedElement() { return nullptr; }
 PassRefPtr<AccessibilityUIElement> AccessibilityUIElement::headerElementAtIndex(unsigned) { return nullptr; }
 void AccessibilityUIElement::assistiveTechnologySimulatedFocus() { return; }
+bool AccessibilityUIElement::scrollPageUp() { return false; }
+bool AccessibilityUIElement::scrollPageDown() { return false; }
+bool AccessibilityUIElement::scrollPageLeft() { return false; }
+bool AccessibilityUIElement::scrollPageRight() { return false; }
+bool AccessibilityUIElement::hasContainedByFieldsetTrait() { return false; }
+PassRefPtr<AccessibilityUIElement> AccessibilityUIElement::fieldsetAncestorElement() { return nullptr; }
+bool AccessibilityUIElement::isSearchField() const { return false; }
+bool AccessibilityUIElement::isTextArea() const { return false; }
+
 #endif
     
 // Unsupported methods on various platforms. As they're implemented on other platforms this list should be modified.
@@ -74,8 +83,6 @@ JSRetainPtr<JSStringRef> AccessibilityUIElement::characterAtOffset(int) { return
 JSRetainPtr<JSStringRef> AccessibilityUIElement::wordAtOffset(int) { return 0; }
 JSRetainPtr<JSStringRef> AccessibilityUIElement::lineAtOffset(int) { return 0; }
 JSRetainPtr<JSStringRef> AccessibilityUIElement::sentenceAtOffset(int) { return 0; }
-void AccessibilityUIElement::setSelectedChildAtIndex(unsigned) const { }
-void AccessibilityUIElement::removeSelectionAtIndex(unsigned) const { }
 #endif
 
 #if (!PLATFORM(COCOA) && !PLATFORM(GTK) && !PLATFORM(EFL)) || !HAVE(ACCESSIBILITY)
@@ -143,6 +150,8 @@ bool AccessibilityUIElement::isSelectedOptionActive() const { return false; }
 bool AccessibilityUIElement::isSelectable() const { return false; }
 bool AccessibilityUIElement::isMultiSelectable() const { return false; }
 void AccessibilityUIElement::setSelectedChild(AccessibilityUIElement*) const { }
+void AccessibilityUIElement::setSelectedChildAtIndex(unsigned) const { }
+void AccessibilityUIElement::removeSelectionAtIndex(unsigned) const { }
 unsigned AccessibilityUIElement::selectedChildrenCount() const { return 0; }
 PassRefPtr<AccessibilityUIElement> AccessibilityUIElement::selectedChildAtIndex(unsigned) const { return 0; }
 bool AccessibilityUIElement::isExpanded() const { return false; }
@@ -220,6 +229,8 @@ int AccessibilityUIElement::indexForTextMarker(AccessibilityTextMarker*) { retur
 bool AccessibilityUIElement::isTextMarkerValid(AccessibilityTextMarker*) { return false; }
 PassRefPtr<AccessibilityTextMarker> AccessibilityUIElement::textMarkerForIndex(int) { return 0; }
 void AccessibilityUIElement::scrollToMakeVisible() { }
+void AccessibilityUIElement::scrollToGlobalPoint(int, int) { }
+void AccessibilityUIElement::scrollToMakeVisibleWithSubFocus(int, int, int, int) { }
 JSRetainPtr<JSStringRef> AccessibilityUIElement::supportedActions() const { return 0; }
 JSRetainPtr<JSStringRef> AccessibilityUIElement::mathPostscriptsDescription() const { return 0; }
 JSRetainPtr<JSStringRef> AccessibilityUIElement::mathPrescriptsDescription() const { return 0; }

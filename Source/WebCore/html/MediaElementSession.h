@@ -71,6 +71,7 @@ public:
     bool requiresFullscreenForVideoPlayback(const HTMLMediaElement&) const;
     WEBCORE_EXPORT bool allowsPictureInPicture(const HTMLMediaElement&) const;
     MediaPlayer::Preload effectivePreloadForElement(const HTMLMediaElement&) const;
+    bool allowsAutomaticMediaDataLoading(const HTMLMediaElement&) const;
 
     void mediaEngineUpdated(const HTMLMediaElement&);
 
@@ -88,6 +89,9 @@ public:
         WirelessVideoPlaybackDisabled =  1 << 7,
         RequireUserGestureToAutoplayToExternalDevice = 1 << 8,
 #endif
+        MetadataPreloadingNotPermitted = 1 << 9,
+        AutoPreloadingNotPermitted = 1 << 10,
+        InvisibleAutoplayNotPermitted = 1 << 11,
     };
     typedef unsigned BehaviorRestrictions;
 
@@ -111,7 +115,7 @@ private:
     virtual void setShouldPlayToPlaybackTarget(bool) override;
 #endif
 #if PLATFORM(IOS)
-    bool requiresPlaybackTargetRouteMonitoring() const override { return m_hasPlaybackTargetAvailabilityListeners; }
+    bool requiresPlaybackTargetRouteMonitoring() const override;
 #endif
 
     BehaviorRestrictions m_restrictions;

@@ -43,6 +43,7 @@
 #import "WebCoreSystemInterface.h"
 #import <QTKit/QTKit.h>
 #import <objc/runtime.h>
+#import <wtf/NeverDestroyed.h>
 
 SOFT_LINK_FRAMEWORK(QTKit)
 
@@ -1113,7 +1114,7 @@ void MediaPlayerPrivateQTKit::timeChanged()
     // It may not be possible to seek to a specific time in a streamed movie. When seeking in a 
     // stream QuickTime sets the movie time to closest time possible and posts a timechanged 
     // notification. Update m_seekTo so we can detect when the seek completes.
-    if (!m_seekTo.isValid())
+    if (m_seekTo.isValid())
         m_seekTo = currentMediaTime();
 
     m_timeToRestore = MediaTime::invalidTime();
@@ -1184,7 +1185,7 @@ void MediaPlayerPrivateQTKit::repaint()
     m_player->repaint();
 }
 
-void MediaPlayerPrivateQTKit::paintCurrentFrameInContext(GraphicsContext* context, const FloatRect& r)
+void MediaPlayerPrivateQTKit::paintCurrentFrameInContext(GraphicsContext& context, const FloatRect& r)
 {
     id qtVideoRenderer = m_qtVideoRenderer.get();
     if (!qtVideoRenderer && currentRenderingMode() == MediaRenderingMovieLayer) {
@@ -1197,9 +1198,9 @@ void MediaPlayerPrivateQTKit::paintCurrentFrameInContext(GraphicsContext* contex
     paint(context, r);
 }
 
-void MediaPlayerPrivateQTKit::paint(GraphicsContext* context, const FloatRect& r)
+void MediaPlayerPrivateQTKit::paint(GraphicsContext& context, const FloatRect& r)
 {
-    if (context->paintingDisabled() || m_hasUnsupportedTracks)
+    if (context.paintingDisabled() || m_hasUnsupportedTracks)
         return;
     id qtVideoRenderer = m_qtVideoRenderer.get();
     if (!qtVideoRenderer)
@@ -1211,12 +1212,12 @@ void MediaPlayerPrivateQTKit::paint(GraphicsContext* context, const FloatRect& r
     FloatSize scaleFactor(1.0f, -1.0f);
     FloatRect paintRect(FloatPoint(), r.size());
 
-    GraphicsContextStateSaver stateSaver(*context);
-    context->translate(r.x(), r.y() + r.height());
-    context->scale(scaleFactor);
-    context->setImageInterpolationQuality(InterpolationLow);
+    GraphicsContextStateSaver stateSaver(context);
+    context.translate(r.x(), r.y() + r.height());
+    context.scale(scaleFactor);
+    context.setImageInterpolationQuality(InterpolationLow);
 
-    newContext = [NSGraphicsContext graphicsContextWithGraphicsPort:context->platformContext() flipped:NO];
+    newContext = [NSGraphicsContext graphicsContextWithGraphicsPort:context.platformContext() flipped:NO];
 
     [NSGraphicsContext saveGraphicsState];
     [NSGraphicsContext setCurrentContext:newContext];
@@ -1271,7 +1272,7 @@ static void addFileTypesToCache(NSArray * fileTypes, HashSet<String> &cache)
 
 static HashSet<String> mimeCommonTypesCache()
 {
-    DEPRECATED_DEFINE_STATIC_LOCAL(HashSet<String>, cache, ());
+    static NeverDestroyed<HashSet<String>> cache;
     static bool typeListInitialized = false;
 
     if (!typeListInitialized) {
@@ -1285,7 +1286,7 @@ static HashSet<String> mimeCommonTypesCache()
 
 static HashSet<String> mimeModernTypesCache()
 {
-    DEPRECATED_DEFINE_STATIC_LOCAL(HashSet<String>, cache, ());
+    static NeverDestroyed<HashSet<String>> cache;
     static bool typeListInitialized = false;
     
     if (!typeListInitialized) {
@@ -1547,7 +1548,7 @@ bool MediaPlayerPrivateQTKit::canSaveMediaData() const
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
 void MediaPlayerPrivateQTKit::setWirelessPlaybackTarget(Ref<MediaPlaybackTarget>&& target)
 {
-    m_playbackTarget = WTF::move(target);
+    m_playbackTarget = WTFMove(target);
 }
 
 void MediaPlayerPrivateQTKit::setShouldPlayToPlaybackTarget(bool shouldPlayToTarget)

@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-<script type="text/javascript" src="../../http/tests/inspector/inspector-test.js"></script>
+<script type="text/javascript" src="../../http/tests/inspector/resources/inspector-test.js"></script>
 <script>
 // SEARCHTEST: Comment in inline <script>.
 function performEvals()
@@ -44,7 +44,7 @@ function test()
         });
     });
 
-    InspectorTest.eventDispatcher.addEventListener(InspectorTest.EventDispatcher.Event.TestPageDidLoad, function() {
+    InspectorTest.addEventListener(FrontendTestHarness.Event.TestPageDidLoad, () => {
         InspectorTest.evaluateInPage("performEvals()");
     });
 

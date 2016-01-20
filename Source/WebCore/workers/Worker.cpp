@@ -32,7 +32,6 @@
 #include "DOMWindow.h"
 #include "CachedResourceLoader.h"
 #include "Document.h"
-#include "EventException.h"
 #include "EventListener.h"
 #include "EventNames.h"
 #include "ExceptionCode.h"
@@ -92,7 +91,7 @@ RefPtr<Worker> Worker::create(ScriptExecutionContext& context, const String& url
     worker->m_scriptLoader = WorkerScriptLoader::create();
     worker->m_scriptLoader->loadAsynchronously(&context, scriptURL, DenyCrossOriginRequests, worker.ptr());
 
-    return WTF::move(worker);
+    return WTFMove(worker);
 }
 
 Worker::~Worker()
@@ -117,7 +116,7 @@ void Worker::postMessage(PassRefPtr<SerializedScriptValue> message, const Messag
     std::unique_ptr<MessagePortChannelArray> channels = MessagePort::disentanglePorts(ports, ec);
     if (ec)
         return;
-    m_contextProxy->postMessageToWorkerGlobalScope(message, WTF::move(channels));
+    m_contextProxy->postMessageToWorkerGlobalScope(message, WTFMove(channels));
 }
 
 void Worker::terminate()
@@ -125,7 +124,7 @@ void Worker::terminate()
     m_contextProxy->terminateWorkerGlobalScope();
 }
 
-bool Worker::canSuspendForPageCache() const
+bool Worker::canSuspendForDocumentSuspension() const
 {
     // FIXME: It is not currently possible to suspend a worker, so pages with workers can not go into page cache.
     return false;
@@ -162,8 +161,6 @@ void Worker::notifyFinished()
         dispatchEvent(Event::create(eventNames().errorEvent, false, true));
     else {
         WorkerThreadStartMode startMode = DontPauseWorkerGlobalScopeOnStart;
-        if (InspectorInstrumentation::shouldPauseDedicatedWorkerOnStart(scriptExecutionContext()))
-            startMode = PauseWorkerGlobalScopeOnStart;
         m_contextProxy->startWorkerGlobalScope(m_scriptLoader->url(), scriptExecutionContext()->userAgent(m_scriptLoader->url()), m_scriptLoader->script(), startMode);
         InspectorInstrumentation::scriptImported(scriptExecutionContext(), m_scriptLoader->identifier(), m_scriptLoader->script());
     }

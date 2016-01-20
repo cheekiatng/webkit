@@ -28,9 +28,9 @@
 #include <unicode/ustring.h>
 #include <wtf/ASCIICType.h>
 #include <wtf/Forward.h>
+#include <wtf/Hasher.h>
 #include <wtf/MathExtras.h>
 #include <wtf/StdLibExtras.h>
-#include <wtf/StringHasher.h>
 #include <wtf/Vector.h>
 #include <wtf/text/ConversionMode.h>
 #include <wtf/text/StringCommon.h>
@@ -347,22 +347,6 @@ public:
     ALWAYS_INLINE static Ref<StringImpl> create(const char* s, unsigned length) { return create(reinterpret_cast<const LChar*>(s), length); }
     WTF_EXPORT_STRING_API static Ref<StringImpl> create(const LChar*);
     ALWAYS_INLINE static Ref<StringImpl> create(const char* s) { return create(reinterpret_cast<const LChar*>(s)); }
-
-    static ALWAYS_INLINE Ref<StringImpl> createSubstringSharingImpl8(PassRefPtr<StringImpl> rep, unsigned offset, unsigned length)
-    {
-        ASSERT(rep);
-        ASSERT(length <= rep->length());
-
-        if (!length)
-            return *empty();
-
-        ASSERT(rep->is8Bit());
-        StringImpl* ownerRep = (rep->bufferOwnership() == BufferSubstring) ? rep->substringBuffer() : rep.get();
-
-        // We allocate a buffer that contains both the StringImpl struct as well as the pointer to the owner string.
-        StringImpl* stringImpl = static_cast<StringImpl*>(fastMalloc(allocationSize<StringImpl*>(1)));
-        return adoptRef(*new (NotNull, stringImpl) StringImpl(rep->m_data8 + offset, length, ownerRep));
-    }
 
     static ALWAYS_INLINE Ref<StringImpl> createSubstringSharingImpl(PassRefPtr<StringImpl> rep, unsigned offset, unsigned length)
     {

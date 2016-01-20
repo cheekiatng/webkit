@@ -522,10 +522,26 @@ invalid("({get x(a){}})")
 invalid("({get x(a,b){}})")
 invalid("({set x(){}})")
 invalid("({set x(a,b){}})")
-invalid("({get [x](){}})")
+valid("({get [x](){}})")
+invalid("({get [x (){}})")
 invalid("({set [x](){}})")
-invalid("({set [x](x){}})")
+valid("({set [x](x){}})")
+invalid("({set [x (x){}})")
 invalid("({[...x]: 1})")
+invalid("function f({a, a}) {}");
+invalid("function f({a}, a) {}");
+invalid("function f([b, b]) {}");
+invalid("function f([b], b) {}");
+invalid("function f({a: {b}}, b) {}");
+valid("function f(a, b = 20) {}");
+valid("function f(a = 20, b = a) {}");
+valid("function f({a = 20} = {a: 40}, b = a) {}");
+valid("function f([a,b,c] = [1,2,3]) {}");
+invalid("function f(a, a=20) {}");
+invalid("function f({a} = 20, a=20) {}");
+invalid("function f([a,b,a] = [1,2,3]) {}");
+invalid("function f([a,b,c] = [1,2,3], a) {}");
+invalid("function f([a,b,c] = [1,2,3], {a}) {}");
 valid("( function(){ return this || eval('this'); }().x = 'y' )");
 invalid("function(){ return this || eval('this'); }().x = 'y'");
 invalid("1 % +");
@@ -539,6 +555,29 @@ invalid("1 % ++");
 invalid("1 % --");
 invalid("1 % \n++");
 invalid("1 % \n--");
+
+debug("Rest parameter");
+valid("function foo(...a) { }");
+valid("function foo(a, ...b) { }");
+valid("function foo(a = 20, ...b) { }");
+valid("function foo(a, b, c, d, e, f, g, ...h) { }");
+invalid("function foo(a, ...b, c) { }")
+invalid("function foo(a, ...b, ) { }")
+invalid("function foo(a, ...a) { }");
+invalid("function foo(...a, ...b) { }");
+invalid("function foo(...b, ...b) { }");
+invalid("function foo(...b  ...b) { }");
+invalid("function foo(a, a, ...b) { }");
+invalid("function foo(...{b}) { }");
+invalid("function foo(...[b]) { }");
+invalid("function foo(...123) { }");
+invalid("function foo(...123abc) { }");
+valid("function foo(...abc123) { }");
+valid("function foo(...let) { }");
+invalid("'use strict'; function foo(...let) { }");
+valid("function foo(...yield) { }");
+invalid("'use strict'; function foo(...yield) { }");
+invalid("function foo(...if) { }");
 
 
 

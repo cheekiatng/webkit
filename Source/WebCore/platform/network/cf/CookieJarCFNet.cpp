@@ -42,7 +42,7 @@
 #include <windows.h>
 #endif
 
-#if PLATFORM(WIN) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED <= 1090) || (PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED < 80000)
+#if PLATFORM(WIN)
 enum {
     CFHTTPCookieStorageAcceptPolicyExclusivelyFromMainDocumentDomain = 3
 };
@@ -80,6 +80,7 @@ static inline RetainPtr<CFStringRef> cookieValue(CFHTTPCookieRef cookie)
 
 static RetainPtr<CFArrayRef> filterCookies(CFArrayRef unfilteredCookies)
 {
+    ASSERT(unfilteredCookies);
     CFIndex count = CFArrayGetCount(unfilteredCookies);
     RetainPtr<CFMutableArrayRef> filteredCookies = adoptCF(CFArrayCreateMutable(0, count, &kCFTypeArrayCallBacks));
     for (CFIndex i = 0; i < count; ++i) {
@@ -104,7 +105,7 @@ static RetainPtr<CFArrayRef> copyCookiesForURLWithFirstPartyURL(const NetworkSto
 {
     bool secure = url.protocolIs("https");
 
-#if (PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 80000) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000)
+#if PLATFORM(COCOA)
     return adoptCF(_CFHTTPCookieStorageCopyCookiesForURLWithMainDocumentURL(session.cookieStorage().get(), url.createCFURL().get(), firstParty.createCFURL().get(), secure));
 #else
     // _CFHTTPCookieStorageCopyCookiesForURLWithMainDocumentURL is not available on other platforms.
@@ -115,11 +116,15 @@ static RetainPtr<CFArrayRef> copyCookiesForURLWithFirstPartyURL(const NetworkSto
 
 static CFArrayRef createCookies(CFDictionaryRef headerFields, CFURLRef url)
 {
-#if (PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 90000)
-    return _CFHTTPParsedCookiesWithResponseHeaderFields(kCFAllocatorDefault, headerFields, url);
+#if PLATFORM(IOS)
+    CFArrayRef parsedCookies = _CFHTTPParsedCookiesWithResponseHeaderFields(kCFAllocatorDefault, headerFields, url);
 #else
-    return CFHTTPCookieCreateWithResponseHeaderFields(kCFAllocatorDefault, headerFields, url);
+    CFArrayRef parsedCookies = CFHTTPCookieCreateWithResponseHeaderFields(kCFAllocatorDefault, headerFields, url);
 #endif
+    if (!parsedCookies)
+        parsedCookies = CFArrayCreate(kCFAllocatorDefault, 0, 0, &kCFTypeArrayCallBacks);
+
+    return parsedCookies;
 }
 
 void setCookiesFromDOM(const NetworkStorageSession& session, const URL& firstParty, const URL& url, const String& value)
@@ -225,29 +230,16 @@ void getHostnamesWithCookies(const NetworkStorageSession& session, HashSet<Strin
     }
 }
 
-void deleteCookiesForHostname(const NetworkStorageSession& session, const String& hostname)
-{
-    RetainPtr<CFHTTPCookieStorageRef> cookieStorage = session.cookieStorage();
-
-    RetainPtr<CFArrayRef> cookiesCF = adoptCF(CFHTTPCookieStorageCopyCookies(cookieStorage.get()));
-    if (!cookiesCF)
-        return;
-
-    CFIndex count = CFArrayGetCount(cookiesCF.get());
-    for (CFIndex i = count - 1; i >=0; i--) {
-        CFHTTPCookieRef cookie = static_cast<CFHTTPCookieRef>(const_cast<void *>(CFArrayGetValueAtIndex(cookiesCF.get(), i)));
-        RetainPtr<CFStringRef> domain = cookieDomain(cookie);
-        if (String(domain.get()) == hostname)
-            CFHTTPCookieStorageDeleteCookie(cookieStorage.get(), cookie);
-    }
-}
-
 void deleteAllCookies(const NetworkStorageSession& session)
 {
     CFHTTPCookieStorageDeleteAllCookies(session.cookieStorage().get());
 }
 
 #if PLATFORM(WIN)
+void deleteCookiesForHostnames(const NetworkStorageSession& session, const Vector<String>& hostnames)
+{
+}
+
 void deleteAllCookiesModifiedSince(const NetworkStorageSession&, std::chrono::system_clock::time_point)
 {
 }

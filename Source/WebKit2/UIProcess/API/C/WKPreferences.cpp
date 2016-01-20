@@ -489,6 +489,16 @@ bool WKPreferencesGetCSSAnimationTriggersEnabled(WKPreferencesRef preferencesRef
     return toImpl(preferencesRef)->cssAnimationTriggersEnabled();
 }
 
+void WKPreferencesSetWebAnimationsEnabled(WKPreferencesRef preferencesRef, bool flag)
+{
+    toImpl(preferencesRef)->setWebAnimationsEnabled(flag);
+}
+
+bool WKPreferencesGetWebAnimationsEnabled(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->webAnimationsEnabled();
+}
+
 void WKPreferencesSetCSSRegionsEnabled(WKPreferencesRef preferencesRef, bool flag)
 {
     toImpl(preferencesRef)->setCSSRegionsEnabled(flag);
@@ -738,6 +748,16 @@ bool WKPreferencesGetMediaPlaybackRequiresUserGesture(WKPreferencesRef preferenc
     return toImpl(preferencesRef)->requiresUserGestureForMediaPlayback();
 }
 
+void WKPreferencesSetAudioPlaybackRequiresUserGesture(WKPreferencesRef preferencesRef, bool flag)
+{
+    toImpl(preferencesRef)->setRequiresUserGestureForAudioPlayback(flag);
+}
+
+bool WKPreferencesGetAudioPlaybackRequiresUserGesture(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->requiresUserGestureForAudioPlayback();
+}
+
 void WKPreferencesSetMediaPlaybackAllowsInline(WKPreferencesRef preferencesRef, bool flag)
 {
     toImpl(preferencesRef)->setAllowsInlineMediaPlayback(flag);
@@ -746,6 +766,16 @@ void WKPreferencesSetMediaPlaybackAllowsInline(WKPreferencesRef preferencesRef, 
 bool WKPreferencesGetMediaPlaybackAllowsInline(WKPreferencesRef preferencesRef)
 {
     return toImpl(preferencesRef)->allowsInlineMediaPlayback();
+}
+
+void WKPreferencesSetInlineMediaPlaybackRequiresPlaysInlineAttribute(WKPreferencesRef preferencesRef, bool flag)
+{
+    toImpl(preferencesRef)->setInlineMediaPlaybackRequiresPlaysInlineAttribute(flag);
+}
+
+bool WKPreferencesGetInlineMediaPlaybackRequiresPlaysInlineAttribute(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->inlineMediaPlaybackRequiresPlaysInlineAttribute();
 }
 
 void WKPreferencesSetMediaControlsScaleWithPageZoom(WKPreferencesRef preferencesRef, bool flag)
@@ -1207,6 +1237,16 @@ bool WKPreferencesGetSubpixelCSSOMElementMetricsEnabled(WKPreferencesRef prefere
     return toImpl(preferencesRef)->subpixelCSSOMElementMetricsEnabled();
 }
 
+void WKPreferencesSetUseGiantTiles(WKPreferencesRef preferencesRef, bool flag)
+{
+    toImpl(preferencesRef)->setUseGiantTiles(flag);
+}
+
+bool WKPreferencesGetUseGiantTiles(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->useGiantTiles();
+}
+
 void WKPreferencesSetMediaStreamEnabled(WKPreferencesRef preferencesRef, bool enabled)
 {
     toImpl(preferencesRef)->setMediaStreamEnabled(enabled);
@@ -1307,14 +1347,14 @@ bool WKPreferencesGetGamepadsEnabled(WKPreferencesRef preferencesRef)
     return toImpl(preferencesRef)->gamepadsEnabled();
 }
 
+// FIXME: Remove these when possible.
 void WKPreferencesSetLongMousePressEnabled(WKPreferencesRef preferencesRef, bool enabled)
 {
-    toImpl(preferencesRef)->setLongMousePressEnabled(enabled);
 }
 
 bool WKPreferencesGetLongMousePressEnabled(WKPreferencesRef preferencesRef)
 {
-    return toImpl(preferencesRef)->longMousePressEnabled();
+    return false;
 }
 
 void WKPreferencesSetMinimumZoomFontSize(WKPreferencesRef preferencesRef, double size)
@@ -1385,4 +1425,24 @@ void WKPreferencesSetAllowsAirPlayForMediaPlayback(WKPreferencesRef preferencesR
 bool WKPreferencesGetAllowsAirPlayForMediaPlayback(WKPreferencesRef preferencesRef)
 {
     return toImpl(preferencesRef)->allowsAirPlayForMediaPlayback();
+}
+
+void WKPreferencesSetResourceUsageOverlayVisible(WKPreferencesRef preferencesRef, bool enabled)
+{
+    toImpl(preferencesRef)->setResourceUsageOverlayVisible(enabled);
+}
+
+bool WKPreferencesGetResourceUsageOverlayVisible(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->resourceUsageOverlayVisible();
+}
+
+void WKPreferencesSetMockCaptureDevicesEnabled(WKPreferencesRef preferencesRef, bool enabled)
+{
+    toImpl(preferencesRef)->setMockCaptureDevicesEnabled(enabled);
+}
+
+bool WKPreferencesGetMockCaptureDevicesEnabled(WKPreferencesRef preferencesRef)
+{
+    return toImpl(preferencesRef)->mockCaptureDevicesEnabled();
 }

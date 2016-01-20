@@ -14,7 +14,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 3>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {145, 66}
+AXSize: NSSize: {144, 66}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -36,6 +36,8 @@ AXRowIndexRange: NSRange: {0, 2}
 AXColumnIndexRange: NSRange: {0, 2}
 AXColumnHeaderUIElements: <array of size 0>
 AXRowHeaderUIElements: <array of size 0>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -46,7 +48,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 3>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {145, 66}
+AXSize: NSSize: {144, 66}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -68,6 +70,8 @@ AXRowIndexRange: NSRange: {0, 2}
 AXColumnIndexRange: NSRange: {0, 2}
 AXColumnHeaderUIElements: <array of size 0>
 AXRowHeaderUIElements: <array of size 0>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -100,6 +104,8 @@ AXRowIndexRange: NSRange: {0, 2}
 AXColumnIndexRange: NSRange: {2, 1}
 AXColumnHeaderUIElements: <array of size 0>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -132,6 +138,8 @@ AXRowIndexRange: NSRange: {0, 1}
 AXColumnIndexRange: NSRange: {3, 2}
 AXColumnHeaderUIElements: <array of size 0>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -164,6 +172,8 @@ AXRowIndexRange: NSRange: {0, 1}
 AXColumnIndexRange: NSRange: {3, 2}
 AXColumnHeaderUIElements: <array of size 0>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -178,7 +188,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 3>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {144, 66}
+AXSize: NSSize: {145, 66}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -200,6 +210,8 @@ AXRowIndexRange: NSRange: {0, 2}
 AXColumnIndexRange: NSRange: {0, 2}
 AXColumnHeaderUIElements: <array of size 0>
 AXRowHeaderUIElements: <array of size 0>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -210,7 +222,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 1>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {53, 36}
+AXSize: NSSize: {54, 36}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -232,6 +244,8 @@ AXRowIndexRange: NSRange: {1, 1}
 AXColumnIndexRange: NSRange: {3, 1}
 AXColumnHeaderUIElements: <array of size 1>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -242,7 +256,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 1>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {91, 60}
+AXSize: NSSize: {92, 60}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -264,6 +278,8 @@ AXRowIndexRange: NSRange: {2, 2}
 AXColumnIndexRange: NSRange: {0, 1}
 AXColumnHeaderUIElements: <array of size 1>
 AXRowHeaderUIElements: <array of size 0>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -274,7 +290,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 1>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {53, 30}
+AXSize: NSSize: {54, 30}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -296,6 +312,8 @@ AXRowIndexRange: NSRange: {3, 1}
 AXColumnIndexRange: NSRange: {1, 1}
 AXColumnHeaderUIElements: <array of size 1>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -310,7 +328,7 @@ AXRoleDescription: column
 AXChildren: <array of size 2>
 AXHelp: 
 AXParent: <AXColumn>
-AXSize: NSSize: {144, 126}
+AXSize: NSSize: {145, 126}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -341,7 +359,7 @@ AXRoleDescription: column
 AXChildren: <array of size 3>
 AXHelp: 
 AXParent: <AXColumn>
-AXSize: NSSize: {144, 126}
+AXSize: NSSize: {145, 126}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -372,7 +390,7 @@ AXRoleDescription: column
 AXChildren: <array of size 3>
 AXHelp: 
 AXParent: <AXColumn>
-AXSize: NSSize: {70, 126}
+AXSize: NSSize: {71, 126}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -403,7 +421,7 @@ AXRoleDescription: column
 AXChildren: <array of size 4>
 AXHelp: 
 AXParent: <AXColumn>
-AXSize: NSSize: {121, 126}
+AXSize: NSSize: {122, 126}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -434,7 +452,7 @@ AXRoleDescription: column
 AXChildren: <array of size 4>
 AXHelp: 
 AXParent: <AXColumn>
-AXSize: NSSize: {121, 126}
+AXSize: NSSize: {122, 126}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -469,7 +487,7 @@ AXRoleDescription: row
 AXChildren: <array of size 3>
 AXHelp: 
 AXParent: <AXRow>
-AXSize: NSSize: {335, 30}
+AXSize: NSSize: {336, 30}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -497,7 +515,7 @@ AXRoleDescription: row
 AXChildren: <array of size 2>
 AXHelp: 
 AXParent: <AXRow>
-AXSize: NSSize: {335, 36}
+AXSize: NSSize: {336, 36}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -525,7 +543,7 @@ AXRoleDescription: row
 AXChildren: <array of size 5>
 AXHelp: 
 AXParent: <AXRow>
-AXSize: NSSize: {335, 30}
+AXSize: NSSize: {336, 30}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -553,7 +571,7 @@ AXRoleDescription: row
 AXChildren: <array of size 4>
 AXHelp: 
 AXParent: <AXRow>
-AXSize: NSSize: {335, 30}
+AXSize: NSSize: {336, 30}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -585,7 +603,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 3>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {144, 66}
+AXSize: NSSize: {145, 66}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -607,6 +625,8 @@ AXRowIndexRange: NSRange: {0, 2}
 AXColumnIndexRange: NSRange: {0, 2}
 AXColumnHeaderUIElements: <array of size 0>
 AXRowHeaderUIElements: <array of size 0>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -617,7 +637,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 2>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {70, 66}
+AXSize: NSSize: {71, 66}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -639,6 +659,8 @@ AXRowIndexRange: NSRange: {0, 2}
 AXColumnIndexRange: NSRange: {2, 1}
 AXColumnHeaderUIElements: <array of size 0>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -649,7 +671,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 1>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {121, 30}
+AXSize: NSSize: {122, 30}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -671,6 +693,8 @@ AXRowIndexRange: NSRange: {0, 1}
 AXColumnIndexRange: NSRange: {3, 2}
 AXColumnHeaderUIElements: <array of size 0>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -681,7 +705,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 1>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {53, 36}
+AXSize: NSSize: {54, 36}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -703,6 +727,8 @@ AXRowIndexRange: NSRange: {1, 1}
 AXColumnIndexRange: NSRange: {3, 1}
 AXColumnHeaderUIElements: <array of size 1>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -713,7 +739,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 1>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {68, 36}
+AXSize: NSSize: {69, 36}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -735,6 +761,8 @@ AXRowIndexRange: NSRange: {1, 1}
 AXColumnIndexRange: NSRange: {4, 1}
 AXColumnHeaderUIElements: <array of size 1>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -745,7 +773,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 1>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {91, 60}
+AXSize: NSSize: {92, 60}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -767,6 +795,8 @@ AXRowIndexRange: NSRange: {2, 2}
 AXColumnIndexRange: NSRange: {0, 1}
 AXColumnHeaderUIElements: <array of size 1>
 AXRowHeaderUIElements: <array of size 0>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -777,7 +807,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 1>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {53, 30}
+AXSize: NSSize: {54, 30}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -799,6 +829,8 @@ AXRowIndexRange: NSRange: {2, 1}
 AXColumnIndexRange: NSRange: {1, 1}
 AXColumnHeaderUIElements: <array of size 1>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -809,7 +841,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 1>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {70, 30}
+AXSize: NSSize: {71, 30}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -831,6 +863,8 @@ AXRowIndexRange: NSRange: {2, 1}
 AXColumnIndexRange: NSRange: {2, 1}
 AXColumnHeaderUIElements: <array of size 1>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -841,7 +875,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 1>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {53, 30}
+AXSize: NSSize: {54, 30}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -863,6 +897,8 @@ AXRowIndexRange: NSRange: {2, 1}
 AXColumnIndexRange: NSRange: {3, 1}
 AXColumnHeaderUIElements: <array of size 1>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -873,7 +909,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 1>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {68, 30}
+AXSize: NSSize: {69, 30}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -895,6 +931,8 @@ AXRowIndexRange: NSRange: {2, 1}
 AXColumnIndexRange: NSRange: {4, 1}
 AXColumnHeaderUIElements: <array of size 1>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -905,7 +943,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 1>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {53, 30}
+AXSize: NSSize: {54, 30}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -927,6 +965,8 @@ AXRowIndexRange: NSRange: {3, 1}
 AXColumnIndexRange: NSRange: {1, 1}
 AXColumnHeaderUIElements: <array of size 1>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -937,7 +977,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 1>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {70, 30}
+AXSize: NSSize: {71, 30}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -959,6 +999,8 @@ AXRowIndexRange: NSRange: {3, 1}
 AXColumnIndexRange: NSRange: {2, 1}
 AXColumnHeaderUIElements: <array of size 1>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -969,7 +1011,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 1>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {53, 30}
+AXSize: NSSize: {54, 30}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -991,6 +1033,8 @@ AXRowIndexRange: NSRange: {3, 1}
 AXColumnIndexRange: NSRange: {3, 1}
 AXColumnHeaderUIElements: <array of size 1>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -1001,7 +1045,7 @@ AXRoleDescription: cell
 AXChildren: <array of size 1>
 AXHelp: 
 AXParent: <AXCell>
-AXSize: NSSize: {68, 30}
+AXSize: NSSize: {69, 30}
 AXTitle: 
 AXDescription: 
 AXValue: 
@@ -1023,6 +1067,8 @@ AXRowIndexRange: NSRange: {3, 1}
 AXColumnIndexRange: NSRange: {4, 1}
 AXColumnHeaderUIElements: <array of size 1>
 AXRowHeaderUIElements: <array of size 1>
+AXARIAColumnIndex: -1
+AXARIARowIndex: -1
 AXElementBusy: 0
 AXRequired: 0
 
@@ -1037,7 +1083,7 @@ AXRoleDescription: group
 AXChildren: <array of size 5>
 AXHelp: 
 AXParent: <AXGroup>
-AXSize: NSSize: {335, 66}
+AXSize: NSSize: {336, 66}
 AXTitle: 
 AXDescription: 
 AXValue: 

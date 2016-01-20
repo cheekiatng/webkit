@@ -32,9 +32,9 @@
 #include "FrameLoader.h"
 #include "HTTPHeaderNames.h"
 #include "PluginDebug.h"
-#include "ResourceLoadScheduler.h"
 #include "SharedBuffer.h"
 #include "SubresourceLoader.h"
+#include "WebResourceLoadScheduler.h"
 #include <wtf/StringExtras.h>
 #include <wtf/text/CString.h>
 #include <wtf/text/StringBuilder.h>
@@ -96,7 +96,7 @@ PluginStream::~PluginStream()
 void PluginStream::start()
 {
     ASSERT(!m_loadManually);
-    m_loader = resourceLoadScheduler()->schedulePluginStreamLoad(m_frame, this, m_resourceRequest);
+    m_loader = webResourceLoadScheduler().schedulePluginStreamLoad(m_frame, this, m_resourceRequest);
 }
 
 void PluginStream::stop()
@@ -401,6 +401,12 @@ void PluginStream::sendJavaScriptStream(const URL& requestURL, const CString& re
     m_loader = nullptr;
 
     destroyStream(resultString.isNull() ? NPRES_NETWORK_ERR : NPRES_DONE);
+}
+
+void PluginStream::willSendRequest(NetscapePlugInStreamLoader*, ResourceRequest&& request, const ResourceResponse&, std::function<void (WebCore::ResourceRequest&&)>&& callback)
+{
+    // FIXME: We should notify the plug-in with NPP_URLRedirectNotify here.
+    callback(WTFMove(request));
 }
 
 void PluginStream::didReceiveResponse(NetscapePlugInStreamLoader* loader, const ResourceResponse& response)

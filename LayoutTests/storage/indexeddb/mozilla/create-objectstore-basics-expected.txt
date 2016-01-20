@@ -5,7 +5,6 @@ On success, you will see a series of "PASS" messages, followed by "TEST COMPLETE
 
 indexedDB = self.indexedDB || self.webkitIndexedDB || self.mozIndexedDB || self.msIndexedDB || self.OIndexedDB;
 
-dbname = "create-objectstore-basics.html"
 indexedDB.deleteDatabase(dbname)
 indexedDB.open(dbname)
 objectStore = db.createObjectStore(info.name, info.options);
@@ -26,7 +25,7 @@ PASS event.target.transaction.mode is "versionchange"
 Expecting exception from objectStore = db.createObjectStore(info.name, info.options)
 PASS Exception was thrown.
 PASS code is DOMException.INVALID_ACCESS_ERR
-Exception message: InvalidAccessError: DOM IDBDatabase Exception 15
+Exception message: Failed to execute 'createObjectStore' on 'IDBDatabase': The autoIncrement option was set but the keyPath option was empty or an array.
 objectStore = db.createObjectStore(info.name, info.options);
 PASS objectStore.name is info.name
 PASS objectStore.indexNames.length is 0

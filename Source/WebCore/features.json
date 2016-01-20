@@ -32,9 +32,27 @@
         "category": "css"
     },
     {
+        "name": "CSS Painting API Level 1",
+        "status": {
+            "status": "Under Consideration"
+        },
+        "url": "https://drafts.css-houdini.org/css-paint-api/",
+        "keywords": ["css", "houdini"],
+        "category": "css"
+    },
+    {
         "name": "CSS Positioned Layout Module Level 3",
         "url": "http://dev.w3.org/csswg/css-position/",
         "keywords": ["css positioning"],
+        "category": "css"
+    },
+    {
+        "name": "CSS Properties and Values API Level 1",
+        "status": {
+            "status": "Under Consideration"
+        },
+        "url": "https://drafts.css-houdini.org/css-properties-values-api/",
+        "keywords": ["css", "houdini"],
         "category": "css"
     },
     {
@@ -70,6 +88,20 @@
         "category": "css"
     },
     {
+        "name": "CSS Will Change",
+        "status": {
+            "status": "Done",
+            "enabled-by-default": true
+        },
+        "url": "https://drafts.csswg.org/css-will-change/",
+        "keywords": ["css willchange", "css will-change"],
+        "category": "css",
+        "contact": {
+            "name": "Simon Fraser",
+            "twitter": "@smfr"
+        }
+    },
+    {
         "name": "DOM",
         "url": "https://dom.spec.whatwg.org",
         "keywords": ["dom", "dom4"],
@@ -88,20 +120,107 @@
         "category": "html"
     },
     {
+        "name": "IndexedDB",
+        "status": {
+            "status": "Partial Support"
+        },
+        "url": "http://www.w3.org/TR/IndexedDB/",
+        "keywords": ["indexeddb", "index db"],
+        "description": "A standard interface to a browser database of records for simple values and objects.",
+        "contact": {
+            "name": "Jon Davis",
+            "twitter": "@jonathandavis",
+            "email": "web-evangelist@apple.com"
+        }
+    },
+    {
+        "name": "Service Workers",
+        "status": {
+            "status": "Under Consideration"
+        },
+        "url": "http://www.w3.org/TR/2015/WD-service-workers-20150625/",
+        "keywords": ["service workers"],
+        "category": "webapps",
+        "description": "A method for browsers to run JavaScript in the background to handle network requests and manage cached responses. Service Workers offers a replacement for Application Cache.",
+        "contact": {
+            "name": "Jon Davis",
+            "twitter": "@jonathandavis",
+            "email": "web-evangelist@apple.com"
+        }
+    },
+    {
         "name": "Streams",
         "url": "https://streams.spec.whatwg.org",
         "keywords": ["streams api"],
         "category": "webapps"
     },
     {
-        "name": "WebGL",
+        "name": "Web Components",
         "status": {
-            "status": "In Development",
+            "status": "Partial Support"
+        },
+        "url": "http://www.w3.org/wiki/WebComponents/",
+        "keywords": ["web components", "shadow dom", "html imports", "custom elements", "template element"],
+        "category": "webapps",
+        "description": "A collection of technologies to improve modularization of DOM subtrees.",
+        "contact": {
+            "name": "Ryosuke Niwa",
+            "twitter": "@RyosukeNiwa",
+            "email": "rniwa@webkit.org"
+        }
+    },
+    {
+        "name": "WebCrypto",
+        "status": {
+            "status": "Partial Support",
+            "enabled-by-default": true
+        },
+        "url": "http://www.w3.org/TR/WebCryptoAPI/",
+        "webkit-url": "https://bugs.webkit.org/show_bug.cgi?id=122679",
+        "keywords": ["webcrypto"],
+        "category": "webapps",
+        "description": "A JavaScript API for web applications to perform cryptographic operations.",
+        "contact": {
+            "name": "Jon Davis",
+            "twitter": "@jonathandavis",
+            "email": "web-evangelist@apple.com"
+        }
+    },
+    {
+        "name": "WebGL 1",
+        "status": {
+            "status": "Done",
             "enabled-by-default": true
         },
         "url": "https://www.khronos.org/registry/webgl/specs/1.0/",
         "keywords": ["webgl"],
         "category": "html"
+    },
+    {
+        "name": "WebGL 2",
+        "status": {
+            "status": "In Development",
+            "enabled-by-default": true
+        },
+        "url": "https://www.khronos.org/registry/webgl/specs/2.0/",
+        "keywords": ["webgl"],
+        "category": "html"
+    },
+    {
+        "name": "WebRTC",
+        "status": {
+            "status": "In Development"
+        },
+        "url": "http://www.w3.org/TR/webrtc/",
+        "webkit-url": "https://bugs.webkit.org/show_bug.cgi?id=124288",
+        "keywords": ["webrtc"],
+        "category": "webapps",
+        "description": "An API to facilitate real-time communication for browser-to-browser applications.",
+        "contact": {
+            "name": "Jon Davis",
+            "twitter": "@jonathandavis",
+            "email": "web-evangelist@apple.com"
+        }
     }
     ],
 
@@ -212,6 +331,21 @@
         }
     },
     {
+        "name": "Custom Elements",
+        "status": {
+            "status": "Prototyping"
+        },
+        "url": "http://w3c.github.io/webcomponents/spec/custom/",
+        "webkit-url": "https://bugs.webkit.org/show_bug.cgi?id=150225",
+        "specification": "Web Components",
+        "description": "Define a custom HTML tag and associate it with an ES6 class.",
+        "contact": {
+            "name": "Jon Davis",
+            "twitter": "@jonathandavis",
+            "email": "web-evangelist@apple.com"
+        }
+    },
+    {
         "name": "Element.closest()",
         "status": {
             "status": "Done",
@@ -246,6 +380,21 @@
         },
         "webkit-url": "https://bugs.webkit.org/show_bug.cgi?id=142836",
         "description": "Provide the events necessary to handle force click events in the page, overriding the default behavior."
+    },
+    {
+        "name": "HTML imports",
+        "status": {
+            "status": "Not Considering"
+        },
+        "url": "http://w3c.github.io/webcomponents/spec/imports/",
+        "specification": "Web Components",
+        "description": "Includes resusable HTML documents in other HTML documents.",
+        "comment": "There are concerns about the disconnect between this specification and ES6 Modules. WebKit has no intent to support the current specification.",
+        "contact": {
+            "name": "Jon Davis",
+            "twitter": "@jonathandavis",
+            "email": "web-evangelist@apple.com"
+        }
     },
     {
         "name": "Initial Letter",
@@ -290,7 +439,7 @@
     {
         "name": "Picture element",
         "status": {
-            "status": "In development",
+            "status": "In Development",
             "enabled-by-default": false
         },
         "url": "https://html.spec.whatwg.org/multipage/embedded-content.html#the-picture-element",
@@ -324,6 +473,21 @@
         "webkit-url": "https://bugs.webkit.org/show_bug.cgi?id=138967",
         "specification": "Streams",
         "comment": "The ReadableStream and ReadableStreamReader interfaces are available but not functional."
+    },
+    {
+        "name": "Shadow DOM",
+        "status": {
+            "status": "In Development"
+        },
+        "url": "http://w3c.github.io/webcomponents/spec/shadow/",
+        "webkit-url": "https://bugs.webkit.org/show_bug.cgi?id=148695",
+        "specification": "Web Components",
+        "description": "Functional encapsulation of HTML and CSS for Web Components.",
+        "contact": {
+            "name": "Ryosuke Niwa",
+            "twitter": "@RyosukeNiwa",
+            "email": "rniwa@webkit.org"
+        }
     },
     {
         "name": "Shape outside for floats",
@@ -377,6 +541,18 @@
             "twitter": "@yoavweiss",
             "email": "yoav@yoav.ws"
         }
+    },
+    {
+        "name": "Template Element",
+        "status": {
+            "status": "Done",
+            "enabled-by-default": true
+        },
+        "url": "http://www.w3.org/TR/html5/scripting-1.html#the-template-element",
+        "webkit-url": "https://bugs.webkit.org/show_bug.cgi?id=124637",
+        "documentation-url": "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template",
+        "specification": "Web Components",
+        "description": "Declares HTML fragments that can be cloned and inserted into the document by a script."
     }
     ]
 }

@@ -32,7 +32,6 @@
 #include "JIT.h"
 #include "JSFunction.h"
 #include "JSGlobalObject.h"
-#include "JSNameScope.h"
 #include "LabelScope.h"
 #include "Lexer.h"
 #include "JSCInlines.h"
@@ -126,7 +125,16 @@ ProgramNode::ProgramNode(ParserArena& parserArena, const JSTokenLocation& startL
 
 void ProgramNode::setClosedVariables(Vector<RefPtr<UniquedStringImpl>>&& closedVariables)
 {
-    m_closedVariables = WTF::move(closedVariables);
+    m_closedVariables = WTFMove(closedVariables);
+}
+
+// ------------------------------ ModuleProgramNode -----------------------------
+
+ModuleProgramNode::ModuleProgramNode(ParserArena& parserArena, const JSTokenLocation& startLocation, const JSTokenLocation& endLocation, unsigned startColumn, unsigned endColumn, SourceElements* children, VariableEnvironment& varEnvironment, FunctionStack& funcStack, VariableEnvironment& lexicalVariables, FunctionParameters*, const SourceCode& source, CodeFeatures features, int numConstants)
+    : ScopeNode(parserArena, startLocation, endLocation, source, children, varEnvironment, funcStack, lexicalVariables, features, numConstants)
+    , m_startColumn(startColumn)
+    , m_endColumn(endColumn)
+{
 }
 
 // ------------------------------ EvalNode -----------------------------
@@ -137,14 +145,14 @@ EvalNode::EvalNode(ParserArena& parserArena, const JSTokenLocation& startLocatio
 {
 }
 
-// ------------------------------ FunctionBodyNode -----------------------------
+// ------------------------------ FunctionMetadataNode -----------------------------
 
-FunctionBodyNode::FunctionBodyNode(
+FunctionMetadataNode::FunctionMetadataNode(
     ParserArena&, const JSTokenLocation& startLocation, 
     const JSTokenLocation& endLocation, unsigned startColumn, unsigned endColumn, 
     int functionKeywordStart, int functionNameStart, int parametersStart, bool isInStrictContext, 
-    ConstructorKind constructorKind, unsigned parameterCount, FunctionParseMode mode)
-        : StatementNode(endLocation)
+    ConstructorKind constructorKind, SuperBinding superBinding, unsigned parameterCount, SourceParseMode mode, bool isArrowFunctionBodyExpression)
+        : Node(endLocation)
         , m_startColumn(startColumn)
         , m_endColumn(endColumn)
         , m_functionKeywordStart(functionKeywordStart)
@@ -154,19 +162,22 @@ FunctionBodyNode::FunctionBodyNode(
         , m_parameterCount(parameterCount)
         , m_parseMode(mode)
         , m_isInStrictContext(isInStrictContext)
+        , m_superBinding(static_cast<unsigned>(superBinding))
         , m_constructorKind(static_cast<unsigned>(constructorKind))
+        , m_isArrowFunctionBodyExpression(isArrowFunctionBodyExpression)
 {
+    ASSERT(m_superBinding == static_cast<unsigned>(superBinding));
     ASSERT(m_constructorKind == static_cast<unsigned>(constructorKind));
 }
 
-void FunctionBodyNode::finishParsing(const SourceCode& source, const Identifier& ident, enum FunctionMode functionMode)
+void FunctionMetadataNode::finishParsing(const SourceCode& source, const Identifier& ident, enum FunctionMode functionMode)
 {
     m_source = source;
     m_ident = ident;
     m_functionMode = functionMode;
 }
 
-void FunctionBodyNode::setEndPosition(JSTextPosition position)
+void FunctionMetadataNode::setEndPosition(JSTextPosition position)
 {
     m_lastLine = position.line;
     m_endColumn = position.offset - position.lineStartOffset;

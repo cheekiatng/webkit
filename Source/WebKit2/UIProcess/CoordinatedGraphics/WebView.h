@@ -33,12 +33,15 @@
 #include "DefaultUndoController.h"
 #include "PageClient.h"
 #include "WebFullScreenManagerProxy.h"
-#include "WebPageGroup.h"
 #include "WebPageProxy.h"
 #include "WebPreferences.h"
 #include "WebProcessPool.h"
 #include "WebViewClient.h"
 #include <WebCore/TransformationMatrix.h>
+
+namespace API {
+class PageConfiguration;
+}
 
 namespace WebKit {
 class CoordinatedGraphicsScene;
@@ -51,9 +54,7 @@ class WebView : public API::ObjectImpl<API::Object::Type::View>, public PageClie
 public:
     virtual ~WebView();
 
-    static Ref<WebView> create(WebProcessPool*, WebPageGroup*);
-
-    void initialize();
+    static Ref<WebView> create(WebProcessPool*, API::PageConfiguration&);
 
     void setSize(const WebCore::IntSize&);
     const WebCore::IntSize& size() const { return m_size; }
@@ -94,17 +95,19 @@ public:
     bool requestExitFullScreen();
 #endif
 
+#if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
     void findZoomableAreaForPoint(const WebCore::IntPoint&, const WebCore::IntSize&);
+#endif
 
     // View client.
     void initializeClient(const WKViewClientBase*);
 
     WebPageProxy* page() { return m_page.get(); }
 
-    void didChangeContentSize(const WebCore::IntSize&);
+    void didChangeContentSize(const WebCore::IntSize&) override;
     const WebCore::IntSize& contentsSize() const { return m_contentsSize; }
     WebCore::FloatSize visibleContentsSize() const;
-    void didFindZoomableArea(const WebCore::IntPoint&, const WebCore::IntRect&);
+    void didFindZoomableArea(const WebCore::IntPoint&, const WebCore::IntRect&) override;
 
     // FIXME: Should become private when Web Events creation is moved to WebView.
     WebCore::AffineTransform transformFromScene() const;
@@ -114,7 +117,7 @@ public:
     double opacity() const { return m_opacity; }
 
 protected:
-    WebView(WebProcessPool*, WebPageGroup*);
+    WebView(WebProcessPool*, API::PageConfiguration&);
     CoordinatedGraphicsScene* coordinatedGraphicsScene();
 
     void updateViewportSize();
@@ -147,9 +150,11 @@ protected:
 
     virtual void didCommitLoadForMainFrame(const String& mimeType, bool useCustomContentProvider) override;
 
+#if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
     virtual void pageDidRequestScroll(const WebCore::IntPoint&) override;
     virtual void didRenderFrame(const WebCore::IntSize& contentsSize, const WebCore::IntRect& coveredRect) override;
     virtual void pageTransitionViewportReady() override;
+#endif
 
     virtual void setCursor(const WebCore::Cursor&) override;
     virtual void setCursorHiddenUntilMouseMoves(bool) override;
@@ -175,19 +180,16 @@ protected:
     virtual void doneWithTouchEvent(const NativeWebTouchEvent&, bool wasEventHandled) override;
 #endif
 
-    virtual RefPtr<WebPopupMenuProxy> createPopupMenuProxy(WebPageProxy*) override;
-    virtual RefPtr<WebContextMenuProxy> createContextMenuProxy(WebPageProxy*) override;
+    virtual RefPtr<WebPopupMenuProxy> createPopupMenuProxy(WebPageProxy&) override;
+    virtual std::unique_ptr<WebContextMenuProxy> createContextMenuProxy(WebPageProxy&, const ContextMenuContextData&, const UserData&) override;
 #if ENABLE(INPUT_TYPE_COLOR)
     virtual RefPtr<WebColorPicker> createColorPicker(WebPageProxy*, const WebCore::Color& initialColor, const WebCore::IntRect&) override;
 #endif
 
-    virtual void setTextIndicator(Ref<WebCore::TextIndicator>, WebCore::TextIndicatorLifetime = WebCore::TextIndicatorLifetime::Permanent) override;
-    virtual void clearTextIndicator(WebCore::TextIndicatorDismissalAnimation = WebCore::TextIndicatorDismissalAnimation::FadeOut) override;
-    virtual void setTextIndicatorAnimationProgress(float) override;
-
     virtual void enterAcceleratedCompositingMode(const LayerTreeContext&) override;
     virtual void exitAcceleratedCompositingMode() override;
     virtual void updateAcceleratedCompositingMode(const LayerTreeContext&) override;
+    virtual void willEnterAcceleratedCompositingMode() override { }
 
 #if ENABLE(FULLSCREEN_API)
     WebFullScreenManagerProxyClient& fullScreenManagerProxyClient() override;
@@ -200,14 +202,17 @@ protected:
     virtual void beganEnterFullScreen(const WebCore::IntRect&, const WebCore::IntRect&) override { }
     virtual void beganExitFullScreen(const WebCore::IntRect&, const WebCore::IntRect&) override { }
 #endif
-    virtual void navigationGestureDidBegin() override { };
-    virtual void navigationGestureWillEnd(bool, WebBackForwardListItem&) override { };
-    virtual void navigationGestureDidEnd(bool, WebBackForwardListItem&) override { };
-    virtual void navigationGestureDidEnd() override { };
-    virtual void willRecordNavigationSnapshot(WebBackForwardListItem&) override { };
+    virtual void navigationGestureDidBegin() override { }
+    virtual void navigationGestureWillEnd(bool, WebBackForwardListItem&) override { }
+    virtual void navigationGestureDidEnd(bool, WebBackForwardListItem&) override { }
+    virtual void navigationGestureDidEnd() override { }
+    virtual void willRecordNavigationSnapshot(WebBackForwardListItem&) override { }
+    virtual void didRemoveNavigationGestureSnapshot() override { }
 
     virtual void didChangeBackgroundColor() override { }
     virtual void didFailLoadForMainFrame() override { }
+
+    virtual void didRestoreScrollPosition() override { }
 
     WebViewClient m_client;
     RefPtr<WebPageProxy> m_page;

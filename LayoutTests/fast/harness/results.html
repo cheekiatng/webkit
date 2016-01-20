@@ -235,6 +235,7 @@ function globalState()
     if (!g_state) {
         g_state = {
             crashTests: [],
+            crashOther: [],
             flakyPassTests: [],
             hasHttpTests: false,
             hasImageFailures: false,
@@ -263,6 +264,9 @@ function ADD_RESULTS(input)
 function splitExtension(test)
 {
     var index = test.lastIndexOf('.');
+    if (index == -1) {
+        return [test, ""];
+    }
     return [test.substring(0, index), test.substring(index + 1)];
 }
 
@@ -490,6 +494,11 @@ function testLinkWithExpandButton(test)
     return '<span class=expand-button onclick="toggleExpectations(this)"><span class=expand-button-text>+</span></span>' + testLink(test);
 }
 
+function testWithExpandButton(test)
+{
+    return '<span class=expand-button onclick="toggleExpectations(this)"><span class=expand-button-text>+</span></span>' + test;
+}
+
 function resultLink(testPrefix, suffix, contents)
 {
     return '<a class=result-link href="' + testPrefix + suffix + '" data-prefix="' + testPrefix + '">' + contents + '</a> ';
@@ -633,7 +642,7 @@ function flakinessDashboardURLForTests(testObjects)
             testList += ",";
     }
 
-    return 'http://webkit-test-results.appspot.com/dashboards/flakiness_dashboard.html#showAllRuns=true&tests=' + encodeURIComponent(testList);
+    return 'http://webkit-test-results.webkit.org/dashboards/flakiness_dashboard.html#showAllRuns=true&tests=' + encodeURIComponent(testList);
 }
 
 function tableRow(testObject)
@@ -704,6 +713,16 @@ function forEachTest(handler, opt_tree, opt_prefix)
     }
 }
 
+function forOtherCrashes()
+{
+    var tree = globalState().results.other_crashes;
+    for (var key in tree) {
+            var testObject = tree[key];
+            testObject.name = key;
+            globalState().crashOther.push(testObject);
+    }
+}
+
 function hasUnexpected(tests)
 {
     return tests.some(function (test) { return !test.isExpected; });
@@ -755,13 +774,21 @@ function testList(tests, header, tableId)
         if (globalState().results.uses_expectations_file)
             html += ' class="' + ((testObject.isExpected && tableId != 'stderr-table') ? 'expected' : '') + '"';
         html += '><tr><td>';
-        html += (tableId == 'passes-table') ? testLink(test) : testLinkWithExpandButton(test);
+        if (tableId == 'passes-table')
+            html += testLink(test);
+        else if (tableId == 'other-crash-tests-table')
+            html += testWithExpandButton(test);
+        else
+            html += testLinkWithExpandButton(test);
+
         html += '</td><td>';
 
         if (tableId == 'stderr-table')
             html += resultLink(stripExtension(test), '-stderr.txt', 'stderr');
         else if (tableId == 'passes-table')
             html += testObject.expected;
+        else if (tableId == 'other-crash-tests-table') 
+            html += resultLink(stripExtension(test), '-crash-log.txt', 'crash log');
         else if (tableId == 'crash-tests-table') {
             html += resultLink(stripExtension(test), '-crash-log.txt', 'crash log');
             html += resultLink(stripExtension(test), '-sample.txt', 'sample');
@@ -770,7 +797,8 @@ function testList(tests, header, tableId)
             html += textResultLinks(stripExtension(test));
         }
 
-        html += '</td><td><a href="' + flakinessDashboardURLForTests([testObject]) + '">history</a></td>';
+        if (tableId != 'other-crash-tests-table')
+            html += '</td><td><a href="' + flakinessDashboardURLForTests([testObject]) + '">history</a></td>';
 
         html += '</tr></tbody>';
     }
@@ -1361,6 +1389,7 @@ function failingTestsTable(tests, title, id)
 function generatePage()
 {
     forEachTest(processGlobalStateFor);
+    forOtherCrashes();
 
     var html = "";
 
@@ -1369,6 +1398,9 @@ function generatePage()
 
     if (globalState().crashTests.length)
         html += testList(globalState().crashTests, 'Tests that crashed', 'crash-tests-table');
+
+    if (globalState().crashOther.length)
+        html += testList(globalState().crashOther, 'Other Crashes', 'other-crash-tests-table');
 
     html += failingTestsTable(globalState().failingTests,
         'Tests that failed text/pixel/audio diff', 'results-table');

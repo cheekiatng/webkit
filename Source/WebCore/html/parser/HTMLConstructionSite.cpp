@@ -36,9 +36,11 @@
 #include "HTMLElementFactory.h"
 #include "HTMLFormElement.h"
 #include "HTMLHtmlElement.h"
+#include "HTMLImageElement.h"
 #include "HTMLOptGroupElement.h"
 #include "HTMLOptionElement.h"
 #include "HTMLParserIdioms.h"
+#include "HTMLPictureElement.h"
 #include "HTMLScriptElement.h"
 #include "HTMLTemplateElement.h"
 #include "NotImplemented.h"
@@ -102,9 +104,9 @@ static inline void insert(HTMLConstructionSiteTask& task)
         parent->parserRemoveChild(*task.child);
 
     if (task.nextChild)
-        task.parent->parserInsertBefore(task.child.get(), task.nextChild.get());
+        task.parent->parserInsertBefore(*task.child, *task.nextChild);
     else
-        task.parent->parserAppendChild(task.child.get());
+        task.parent->parserAppendChild(*task.child);
 }
 
 static inline void executeInsertTask(HTMLConstructionSiteTask& task)
@@ -126,7 +128,7 @@ static inline void executeReparentTask(HTMLConstructionSiteTask& task)
     if (ContainerNode* parent = task.child->parentNode())
         parent->parserRemoveChild(*task.child);
 
-    task.parent->parserAppendChild(task.child);
+    task.parent->parserAppendChild(*task.child);
 }
 
 static inline void executeInsertAlreadyParsedChildTask(HTMLConstructionSiteTask& task)
@@ -196,7 +198,7 @@ void HTMLConstructionSite::executeQueuedTasks()
 
     // Copy the task queue into a local variable in case executeTask
     // re-enters the parser.
-    TaskQueue queue = WTF::move(m_taskQueue);
+    TaskQueue queue = WTFMove(m_taskQueue);
 
     for (size_t i = 0; i < size; ++i)
         executeTask(queue[i]);
@@ -274,8 +276,7 @@ void HTMLConstructionSite::mergeAttributesFromTokenIntoElement(AtomicHTMLToken* 
     if (token->attributes().isEmpty())
         return;
 
-    for (unsigned i = 0; i < token->attributes().size(); ++i) {
-        const Attribute& tokenAttribute = token->attributes().at(i);
+    for (auto& tokenAttribute : token->attributes()) {
         if (!element->elementData() || !element->findAttributeByName(tokenAttribute.name()))
             element->setAttribute(tokenAttribute.name(), tokenAttribute.value());
     }
@@ -571,7 +572,7 @@ void HTMLConstructionSite::insertTextNode(const String& characters, WhitespaceMo
 
         currentPosition += textNode->length();
         ASSERT(currentPosition <= characters.length());
-        task.child = WTF::move(textNode);
+        task.child = WTFMove(textNode);
 
         executeTask(task);
     }
@@ -641,6 +642,13 @@ PassRefPtr<Element> HTMLConstructionSite::createHTMLElement(AtomicHTMLToken* tok
     Document& ownerDocument = ownerDocumentForCurrentNode();
     bool insideTemplateElement = !ownerDocument.frame();
     RefPtr<Element> element = HTMLElementFactory::createElement(tagName, ownerDocument, insideTemplateElement ? nullptr : form(), true);
+    
+    // FIXME: This is a hack to connect images to pictures before the image has
+    // been inserted into the document. It can be removed once asynchronous image
+    // loading is working.
+    if (is<HTMLPictureElement>(currentNode()) && is<HTMLImageElement>(*element.get()))
+        downcast<HTMLImageElement>(*element.get()).setPictureElement(&downcast<HTMLPictureElement>(currentNode()));
+
     setAttributes(element.get(), token, m_parserContentPolicy);
     ASSERT(element->isHTMLElement());
     return element.release();

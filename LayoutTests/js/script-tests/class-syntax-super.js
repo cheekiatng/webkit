@@ -1,6 +1,55 @@
 
 description('Tests for ES6 class syntax "super"');
 
+function shouldThrow(s, message) {
+    var threw = false;
+    try {
+        eval(s);
+    } catch(e) {
+        threw = true;
+        if (!message || e.toString() === eval(message))
+            testPassed(s + ":::" + e.toString());
+        else
+            testFailed(s);
+    }
+    if (!threw)
+        testFailed(s);
+}
+
+function shouldNotThrow(s, message) {
+    var threw = false;
+    try {
+        eval(s);
+    } catch(e) {
+        threw = true;
+    }
+    if (threw)
+        testFailed(s);
+    else
+        testPassed(s);
+}
+
+function shouldBe(a, b) {
+    if (eval(a) === eval(b))
+        testPassed(a + ":::" + b);
+    else
+        testFailed(a + ":::" + b);
+}
+
+function shouldBeTrue(s) {
+    if (eval(s) === true)
+        testPassed(s);
+    else 
+        testFailed(s);
+}
+
+function shouldBeFalse(s) {
+    if (eval(s) === false)
+        testPassed(s);
+    else 
+        testFailed(s);
+}
+
 var baseMethodValue = {};
 var valueInSetter = null;
 
@@ -36,8 +85,8 @@ shouldBe('(new Derived).callBaseMethodInSetter = 1; valueInSetter', 'baseMethodV
 shouldBe('(new Derived).baseMethodInGetterSetter', '(new Base).baseMethod');
 shouldBe('(new Derived).baseMethodInGetterSetter = 1; valueInSetter', '(new Base).baseMethod');
 shouldBe('Derived.staticMethod()', '"base3"');
-shouldBe('(new SecondDerived).chainMethod()', '["base", "derived", "secondDerived"]');
-shouldThrow('x = class extends Base { constructor() { super(); } super() {} }', '"SyntaxError: Unexpected keyword \'super\'"');
+shouldBe('(new SecondDerived).chainMethod().toString()', '["base", "derived", "secondDerived"].toString()');
+shouldNotThrow('x = class extends Base { constructor() { super(); } super() {} }');
 shouldThrow('x = class extends Base { constructor() { super(); } method() { super() } }',
     '"SyntaxError: Cannot call super() outside of a class constructor."');
 shouldThrow('x = class extends Base { constructor() { super(); } method() { super } }', '"SyntaxError: Cannot reference super."');
@@ -54,12 +103,12 @@ shouldBeFalse('x instanceof Base');
 shouldThrow('new (class extends Base { constructor() { } })', '"ReferenceError: Cannot access uninitialized variable."');
 shouldThrow('new (class extends Base { constructor() { return 1; } })', '"TypeError: Cannot return a non-object type in the constructor of a derived class."');
 shouldThrow('new (class extends null { constructor() { return undefined } })');
-shouldThrow('new (class extends null { constructor() { super(); return undefined } })', '"TypeError: undefined is not an object (evaluating \'super()\')"');
+shouldThrow('new (class extends null { constructor() { super(); return undefined } })', '"TypeError: function is not a constructor (evaluating \'super()\')"');
 shouldBe('x = { }; new (class extends null { constructor() { return x } });', 'x');
 shouldBeTrue('x instanceof Object');
 shouldThrow('new (class extends null { constructor() { } })', '"ReferenceError: Cannot access uninitialized variable."');
 shouldThrow('new (class extends null { constructor() { return 1; } })', '"TypeError: Cannot return a non-object type in the constructor of a derived class."');
-shouldThrow('new (class extends null { constructor() { super() } })', '"TypeError: undefined is not an object (evaluating \'super()\')"');
+shouldThrow('new (class extends null { constructor() { super() } })', '"TypeError: function is not a constructor (evaluating \'super()\')"');
 shouldThrow('new (class { constructor() { super() } })', '"SyntaxError: Cannot call super() in a base class constructor."');
 shouldThrow('function x() { super(); }', '"SyntaxError: Cannot call super() outside of a class constructor."');
 shouldThrow('new (class extends Object { constructor() { function x() { super() } } })', '"SyntaxError: Cannot call super() outside of a class constructor."');

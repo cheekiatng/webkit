@@ -192,7 +192,8 @@ public:
     WTF_EXPORT_STRING_API CString ascii() const;
     WTF_EXPORT_STRING_API CString latin1() const;
 
-    WTF_EXPORT_STRING_API CString utf8(ConversionMode = LenientConversion) const;
+    WTF_EXPORT_STRING_API CString utf8(ConversionMode) const;
+    WTF_EXPORT_STRING_API CString utf8() const;
 
     UChar at(unsigned index) const
     {
@@ -462,6 +463,8 @@ public:
     String(WTF::HashTableDeletedValueType) : m_impl(WTF::HashTableDeletedValue) { }
     bool isHashTableDeletedValue() const { return m_impl.isHashTableDeletedValue(); }
 
+    unsigned existingHash() const { return isNull() ? 0 : impl()->existingHash(); }
+
 #ifndef NDEBUG
     WTF_EXPORT_STRING_API void show() const;
 #endif
@@ -547,22 +550,22 @@ inline String::String(PassRefPtr<StringImpl> impl)
 }
 
 inline String::String(Ref<StringImpl>&& impl)
-    : m_impl(WTF::move(impl))
+    : m_impl(WTFMove(impl))
 {
 }
 
 inline String::String(RefPtr<StringImpl>&& impl)
-    : m_impl(WTF::move(impl))
+    : m_impl(WTFMove(impl))
 {
 }
 
 inline String::String(Ref<AtomicStringImpl>&& impl)
-    : m_impl(WTF::move(impl))
+    : m_impl(WTFMove(impl))
 {
 }
 
 inline String::String(RefPtr<AtomicStringImpl>&& impl)
-    : m_impl(WTF::move(impl))
+    : m_impl(WTFMove(impl))
 {
 }
 
@@ -701,7 +704,7 @@ public:
     explicit StringCapture(String&& string) : m_string(string) { }
     StringCapture(const StringCapture& other) : m_string(other.m_string.isolatedCopy()) { }
     const String& string() const { return m_string; }
-    String releaseString() { return WTF::move(m_string); }
+    String releaseString() { return WTFMove(m_string); }
 
     void operator=(const StringCapture& other) { m_string = other.m_string.isolatedCopy(); }
 

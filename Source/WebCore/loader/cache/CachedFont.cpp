@@ -102,7 +102,7 @@ bool CachedFont::ensureCustomFontData(SharedBuffer* data)
     if (!m_fontCustomPlatformData && !errorOccurred() && !isLoading() && data) {
         RefPtr<SharedBuffer> buffer(data);
 
-#if (!PLATFORM(MAC) || __MAC_OS_X_VERSION_MIN_REQUIRED <= 1090) && (!PLATFORM(IOS) || __IPHONE_OS_VERSION_MIN_REQUIRED < 80000)
+#if !PLATFORM(COCOA)
         if (isWOFF(buffer.get())) {
             Vector<char> convertedFont;
             if (!convertWOFFToSfnt(buffer.get(), convertedFont))
@@ -121,16 +121,21 @@ bool CachedFont::ensureCustomFontData(SharedBuffer* data)
     return m_fontCustomPlatformData.get();
 }
 
-RefPtr<Font> CachedFont::createFont(const FontDescription& fontDescription, const AtomicString&, bool syntheticBold, bool syntheticItalic, bool)
+RefPtr<Font> CachedFont::createFont(const FontDescription& fontDescription, const AtomicString&, bool syntheticBold, bool syntheticItalic, bool, const FontFeatureSettings& fontFaceFeatures, const FontVariantSettings& fontFaceVariantSettings)
 {
-    return Font::create(platformDataFromCustomData(fontDescription.computedPixelSize(), syntheticBold, syntheticItalic,
-        fontDescription.orientation(), fontDescription.widthVariant(), fontDescription.renderingMode()), true, false);
+    return Font::create(platformDataFromCustomData(fontDescription, syntheticBold, syntheticItalic, fontFaceFeatures, fontFaceVariantSettings), true, false);
 }
 
-FontPlatformData CachedFont::platformDataFromCustomData(float size, bool bold, bool italic, FontOrientation orientation, FontWidthVariant widthVariant, FontRenderingMode renderingMode)
+FontPlatformData CachedFont::platformDataFromCustomData(const FontDescription& fontDescription, bool bold, bool italic, const FontFeatureSettings& fontFaceFeatures, const FontVariantSettings& fontFaceVariantSettings)
 {
     ASSERT(m_fontCustomPlatformData);
-    return m_fontCustomPlatformData->fontPlatformData(static_cast<int>(size), bold, italic, orientation, widthVariant, renderingMode);
+#if PLATFORM(COCOA)
+    return m_fontCustomPlatformData->fontPlatformData(fontDescription, bold, italic, fontFaceFeatures, fontFaceVariantSettings);
+#else
+    UNUSED_PARAM(fontFaceFeatures);
+    UNUSED_PARAM(fontFaceVariantSettings);
+    return m_fontCustomPlatformData->fontPlatformData(fontDescription, bold, italic);
+#endif
 }
 
 void CachedFont::allClientsRemoved()

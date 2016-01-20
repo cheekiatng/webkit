@@ -45,6 +45,7 @@ struct InteractionInformationAtPosition;
 - (const WebKit::InteractionInformationAtPosition&)positionInformationForActionSheetAssistant:(WKActionSheetAssistant *)assistant;
 - (void)actionSheetAssistant:(WKActionSheetAssistant *)assistant performAction:(WebKit::SheetAction)action;
 - (void)actionSheetAssistant:(WKActionSheetAssistant *)assistant openElementAtLocation:(CGPoint)location;
+- (void)actionSheetAssistant:(WKActionSheetAssistant *)assistant shareElementWithURL:(NSURL *)url rect:(CGRect)boundingRect;
 #if HAVE(APP_LINKS)
 - (BOOL)actionSheetAssistant:(WKActionSheetAssistant *)assistant shouldIncludeAppLinkActionsForElement:(_WKActivatedElementInfo *)element;
 #endif
@@ -67,6 +68,7 @@ struct InteractionInformationAtPosition;
 - (void)updateSheetPosition;
 - (RetainPtr<NSArray>)defaultActionsForLinkSheet:(_WKActivatedElementInfo *)elementInfo;
 - (RetainPtr<NSArray>)defaultActionsForImageSheet:(_WKActivatedElementInfo *)elementInfo;
+- (BOOL)isShowingSheet;
 @end
 
 #endif // PLATFORM(IOS)

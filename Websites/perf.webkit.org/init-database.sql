@@ -17,6 +17,8 @@ DROP TABLE reports CASCADE;
 DROP TABLE tracker_repositories CASCADE;
 DROP TABLE bug_trackers CASCADE;
 DROP TABLE analysis_tasks CASCADE;
+DROP TABLE analysis_strategies CASCADE;
+DROP TYPE analysis_task_result_type CASCADE;
 DROP TABLE build_triggerables CASCADE;
 DROP TABLE triggerable_configurations CASCADE;
 DROP TABLE triggerable_repositories CASCADE;
@@ -87,11 +89,13 @@ CREATE TABLE commits (
     commit_revision varchar(64) NOT NULL,
     commit_parent integer REFERENCES commits ON DELETE CASCADE,
     commit_time timestamp,
+    commit_order integer,
     commit_committer integer REFERENCES committers ON DELETE CASCADE,
     commit_message text,
     commit_reported boolean NOT NULL DEFAULT FALSE,
     CONSTRAINT commit_in_repository_must_be_unique UNIQUE(commit_repository, commit_revision));
 CREATE INDEX commit_time_index ON commits(commit_time);
+CREATE INDEX commit_order_index ON commits(commit_order);
 
 CREATE TABLE build_commits (
     commit_build integer NOT NULL REFERENCES builds ON DELETE CASCADE,
@@ -189,7 +193,9 @@ CREATE TABLE analysis_tasks (
     task_platform integer REFERENCES platforms NOT NULL,
     task_metric integer REFERENCES test_metrics NOT NULL,
     task_start_run integer REFERENCES test_runs,
+    task_start_run_time timestamp,
     task_end_run integer REFERENCES test_runs,
+    task_end_run_time timestamp,
     task_result analysis_task_result_type,
     task_needed boolean,
     CONSTRAINT analysis_task_should_be_unique_for_range UNIQUE(task_start_run, task_end_run),

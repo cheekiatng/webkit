@@ -192,12 +192,7 @@ NSString *NSAccessibilityEnhancedUserInterfaceAttribute = @"AXEnhancedUserInterf
     [super dealloc];
 }
 
-- (void)finalize
-{
-    [super finalize];
-}
-
-- (void)setWebFrameView:(WebFrameView *)v 
+- (void)setWebFrameView:(WebFrameView *)v
 { 
     [v retain];
     [webFrameView release];
@@ -644,9 +639,9 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     }
     
     if (contentsOnly)
-        view->paintContents(&context, enclosingIntRect(rect));
+        view->paintContents(context, enclosingIntRect(rect));
     else
-        view->paint(&context, enclosingIntRect(rect));
+        view->paint(context, enclosingIntRect(rect));
 
     if (shouldFlatten)
         view->setPaintBehavior(oldBehavior);
@@ -807,7 +802,10 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     // directly in the document DOM, so serialization is problematic. Our solution is
     // to use the root editable element of the selection start as the positional base.
     // That fits with AppKit's idea of an input context.
-    return TextIterator::rangeFromLocationAndLength(_private->coreFrame->selection().rootEditableElementOrDocumentElement(), nsrange.location, nsrange.length);
+    Element* element = _private->coreFrame->selection().rootEditableElementOrDocumentElement();
+    if (!element)
+        return nil;
+    return TextIterator::rangeFromLocationAndLength(element, nsrange.location, nsrange.length);
 }
 
 - (DOMRange *)_convertNSRangeToDOMRange:(NSRange)nsrange
@@ -868,7 +866,7 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     if (!document)
         return nil;
 
-    return kit(createFragmentFromMarkup(*document, markupString, baseURLString, DisallowScriptingContent).get());
+    return kit(createFragmentFromMarkup(*document, markupString, baseURLString, DisallowScriptingContent).ptr());
 }
 
 - (DOMDocumentFragment *)_documentFragmentWithNodesAsParagraphs:(NSArray *)nodes
@@ -890,9 +888,9 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     RefPtr<DocumentFragment> fragment = document->createDocumentFragment();
 
     for (auto* node : nodesVector) {
-        RefPtr<Element> element = createDefaultParagraphElement(*document);
-        element->appendChild(node);
-        fragment->appendChild(element.release());
+        Ref<Element> element = createDefaultParagraphElement(*document);
+        element->appendChild(*node);
+        fragment->appendChild(WTFMove(element));
     }
 
     return kit(fragment.release().get());
@@ -966,7 +964,7 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
 
     if (WebCore::DOMImplementation::isTextMIMEType(mimeType)
         || Image::supportsType(mimeType)
-        || (pluginData && pluginData->supportsWebVisibleMimeType(mimeType, PluginData::AllPlugins) && frame->loader().subframeLoader().allowPlugins(NotAboutToInstantiatePlugin))
+        || (pluginData && pluginData->supportsWebVisibleMimeType(mimeType, PluginData::AllPlugins) && frame->loader().subframeLoader().allowPlugins())
         || (pluginData && pluginData->supportsWebVisibleMimeType(mimeType, PluginData::OnlyApplicationPlugins)))
         return NO;
 
@@ -1026,7 +1024,7 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
 #if !PLATFORM(IOS)
     return nsColor(color);
 #else
-    return cachedCGColor(color, ColorSpaceDeviceRGB);
+    return cachedCGColor(color);
 #endif
 }
 
@@ -1102,7 +1100,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
     
     
     Vector<IntRect> intRects;
-    range->textRects(intRects, NO);
+    range->absoluteTextRects(intRects, NO);
     unsigned size = intRects.size();
     
     NSMutableArray *rectArray = [NSMutableArray arrayWithCapacity:size];
@@ -1439,22 +1437,6 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
     return document->isTelephoneNumberParsingEnabled();
 }
 
-- (BOOL)mediaDataLoadsAutomatically
-{
-    WebCore::Frame *frame = core(self);
-    if (WebCore::Page* page = frame->page())
-        return page->settings().mediaDataLoadsAutomatically();
-
-    return NO;
-}
-
-- (void)setMediaDataLoadsAutomatically:(BOOL)flag
-{
-    WebCore::Frame *frame = core(self);
-    if (WebCore::Page* page = frame->page())
-        page->settings().setMediaDataLoadsAutomatically(flag);
-}
-
 - (DOMRange *)selectedDOMRange
 {
     WebCore::Frame *frame = core(self);
@@ -1736,7 +1718,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
     
     for (Node* node = root; node; node = NodeTraversal::next(*node)) {
         auto markers = document->markers().markersFor(node);
-        for (auto marker : markers) {
+        for (auto* marker : markers) {
 
             if (marker->type() != DocumentMarker::DictationResult)
                 continue;
@@ -1889,7 +1871,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
 {
     RefPtr<Range> range = _private->coreFrame->selection().toNormalizedRange();
 
-    DOMDocumentFragment* fragment = range ? kit(createFragmentFromText(*range, text).get()) : nil;
+    DOMDocumentFragment* fragment = range ? kit(createFragmentFromText(*range, text).ptr()) : nil;
     [self _replaceSelectionWithFragment:fragment selectReplacement:selectReplacement smartReplace:smartReplace matchStyle:matchStyle];
 }
 
@@ -1974,7 +1956,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
 {
     RefPtr<Range> range = _private->coreFrame->selection().toNormalizedRange();
     
-    DOMDocumentFragment* fragment = range ? kit(createFragmentFromText(*range, text).get()) : nil;
+    DOMDocumentFragment* fragment = range ? kit(createFragmentFromText(*range, text).ptr()) : nil;
     [self _replaceSelectionWithFragment:fragment selectReplacement:selectReplacement smartReplace:smartReplace matchStyle:YES];
 }
 
@@ -2066,7 +2048,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
     if (Document* document = _private->coreFrame->document()) {
         if (DatabaseManager::singleton().hasOpenDatabases(document))
             [result setObject:[NSNumber numberWithBool:YES] forKey:WebFrameUsesDatabases];
-        if (!document->canSuspendActiveDOMObjectsForPageCache())
+        if (!document->canSuspendActiveDOMObjectsForDocumentSuspension())
             [result setObject:[NSNumber numberWithBool:YES] forKey:WebFrameCanSuspendActiveDOMObjects];
     }
     
@@ -2097,7 +2079,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
         anyWorldGlobalObject = static_cast<JSDOMWindowShell*>(globalObjectObj)->window();
 
     // Get the frame frome the global object we've settled on.
-    Frame* frame = anyWorldGlobalObject->impl().frame();
+    Frame* frame = anyWorldGlobalObject->wrapped().frame();
     ASSERT(frame->document());
     RetainPtr<WebFrame> webFrame(kit(frame)); // Running arbitrary JavaScript can destroy the frame.
 
@@ -2280,7 +2262,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
 #if PLATFORM(IOS)
 - (DOMDocumentFragment *)_documentFragmentForText:(NSString *)text
 {
-    return kit(createFragmentFromText(*_private->coreFrame->selection().toNormalizedRange().get(), text).get());
+    return kit(createFragmentFromText(*_private->coreFrame->selection().toNormalizedRange().get(), text).ptr());
 }
 
 - (DOMDocumentFragment *)_documentFragmentForWebArchive:(WebArchive *)webArchive
@@ -2383,14 +2365,6 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
     [_private release];
 
     [super dealloc];
-}
-
-- (void)finalize
-{
-    if (_private && _private->includedInWebKitStatistics)
-        --WebFrameCount;
-
-    [super finalize];
 }
 
 - (NSString *)name

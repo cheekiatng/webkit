@@ -27,6 +27,7 @@ class ManifestGenerator {
             $row = $row['commit_repository'];
 
         $this->manifest = array(
+            'siteTitle' => config('siteTitle', 'Performance Dashboard'),
             'tests' => (object)$this->tests(),
             'metrics' => (object)$this->metrics(),
             'all' => (object)$this->platforms($config_table, $platform_table, false),
@@ -41,6 +42,8 @@ class ManifestGenerator {
 
         return TRUE;
     }
+
+    function manifest() { return $this->manifest; }
 
     function store() {
         return generate_data_file('manifest.json', json_encode($this->manifest));

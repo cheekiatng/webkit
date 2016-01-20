@@ -42,6 +42,10 @@
 #include <wtf/text/AtomicString.h>
 #include <wtf/text/AtomicStringHash.h>
 
+#if ENABLE(DATA_DETECTION)
+#include "DataDetection.h"
+#endif
+
 namespace WebCore {
 
 class FontGenericFamilies;
@@ -189,10 +193,18 @@ public:
     WEBCORE_EXPORT void setShowTiledScrollingIndicator(bool);
     bool showTiledScrollingIndicator() const { return m_showTiledScrollingIndicator; }
 
+#if ENABLE(RESOURCE_USAGE_OVERLAY)
+    bool resourceUsageOverlayVisible() const { return m_resourceUsageOverlayVisible; }
+    WEBCORE_EXPORT void setResourceUsageOverlayVisible(bool);
+#endif
+
 #if PLATFORM(WIN)
     static void setShouldUseHighResolutionTimers(bool);
     static bool shouldUseHighResolutionTimers() { return gShouldUseHighResolutionTimers; }
 #endif
+
+    static bool shouldRewriteConstAsVar() { return gShouldRewriteConstAsVar; }
+    static void setShouldRewriteConstAsVar(bool shouldRewriteConstAsVar) { gShouldRewriteConstAsVar = shouldRewriteConstAsVar; }
 
     WEBCORE_EXPORT void setBackgroundShouldExtendBeyondPage(bool);
     bool backgroundShouldExtendBeyondPage() const { return m_backgroundShouldExtendBeyondPage; }
@@ -269,9 +281,21 @@ public:
     void setMediaKeysStorageDirectory(const String& directory) { m_mediaKeysStorageDirectory = directory; }
     const String& mediaKeysStorageDirectory() const { return m_mediaKeysStorageDirectory; }
 #endif
+    
+#if ENABLE(MEDIA_STREAM)
+    void setMediaDeviceIdentifierStorageDirectory(const String& directory) { m_mediaDeviceIdentifierStorageDirectory = directory; }
+    const String& mediaDeviceIdentifierStorageDirectory() const { return m_mediaDeviceIdentifierStorageDirectory; }
+
+    static bool mockCaptureDevicesEnabled();
+    WEBCORE_EXPORT static void setMockCaptureDevicesEnabled(bool);
+#endif
 
     WEBCORE_EXPORT void setForcePendingWebGLPolicy(bool);
     bool isForcePendingWebGLPolicy() const { return m_forcePendingWebGLPolicy; }
+    
+#if PLATFORM(IOS)
+    WEBCORE_EXPORT static float defaultMinimumZoomFontSize();
+#endif
 
 private:
     explicit Settings(Page*);
@@ -328,6 +352,10 @@ private:
 
     bool m_forcePendingWebGLPolicy : 1;
 
+#if ENABLE(RESOURCE_USAGE_OVERLAY)
+    bool m_resourceUsageOverlayVisible { false };
+#endif
+
 #if USE(AVFOUNDATION)
     WEBCORE_EXPORT static bool gAVFoundationEnabled;
 #endif
@@ -335,13 +363,14 @@ private:
 #if PLATFORM(COCOA)
     WEBCORE_EXPORT static bool gQTKitEnabled;
 #endif
-        
+
     static bool gMockScrollbarsEnabled;
     static bool gUsesOverlayScrollbars;
 
 #if PLATFORM(WIN)
     static bool gShouldUseHighResolutionTimers;
 #endif
+    WEBCORE_EXPORT static bool gShouldRewriteConstAsVar;
     static bool gShouldRespectPriorityInCSSAttributeSetters;
 #if PLATFORM(IOS)
     static bool gNetworkDataUsageTrackingEnabled;
@@ -352,6 +381,11 @@ private:
 
 #if ENABLE(ENCRYPTED_MEDIA_V2)
     String m_mediaKeysStorageDirectory;
+#endif
+    
+#if ENABLE(MEDIA_STREAM)
+    String m_mediaDeviceIdentifierStorageDirectory;
+    static bool gMockCaptureDevicesEnabled;
 #endif
 
     static bool gLowPowerVideoAudioBufferSizeEnabled;

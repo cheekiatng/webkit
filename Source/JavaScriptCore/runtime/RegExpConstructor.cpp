@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 1999-2000 Harri Porten (porten@kde.org)
- *  Copyright (C) 2003, 2007, 2008 Apple Inc. All Rights Reserved.
+ *  Copyright (C) 2003, 2007, 2008, 2016 Apple Inc. All Rights Reserved.
  *  Copyright (C) 2009 Torch Mobile, Inc.
  *
  *  This library is free software; you can redistribute it and/or
@@ -26,6 +26,7 @@
 #include "JSCInlines.h"
 #include "RegExpMatchesArray.h"
 #include "RegExpPrototype.h"
+#include "StructureInlines.h"
 
 namespace JSC {
 
@@ -242,8 +243,17 @@ void setRegExpConstructorMultiline(ExecState* exec, JSObject* baseObject, Encode
         constructor->setMultiline(JSValue::decode(value).toBoolean(exec));
 }
 
+inline Structure* getRegExpStructure(ExecState* exec, JSGlobalObject* globalObject, JSValue newTarget)
+{
+    Structure* structure = globalObject->regExpStructure();
+    if (newTarget != jsUndefined()) {
+        structure = InternalFunction::createSubclassStructure(exec, newTarget, structure);
+    }
+    return structure;
+}
+
 // ECMA 15.10.4
-JSObject* constructRegExp(ExecState* exec, JSGlobalObject* globalObject, const ArgList& args, bool callAsConstructor)
+JSObject* constructRegExp(ExecState* exec, JSGlobalObject* globalObject, const ArgList& args, JSValue newTarget)
 {
     JSValue arg0 = args.at(0);
     JSValue arg1 = args.at(1);
@@ -252,9 +262,10 @@ JSObject* constructRegExp(ExecState* exec, JSGlobalObject* globalObject, const A
         if (!arg1.isUndefined())
             return exec->vm().throwException(exec, createTypeError(exec, ASCIILiteral("Cannot supply flags when constructing one RegExp from another.")));
         // If called as a function, this just returns the first argument (see 15.10.3.1).
-        if (callAsConstructor) {
+        if (newTarget != jsUndefined()) {
             RegExp* regExp = static_cast<RegExpObject*>(asObject(arg0))->regExp();
-            return RegExpObject::create(exec->vm(), globalObject->regExpStructure(), regExp);
+
+            return RegExpObject::create(exec->vm(), getRegExpStructure(exec, globalObject, newTarget), regExp);
         }
         return asObject(arg0);
     }
@@ -276,13 +287,14 @@ JSObject* constructRegExp(ExecState* exec, JSGlobalObject* globalObject, const A
     RegExp* regExp = RegExp::create(vm, pattern, flags);
     if (!regExp->isValid())
         return vm.throwException(exec, createSyntaxError(exec, regExp->errorMessage()));
-    return RegExpObject::create(vm, globalObject->regExpStructure(), regExp);
+
+    return RegExpObject::create(vm, getRegExpStructure(exec, globalObject, newTarget), regExp);
 }
 
 static EncodedJSValue JSC_HOST_CALL constructWithRegExpConstructor(ExecState* exec)
 {
     ArgList args(exec);
-    return JSValue::encode(constructRegExp(exec, asInternalFunction(exec->callee())->globalObject(), args, true));
+    return JSValue::encode(constructRegExp(exec, asInternalFunction(exec->callee())->globalObject(), args, exec->newTarget()));
 }
 
 ConstructType RegExpConstructor::getConstructData(JSCell*, ConstructData& constructData)

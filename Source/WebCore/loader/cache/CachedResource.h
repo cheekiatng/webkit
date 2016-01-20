@@ -244,13 +244,13 @@ public:
     virtual void switchClientsToRevalidatedResource();
     void clearResourceToRevalidate();
     void updateResponseAfterRevalidation(const ResourceResponse& validatingResponse);
-    
+    bool validationInProgress() const { return m_proxyResource; }
+    bool validationCompleting() const { return m_proxyResource && m_proxyResource->m_switchingClientsToRevalidatedResource; }
+
     virtual void didSendData(unsigned long long /* bytesSent */, unsigned long long /* totalBytesToBeSent */) { }
 
     void setLoadFinishTime(double finishTime) { m_loadFinishTime = finishTime; }
     double loadFinishTime() const { return m_loadFinishTime; }
-
-    virtual bool canReuse(const ResourceRequest&) const { return true; }
 
 #if USE(FOUNDATION) || USE(SOUP)
     WEBCORE_EXPORT void tryReplaceEncodedData(SharedBuffer&);
@@ -259,6 +259,8 @@ public:
 #if USE(SOUP)
     virtual char* getOrCreateReadBuffer(size_t /* requestedSize */, size_t& /* actualSize */) { return nullptr; }
 #endif
+
+    unsigned long identifierForLoadWithoutResourceLoader() const { return m_identifierForLoadWithoutResourceLoader; }
 
 protected:
     void setEncodedSize(unsigned);
@@ -341,9 +343,14 @@ private:
     HashSet<CachedResourceHandleBase*> m_handlesToRevalidate;
 
     RedirectChainCacheStatus m_redirectChainCacheStatus;
+
+    unsigned long m_identifierForLoadWithoutResourceLoader { 0 };
 };
 
 class CachedResource::Callback {
+#if !COMPILER(MSVC)
+    WTF_MAKE_FAST_ALLOCATED;
+#endif
 public:
     Callback(CachedResource&, CachedResourceClient&);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Apple Inc. All rights reserved.
+ * Copyright (C) 2013, 2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +38,9 @@
 #include "UserContentTypes.h"
 #include "UserStyleSheet.h"
 #include "UserStyleSheetTypes.h"
+#include <runtime/JSCellInlines.h>
+#include <runtime/StructureInlines.h>
+#include <wtf/NeverDestroyed.h>
 
 namespace WebCore {
 
@@ -282,7 +285,7 @@ void CaptionUserPreferences::setCaptionsStyleSheetOverride(const String& overrid
 void CaptionUserPreferences::updateCaptionStyleSheetOveride()
 {
     // Identify our override style sheet with a unique URL - a new scheme and a UUID.
-    DEPRECATED_DEFINE_STATIC_LOCAL(URL, captionsStyleSheetURL, (ParsedURLString, "user-captions-override:01F6AF12-C3B0-4F70-AF5E-A3E00234DC23"));
+    static NeverDestroyed<URL> captionsStyleSheetURL(ParsedURLString, "user-captions-override:01F6AF12-C3B0-4F70-AF5E-A3E00234DC23");
 
     auto& pages = m_pageGroup.pages();
     for (auto& page : pages) {
@@ -297,7 +300,7 @@ void CaptionUserPreferences::updateCaptionStyleSheetOveride()
     for (auto& page : pages) {
         if (auto* pageUserContentController = page->userContentController()) {
             auto userStyleSheet = std::make_unique<UserStyleSheet>(captionsOverrideStyleSheet, captionsStyleSheetURL, Vector<String>(), Vector<String>(), InjectInAllFrames, UserStyleAuthorLevel);
-            pageUserContentController->addUserStyleSheet(mainThreadNormalWorld(), WTF::move(userStyleSheet), InjectInExistingDocuments);
+            pageUserContentController->addUserStyleSheet(mainThreadNormalWorld(), WTFMove(userStyleSheet), InjectInExistingDocuments);
         }
     }
 }

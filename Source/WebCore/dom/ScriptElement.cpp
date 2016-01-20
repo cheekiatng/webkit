@@ -57,7 +57,6 @@ namespace WebCore {
 
 ScriptElement::ScriptElement(Element& element, bool parserInserted, bool alreadyStarted)
     : m_element(element)
-    , m_cachedScript(0)
     , m_startLineNumber(WTF::OrdinalNumber::beforeFirst())
     , m_parserInserted(parserInserted)
     , m_isExternalScript(false)
@@ -120,24 +119,24 @@ static bool isLegacySupportedJavaScriptLanguage(const String& language)
 
     // FIXME: This function is not HTML5 compliant. These belong in the MIME registry as "text/javascript<version>" entries.
     typedef HashSet<String, CaseFoldingHash> LanguageSet;
-    DEPRECATED_DEFINE_STATIC_LOCAL(LanguageSet, languages, ());
-    if (languages.isEmpty()) {
-        languages.add("javascript");
-        languages.add("javascript");
-        languages.add("javascript1.0");
-        languages.add("javascript1.1");
-        languages.add("javascript1.2");
-        languages.add("javascript1.3");
-        languages.add("javascript1.4");
-        languages.add("javascript1.5");
-        languages.add("javascript1.6");
-        languages.add("javascript1.7");
-        languages.add("livescript");
-        languages.add("ecmascript");
-        languages.add("jscript");
+    static NeverDestroyed<LanguageSet> languages;
+    if (languages.get().isEmpty()) {
+        languages.get().add("javascript");
+        languages.get().add("javascript");
+        languages.get().add("javascript1.0");
+        languages.get().add("javascript1.1");
+        languages.get().add("javascript1.2");
+        languages.get().add("javascript1.3");
+        languages.get().add("javascript1.4");
+        languages.get().add("javascript1.5");
+        languages.get().add("javascript1.6");
+        languages.get().add("javascript1.7");
+        languages.get().add("livescript");
+        languages.get().add("ecmascript");
+        languages.get().add("jscript");
     }
 
-    return languages.contains(language);
+    return languages.get().contains(language);
 }
 
 void ScriptElement::dispatchErrorEvent()
@@ -273,11 +272,13 @@ bool ScriptElement::requestScript(const String& sourceUrl)
         m_isExternalScript = true;
     }
 
-    if (m_cachedScript) {
+    if (m_cachedScript)
         return true;
-    }
 
-    dispatchErrorEvent();
+    RefPtr<Element> element = &m_element;
+    callOnMainThread([this, element] {
+        dispatchErrorEvent();
+    });
     return false;
 }
 
@@ -315,7 +316,7 @@ void ScriptElement::stopLoadRequest()
     if (m_cachedScript) {
         if (!m_willBeParserExecuted)
             m_cachedScript->removeClient(this);
-        m_cachedScript = 0;
+        m_cachedScript = nullptr;
     }
 }
 
@@ -346,7 +347,7 @@ void ScriptElement::notifyFinished(CachedResource* resource)
 
     if (m_requestUsesAccessControl && !m_cachedScript->passesSameOriginPolicyCheck(*m_element.document().securityOrigin())) {
         dispatchErrorEvent();
-        DEPRECATED_DEFINE_STATIC_LOCAL(String, consoleMessage, (ASCIILiteral("Cross-origin script load denied by Cross-Origin Resource Sharing policy.")));
+        static NeverDestroyed<String> consoleMessage(ASCIILiteral("Cross-origin script load denied by Cross-Origin Resource Sharing policy."));
         m_element.document().addConsoleMessage(MessageSource::JS, MessageLevel::Error, consoleMessage);
         return;
     }
@@ -356,7 +357,7 @@ void ScriptElement::notifyFinished(CachedResource* resource)
     else
         m_element.document().scriptRunner()->notifyScriptReady(this, ScriptRunner::ASYNC_EXECUTION);
 
-    m_cachedScript = 0;
+    m_cachedScript = nullptr;
 }
 
 bool ScriptElement::ignoresLoadRequest() const
@@ -368,12 +369,12 @@ bool ScriptElement::isScriptForEventSupported() const
 {
     String eventAttribute = eventAttributeValue();
     String forAttribute = forAttributeValue();
-    if (!eventAttribute.isEmpty() && !forAttribute.isEmpty()) {
-        forAttribute = forAttribute.stripWhiteSpace();
+    if (!eventAttribute.isNull() && !forAttribute.isNull()) {
+        forAttribute = stripLeadingAndTrailingHTMLSpaces(forAttribute);
         if (!equalIgnoringCase(forAttribute, "window"))
             return false;
 
-        eventAttribute = eventAttribute.stripWhiteSpace();
+        eventAttribute = stripLeadingAndTrailingHTMLSpaces(eventAttribute);
         if (!equalIgnoringCase(eventAttribute, "onload") && !equalIgnoringCase(eventAttribute, "onload()"))
             return false;
     }
@@ -382,7 +383,10 @@ bool ScriptElement::isScriptForEventSupported() const
 
 String ScriptElement::scriptContent() const
 {
-    return TextNodeTraversal::contentsAsString(m_element);
+    StringBuilder result;
+    for (auto* text = TextNodeTraversal::firstChild(m_element); text; text = TextNodeTraversal::nextSibling(*text))
+        result.append(text->data());
+    return result.toString();
 }
 
 ScriptElement* toScriptElementIfPossible(Element* element)

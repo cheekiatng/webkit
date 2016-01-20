@@ -25,6 +25,7 @@
 #include "CSSValueKeywords.h"
 #include "CSSValueList.h"
 #include <wtf/text/AtomicString.h>
+#include <wtf/text/AtomicStringHash.h>
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
@@ -32,6 +33,9 @@ namespace WebCore {
 class CSSValue;
 class QualifiedName;
 
+// This can't be a StringView for 2 reasons:
+// 1. lower() clobbers the data we point to.
+// 2. We are an element of a union (in CSSParserValue) so we need to have a trivial destructor.
 struct CSSParserString {
     void init(LChar* characters, unsigned length)
     {
@@ -104,6 +108,7 @@ struct CSSParserString {
 };
 
 struct CSSParserFunction;
+struct CSSParserVariable;
 
 struct CSSParserValue {
     CSSValueID id;
@@ -113,6 +118,7 @@ struct CSSParserValue {
         int iValue;
         CSSParserString string;
         CSSParserFunction* function;
+        CSSParserVariable* variable;
         CSSParserValueList* valueList;
     };
     enum {
@@ -120,6 +126,7 @@ struct CSSParserValue {
         Function  = 0x100001,
         ValueList = 0x100002,
         Q_EMS     = 0x100003,
+        Variable  = 0x100004
     };
     int unit;
 
@@ -165,6 +172,10 @@ public:
     CSSParserValue* valueAt(unsigned i) { return i < m_values.size() ? &m_values[i] : 0; }
 
     void clear() { m_values.clear(); }
+    
+    String toString();
+    
+    bool containsVariables() const;
 
 private:
     unsigned m_current;
@@ -178,10 +189,17 @@ public:
     std::unique_ptr<CSSParserValueList> args;
 };
 
+struct CSSParserVariable {
+    WTF_MAKE_FAST_ALLOCATED;
+public:
+    CSSParserString name; // The custom property name
+    std::unique_ptr<CSSParserValueList> args; // The fallback args
+};
+
 enum class CSSParserSelectorCombinator {
     Child,
     DescendantSpace,
-#if ENABLE_CSS_SELECTORS_LEVEL4
+#if ENABLE(CSS_SELECTORS_LEVEL4)
     DescendantDoubleChild,
 #endif
     DirectAdjacent,
@@ -200,7 +218,7 @@ public:
     explicit CSSParserSelector(const QualifiedName&);
     ~CSSParserSelector();
 
-    std::unique_ptr<CSSSelector> releaseSelector() { return WTF::move(m_selector); }
+    std::unique_ptr<CSSSelector> releaseSelector() { return WTFMove(m_selector); }
 
     void setValue(const AtomicString& value) { m_selector->setValue(value); }
     void setAttribute(const QualifiedName& value, bool isCaseInsensitive) { m_selector->setAttribute(value, isCaseInsensitive); }
@@ -230,7 +248,7 @@ public:
     bool matchesPseudoElement() const;
 
     CSSParserSelector* tagHistory() const { return m_tagHistory.get(); }
-    void setTagHistory(std::unique_ptr<CSSParserSelector> selector) { m_tagHistory = WTF::move(selector); }
+    void setTagHistory(std::unique_ptr<CSSParserSelector> selector) { m_tagHistory = WTFMove(selector); }
     void clearTagHistory() { m_tagHistory.reset(); }
     void insertTagHistory(CSSSelector::Relation before, std::unique_ptr<CSSParserSelector>, CSSSelector::Relation after);
     void appendTagHistory(CSSSelector::Relation, std::unique_ptr<CSSParserSelector>);
@@ -238,7 +256,7 @@ public:
     void prependTagSelector(const QualifiedName&, bool tagIsForNamespaceRule = false);
 
 private:
-#if ENABLE_CSS_SELECTORS_LEVEL4
+#if ENABLE(CSS_SELECTORS_LEVEL4)
     void setDescendantUseDoubleChildSyntax() { m_selector->setDescendantUseDoubleChildSyntax(); }
 #endif
 

@@ -136,7 +136,7 @@ CommitLogs._cacheConsecutiveCommits = function (repository, from, to, consecutiv
         cachedCommits.commitsByTime.push(commit);
     });
 
-    cachedCommits.commitsByTime.sort(function (a, b) { return a.time - b.time; });
+    cachedCommits.commitsByTime.sort(function (a, b) { return a.time && b.time ? (a.time - b.time) : (a.order - b.order); });
     cachedCommits.commitsByTime.forEach(function (commit, index) { commit.cacheIndex = index; });
 }
 
@@ -154,7 +154,7 @@ function Measurement(rawData)
 
     for (var repositoryId in revisions) {
         var commitTimeOrUndefined = revisions[repositoryId][1]; // e.g. ["162190", 1389945046000]
-        if (latestTime < commitTimeOrUndefined)
+        if (commitTimeOrUndefined && latestTime < commitTimeOrUndefined)
             latestTime = commitTimeOrUndefined;
     }
     this._latestCommitTime = latestTime !== -1 ? new Date(latestTime) : null;
@@ -323,17 +323,17 @@ RunsData.prototype.count = function ()
     return this._measurements.length;
 }
 
-RunsData.prototype.timeSeriesByCommitTime = function (includeOutliers)
+RunsData.prototype.timeSeriesByCommitTime = function (includeOutliers, extendToFuture)
 {
-    return this._timeSeriesByTimeInternal(true, includeOutliers);
+    return this._timeSeriesByTimeInternal(true, includeOutliers, extendToFuture);
 }
 
-RunsData.prototype.timeSeriesByBuildTime = function (includeOutliers)
+RunsData.prototype.timeSeriesByBuildTime = function (includeOutliers, extendToFuture)
 {
-    return this._timeSeriesByTimeInternal(false, includeOutliers);
+    return this._timeSeriesByTimeInternal(false, includeOutliers, extendToFuture);
 }
 
-RunsData.prototype._timeSeriesByTimeInternal = function (useCommitType, includeOutliers)
+RunsData.prototype._timeSeriesByTimeInternal = function (useCommitType, includeOutliers, extendToFuture)
 {
     var series = new Array();
     var seriesIndex = 0;
@@ -349,7 +349,7 @@ RunsData.prototype._timeSeriesByTimeInternal = function (useCommitType, includeO
             markedOutlier: measurement.markedOutlier(),
         });
     }
-    return new TimeSeries(series);
+    return new TimeSeries(series, extendToFuture);
 }
 
 // FIXME: We need to devise a way to fetch runs in multiple chunks so that
@@ -420,12 +420,25 @@ RunsData.isSmallerBetter = function (unit)
     return unit != 'fps' && unit != '/s' && unit != 'pt';
 }
 
-function TimeSeries(series)
+// FIXME: Extending the baseline/target to the future should be a server-side configuration.
+function TimeSeries(series, extendToFuture)
 {
     this._series = series.sort(function (a, b) {
         var diff = a.time - b.time;
         return diff ? diff : a.secondaryTime - b.secondaryTime;
     });
+
+    if (extendToFuture && this._series.length) {
+        var lastPoint = this._series[this._series.length - 1];
+        this._series.push({
+            measurement: lastPoint.measurement,
+            time: Date.now() + 24 * 3600 * 1000,
+            secondaryTime: Date.now() + 24 * 3600 * 1000,
+            value: lastPoint.value,
+            interval: lastPoint.interval,
+            markedOutlier: lastPoint.markedOutlier,
+        });
+    }
 
     var self = this;
     var min = undefined;
@@ -477,7 +490,7 @@ TimeSeries.prototype.findPointAfterTime = function (time)
 
 TimeSeries.prototype.seriesBetweenPoints = function (startPoint, endPoint)
 {
-    if (!startPoint.seriesIndex || !endPoint.seriesIndex)
+    if (typeof(startPoint.seriesIndex) != "number" || typeof(endPoint.seriesIndex) != "number")
         return null;
     return this._series.slice(startPoint.seriesIndex, endPoint.seriesIndex + 1);
 }

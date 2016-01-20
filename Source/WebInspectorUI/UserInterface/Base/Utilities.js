@@ -433,14 +433,39 @@ Object.defineProperty(Array.prototype, "remove",
     }
 });
 
+Object.defineProperty(Array.prototype, "insertAtIndex",
+{
+    value: function(value, index)
+    {
+        this.splice(index, 0, value);
+    }
+});
+
 Object.defineProperty(Array.prototype, "keySet",
 {
     value: function()
     {
-        var keys = {};
+        let keys = Object.create(null);
         for (var i = 0; i < this.length; ++i)
             keys[this[i]] = true;
         return keys;
+    }
+});
+
+Object.defineProperty(Array.prototype, "partition",
+{
+    value: function(callback)
+    {
+        let positive = [];
+        let negative = [];
+        for (let i = 0; i < this.length; ++i) {
+            let value = this[i];
+            if (callback(value))
+                positive.push(value);
+            else
+                negative.push(value);
+        }
+        return [positive, negative];
     }
 });
 
@@ -463,6 +488,24 @@ Object.defineProperty(String.prototype, "trimEnd",
         if (this.length <= maxLength)
             return this;
         return this.substr(0, maxLength - 1) + "\u2026";
+    }
+});
+
+Object.defineProperty(String.prototype, "truncate",
+{
+    value: function(maxLength)
+    {
+        "use strict";
+
+        if (this.length <= maxLength)
+            return this;
+
+        let clipped = this.slice(0, maxLength);
+        let indexOfLastWhitespace = clipped.search(/\s\S*$/);
+        if (indexOfLastWhitespace > Math.floor(maxLength / 2))
+            clipped = clipped.slice(0, indexOfLastWhitespace - 1);
+
+        return clipped + "\u2026";
     }
 });
 
@@ -588,7 +631,7 @@ Object.defineProperty(String.prototype, "hash",
 {
     get: function()
     {
-        // Matches the wtf/StringHasher.h (SuperFastHash) algorithm.
+        // Matches the wtf/Hasher.h (SuperFastHash) algorithm.
 
         // Arbitrary start value to avoid mapping all 0's to all 0's.
         const stringHashingStartValue = 0x9e3779b9;
@@ -1064,9 +1107,37 @@ Object.defineProperty(Array.prototype, "binaryIndexOf",
     }
 });
 
+(function() {
+    const debounceSymbol = Symbol("function-debounce-timeout");
+    Object.defineProperty(Function.prototype, "debounce",
+    {
+        value: function(delay, thisObject)
+        {
+            let callback = this.bind(thisObject);
+            return function() {
+                clearTimeout(callback[debounceSymbol]);
+                let args = arguments;
+                callback[debounceSymbol] = setTimeout(() => {
+                    callback.apply(null, args);
+                }, delay);
+            };
+        }
+    });
+})();
+
 function appendWebInspectorSourceURL(string)
 {
-    return string + "\n//# sourceURL=__WebInspectorInternal__\n";
+    return "\n//# sourceURL=__WebInspectorInternal__\n" + string;
+}
+
+function isWebInspectorInternalScript(url)
+{
+    return url === "__WebInspectorInternal__";
+}
+
+function isWebInspectorDebugScript(url)
+{
+    return url && url.startsWith("__WebInspector");
 }
 
 function isFunctionStringNativeCode(str)
@@ -1077,11 +1148,6 @@ function isFunctionStringNativeCode(str)
 function doubleQuotedString(str)
 {
     return "\"" + str.replace(/"/g, "\\\"") + "\"";
-}
-
-function clamp(min, value, max)
-{
-    return Math.min(Math.max(min, value), max);
 }
 
 function insertionIndexForObjectInListSortedByFunction(object, list, comparator, insertionIndexAfter)
@@ -1120,4 +1186,10 @@ function decodeBase64ToBlob(base64Data, mimeType)
     }
 
     return new Blob(byteArrays, {type: mimeType});
+}
+
+// FIXME: This can be removed when WEB_TIMING is enabled for all platforms.
+function timestamp()
+{
+    return window.performance ? performance.now() : Date.now();
 }

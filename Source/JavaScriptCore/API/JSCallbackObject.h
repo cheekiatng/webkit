@@ -79,6 +79,8 @@ public:
     void* privateData;
     JSClassRef jsClass;
     struct JSPrivatePropertyMap {
+        WTF_MAKE_FAST_ALLOCATED;
+    public:
         JSValue getPrivateProperty(const Identifier& propertyName) const
         {
             PrivatePropertyMap::const_iterator location = m_propertyMap.find(propertyName.impl());
@@ -125,7 +127,7 @@ protected:
 
 public:
     typedef Parent Base;
-    static const unsigned StructureFlags = Base::StructureFlags | ProhibitsPropertyCaching | OverridesGetOwnPropertySlot | InterceptsGetOwnPropertySlotByIndexEvenWhenLengthIsNotZero | ImplementsHasInstance | OverridesHasInstance | OverridesGetPropertyNames | TypeOfShouldCallGetCallData;
+    static const unsigned StructureFlags = Base::StructureFlags | ProhibitsPropertyCaching | OverridesGetOwnPropertySlot | InterceptsGetOwnPropertySlotByIndexEvenWhenLengthIsNotZero | ImplementsHasInstance | OverridesGetPropertyNames | TypeOfShouldCallGetCallData;
 
     ~JSCallbackObject();
 

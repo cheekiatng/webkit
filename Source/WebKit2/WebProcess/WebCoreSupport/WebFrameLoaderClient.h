@@ -28,6 +28,10 @@
 
 #include <WebCore/FrameLoaderClient.h>
 
+namespace WebCore {
+class SessionID;
+}
+
 namespace WebKit {
 
 class PluginView;
@@ -78,7 +82,7 @@ private:
     virtual void dispatchDidFailLoading(WebCore::DocumentLoader*, unsigned long identifier, const WebCore::ResourceError&) override;
     virtual bool dispatchDidLoadResourceFromMemoryCache(WebCore::DocumentLoader*, const WebCore::ResourceRequest&, const WebCore::ResourceResponse&, int length) override;
     
-    virtual void dispatchDidHandleOnloadEvents() override;
+    virtual void dispatchDidDispatchOnloadEvents() override;
     virtual void dispatchDidReceiveServerRedirectForProvisionalLoad() override;
     virtual void dispatchDidChangeProvisionalURL() override;
     virtual void dispatchDidCancelClientRedirect() override;
@@ -141,6 +145,7 @@ private:
 
     virtual WebCore::ResourceError cancelledError(const WebCore::ResourceRequest&) override;
     virtual WebCore::ResourceError blockedError(const WebCore::ResourceRequest&) override;
+    virtual WebCore::ResourceError blockedByContentBlockerError(const WebCore::ResourceRequest&) override;
     virtual WebCore::ResourceError cannotShowURLError(const WebCore::ResourceRequest&) override;
     virtual WebCore::ResourceError interruptedForPolicyChangeError(const WebCore::ResourceRequest&) override;
     
@@ -183,7 +188,7 @@ private:
     virtual void dispatchDidBecomeFrameset(bool) override;
 
     virtual bool canCachePage() const override;
-    virtual void convertMainResourceLoadToDownload(WebCore::DocumentLoader*, const WebCore::ResourceRequest&, const WebCore::ResourceResponse&) override;
+    virtual void convertMainResourceLoadToDownload(WebCore::DocumentLoader*, WebCore::SessionID, const WebCore::ResourceRequest&, const WebCore::ResourceResponse&) override;
 
     virtual RefPtr<WebCore::Frame> createFrame(const WebCore::URL&, const String& name, WebCore::HTMLFrameOwnerElement*,
                                           const String& referrer, bool allowsScrolling, int marginWidth, int marginHeight) override;
@@ -199,7 +204,7 @@ private:
 
     virtual PassRefPtr<WebCore::Widget> createJavaAppletWidget(const WebCore::IntSize&, WebCore::HTMLAppletElement*, const WebCore::URL& baseURL, const Vector<String>& paramNames, const Vector<String>& paramValues) override;
     
-    virtual WebCore::ObjectContentType objectContentType(const WebCore::URL&, const String& mimeType, bool shouldPreferPlugInsForImages) override;
+    virtual WebCore::ObjectContentType objectContentType(const WebCore::URL&, const String& mimeType) override;
     virtual String overrideMediaType() const override;
 
     virtual void dispatchDidClearWindowObjectInWorld(WebCore::DOMWrapperWorld&) override;
@@ -240,6 +245,10 @@ private:
 #if ENABLE(CONTENT_FILTERING)
     void contentFilterDidBlockLoad(WebCore::ContentFilterUnblockHandler) override;
 #endif
+
+    void prefetchDNS(const String&) override;
+
+    void didRestoreScrollPosition() override;
 
     WebFrame* m_frame;
     RefPtr<PluginView> m_pluginView;

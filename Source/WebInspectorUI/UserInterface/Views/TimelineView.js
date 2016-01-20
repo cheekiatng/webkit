@@ -24,57 +24,54 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-WebInspector.TimelineView = function(representedObject, extraArguments)
+WebInspector.TimelineView = class TimelineView extends WebInspector.ContentView
 {
-    // This class should not be instantiated directly. Create a concrete subclass instead.
-    console.assert(this.constructor !== WebInspector.TimelineView && this instanceof WebInspector.TimelineView);
+    constructor(representedObject, extraArguments)
+    {
+        console.assert(extraArguments);
+        console.assert(extraArguments.timelineSidebarPanel instanceof WebInspector.TimelineSidebarPanel);
 
-    console.assert(extraArguments);
-    console.assert(extraArguments.timelineSidebarPanel instanceof WebInspector.TimelineSidebarPanel);
+        super(representedObject);
 
-    WebInspector.ContentView.call(this, representedObject);
+        // This class should not be instantiated directly. Create a concrete subclass instead.
+        console.assert(this.constructor !== WebInspector.TimelineView && this instanceof WebInspector.TimelineView);
 
-    this._timelineSidebarPanel = extraArguments.timelineSidebarPanel;
+        this._timelineSidebarPanel = extraArguments.timelineSidebarPanel;
 
-    this._contentTreeOutline = this._timelineSidebarPanel.createContentTreeOutline();
-    this._contentTreeOutline.onselect = this.treeElementSelected.bind(this);
-    this._contentTreeOutline.ondeselect = this.treeElementDeselected.bind(this);
-    this._contentTreeOutline.__canShowContentViewForTreeElement = this.canShowContentViewForTreeElement.bind(this);
+        this._contentTreeOutline = this._timelineSidebarPanel.createContentTreeOutline();
+        this._contentTreeOutline.addEventListener(WebInspector.TreeOutline.Event.SelectionDidChange, this._treeSelectionDidChange, this);
+        this._contentTreeOutline.__canShowContentViewForTreeElement = this.canShowContentViewForTreeElement.bind(this);
 
-    this.element.classList.add("timeline-view");
+        this.element.classList.add("timeline-view");
 
-    this._zeroTime = 0;
-    this._startTime = 0;
-    this._endTime = 5;
-    this._currentTime = 0;
-};
-
-WebInspector.TimelineView.prototype = {
-    constructor: WebInspector.TimelineView,
-    __proto__: WebInspector.ContentView.prototype,
+        this._zeroTime = 0;
+        this._startTime = 0;
+        this._endTime = 5;
+        this._currentTime = 0;
+    }
 
     // Public
 
     get navigationSidebarTreeOutline()
     {
         return this._contentTreeOutline;
-    },
+    }
 
     get navigationSidebarTreeOutlineLabel()
     {
         // Implemented by sub-classes if needed.
         return null;
-    },
+    }
 
     get navigationSidebarTreeOutlineScopeBar()
     {
         return this._scopeBar;
-    },
+    }
 
     get timelineSidebarPanel()
     {
         return this._timelineSidebarPanel;
-    },
+    }
 
     get selectionPathComponents()
     {
@@ -84,66 +81,74 @@ WebInspector.TimelineView.prototype = {
         var pathComponent = new WebInspector.GeneralTreeElementPathComponent(this._contentTreeOutline.selectedTreeElement);
         pathComponent.addEventListener(WebInspector.HierarchicalPathComponent.Event.SiblingWasSelected, this.treeElementPathComponentSelected, this);
         return [pathComponent];
-    },
+    }
 
     get zeroTime()
     {
         return this._zeroTime;
-    },
+    }
 
     set zeroTime(x)
     {
+        x = x || 0;
+
         if (this._zeroTime === x)
             return;
 
-        this._zeroTime = x || 0;
+        this._zeroTime = x;
 
         this.needsLayout();
-    },
+    }
 
     get startTime()
     {
         return this._startTime;
-    },
+    }
 
     set startTime(x)
     {
+        x = x || 0;
+
         if (this._startTime === x)
             return;
 
-        this._startTime = x || 0;
+        this._startTime = x;
 
         this.needsLayout();
-    },
+    }
 
     get endTime()
     {
         return this._endTime;
-    },
+    }
 
     set endTime(x)
     {
+        x = x || 0;
+
         if (this._endTime === x)
             return;
 
-        this._endTime = x || 0;
+        this._endTime = x;
 
         this.needsLayout();
-    },
+    }
 
     get currentTime()
     {
         return this._currentTime;
-    },
+    }
 
     set currentTime(x)
     {
+        x = x || 0;
+
         if (this._currentTime === x)
             return;
 
-        var oldCurrentTime = this._currentTime;
+        let oldCurrentTime = this._currentTime;
 
-        this._currentTime = x || 0;
+        this._currentTime = x;
 
         function checkIfLayoutIsNeeded(currentTime)
         {
@@ -154,59 +159,52 @@ WebInspector.TimelineView.prototype = {
 
         if (checkIfLayoutIsNeeded.call(this, oldCurrentTime) || checkIfLayoutIsNeeded.call(this, this._currentTime))
             this.needsLayout();
-    },
+    }
 
-    reset: function()
+    reset()
     {
         this._contentTreeOutline.removeChildren();
-    },
+        this._timelineSidebarPanel.hideEmptyContentPlaceholder();
+    }
 
 
-    filterDidChange: function()
+    filterDidChange()
     {
         // Implemented by sub-classes if needed.
-    },
+    }
 
-    matchTreeElementAgainstCustomFilters: function(treeElement)
+    matchTreeElementAgainstCustomFilters(treeElement)
     {
         // Implemented by sub-classes if needed.
         return true;
-    },
+    }
 
-    updateLayout: function()
-    {
-        if (this._scheduledLayoutUpdateIdentifier) {
-            cancelAnimationFrame(this._scheduledLayoutUpdateIdentifier);
-            this._scheduledLayoutUpdateIdentifier = undefined;
-        }
-
-        // Implemented by sub-classes if needed.
-    },
-
-    updateLayoutIfNeeded: function()
-    {
-        if (!this._scheduledLayoutUpdateIdentifier)
-            return;
-        this.updateLayout();
-    },
-
-    filterUpdated: function()
+    filterUpdated()
     {
         this.dispatchEventToListeners(WebInspector.ContentView.Event.SelectionPathComponentsDidChange);
-    },
+    }
+
+    needsLayout()
+    {
+        // FIXME: needsLayout can be removed once <https://webkit.org/b/150741> is fixed.
+        if (!this.visible)
+            return;
+
+        super.needsLayout();
+    }
 
     // Protected
 
-    canShowContentViewForTreeElement: function(treeElement)
+    canShowContentViewForTreeElement(treeElement)
     {
         // Implemented by sub-classes if needed.
 
         if (treeElement instanceof WebInspector.TimelineRecordTreeElement)
             return !!treeElement.sourceCodeLocation;
         return false;
-    },
+    }
 
-    showContentViewForTreeElement: function(treeElement)
+    showContentViewForTreeElement(treeElement)
     {
         // Implemented by sub-classes if needed.
 
@@ -222,23 +220,21 @@ WebInspector.TimelineView.prototype = {
         }
 
         WebInspector.showOriginalOrFormattedSourceCodeLocation(sourceCodeLocation);
-    },
+    }
 
-    treeElementPathComponentSelected: function(event)
+    treeElementPathComponentSelected(event)
     {
         // Implemented by sub-classes if needed.
-    },
+    }
 
-    treeElementDeselected: function(treeElement)
+    treeElementDeselected(treeElement)
     {
         // Implemented by sub-classes if needed.
-    },
+    }
 
-    treeElementSelected: function(treeElement, selectedByUser)
+    treeElementSelected(treeElement, selectedByUser)
     {
         // Implemented by sub-classes if needed.
-
-        this.dispatchEventToListeners(WebInspector.ContentView.Event.SelectionPathComponentsDidChange);
 
         if (!this._timelineSidebarPanel.canShowDifferentContentView())
             return;
@@ -247,16 +243,16 @@ WebInspector.TimelineView.prototype = {
             return;
 
         this.showContentViewForTreeElement(treeElement);
-    },
+    }
 
-    needsLayout: function()
+    // Private
+
+    _treeSelectionDidChange(event)
     {
-        if (!this.visible)
-            return;
+        if (event.data.deselectedElement)
+            this.treeElementDeselected(event.data.deselectedElement);
 
-        if (this._scheduledLayoutUpdateIdentifier)
-            return;
-
-        this._scheduledLayoutUpdateIdentifier = requestAnimationFrame(this.updateLayout.bind(this));
+        if (event.data.selectedElement)
+            this.treeElementSelected(event.data.selectedElement, event.data.selectedByUser);
     }
 };

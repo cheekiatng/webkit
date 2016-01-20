@@ -33,7 +33,8 @@
     pointer-events: all;
 }
 
-.timeline-ruler.allows-time-range-selection.creating-selection {
+.timeline-ruler.resizing-selection,
+.timeline-ruler.resizing-selection > .selection-drag {
     cursor: col-resize;
 }
 
@@ -60,7 +61,7 @@ body.window-inactive .timeline-ruler > .header {
     width: 1px;
     top: 0;
     bottom: 0;
-    -webkit-transform: translateX(-1px);
+    transform: translateX(-1px);
     background-image: linear-gradient(to bottom, hsla(0, 0%, 70%, 0), hsla(0, 0%, 70%, 2) 85%);
 }
 
@@ -91,7 +92,7 @@ body.window-inactive .timeline-ruler > .header > .divider {
     width: 1px;
     top: 1px;
     bottom: 0;
-    -webkit-transform: translateX(-1px);
+    transform: translateX(-1px);
     background-color: hsla(0, 0%, 0%, 0.05);
 }
 
@@ -100,16 +101,31 @@ body.window-inactive .timeline-ruler > .header > .divider {
     top: 0;
     bottom: 0;
 
-    -webkit-transform: translateX(-1px);
+    transform: translateX(-1px);
 
     border-left-width: 1px;
-    border-left-style: dashed;
+    border-left-style: solid;
     border-left-color: hsla(0, 0%, 50%, 0.5);
+
+    pointer-events: all;
+}
+
+/* Larger tooltip area */
+.timeline-ruler > .markers > .marker {
+    z-index: 20;
+    width: 3px;
+}
+.timeline-ruler > .markers > .marker::before {
+    width: 3px;
+    content: "";
+    position: absolute;
+    left: -3px;
+    top: 0;
+    bottom: 0;
 }
 
 .timeline-ruler > .markers > .marker.current-time {
     border-left-color: red;
-    border-left-style: solid;
 }
 
 .timeline-ruler > .markers > .marker.current-time::before {
@@ -127,15 +143,18 @@ body.window-inactive .timeline-ruler > .header > .divider {
 }
 
 .timeline-ruler > .markers > .marker.load-event {
-    border-left-color: hsla(0, 100%, 50%, 0.5);
+    border-left-color: hsl(0, 100%, 50%);
+    opacity: 0.25;
 }
 
 .timeline-ruler > .markers > .marker.dom-content-event {
-    border-left-color: hsla(240, 100%, 50%, 0.5);
+    border-left-color: hsl(240, 100%, 50%);
+    opacity: 0.25;
 }
 
 .timeline-ruler > .markers > .marker.timestamp {
-    border-left-color: hsla(119, 100%, 21%, 0.5);
+    border-left-color: hsl(119, 100%, 21%);
+    opacity: 0.25;
 }
 
 .timeline-ruler > .selection-drag {
@@ -163,12 +182,25 @@ body.window-inactive .timeline-ruler > .header > .divider {
     z-index: 15;
 }
 
+.timeline-ruler > .selection-handle.clamped {
+    border: 1px solid hsl(0, 0%, 64%);
+    background-color: white;
+}
+
+.timeline-ruler.both-handles-clamped > .selection-handle {
+    z-index: 14;
+}
+
+.timeline-ruler > .selection-handle.clamped.hidden {
+    display: none;
+}
+
 .timeline-ruler > .selection-handle.left {
-    -webkit-transform: translateX(-4px);
+    transform: translateX(-4px);
 }
 
 .timeline-ruler > .selection-handle.right {
-    -webkit-transform: translateX(4px);
+    transform: translateX(4px);
 }
 
 .timeline-ruler > .shaded-area {

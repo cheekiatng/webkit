@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Apple Inc. All rights reserved.
+ * Copyright (C) 2010, 2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,7 +28,6 @@
 
 #import "AnimationUtilities.h"
 #import "BlockExceptions.h"
-#import "FontAntialiasingStateSaver.h"
 #import "GraphicsContext.h"
 #import "GraphicsLayerCA.h"
 #import "LengthFunctions.h"
@@ -47,16 +46,15 @@
 #import "WebTiledBackingLayer.h"
 #import <AVFoundation/AVFoundation.h>
 #import <QuartzCore/QuartzCore.h>
-#import <objc/objc-auto.h>
 #import <objc/runtime.h>
 #import <wtf/CurrentTime.h>
 #import <wtf/RetainPtr.h>
 
 #if PLATFORM(IOS)
+#import "FontAntialiasingStateSaver.h"
 #import "WAKWindow.h"
 #import "WKGraphics.h"
 #import "WebCoreThread.h"
-#import "WebTiledLayer.h"
 #else
 #import "ThemeMac.h"
 #endif
@@ -67,7 +65,18 @@
 @end
 #endif
 
+#if __has_include(<WebKitAdditions/LayerBackingStoreAdditions.mm>)
+#import <WebKitAdditions/LayerBackingStoreAdditions.mm>
+#else
+namespace WebCore {
+static void setBackingStoreFormat(CALayer *)
+{
+}
+} // namespace WebCore
+#endif
+
 SOFT_LINK_FRAMEWORK_OPTIONAL(AVFoundation)
+
 SOFT_LINK_CLASS(AVFoundation, AVPlayerLayer)
 
 using namespace WebCore;
@@ -297,6 +306,9 @@ void PlatformCALayerCocoa::commonInit()
         [m_layer web_disableAllActions];
     else
         [m_layer setDelegate:[WebActionDisablingCALayerDelegate shared]];
+
+    if (m_layerType == LayerTypeWebLayer || m_layerType == LayerTypeTiledBackingTileLayer)
+        setBackingStoreFormat(m_layer.get());
 
     // So that the scrolling thread's performance logging code can find all the tiles, mark this as being a tile.
     if (m_layerType == LayerTypeTiledBackingTileLayer)
@@ -619,6 +631,11 @@ bool PlatformCALayerCocoa::backingStoreAttached() const
     return true;
 }
 
+bool PlatformCALayerCocoa::geometryFlipped() const
+{
+    return [m_layer isGeometryFlipped];
+}
+
 void PlatformCALayerCocoa::setGeometryFlipped(bool value)
 {
     BEGIN_BLOCK_OBJC_EXCEPTIONS
@@ -702,14 +719,8 @@ Color PlatformCALayerCocoa::backgroundColor() const
 
 void PlatformCALayerCocoa::setBackgroundColor(const Color& value)
 {
-    CGFloat components[4];
-    value.getRGBA(components[0], components[1], components[2], components[3]);
-
-    RetainPtr<CGColorSpaceRef> colorSpace = adoptCF(CGColorSpaceCreateDeviceRGB());
-    RetainPtr<CGColorRef> color = adoptCF(CGColorCreate(colorSpace.get(), components));
-
     BEGIN_BLOCK_OBJC_EXCEPTIONS
-    [m_layer setBackgroundColor:color.get()];
+    [m_layer setBackgroundColor:cachedCGColor(value)];
     END_BLOCK_OBJC_EXCEPTIONS
 }
 
@@ -723,14 +734,8 @@ void PlatformCALayerCocoa::setBorderWidth(float value)
 void PlatformCALayerCocoa::setBorderColor(const Color& value)
 {
     if (value.isValid()) {
-        CGFloat components[4];
-        value.getRGBA(components[0], components[1], components[2], components[3]);
-
-        RetainPtr<CGColorSpaceRef> colorSpace = adoptCF(CGColorSpaceCreateDeviceRGB());
-        RetainPtr<CGColorRef> color = adoptCF(CGColorCreate(colorSpace.get(), components));
-
         BEGIN_BLOCK_OBJC_EXCEPTIONS
-        [m_layer setBorderColor:color.get()];
+        [m_layer setBorderColor:cachedCGColor(value)];
         END_BLOCK_OBJC_EXCEPTIONS
     } else {
         BEGIN_BLOCK_OBJC_EXCEPTIONS
@@ -826,13 +831,6 @@ void PlatformCALayerCocoa::setContentsScale(float value)
     [m_layer setContentsScale:value];
 #if PLATFORM(IOS)
     [m_layer setRasterizationScale:value];
-
-    if (m_layerType == LayerTypeWebTiledLayer) {
-        // This will invalidate all the tiles so we won't end up with stale tiles with the wrong scale in the wrong place,
-        // see <rdar://problem/9434765> for more information.
-        static NSDictionary *optionsDictionary = [[NSDictionary alloc] initWithObjectsAndKeys:[NSNumber numberWithBool:YES], kCATiledLayerRemoveImmediately, nil];
-        [(CATiledLayer *)m_layer.get() setNeedsDisplayInRect:[m_layer bounds] levelOfDetail:0 options:optionsDictionary];
-    }
 #endif
     END_BLOCK_OBJC_EXCEPTIONS
 }
@@ -998,16 +996,6 @@ void PlatformCALayer::setAnchorPointOnMainThread(FloatPoint3D value)
         [layer setAnchorPointZ:value.z()];
         END_BLOCK_OBJC_EXCEPTIONS
     });
-}
-
-void PlatformCALayer::setTileSize(const IntSize& tileSize)
-{
-    if (m_layerType != LayerTypeWebTiledLayer)
-        return;
-
-    BEGIN_BLOCK_OBJC_EXCEPTIONS
-    [static_cast<WebTiledLayer*>(m_layer.get()) setTileSize:tileSize];
-    END_BLOCK_OBJC_EXCEPTIONS
 }
 #endif // PLATFORM(IOS)
 

@@ -80,13 +80,6 @@ void CSSFontFaceSource::pruneTable()
     m_fontTable.clear();
 }
 
-bool CSSFontFaceSource::isLoaded() const
-{
-    if (m_font)
-        return m_font->isLoaded();
-    return true;
-}
-
 bool CSSFontFaceSource::isValid() const
 {
     if (m_font)
@@ -101,7 +94,7 @@ void CSSFontFaceSource::fontLoaded(CachedFont*)
         m_face->fontLoaded(this);
 }
 
-RefPtr<Font> CSSFontFaceSource::font(const FontDescription& fontDescription, bool syntheticBold, bool syntheticItalic, CSSFontSelector* fontSelector)
+RefPtr<Font> CSSFontFaceSource::font(const FontDescription& fontDescription, bool syntheticBold, bool syntheticItalic, CSSFontSelector* fontSelector, const FontFeatureSettings& fontFaceFeatures, const FontVariantSettings& fontFaceVariantSettings)
 {
     // If the font hasn't loaded or an error occurred, then we've got nothing.
     if (!isValid())
@@ -124,10 +117,8 @@ RefPtr<Font> CSSFontFaceSource::font(const FontDescription& fontDescription, boo
     if (font)
         return font.release();
 
-    // If we are still loading, then we let the system pick a font.
-    if (isLoaded()) {
+    if (!m_font || m_font->isLoaded()) {
         if (m_font) {
-            // Create new FontPlatformData from our CGFontRef, point size and ATSFontRef.
             bool hasExternalSVGFont = false;
 #if ENABLE(SVG_FONTS)
             hasExternalSVGFont = m_hasExternalSVGFont;
@@ -135,7 +126,7 @@ RefPtr<Font> CSSFontFaceSource::font(const FontDescription& fontDescription, boo
             if (!m_font->ensureCustomFontData(hasExternalSVGFont, m_string))
                 return nullptr;
 
-            font = m_font->createFont(fontDescription, m_string, syntheticBold, syntheticItalic, hasExternalSVGFont);
+            font = m_font->createFont(fontDescription, m_string, syntheticBold, syntheticItalic, hasExternalSVGFont, fontFaceFeatures, fontFaceVariantSettings);
         } else {
 #if ENABLE(SVG_FONTS)
             // In-Document SVG Fonts
@@ -146,12 +137,14 @@ RefPtr<Font> CSSFontFaceSource::font(const FontDescription& fontDescription, boo
                 SVGFontElement& fontElement = downcast<SVGFontElement>(*m_svgFontFaceElement->parentNode());
                 // FIXME: Re-run this when script modifies the element or any of its descendents
                 // FIXME: We might have already converted this font. Make existing conversions discoverable.
-                Vector<char> otfFont = convertSVGToOTFFont(fontElement);
-                m_generatedOTFBuffer = SharedBuffer::adoptVector(otfFont);
+                if (auto otfFont = convertSVGToOTFFont(fontElement))
+                    m_generatedOTFBuffer = SharedBuffer::adoptVector(otfFont.value());
                 if (!m_generatedOTFBuffer)
                     return nullptr;
-                std::unique_ptr<FontCustomPlatformData> customPlatformData = createFontCustomPlatformData(*m_generatedOTFBuffer);
-                font = Font::create(customPlatformData->fontPlatformData(static_cast<int>(fontDescription.computedPixelSize()), syntheticBold, syntheticItalic, fontDescription.orientation(), fontDescription.widthVariant(), fontDescription.renderingMode()), true, false);
+                auto customPlatformData = createFontCustomPlatformData(*m_generatedOTFBuffer);
+                if (!customPlatformData)
+                    return nullptr;
+                font = Font::create(customPlatformData->fontPlatformData(fontDescription, syntheticBold, syntheticItalic, fontFaceFeatures, fontFaceVariantSettings), true, false);
 #else
                 font = Font::create(std::make_unique<SVGFontData>(m_svgFontFaceElement.get()), fontDescription.computedPixelSize(), syntheticBold, syntheticItalic);
 #endif
@@ -165,7 +158,7 @@ RefPtr<Font> CSSFontFaceSource::font(const FontDescription& fontDescription, boo
 
         Ref<Font> placeholderFont = FontCache::singleton().lastResortFallbackFont(fontDescription);
         Ref<Font> placeholderFontCopyInLoadingState = Font::create(placeholderFont->platformData(), true, true);
-        return WTF::move(placeholderFontCopyInLoadingState);
+        return WTFMove(placeholderFontCopyInLoadingState);
     }
 
     return font.release();

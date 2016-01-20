@@ -92,7 +92,7 @@ FontCache& FontCache::singleton()
 }
 
 FontCache::FontCache()
-    : m_purgeTimer(*this, &FontCache::purgeTimerFired)
+    : m_purgeTimer(*this, &FontCache::purgeInactiveFontDataIfNeeded)
 {
 }
 
@@ -105,30 +105,25 @@ public:
         , m_family(family)
     { }
 
-    FontPlatformDataCacheKey(HashTableDeletedValueType) : m_fontDescriptionKey(hashTableDeletedSize()) { }
-    bool isHashTableDeletedValue() const { return m_fontDescriptionKey.size == hashTableDeletedSize(); }
+    explicit FontPlatformDataCacheKey(HashTableDeletedValueType t)
+        : m_fontDescriptionKey(t)
+    { }
+
+    bool isHashTableDeletedValue() const { return m_fontDescriptionKey.isHashTableDeletedValue(); }
 
     bool operator==(const FontPlatformDataCacheKey& other) const
     {
         return equalIgnoringCase(m_family, other.m_family) && m_fontDescriptionKey == other.m_fontDescriptionKey;
     }
 
-    FontDescriptionFontDataCacheKey m_fontDescriptionKey;
+    FontDescriptionKey m_fontDescriptionKey;
     AtomicString m_family;
-
-private:
-    static unsigned hashTableDeletedSize() { return 0xFFFFFFFFU; }
 };
 
-inline unsigned computeHash(const FontPlatformDataCacheKey& fontKey)
-{
-    return pairIntHash(CaseFoldingHash::hash(fontKey.m_family), fontKey.m_fontDescriptionKey.computeHash());
-}
-
 struct FontPlatformDataCacheKeyHash {
-    static unsigned hash(const FontPlatformDataCacheKey& font)
+    static unsigned hash(const FontPlatformDataCacheKey& fontKey)
     {
-        return computeHash(font);
+        return pairIntHash(CaseFoldingHash::hash(fontKey.m_family), fontKey.m_fontDescriptionKey.computeHash());
     }
          
     static bool equal(const FontPlatformDataCacheKey& a, const FontPlatformDataCacheKey& b)
@@ -139,9 +134,7 @@ struct FontPlatformDataCacheKeyHash {
     static const bool safeToCompareToEmptyOrDeleted = true;
 };
 
-struct FontPlatformDataCacheKeyTraits : WTF::SimpleClassHashTraits<FontPlatformDataCacheKey> { };
-
-typedef HashMap<FontPlatformDataCacheKey, std::unique_ptr<FontPlatformData>, FontPlatformDataCacheKeyHash, FontPlatformDataCacheKeyTraits> FontPlatformDataCache;
+typedef HashMap<FontPlatformDataCacheKey, std::unique_ptr<FontPlatformData>, FontPlatformDataCacheKeyHash, WTF::SimpleClassHashTraits<FontPlatformDataCacheKey>> FontPlatformDataCache;
 
 static FontPlatformDataCache& fontPlatformDataCache()
 {
@@ -402,11 +395,6 @@ Ref<Font> FontCache::fontForPlatformData(const FontPlatformData& platformData)
     return *addResult.iterator->value;
 }
 
-void FontCache::purgeTimerFired()
-{
-    purgeInactiveFontDataIfNeeded();
-}
-
 void FontCache::purgeInactiveFontDataIfNeeded()
 {
     bool underMemoryPressure = MemoryPressureHandler::singleton().isUnderMemoryPressure();
@@ -436,7 +424,7 @@ void FontCache::purgeInactiveFontData(unsigned purgeCount)
         for (auto& font : cachedFonts().values()) {
             if (!font->hasOneRef())
                 continue;
-            fontsToDelete.append(WTF::move(font));
+            fontsToDelete.append(WTFMove(font));
             if (!--purgeCount)
                 break;
         }
@@ -453,7 +441,7 @@ void FontCache::purgeInactiveFontData(unsigned purgeCount)
         if (entry.value && !cachedFonts().contains(*entry.value))
             keysToRemove.append(entry.key);
     }
-    for (auto key : keysToRemove)
+    for (auto& key : keysToRemove)
         fontPlatformDataCache().remove(key);
 
 #if ENABLE(OPENTYPE_VERTICAL)
@@ -479,6 +467,8 @@ void FontCache::purgeInactiveFontData(unsigned purgeCount)
             fontVerticalDataCache.remove(key);
     }
 #endif
+
+    platformPurgeInactiveFontData();
 }
 
 size_t FontCache::fontCount()
@@ -549,7 +539,7 @@ void FontCache::invalidate()
 }
 
 #if !PLATFORM(COCOA)
-RefPtr<Font> FontCache::similarFont(const FontDescription&)
+RefPtr<Font> FontCache::similarFont(const FontDescription&, const AtomicString&)
 {
     return nullptr;
 }

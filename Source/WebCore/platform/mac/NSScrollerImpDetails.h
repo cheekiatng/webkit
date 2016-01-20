@@ -62,9 +62,8 @@
 - (void)drawKnob;
 - (void)mouseEnteredScroller;
 - (void)mouseExitedScroller;
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
+- (void)setTracking:(BOOL)tracking;
 - (void)setNeedsDisplay:(BOOL)flag;
-#endif
 @end
 
 @interface NSObject (ScrollbarPainterController)

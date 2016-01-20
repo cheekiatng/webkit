@@ -60,7 +60,19 @@
     padding: 4px 5px 4px 0;
 
     /* Ensure the headers are displayed above scrollbars. */
-    z-index: 200;
+    z-index: var(--z-index-header);
+}
+
+.details-section > .header > .options > .navigation-bar {
+    margin-top: 1px;
+    height: 100%;
+    float: right;
+    border: none;
+}
+
+.details-section > .header > .options > .navigation-bar > .item {
+    width: 20px;
+    height: 100%;
 }
 
 .details-section .details-section > .header {
@@ -68,7 +80,7 @@
     background-color: hsl(0, 0%, 100%);
 
     /* Ensure these headers are displayed below the parent header but above scrollbars. */
-    z-index: 100;
+    z-index: var(--z-index-header);
 }
 
 .details-section .details-section:not(.collapsed) > .header {
@@ -86,7 +98,7 @@
     width: 21px;
     height: 100%;
 
-    background-image: -webkit-canvas(details-section-disclosure-triangle-open-normal);
+    background-image: url(../Images/DisclosureTriangles.svg#open-normal);
     background-repeat: no-repeat;
     background-position: center;
     background-size: 13px 13px;
@@ -95,15 +107,15 @@
 }
 
 .details-section > .header:not(.mouse-over-options-element):active::before {
-    background-image: -webkit-canvas(details-section-disclosure-triangle-open-active);
+    background-image: url(../Images/DisclosureTriangles.svg#open-active);
 }
 
 .details-section.collapsed > .header::before {
-    background-image: -webkit-canvas(details-section-disclosure-triangle-closed-normal);
+    background-image: url(../Images/DisclosureTriangles.svg#closed-normal);
 }
 
 .details-section.collapsed > .header:not(.mouse-over-options-element):active::before {
-    background-image: -webkit-canvas(details-section-disclosure-triangle-closed-active);
+    background-image: url(../Images/DisclosureTriangles.svg#closed-active);
 }
 
 .details-section > .header > label {

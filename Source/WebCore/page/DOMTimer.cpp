@@ -171,7 +171,7 @@ static inline bool shouldForwardUserGesture(int interval, int nestingLevel)
 DOMTimer::DOMTimer(ScriptExecutionContext& context, std::unique_ptr<ScheduledAction> action, int interval, bool singleShot)
     : SuspendableTimer(context)
     , m_nestingLevel(context.timerNestingLevel())
-    , m_action(WTF::move(action))
+    , m_action(WTFMove(action))
     , m_originalInterval(interval)
     , m_throttleState(Undetermined)
     , m_currentTimerInterval(intervalClampedToMinimum())
@@ -199,11 +199,10 @@ int DOMTimer::install(ScriptExecutionContext& context, std::unique_ptr<Scheduled
     // DOMTimer constructor passes ownership of the initial ref on the object to the constructor.
     // This reference will be released automatically when a one-shot timer fires, when the context
     // is destroyed, or if explicitly cancelled by removeById. 
-    DOMTimer* timer = new DOMTimer(context, WTF::move(action), timeout, singleShot);
+    DOMTimer* timer = new DOMTimer(context, WTFMove(action), timeout, singleShot);
 #if PLATFORM(IOS)
     if (is<Document>(context)) {
-        Document& document = downcast<Document>(context);
-        bool didDeferTimeout = document.frame() && document.frame()->timersPaused();
+        bool didDeferTimeout = context.activeDOMObjectsAreSuspended();
         if (!didDeferTimeout && timeout <= 100 && singleShot) {
             WKSetObservedContentChange(WKContentIndeterminateChange);
             WebThreadAddObservedContentModifier(timer); // Will only take affect if not already visibility change.
@@ -297,13 +296,6 @@ void DOMTimer::fired()
 
     DOMTimerFireState fireState(context);
 
-#if PLATFORM(IOS)
-    Document* document = nullptr;
-    if (is<Document>(context)) {
-        document = &downcast<Document>(context);
-        ASSERT(!document->frame()->timersPaused());
-    }
-#endif
     context.setTimerNestingLevel(std::min(m_nestingLevel + 1, maxTimerNestingLevel));
 
     ASSERT(!isSuspended());
@@ -334,7 +326,7 @@ void DOMTimer::fired()
 #if PLATFORM(IOS)
     bool shouldReportLackOfChanges;
     bool shouldBeginObservingChanges;
-    if (document) {
+    if (is<Document>(context)) {
         shouldReportLackOfChanges = WebThreadCountOfObservedContentModifiers() == 1;
         shouldBeginObservingChanges = WebThreadContainsObservedContentModifier(this);
     } else {
@@ -359,9 +351,11 @@ void DOMTimer::fired()
     if (shouldBeginObservingChanges) {
         WKStopObservingContentChanges();
 
-        if (WKObservedContentChange() == WKContentVisibilityChange || shouldReportLackOfChanges)
-            if (document && document->page())
-                document->page()->chrome().client().observedContentChange(document->frame());
+        if (WKObservedContentChange() == WKContentVisibilityChange || shouldReportLackOfChanges) {
+            Document& document = downcast<Document>(context);
+            if (Page* page = document.page())
+                page->chrome().client().observedContentChange(document.frame());
+        }
     }
 #endif
 

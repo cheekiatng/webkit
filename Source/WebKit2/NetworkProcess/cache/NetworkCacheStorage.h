@@ -50,6 +50,8 @@ public:
     static std::unique_ptr<Storage> open(const String& cachePath);
 
     struct Record {
+        WTF_MAKE_FAST_ALLOCATED;
+    public:
         Key key;
         std::chrono::system_clock::time_point timeStamp;
         Data header;
@@ -63,7 +65,7 @@ public:
     void store(const Record&, MappedBodyHandler&&);
 
     void remove(const Key&);
-    void clear(std::chrono::system_clock::time_point modifiedSinceTime, std::function<void ()>&& completionHandler);
+    void clear(const String& type, std::chrono::system_clock::time_point modifiedSinceTime, std::function<void ()>&& completionHandler);
 
     struct RecordInfo {
         size_t bodySize;
@@ -78,13 +80,13 @@ public:
     typedef unsigned TraverseFlags;
     typedef std::function<void (const Record*, const RecordInfo&)> TraverseHandler;
     // Null record signals end.
-    void traverse(TraverseFlags, TraverseHandler&&);
+    void traverse(const String& type, TraverseFlags, TraverseHandler&&);
 
     void setCapacity(size_t);
     size_t capacity() const { return m_capacity; }
     size_t approximateSize() const;
 
-    static const unsigned version = 4;
+    static const unsigned version = 5;
 
     String basePath() const;
     String versionPath() const;
@@ -95,9 +97,9 @@ public:
 private:
     Storage(const String& directoryPath);
 
-    String partitionPathForKey(const Key&) const;
+    String recordDirectoryPathForKey(const Key&) const;
     String recordPathForKey(const Key&) const;
-    String bodyPathForKey(const Key&) const;
+    String blobPathForKey(const Key&) const;
 
     void synchronize();
     void deleteOldVersions();
@@ -105,12 +107,13 @@ private:
     void shrink();
 
     struct ReadOperation;
-    void dispatchReadOperation(ReadOperation&);
+    void dispatchReadOperation(std::unique_ptr<ReadOperation>);
     void dispatchPendingReadOperations();
     void finishReadOperation(ReadOperation&);
+    void cancelAllReadOperations();
 
     struct WriteOperation;
-    void dispatchWriteOperation(WriteOperation&);
+    void dispatchWriteOperation(std::unique_ptr<WriteOperation>);
     void dispatchPendingWriteOperations();
     void finishWriteOperation(WriteOperation&);
 
@@ -119,12 +122,14 @@ private:
     void readRecord(ReadOperation&, const Data&);
 
     void updateFileModificationTime(const String& path);
+    bool removeFromPendingWriteOperations(const Key&);
 
     WorkQueue& ioQueue() { return m_ioQueue.get(); }
     WorkQueue& backgroundIOQueue() { return m_backgroundIOQueue.get(); }
     WorkQueue& serialBackgroundIOQueue() { return m_serialBackgroundIOQueue.get(); }
 
     bool mayContain(const Key&) const;
+    bool mayContainBlob(const Key&) const;
 
     void addToRecordFilter(const Key&);
 
@@ -137,17 +142,18 @@ private:
     // 2^18 bit filter can support up to 26000 entries with false positive rate < 1%.
     using ContentsFilter = BloomFilter<18>;
     std::unique_ptr<ContentsFilter> m_recordFilter;
-    std::unique_ptr<ContentsFilter> m_bodyFilter;
+    std::unique_ptr<ContentsFilter> m_blobFilter;
 
     bool m_synchronizationInProgress { false };
     bool m_shrinkInProgress { false };
 
     Vector<Key::HashType> m_recordFilterHashesAddedDuringSynchronization;
-    Vector<Key::HashType> m_bodyFilterHashesAddedDuringSynchronization;
+    Vector<Key::HashType> m_blobFilterHashesAddedDuringSynchronization;
 
     static const int maximumRetrievePriority = 4;
     Deque<std::unique_ptr<ReadOperation>> m_pendingReadOperationsByPriority[maximumRetrievePriority + 1];
     HashSet<std::unique_ptr<ReadOperation>> m_activeReadOperations;
+    WebCore::Timer m_readOperationTimeoutTimer;
 
     Deque<std::unique_ptr<WriteOperation>> m_pendingWriteOperations;
     HashSet<std::unique_ptr<WriteOperation>> m_activeWriteOperations;
@@ -164,7 +170,7 @@ private:
 };
 
 // FIXME: Remove, used by NetworkCacheStatistics only.
-void traverseRecordsFiles(const String& recordsPath, const std::function<void (const String&, const String&)>&);
+void traverseRecordsFiles(const String& recordsPath, const String& type, const std::function<void (const String& fileName, const String& hashString, const String& type, bool isBodyBlob, const String& recordDirectoryPath)>&);
 
 }
 }

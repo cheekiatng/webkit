@@ -57,13 +57,13 @@ public:
     {
         return adoptRef(*new MessageEvent);
     }
-    static Ref<MessageEvent> create(std::unique_ptr<MessagePortArray> ports, const Deprecated::ScriptValue& data = Deprecated::ScriptValue(), const String& origin = String(), const String& lastEventId = String(), PassRefPtr<EventTarget> source = 0)
+    static Ref<MessageEvent> create(std::unique_ptr<MessagePortArray> ports, const Deprecated::ScriptValue& data = Deprecated::ScriptValue(), const String& origin = String(), const String& lastEventId = String(), PassRefPtr<EventTarget> source = nullptr)
     {
-        return adoptRef(*new MessageEvent(data, origin, lastEventId, source, WTF::move(ports)));
+        return adoptRef(*new MessageEvent(data, origin, lastEventId, source, WTFMove(ports)));
     }
-    static Ref<MessageEvent> create(std::unique_ptr<MessagePortArray> ports, PassRefPtr<SerializedScriptValue> data, const String& origin = String(), const String& lastEventId = String(), PassRefPtr<EventTarget> source = 0)
+    static Ref<MessageEvent> create(std::unique_ptr<MessagePortArray> ports, PassRefPtr<SerializedScriptValue> data, const String& origin = String(), const String& lastEventId = String(), PassRefPtr<EventTarget> source = nullptr)
     {
-        return adoptRef(*new MessageEvent(data, origin, lastEventId, source, WTF::move(ports)));
+        return adoptRef(*new MessageEvent(data, origin, lastEventId, source, WTFMove(ports)));
     }
     static Ref<MessageEvent> create(const String& data, const String& origin = String())
     {

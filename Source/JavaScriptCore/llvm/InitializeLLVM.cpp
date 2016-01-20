@@ -30,34 +30,32 @@
 
 #include "LLVMAPI.h"
 #include "Options.h"
-#include <pthread.h>
+#include <mutex>
 #include <wtf/DataLog.h>
 
 namespace JSC {
-
-static pthread_once_t initializeLLVMOnceKey = PTHREAD_ONCE_INIT;
 
 static void initializeLLVMImpl()
 {
     const bool verbose =
         Options::verboseFTLCompilation()
-        || Options::showFTLDisassembly()
+        || Options::dumpFTLDisassembly()
         || Options::verboseFTLFailure()
         || Options::verboseCompilation()
-        || Options::showDFGDisassembly()
-        || Options::showDisassembly();
+        || Options::dumpDFGDisassembly()
+        || Options::dumpDisassembly();
     
     LLVMInitializerFunction initializer = getLLVMInitializerFunction(verbose);
     if (!initializer)
         return;
     
-    bool enableFastISel = Options::enableLLVMFastISel();
+    bool enableFastISel = Options::useLLVMFastISel();
     llvm = initializer(WTFLogAlwaysAndCrash, &enableFastISel);
     if (!llvm) {
         if (verbose)
             dataLog("LLVM initilization failed.\n");
     }
-    if (Options::enableLLVMFastISel() && !enableFastISel) {
+    if (Options::useLLVMFastISel() && !enableFastISel) {
         if (verbose)
             dataLog("Fast ISel requested but LLVM not new enough.\n");
     }
@@ -67,7 +65,9 @@ static void initializeLLVMImpl()
 
 bool initializeLLVM()
 {
-    pthread_once(&initializeLLVMOnceKey, initializeLLVMImpl);
+    static std::once_flag initializeLLVMOnceKey;
+
+    std::call_once(initializeLLVMOnceKey, initializeLLVMImpl);
     return !!llvm;
 }
 

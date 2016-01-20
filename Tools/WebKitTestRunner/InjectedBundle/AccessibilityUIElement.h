@@ -225,6 +225,8 @@ public:
     PassRefPtr<AccessibilityUIElement> verticalScrollbar() const;
 
     void scrollToMakeVisible();
+    void scrollToGlobalPoint(int x, int y);
+    void scrollToMakeVisibleWithSubFocus(int x, int y, int width, int height);
     
     // Text markers.
     PassRefPtr<AccessibilityTextMarkerRange> lineTextMarkerRangeForTextMarker(AccessibilityTextMarker*);
@@ -274,6 +276,17 @@ public:
     PassRefPtr<AccessibilityUIElement> linkedElement();
     PassRefPtr<AccessibilityUIElement> headerElementAtIndex(unsigned index);
     void assistiveTechnologySimulatedFocus();
+    bool isSearchField() const;
+    bool isTextArea() const;
+    
+    bool scrollPageUp();
+    bool scrollPageDown();
+    bool scrollPageLeft();
+    bool scrollPageRight();
+    
+    // Fieldset
+    bool hasContainedByFieldsetTrait();
+    PassRefPtr<AccessibilityUIElement> fieldsetAncestorElement();
     
 private:
     AccessibilityUIElement(PlatformUIElement);

@@ -1,6 +1,48 @@
 
 description('Tests for ES6 class syntax "extends"');
 
+function shouldThrow(s, message) {
+    var threw = false;
+    try {
+        eval(s);
+    } catch(e) {
+        threw = true;
+        if (!message || e.toString() === eval(message))
+            testPassed(s + ":::" + e.toString());
+        else
+            testFailed(s);
+    }
+    if (!threw)
+        testFailed(s);
+}
+
+function shouldNotThrow(s) {
+    var threw = false;
+    try {
+        eval(s);
+    } catch(e) {
+        threw = true;
+    }
+    if (threw)
+        testFailed(s);
+    else
+        testPassed(s);
+}
+
+function shouldBe(a, b) {
+    if (eval(a) === eval(b))
+        testPassed(a + ":::" + b);
+    else
+        testFailed(a + ":::" + b);
+}
+
+function shouldBeTrue(s) {
+    if (eval(s) === true)
+        testPassed(s);
+    else
+        testFailed(s);
+}
+
 class Base {
     constructor() { }
     baseMethod() { return 'base'; }
@@ -39,9 +81,9 @@ shouldBe('x.__proto__', 'Function.prototype');
 shouldThrow('x = class extends 3 { constructor() { } }; x.__proto__', '"TypeError: The superclass is not an object."');
 shouldThrow('x = class extends "abc" { constructor() { } }; x.__proto__', '"TypeError: The superclass is not an object."');
 shouldNotThrow('baseWithBadPrototype = function () {}; baseWithBadPrototype.prototype = 3; new baseWithBadPrototype');
-shouldThrow('x = class extends baseWithBadPrototype { constructor() { } }', '"TypeError: The superclass\'s prototype is not an object."');
+shouldThrow('x = class extends baseWithBadPrototype { constructor() { } }', '"TypeError: The value of the superclass\'s prototype property is not an object."');
 shouldNotThrow('baseWithBadPrototype.prototype = "abc"');
-shouldThrow('x = class extends baseWithBadPrototype { constructor() { } }', '"TypeError: The superclass\'s prototype is not an object."');
+shouldThrow('x = class extends baseWithBadPrototype { constructor() { } }', '"TypeError: The value of the superclass\'s prototype property is not an object."');
 shouldNotThrow('baseWithBadPrototype.prototype = null; x = class extends baseWithBadPrototype { constructor() { } }');
 
 shouldThrow('x = 1; c = class extends ++x { constructor() { } };');
@@ -74,7 +116,7 @@ shouldThrow('new (class extends undefined { constructor () { this } })', '"TypeE
 shouldThrow('x = undefined; new (class extends x { constructor () { super(); } })', '"TypeError: The superclass is not an object."');
 shouldBeTrue ('class x {}; new (class extends null { constructor () { return new x; } }) instanceof x');
 shouldThrow('new (class extends null { constructor () { this; } })', '"ReferenceError: Cannot access uninitialized variable."');
-shouldThrow('new (class extends null { constructor () { super(); } })', '"TypeError: undefined is not an object (evaluating \'super()\')"');
+shouldThrow('new (class extends null { constructor () { super(); } })', '"TypeError: function is not a constructor (evaluating \'super()\')"');
 shouldBe('x = {}; new (class extends null { constructor () { return x } })', 'x');
 shouldThrow('y = 12; new (class extends null { constructor () { return y; } })', '"TypeError: Cannot return a non-object type in the constructor of a derived class."');
 shouldBeTrue ('class x {}; new (class extends null { constructor () { return new x; } }) instanceof x');

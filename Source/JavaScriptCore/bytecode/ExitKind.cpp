@@ -40,6 +40,8 @@ const char* exitKindToString(ExitKind kind)
         return "BadType";
     case BadCell:
         return "BadCell";
+    case BadIdent:
+        return "BadIdent";
     case BadExecutable:
         return "BadExecutable";
     case BadCache:
@@ -48,6 +50,8 @@ const char* exitKindToString(ExitKind kind)
         return "BadConstantCache";
     case BadIndexingType:
         return "BadIndexingType";
+    case BadTypeInfoFlags:
+        return "BadTypeInfoFlags";
     case Overflow:
         return "Overflow";
     case NegativeZero:

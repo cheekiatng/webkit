@@ -40,7 +40,6 @@
 #include <wtf/RetainPtr.h>
 #include <wtf/RunLoop.h>
 
-OBJC_CLASS NSButton;
 OBJC_CLASS NSURL;
 OBJC_CLASS NSView;
 OBJC_CLASS NSWindow;
@@ -60,7 +59,6 @@ OBJC_CLASS WKWebInspectorWKWebView;
 namespace WebKit {
 
 class WebFrameProxy;
-class WebPageGroup;
 class WebPageProxy;
 class WebPreferences;
 class WebProcessPool;
@@ -130,7 +128,6 @@ public:
 
     void setAttachedWindowHeight(unsigned);
     void setAttachedWindowWidth(unsigned);
-    void setToolbarHeight(unsigned height) { platformSetToolbarHeight(height); }
 
     void startWindowDrag();
 
@@ -141,9 +138,9 @@ public:
     static bool isInspectorPage(WebPageProxy&);
 
     // Provided by platform WebInspectorProxy implementations.
-    String inspectorPageURL() const;
-    String inspectorTestPageURL() const;
-    String inspectorBaseURL() const;
+    static String inspectorPageURL();
+    static String inspectorTestPageURL();
+    static String inspectorBaseURL();
 
 #if ENABLE(INSPECTOR_SERVER)
     void enableRemoteInspection();
@@ -178,7 +175,6 @@ private:
     void platformDetach();
     void platformSetAttachedWindowHeight(unsigned);
     void platformSetAttachedWindowWidth(unsigned);
-    void platformSetToolbarHeight(unsigned);
     void platformStartWindowDrag();
     void platformSave(const String& filename, const String& content, bool base64Encoded, bool forceSaveAs);
     void platformAppend(const String& filename, const String& content);
@@ -206,11 +202,14 @@ private:
     bool canAttach() const { return m_canAttach; }
     bool shouldOpenAttached();
 
+    bool isUnderTest() const { return m_underTest; }
+
     void open();
 
-    // The inspector level is used to give different preferences to each inspector
-    // level by setting a per-level page group identifier.
-    unsigned inspectorLevel() const;
+    // The inspection level is used to give different preferences to each inspector
+    // by setting a per-level page group identifier. Local storage settings in the frontend
+    // also use the inspection level in the key prefix to disambiguate persistent view state.
+    unsigned inspectionLevel() const;
     String inspectorPageGroupIdentifier() const;
     WebPreferences& inspectorPagePreferences() const;
 

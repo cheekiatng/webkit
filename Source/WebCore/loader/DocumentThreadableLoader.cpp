@@ -85,7 +85,7 @@ DocumentThreadableLoader::DocumentThreadableLoader(Document& document, Threadabl
     }
 
     if (m_options.crossOriginRequestPolicy == DenyCrossOriginRequests) {
-        m_client->didFail(ResourceError(errorDomainWebKitInternal, 0, request.url().string(), "Cross origin requests are not supported."));
+        m_client->didFail(ResourceError(errorDomainWebKitInternal, 0, request.url(), "Cross origin requests are not supported."));
         return;
     }
 
@@ -103,7 +103,7 @@ void DocumentThreadableLoader::makeCrossOriginAccessRequest(const ResourceReques
         makeSimpleCrossOriginAccessRequest(*crossOriginRequest);
     else {
         m_simpleRequest = false;
-        m_actualRequest = WTF::move(crossOriginRequest);
+        m_actualRequest = WTFMove(crossOriginRequest);
 
         if (CrossOriginPreflightResultCache::singleton().canSkipPreflight(securityOrigin()->toString(), m_actualRequest->url(), m_options.allowCredentials(), m_actualRequest->httpMethod(), m_actualRequest->httpHeaderFields()))
             preflightSuccess();
@@ -119,7 +119,7 @@ void DocumentThreadableLoader::makeSimpleCrossOriginAccessRequest(const Resource
 
     // Cross-origin requests are only allowed for HTTP and registered schemes. We would catch this when checking response headers later, but there is no reason to send a request that's guaranteed to be denied.
     if (!SchemeRegistry::shouldTreatURLSchemeAsCORSEnabled(request.url().protocol())) {
-        m_client->didFailAccessControlCheck(ResourceError(errorDomainWebKitInternal, 0, request.url().string(), "Cross origin requests are only supported for HTTP."));
+        m_client->didFailAccessControlCheck(ResourceError(errorDomainWebKitInternal, 0, request.url(), "Cross origin requests are only supported for HTTP."));
         return;
     }
 
@@ -150,7 +150,7 @@ void DocumentThreadableLoader::cancel()
         didFail(m_resource->identifier(), error);
     }
     clearResource();
-    m_client = 0;
+    m_client = nullptr;
 }
 
 void DocumentThreadableLoader::setDefersLoading(bool value)
@@ -166,7 +166,7 @@ void DocumentThreadableLoader::clearResource()
     // this DocumentThreadableLoader. Save off a copy of m_resource and clear it to
     // prevent the reentrancy.
     if (CachedResourceHandle<CachedRawResource> resource = m_resource) {
-        m_resource = 0;
+        m_resource = nullptr;
         resource->removeClient(this);
     }
 }
@@ -182,7 +182,8 @@ void DocumentThreadableLoader::redirectReceived(CachedResource* resource, Resour
         return;
 
     // When using access control, only simple cross origin requests are allowed to redirect. The new request URL must have a supported
-    // scheme and not contain the userinfo production. In addition, the redirect response must pass the access control check.
+    // scheme and not contain the userinfo production. In addition, the redirect response must pass the access control check if the
+    // original request was not same-origin.
     if (m_options.crossOriginRequestPolicy == UseAccessControl) {
         bool allowRedirect = false;
         if (m_simpleRequest) {
@@ -190,7 +191,7 @@ void DocumentThreadableLoader::redirectReceived(CachedResource* resource, Resour
             allowRedirect = SchemeRegistry::shouldTreatURLSchemeAsCORSEnabled(request.url().protocol())
                             && request.url().user().isEmpty()
                             && request.url().pass().isEmpty()
-                            && passesAccessControlCheck(redirectResponse, m_options.allowCredentials(), securityOrigin(), accessControlErrorDescription);
+                            && (m_sameOriginRequest || passesAccessControlCheck(redirectResponse, m_options.allowCredentials(), securityOrigin(), accessControlErrorDescription));
         }
 
         if (allowRedirect) {
@@ -199,11 +200,18 @@ void DocumentThreadableLoader::redirectReceived(CachedResource* resource, Resour
 
             RefPtr<SecurityOrigin> originalOrigin = SecurityOrigin::createFromString(redirectResponse.url());
             RefPtr<SecurityOrigin> requestOrigin = SecurityOrigin::createFromString(request.url());
-            // If the request URL origin is not same origin with the original URL origin, set source origin to a globally unique identifier.
-            if (!originalOrigin->isSameSchemeHostPort(requestOrigin.get()))
+            // If the original request wasn't same-origin, then if the request URL origin is not same origin with the original URL origin,
+            // set the source origin to a globally unique identifier. (If the original request was same-origin, the origin of the new request
+            // should be the original URL origin.)
+            if (!m_sameOriginRequest && !originalOrigin->isSameSchemeHostPort(requestOrigin.get()))
                 m_options.securityOrigin = SecurityOrigin::createUnique();
-            // Force any subsequent requests to use these checks.
+            // Force any subsequent request to use these checks.
             m_sameOriginRequest = false;
+
+            // Since the request is no longer same-origin, if the user didn't request credentials in
+            // the first place, update our state so we neither request them nor expect they must be allowed.
+            if (m_options.credentialRequest() == ClientDidNotRequestCredentials)
+                m_options.setAllowCredentials(DoNotAllowStoredCredentials);
 
             // Remove any headers that may have been added by the network layer that cause access control to fail.
             request.clearHTTPContentType();
@@ -211,6 +219,7 @@ void DocumentThreadableLoader::redirectReceived(CachedResource* resource, Resour
             request.clearHTTPOrigin();
             request.clearHTTPUserAgent();
             request.clearHTTPAccept();
+            request.clearHTTPAcceptEncoding();
             makeCrossOriginAccessRequest(request);
             return;
         }
@@ -257,11 +266,11 @@ void DocumentThreadableLoader::didReceiveResponse(unsigned long identifier, cons
             return;
         }
 
-        CrossOriginPreflightResultCache::singleton().appendEntry(securityOrigin()->toString(), m_actualRequest->url(), WTF::move(preflightResult));
+        CrossOriginPreflightResultCache::singleton().appendEntry(securityOrigin()->toString(), m_actualRequest->url(), WTFMove(preflightResult));
     } else {
         if (!m_sameOriginRequest && m_options.crossOriginRequestPolicy == UseAccessControl) {
             if (!passesAccessControlCheck(response, m_options.allowCredentials(), securityOrigin(), accessControlErrorDescription)) {
-                m_client->didFailAccessControlCheck(ResourceError(errorDomainWebKitInternal, 0, response.url().string(), accessControlErrorDescription));
+                m_client->didFailAccessControlCheck(ResourceError(errorDomainWebKitInternal, 0, response.url(), accessControlErrorDescription));
                 return;
             }
         }
@@ -333,7 +342,7 @@ void DocumentThreadableLoader::preflightSuccess()
     loadRequest(*actualRequest, SkipSecurityCheck);
 }
 
-void DocumentThreadableLoader::preflightFailure(unsigned long identifier, const String& url, const String& errorDescription)
+void DocumentThreadableLoader::preflightFailure(unsigned long identifier, const URL& url, const String& errorDescription)
 {
     ResourceError error(errorDomainWebKitInternal, 0, url, errorDescription);
     if (m_actualRequest)

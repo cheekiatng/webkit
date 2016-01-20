@@ -33,6 +33,7 @@
 #include <WebCore/GLContext.h>
 #include <WebCore/IntSize.h>
 #include <WebCore/TransformationMatrix.h>
+#include <wtf/Condition.h>
 #include <wtf/FastMalloc.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/ThreadSafeRefCounted.h>
@@ -66,6 +67,7 @@ public:
     void setNeedsDisplay();
 
     void setNativeSurfaceHandleForCompositing(uint64_t);
+    void setDeviceScaleFactor(float);
 
     void updateSceneState(const WebCore::CoordinatedGraphicsState&);
 
@@ -105,15 +107,16 @@ private:
     std::unique_ptr<WebCore::GLContext> m_context;
 
     WebCore::IntSize m_viewportSize;
+    float m_deviceScaleFactor;
     uint64_t m_nativeSurfaceHandle;
 
     std::unique_ptr<CompositingRunLoop> m_compositingRunLoop;
 
     ThreadIdentifier m_threadIdentifier;
-    ThreadCondition m_initializeRunLoopCondition;
-    Mutex m_initializeRunLoopConditionMutex;
-    ThreadCondition m_terminateRunLoopCondition;
-    Mutex m_terminateRunLoopConditionMutex;
+    Condition m_initializeRunLoopCondition;
+    Lock m_initializeRunLoopConditionMutex;
+    Condition m_terminateRunLoopCondition;
+    Lock m_terminateRunLoopConditionMutex;
 };
 
 } // namespace WebKit

@@ -67,6 +67,7 @@ DatabaseProcessProxy::~DatabaseProcessProxy()
 void DatabaseProcessProxy::getLaunchOptions(ProcessLauncher::LaunchOptions& launchOptions)
 {
     launchOptions.processType = ProcessLauncher::DatabaseProcess;
+    ChildProcessProxy::getLaunchOptions(launchOptions);
     platformGetLaunchOptions(launchOptions);
 }
 
@@ -88,7 +89,7 @@ void DatabaseProcessProxy::fetchWebsiteData(SessionID sessionID, WebsiteDataType
     ASSERT(canSendMessage());
 
     uint64_t callbackID = generateCallbackID();
-    m_pendingFetchWebsiteDataCallbacks.add(callbackID, WTF::move(completionHandler));
+    m_pendingFetchWebsiteDataCallbacks.add(callbackID, WTFMove(completionHandler));
 
     send(Messages::DatabaseProcess::FetchWebsiteData(sessionID, dataTypes, callbackID), 0);
 }
@@ -97,7 +98,7 @@ void DatabaseProcessProxy::deleteWebsiteData(WebCore::SessionID sessionID, Websi
 {
     auto callbackID = generateCallbackID();
 
-    m_pendingDeleteWebsiteDataCallbacks.add(callbackID, WTF::move(completionHandler));
+    m_pendingDeleteWebsiteDataCallbacks.add(callbackID, WTFMove(completionHandler));
     send(Messages::DatabaseProcess::DeleteWebsiteData(sessionID, dataTypes, modifiedSince, callbackID), 0);
 }
 
@@ -106,7 +107,7 @@ void DatabaseProcessProxy::deleteWebsiteDataForOrigins(SessionID sessionID, Webs
     ASSERT(canSendMessage());
 
     uint64_t callbackID = generateCallbackID();
-    m_pendingDeleteWebsiteDataForOriginsCallbacks.add(callbackID, WTF::move(completionHandler));
+    m_pendingDeleteWebsiteDataForOriginsCallbacks.add(callbackID, WTFMove(completionHandler));
 
     Vector<SecurityOriginData> originData;
     for (auto& origin : origins)
@@ -133,10 +134,10 @@ void DatabaseProcessProxy::didClose(IPC::Connection&)
     while (!m_pendingConnectionReplies.isEmpty()) {
         auto reply = m_pendingConnectionReplies.takeFirst();
 
-#if OS(DARWIN)
-        reply->send(IPC::Attachment(0, MACH_MSG_TYPE_MOVE_SEND));
-#elif USE(UNIX_DOMAIN_SOCKETS)
+#if USE(UNIX_DOMAIN_SOCKETS)
         reply->send(IPC::Attachment());
+#elif OS(DARWIN)
+        reply->send(IPC::Attachment(0, MACH_MSG_TYPE_MOVE_SEND));
 #else
         notImplemented();
 #endif
@@ -168,10 +169,10 @@ void DatabaseProcessProxy::didCreateDatabaseToWebProcessConnection(const IPC::At
 
     RefPtr<Messages::WebProcessProxy::GetDatabaseProcessConnection::DelayedReply> reply = m_pendingConnectionReplies.takeFirst();
 
-#if OS(DARWIN)
-    reply->send(IPC::Attachment(connectionIdentifier.port(), MACH_MSG_TYPE_MOVE_SEND));
-#elif USE(UNIX_DOMAIN_SOCKETS)
+#if USE(UNIX_DOMAIN_SOCKETS)
     reply->send(connectionIdentifier);
+#elif OS(DARWIN)
+    reply->send(IPC::Attachment(connectionIdentifier.port(), MACH_MSG_TYPE_MOVE_SEND));
 #else
     notImplemented();
 #endif

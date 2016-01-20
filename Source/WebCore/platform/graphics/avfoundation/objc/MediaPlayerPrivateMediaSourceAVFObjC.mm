@@ -28,6 +28,7 @@
 
 #if ENABLE(MEDIA_SOURCE) && USE(AVFOUNDATION)
 
+#import "CDMSessionAVStreamSession.h"
 #import "CDMSessionMediaSourceAVFObjC.h"
 #import "FileSystem.h"
 #import "Logging.h"
@@ -136,7 +137,7 @@ MediaPlayerPrivateMediaSourceAVFObjC::MediaPlayerPrivateMediaSourceAVFObjC(Media
     : m_player(player)
     , m_weakPtrFactory(this)
     , m_synchronizer(adoptNS([allocAVSampleBufferRenderSynchronizerInstance() init]))
-    , m_seekTimer(*this, &MediaPlayerPrivateMediaSourceAVFObjC::seekTimerFired)
+    , m_seekTimer(*this, &MediaPlayerPrivateMediaSourceAVFObjC::seekInternal)
     , m_session(nullptr)
     , m_networkState(MediaPlayer::Empty)
     , m_readyState(MediaPlayer::HaveNothing)
@@ -240,7 +241,8 @@ MediaPlayer::SupportsType MediaPlayerPrivateMediaSourceAVFObjC::supportsType(con
     if (parameters.isMediaStream)
         return MediaPlayer::IsNotSupported;
 #endif
-    if (!mimeTypeCache().contains(parameters.type))
+
+    if (parameters.type.isEmpty() || !mimeTypeCache().contains(parameters.type))
         return MediaPlayer::IsNotSupported;
 
     // The spec says:
@@ -421,11 +423,6 @@ void MediaPlayerPrivateMediaSourceAVFObjC::seekWithTolerance(const MediaTime& ti
     m_seekTimer.startOneShot(0);
 }
 
-void MediaPlayerPrivateMediaSourceAVFObjC::seekTimerFired()
-{
-    seekInternal();
-}
-
 void MediaPlayerPrivateMediaSourceAVFObjC::seekInternal()
 {
     std::unique_ptr<PendingSeek> pendingSeek;
@@ -529,12 +526,12 @@ void MediaPlayerPrivateMediaSourceAVFObjC::setSize(const IntSize&)
     // No-op.
 }
 
-void MediaPlayerPrivateMediaSourceAVFObjC::paint(GraphicsContext*, const FloatRect&)
+void MediaPlayerPrivateMediaSourceAVFObjC::paint(GraphicsContext&, const FloatRect&)
 {
     // FIXME(125157): Implement painting.
 }
 
-void MediaPlayerPrivateMediaSourceAVFObjC::paintCurrentFrameInContext(GraphicsContext*, const FloatRect&)
+void MediaPlayerPrivateMediaSourceAVFObjC::paintCurrentFrameInContext(GraphicsContext&, const FloatRect&)
 {
     // FIXME(125157): Implement painting.
 }
@@ -707,19 +704,15 @@ AVStreamSession* MediaPlayerPrivateMediaSourceAVFObjC::streamSession()
 
 void MediaPlayerPrivateMediaSourceAVFObjC::setCDMSession(CDMSession* session)
 {
-    if (m_session) {
-        for (auto& sourceBuffer : m_mediaSourcePrivate->sourceBuffers())
-            m_session->removeSourceBuffer(sourceBuffer.get());
-        m_session = nullptr;
-    }
+    if (session == m_session)
+        return;
 
     m_session = toCDMSessionMediaSourceAVFObjC(session);
 
-    if (m_session) {
-        m_session->setStreamSession(m_streamSession.get());
-        for (auto& sourceBuffer : m_mediaSourcePrivate->sourceBuffers())
-            m_session->addSourceBuffer(sourceBuffer.get());
-    }
+    if (CDMSessionAVStreamSession* cdmStreamSession = toCDMSessionAVStreamSession(m_session))
+        cdmStreamSession->setStreamSession(streamSession());
+    for (auto& sourceBuffer : m_mediaSourcePrivate->sourceBuffers())
+        sourceBuffer->setCDMSession(m_session);
 }
 
 void MediaPlayerPrivateMediaSourceAVFObjC::keyNeeded(Uint8Array* initData)
@@ -818,7 +811,7 @@ void MediaPlayerPrivateMediaSourceAVFObjC::characteristicsChanged()
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
 void MediaPlayerPrivateMediaSourceAVFObjC::setWirelessPlaybackTarget(Ref<MediaPlaybackTarget>&& target)
 {
-    m_playbackTarget = WTF::move(target);
+    m_playbackTarget = WTFMove(target);
 }
 
 void MediaPlayerPrivateMediaSourceAVFObjC::setShouldPlayToPlaybackTarget(bool shouldPlayToTarget)

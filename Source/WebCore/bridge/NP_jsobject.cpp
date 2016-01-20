@@ -141,7 +141,7 @@ static NPClass noScriptClass = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 NPClass* NPScriptObjectClass = &javascriptClass;
 static NPClass* NPNoScriptObjectClass = &noScriptClass;
 
-NPObject* _NPN_CreateScriptObject(NPP npp, JSObject* imp, PassRefPtr<RootObject> rootObject)
+NPObject* _NPN_CreateScriptObject(NPP npp, JSObject* imp, RefPtr<RootObject>&& rootObject)
 {
     if (NPObject* object = objectMap().get(rootObject.get(), imp))
         return _NPN_RetainObject(object);
@@ -445,7 +445,7 @@ bool _NPN_Enumerate(NPP, NPObject* o, NPIdentifier** identifier, uint32_t* count
         
         ExecState* exec = rootObject->globalObject()->globalExec();
         JSLockHolder lock(exec);
-        PropertyNameArray propertyNames(exec);
+        PropertyNameArray propertyNames(exec, PropertyNameMode::Strings);
 
         obj->imp->methodTable()->getPropertyNames(obj->imp, exec, propertyNames, EnumerationMode());
         unsigned size = static_cast<unsigned>(propertyNames.size());

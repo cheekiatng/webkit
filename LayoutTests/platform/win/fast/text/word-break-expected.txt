@@ -9,7 +9,7 @@ layer at (0,0) size 785x1016
       RenderTable {TABLE} at (0,18) size 769x104 [border: (1px outset #808080)]
         RenderTableSection {TBODY} at (1,1) size 767x102
           RenderTableRow {TR} at (0,0) size 767x102
-            RenderTableCell {TD} at (0,0) size 20x102 [border: (1px inset #808080)] [r=0 c=0 rs=1 cs=1]
+            RenderTableCell {TD} at (0,0) size 21x102 [border: (1px inset #808080)] [r=0 c=0 rs=1 cs=1]
               RenderText {#text} at (6,6) size 8x90
                 text run at (6,6) width 8: "N"
                 text run at (6,21) width 8: "a"
@@ -17,9 +17,9 @@ layer at (0,0) size 785x1016
                 text run at (6,51) width 8: "r"
                 text run at (6,66) width 8: "o"
                 text run at (6,81) width 8: "w"
-            RenderTableCell {TD} at (20,37) size 747x27 [border: (1px inset #808080)] [r=0 c=1 rs=1 cs=1]
-              RenderText {#text} at (6,6) size 168x15
-                text run at (6,6) width 168: "This cell should grow"
+            RenderTableCell {TD} at (20,37) size 747x28 [border: (1px inset #808080)] [r=0 c=1 rs=1 cs=1]
+              RenderText {#text} at (6,6) size 168x16
+                text run at (6,7) width 168: "This cell should grow"
       RenderBlock (anonymous) at (0,122) size 769x36
         RenderBR {BR} at (0,0) size 0x18
         RenderText {#text} at (0,18) size 430x18
@@ -27,7 +27,6 @@ layer at (0,0) size 785x1016
       RenderBlock {PRE} at (0,171) size 110x25 [border: (5px solid #000000)]
         RenderText {#text} at (5,5) size 448x15
           text run at (5,5) width 448: "Thislongwordshouldnotgetbrokenbutshouldstickoutofthepre."
-          text run at (453,5) width 0: " "
       RenderBlock (anonymous) at (0,209) size 769x72
         RenderBR {BR} at (0,0) size 0x18
         RenderText {#text} at (0,18) size 760x54
@@ -38,7 +37,7 @@ layer at (0,0) size 785x1016
       RenderTable {TABLE} at (0,281) size 769x104 [border: (1px outset #808080)]
         RenderTableSection {TBODY} at (1,1) size 767x102
           RenderTableRow {TR} at (0,0) size 767x102
-            RenderTableCell {TD} at (0,0) size 20x102 [border: (1px inset #808080)] [r=0 c=0 rs=1 cs=1]
+            RenderTableCell {TD} at (0,0) size 21x102 [border: (1px inset #808080)] [r=0 c=0 rs=1 cs=1]
               RenderText {#text} at (6,6) size 8x90
                 text run at (6,6) width 8: "N"
                 text run at (6,21) width 8: "a"
@@ -46,9 +45,9 @@ layer at (0,0) size 785x1016
                 text run at (6,51) width 8: "r"
                 text run at (6,66) width 8: "o"
                 text run at (6,81) width 8: "w"
-            RenderTableCell {TD} at (20,37) size 747x27 [border: (1px inset #808080)] [r=0 c=1 rs=1 cs=1]
-              RenderText {#text} at (6,6) size 168x15
-                text run at (6,6) width 168: "This cell should grow"
+            RenderTableCell {TD} at (20,37) size 747x28 [border: (1px inset #808080)] [r=0 c=1 rs=1 cs=1]
+              RenderText {#text} at (6,6) size 168x16
+                text run at (6,7) width 168: "This cell should grow"
       RenderBlock (anonymous) at (0,385) size 769x18
         RenderBR {BR} at (0,0) size 0x18
       RenderBlock {PRE} at (0,416) size 110x85 [border: (5px solid #000000)]
@@ -58,7 +57,6 @@ layer at (0,0) size 785x1016
           text run at (5,35) width 96: "brokenbutsho"
           text run at (5,50) width 96: "uldstickouto"
           text run at (5,65) width 64: "fthepre."
-          text run at (69,65) width 0: " "
       RenderBlock (anonymous) at (0,514) size 769x72
         RenderBR {BR} at (0,0) size 0x18
         RenderText {#text} at (0,18) size 764x54

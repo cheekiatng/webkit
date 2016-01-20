@@ -33,7 +33,6 @@
 #import "WebScriptObjectProtocol.h"
 #import "runtime/FunctionPrototype.h"
 #import "runtime_method.h"
-#import <objc/objc-auto.h>
 #import <runtime/Error.h>
 #import <runtime/JSLock.h>
 #import <runtime/ObjectPrototype.h>
@@ -56,10 +55,8 @@ static NSString *s_exception;
 static JSGlobalObject* s_exceptionEnvironment; // No need to protect this value, since we just use it for a pointer comparison.
 static NSMapTable *s_instanceWrapperCache;
 
-#if COMPILER(CLANG)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif    
 
 static NSMapTable *createInstanceWrapperCache()
 {
@@ -69,9 +66,7 @@ static NSMapTable *createInstanceWrapperCache()
     return [[NSMapTable alloc] initWithKeyOptions:keyOptions valueOptions:valueOptions capacity:0];
 }
 
-#if COMPILER(CLANG)
 #pragma clang diagnostic pop
-#endif
 
 RuntimeObject* ObjcInstance::newRuntimeObject(ExecState* exec)
 {
@@ -105,8 +100,8 @@ void ObjcInstance::moveGlobalExceptionToExecState(ExecState* exec)
     s_exceptionEnvironment = 0;
 }
 
-ObjcInstance::ObjcInstance(id instance, PassRefPtr<RootObject> rootObject) 
-    : Instance(rootObject)
+ObjcInstance::ObjcInstance(id instance, RefPtr<RootObject>&& rootObject) 
+    : Instance(WTFMove(rootObject))
     , _instance(instance)
     , _class(0)
     , _pool(0)
@@ -114,15 +109,15 @@ ObjcInstance::ObjcInstance(id instance, PassRefPtr<RootObject> rootObject)
 {
 }
 
-PassRefPtr<ObjcInstance> ObjcInstance::create(id instance, PassRefPtr<RootObject> rootObject)
+RefPtr<ObjcInstance> ObjcInstance::create(id instance, RefPtr<RootObject>&& rootObject)
 {
     if (!s_instanceWrapperCache)
         s_instanceWrapperCache = createInstanceWrapperCache();
     if (void* existingWrapper = NSMapGet(s_instanceWrapperCache, instance))
         return static_cast<ObjcInstance*>(existingWrapper);
-    RefPtr<ObjcInstance> wrapper = adoptRef(new ObjcInstance(instance, rootObject));
+    RefPtr<ObjcInstance> wrapper = adoptRef(new ObjcInstance(instance, WTFMove(rootObject)));
     NSMapInsert(s_instanceWrapperCache, instance, wrapper.get());
-    return wrapper.release();
+    return wrapper;
 }
 
 ObjcInstance::~ObjcInstance() 
@@ -141,21 +136,10 @@ ObjcInstance::~ObjcInstance()
     [pool drain];
 }
 
-static NSAutoreleasePool* allocateAutoReleasePool()
-{
-    // If GC is enabled an autorelease pool is unnecessary, and the
-    // pool cannot be protected from GC so may be collected leading
-    // to a crash when we try to drain the release pool.
-    if (objc_collectingEnabled())
-        return nil;
-
-    return [[NSAutoreleasePool alloc] init];
-}
-
 void ObjcInstance::virtualBegin()
 {
     if (!_pool)
-        _pool = allocateAutoReleasePool();
+        _pool = [[NSAutoreleasePool alloc] init];
     _beginCount++;
 }
 

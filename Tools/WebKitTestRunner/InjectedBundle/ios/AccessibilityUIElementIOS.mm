@@ -60,6 +60,17 @@ typedef void (*AXPostedNotificationCallback)(id element, NSString* notification,
 - (void)_accessibilitySetValue:(NSString *)value;
 - (void)_accessibilityActivate;
 - (UIAccessibilityTraits)_axSelectedTrait;
+- (UIAccessibilityTraits)_axTextAreaTrait;
+- (UIAccessibilityTraits)_axSearchFieldTrait;
+- (NSString *)accessibilityARIACurrentStatus;
+- (NSUInteger)accessibilityRowCount;
+- (NSUInteger)accessibilityColumnCount;
+- (NSUInteger)accessibilityARIARowCount;
+- (NSUInteger)accessibilityARIAColumnCount;
+- (NSUInteger)accessibilityARIARowIndex;
+- (NSUInteger)accessibilityARIAColumnIndex;
+- (UIAccessibilityTraits)_axContainedByFieldsetTrait;
+- (id)_accessibilityFieldsetAncestor;
 @end
 
 @interface NSObject (WebAccessibilityObjectWrapperPrivate)
@@ -109,6 +120,7 @@ static JSStringRef concatenateAttributeAndValue(NSString* attribute, NSString* v
     
 AccessibilityUIElement::AccessibilityUIElement(PlatformUIElement element)
     : m_element(element)
+    , m_notificationHandler(0)
 {
     // FIXME: ap@webkit.org says ObjC objects need to be CFRetained/CFRelease to be GC-compliant on the mac.
     [m_element retain];
@@ -117,6 +129,7 @@ AccessibilityUIElement::AccessibilityUIElement(PlatformUIElement element)
 AccessibilityUIElement::AccessibilityUIElement(const AccessibilityUIElement& other)
     : JSWrappable()
     , m_element(other.m_element)
+    , m_notificationHandler(0)
 {
     [m_element retain];
 }
@@ -312,11 +325,24 @@ JSRetainPtr<JSStringRef> AccessibilityUIElement::stringAttributeValue(JSStringRe
     if (JSStringIsEqualToUTF8CString(attribute, "AXPlaceholderValue"))
         return [[m_element accessibilityPlaceholderValue] createJSStringRef];
     
+    if (JSStringIsEqualToUTF8CString(attribute, "AXARIACurrent"))
+        return [[m_element accessibilityARIACurrentStatus] createJSStringRef];
+    
     return JSStringCreateWithCharacters(0, 0);
 }
 
 double AccessibilityUIElement::numberAttributeValue(JSStringRef attribute)
 {
+    // Support test for table related attributes.
+    if (JSStringIsEqualToUTF8CString(attribute, "AXARIAColumnCount"))
+        return [m_element accessibilityARIAColumnCount];
+    if (JSStringIsEqualToUTF8CString(attribute, "AXARIARowCount"))
+        return [m_element accessibilityARIARowCount];
+    if (JSStringIsEqualToUTF8CString(attribute, "AXARIAColumnIndex"))
+        return [m_element accessibilityARIAColumnIndex];
+    if (JSStringIsEqualToUTF8CString(attribute, "AXARIARowIndex"))
+        return [m_element accessibilityARIARowIndex];
+    
     return 0;
 }
 
@@ -650,14 +676,39 @@ JSRetainPtr<JSStringRef> AccessibilityUIElement::identifier()
     return concatenateAttributeAndValue(@"AXIdentifier", [m_element accessibilityIdentifier]);
 }
 
+bool AccessibilityUIElement::hasContainedByFieldsetTrait()
+{
+    UIAccessibilityTraits traits = [m_element accessibilityTraits];
+    return (traits & [m_element _axContainedByFieldsetTrait]) == [m_element _axContainedByFieldsetTrait];
+}
+
+PassRefPtr<AccessibilityUIElement> AccessibilityUIElement::fieldsetAncestorElement()
+{
+    id ancestorElement = [m_element _accessibilityFieldsetAncestor];
+    if (ancestorElement)
+        return AccessibilityUIElement::create(ancestorElement);
+    
+    return nullptr;
+}
+
+bool AccessibilityUIElement::isTextArea() const
+{
+    return ([m_element accessibilityTraits] & [m_element _axTextAreaTrait]) == [m_element _axTextAreaTrait];
+}
+
+bool AccessibilityUIElement::isSearchField() const
+{
+    return ([m_element accessibilityTraits] & [m_element _axSearchFieldTrait]) == [m_element _axSearchFieldTrait];
+}
+    
 int AccessibilityUIElement::rowCount()
 {
-    return -1;
+    return [m_element accessibilityRowCount];
 }
 
 int AccessibilityUIElement::columnCount()
 {
-    return -1;
+    return [m_element accessibilityColumnCount];
 }
 
 int AccessibilityUIElement::indexInTable()
@@ -695,6 +746,14 @@ PassRefPtr<AccessibilityUIElement> AccessibilityUIElement::verticalScrollbar() c
 }
 
 void AccessibilityUIElement::scrollToMakeVisible()
+{
+}
+    
+void AccessibilityUIElement::scrollToGlobalPoint(int x, int y)
+{
+}
+    
+void AccessibilityUIElement::scrollToMakeVisibleWithSubFocus(int x, int y, int width, int height)
 {
 }
 
@@ -735,6 +794,14 @@ void AccessibilityUIElement::setSelectedChild(AccessibilityUIElement* element) c
 {
 }
 
+void AccessibilityUIElement::setSelectedChildAtIndex(unsigned index) const
+{
+}
+
+void AccessibilityUIElement::removeSelectionAtIndex(unsigned index) const
+{
+}
+
 JSRetainPtr<JSStringRef> AccessibilityUIElement::accessibilityValue() const
 {
     // FIXME: implement
@@ -754,6 +821,25 @@ JSRetainPtr<JSStringRef> AccessibilityUIElement::documentURI()
 void AccessibilityUIElement::assistiveTechnologySimulatedFocus()
 {
     [m_element accessibilityElementDidBecomeFocused];
+}
+    
+bool AccessibilityUIElement::scrollPageUp()
+{
+    return [m_element accessibilityScroll:UIAccessibilityScrollDirectionUp];
+}
+
+bool AccessibilityUIElement::scrollPageDown()
+{
+    return [m_element accessibilityScroll:UIAccessibilityScrollDirectionDown];
+}
+bool AccessibilityUIElement::scrollPageLeft()
+{
+    return [m_element accessibilityScroll:UIAccessibilityScrollDirectionLeft];
+}
+
+bool AccessibilityUIElement::scrollPageRight()
+{
+    return [m_element accessibilityScroll:UIAccessibilityScrollDirectionRight];
 }
 
 void AccessibilityUIElement::increaseTextSelection()

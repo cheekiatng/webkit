@@ -26,6 +26,7 @@
 #define StyleRareNonInheritedData_h
 
 #include "BasicShapes.h"
+#include "CSSPropertyNames.h"
 #include "ClipPathOperation.h"
 #include "CounterDirectives.h"
 #include "CursorData.h"
@@ -36,6 +37,7 @@
 #include "ShapeValue.h"
 #include "StyleContentAlignmentData.h"
 #include "StyleSelfAlignmentData.h"
+#include "WillChangeData.h"
 #include <memory>
 #include <wtf/PassRefPtr.h>
 #include <wtf/Vector.h>
@@ -90,11 +92,7 @@ public:
     bool operator!=(const StyleRareNonInheritedData& o) const { return !(*this == o); }
 
     bool contentDataEquivalent(const StyleRareNonInheritedData&) const;
-    bool counterDataEquivalent(const StyleRareNonInheritedData&) const;
-    bool shadowDataEquivalent(const StyleRareNonInheritedData&) const;
-    bool reflectionDataEquivalent(const StyleRareNonInheritedData&) const;
-    bool animationDataEquivalent(const StyleRareNonInheritedData&) const;
-    bool transitionDataEquivalent(const StyleRareNonInheritedData&) const;
+
     bool hasFilters() const;
 #if ENABLE(FILTERS_LEVEL_2)
     bool hasBackdropFilters() const;
@@ -144,6 +142,8 @@ public:
     String m_altText;
 
     std::unique_ptr<ShadowData> m_boxShadow; // For box-shadow decorations.
+
+    RefPtr<WillChangeData> m_willChange; // Null indicates 'auto'.
     
     RefPtr<StyleReflection> m_boxReflect;
 
@@ -183,6 +183,10 @@ public:
     StyleContentAlignmentData m_justifyContent;
     StyleSelfAlignmentData m_justifyItems;
     StyleSelfAlignmentData m_justifySelf;
+
+#if ENABLE(TOUCH_EVENTS)
+    unsigned m_touchAction : 1; // TouchAction
+#endif
 
 #if ENABLE(CSS_SCROLL_SNAP)
     unsigned m_scrollSnapType : 2; // ScrollSnapType

@@ -42,7 +42,7 @@ namespace WebCore {
 using namespace HTMLNames;
 
 RenderHTMLCanvas::RenderHTMLCanvas(HTMLCanvasElement& element, Ref<RenderStyle>&& style)
-    : RenderReplaced(element, WTF::move(style), element.size())
+    : RenderReplaced(element, WTFMove(style), element.size())
 {
     // Actual size is not known yet, report the default intrinsic size.
     view().frameView().incrementVisuallyNonEmptyPixelCount(roundedIntSize(intrinsicSize()));
@@ -66,7 +66,7 @@ bool RenderHTMLCanvas::requiresLayer() const
 
 void RenderHTMLCanvas::paintReplaced(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
 {
-    GraphicsContext* context = paintInfo.context;
+    GraphicsContext& context = paintInfo.context();
 
     LayoutRect contentBoxRect = this->contentBoxRect();
     contentBoxRect.moveBy(paintOffset);
@@ -75,9 +75,9 @@ void RenderHTMLCanvas::paintReplaced(PaintInfo& paintInfo, const LayoutPoint& pa
 
     // Not allowed to overflow the content box.
     bool clip = !contentBoxRect.contains(replacedContentRect);
-    GraphicsContextStateSaver stateSaver(*paintInfo.context, clip);
+    GraphicsContextStateSaver stateSaver(paintInfo.context(), clip);
     if (clip)
-        paintInfo.context->clip(snappedIntRect(contentBoxRect));
+        paintInfo.context().clip(snappedIntRect(contentBoxRect));
 
     if (Page* page = frame().page()) {
         if (paintInfo.phase == PaintPhaseForeground)

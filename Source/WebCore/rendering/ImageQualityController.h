@@ -39,11 +39,11 @@ class RenderBoxModelObject;
 class RenderView;
 
 class ImageQualityController {
-    WTF_MAKE_NONCOPYABLE(ImageQualityController)
+    WTF_MAKE_NONCOPYABLE(ImageQualityController); WTF_MAKE_FAST_ALLOCATED;
 public:
     explicit ImageQualityController(const RenderView&);
 
-    bool shouldPaintAtLowQuality(GraphicsContext*, RenderBoxModelObject*, Image*, const void* layer, const LayoutSize&);
+    bool shouldPaintAtLowQuality(GraphicsContext&, RenderBoxModelObject*, Image&, const void* layer, const LayoutSize&);
     void rendererWillBeDestroyed(RenderBoxModelObject& renderer) { removeObject(&renderer); }
 
 private:

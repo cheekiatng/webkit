@@ -204,9 +204,13 @@ static LSAppLink *appLinkForURL(NSURL *url)
     [_interactionSheet updateSheetPosition];
 }
 
+- (BOOL)isShowingSheet
+{
+    return _interactionSheet != nil;
+}
+
 - (void)_createSheetWithElementActions:(NSArray *)actions showLinkTitle:(BOOL)showLinkTitle
 {
-    ASSERT(!_interactionSheet);
     auto delegate = _delegate.get();
     if (!delegate)
         return;
@@ -263,7 +267,6 @@ static LSAppLink *appLinkForURL(NSURL *url)
 
 - (void)showImageSheet
 {
-    ASSERT(!_interactionSheet);
     ASSERT(!_elementInfo);
 
     auto delegate = _delegate.get();
@@ -276,7 +279,7 @@ static LSAppLink *appLinkForURL(NSURL *url)
     auto elementInfo = adoptNS([[_WKActivatedElementInfo alloc] _initWithType:_WKActivatedElementTypeImage URL:targetURL location:positionInformation.point title:positionInformation.title rect:positionInformation.bounds image:positionInformation.image.get()]);
     auto defaultActions = [self defaultActionsForImageSheet:elementInfo.get()];
 
-    RetainPtr<NSArray> actions = [delegate actionSheetAssistant:self decideActionsForElement:elementInfo.get() defaultActions:WTF::move(defaultActions)];
+    RetainPtr<NSArray> actions = [delegate actionSheetAssistant:self decideActionsForElement:elementInfo.get() defaultActions:WTFMove(defaultActions)];
 
     if (![actions count])
         return;
@@ -285,7 +288,7 @@ static LSAppLink *appLinkForURL(NSURL *url)
     if (!_interactionSheet)
         return;
 
-    _elementInfo = WTF::move(elementInfo);
+    _elementInfo = WTFMove(elementInfo);
 
     if (![_interactionSheet presentSheet])
         [self cleanupSheet];
@@ -340,8 +343,10 @@ static LSAppLink *appLinkForURL(NSURL *url)
     if ([getSSReadingListClass() supportsURL:targetURL])
         [defaultActions addObject:[_WKElementAction _elementActionWithType:_WKElementActionTypeAddToReadingList assistant:self]];
 #endif
-    if (![[targetURL scheme] length] || [[targetURL scheme] caseInsensitiveCompare:@"javascript"] != NSOrderedSame)
+    if (![[targetURL scheme] length] || [[targetURL scheme] caseInsensitiveCompare:@"javascript"] != NSOrderedSame) {
         [defaultActions addObject:[_WKElementAction _elementActionWithType:_WKElementActionTypeCopy assistant:self]];
+        [defaultActions addObject:[_WKElementAction _elementActionWithType:_WKElementActionTypeShare assistant:self]];
+    }
 
     return defaultActions;
 }
@@ -373,7 +378,6 @@ static LSAppLink *appLinkForURL(NSURL *url)
 
 - (void)showLinkSheet
 {
-    ASSERT(!_interactionSheet);
     ASSERT(!_elementInfo);
 
     auto delegate = _delegate.get();
@@ -389,7 +393,7 @@ static LSAppLink *appLinkForURL(NSURL *url)
     auto elementInfo = adoptNS([[_WKActivatedElementInfo alloc] _initWithType:_WKActivatedElementTypeLink URL:targetURL location:positionInformation.point title:positionInformation.title rect:positionInformation.bounds image:positionInformation.image.get()]);
     auto defaultActions = [self defaultActionsForLinkSheet:elementInfo.get()];
 
-    RetainPtr<NSArray> actions = [delegate actionSheetAssistant:self decideActionsForElement:elementInfo.get() defaultActions:WTF::move(defaultActions)];
+    RetainPtr<NSArray> actions = [delegate actionSheetAssistant:self decideActionsForElement:elementInfo.get() defaultActions:WTFMove(defaultActions)];
 
     if (![actions count])
         return;
@@ -398,7 +402,7 @@ static LSAppLink *appLinkForURL(NSURL *url)
     if (!_interactionSheet)
         return;
 
-    _elementInfo = WTF::move(elementInfo);
+    _elementInfo = WTFMove(elementInfo);
 
     if (![_interactionSheet presentSheet])
         [self cleanupSheet];
@@ -406,8 +410,6 @@ static LSAppLink *appLinkForURL(NSURL *url)
 
 - (void)showDataDetectorsSheet
 {
-    ASSERT(!_interactionSheet);
-
     auto delegate = _delegate.get();
     if (!delegate)
         return;

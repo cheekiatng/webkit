@@ -44,7 +44,6 @@
 #include "MemoryCache.h"
 #include "PlatformStrategies.h"
 #include "ResourceHandle.h"
-#include "ResourceLoadScheduler.h"
 #include "SchemeRegistry.h"
 #include "SecurityOrigin.h"
 #include "SecurityPolicy.h"
@@ -113,7 +112,7 @@ DEFINE_DEBUG_ONLY_GLOBAL(RefCountedLeakCounter, cachedResourceLeakCounter, ("Cac
 
 CachedResource::CachedResource(const ResourceRequest& request, Type type, SessionID sessionID)
     : m_resourceRequest(request)
-    , m_decodedDataDeletionTimer(*this, &CachedResource::decodedDataDeletionTimerFired, deadDecodedDataDeletionIntervalForResourceType(type))
+    , m_decodedDataDeletionTimer(*this, &CachedResource::destroyDecodedData, deadDecodedDataDeletionIntervalForResourceType(type))
     , m_sessionID(sessionID)
     , m_loadPriority(defaultPriorityForResourceType(type))
     , m_responseTimestamp(std::chrono::system_clock::now())
@@ -135,9 +134,9 @@ CachedResource::CachedResource(const ResourceRequest& request, Type type, Sessio
     , m_deleted(false)
     , m_lruIndex(0)
 #endif
-    , m_owningCachedResourceLoader(0)
-    , m_resourceToRevalidate(0)
-    , m_proxyResource(0)
+    , m_owningCachedResourceLoader(nullptr)
+    , m_resourceToRevalidate(nullptr)
+    , m_proxyResource(nullptr)
 {
     ASSERT(m_type == unsigned(type)); // m_type is a bitfield, so this tests careless updates of the enum.
     ASSERT(sessionID.isValid());
@@ -278,7 +277,7 @@ void CachedResource::load(CachedResourceLoader& cachedResourceLoader, const Reso
         m_fragmentIdentifierForRequest = String();
     }
 
-    m_loader = platformStrategies()->loaderStrategy()->resourceLoadScheduler()->scheduleSubresourceLoad(cachedResourceLoader.frame(), this, request, options);
+    m_loader = platformStrategies()->loaderStrategy()->loadResource(cachedResourceLoader.frame(), this, request, options);
     if (!m_loader) {
         failBeforeStarting();
         return;
@@ -360,14 +359,26 @@ bool CachedResource::isExpired() const
     return computeCurrentAge(m_response, m_responseTimestamp) > freshnessLifetime(m_response);
 }
 
+static inline bool shouldCacheSchemeIndefinitely(const String& scheme)
+{
+#if PLATFORM(COCOA)
+    if (equalIgnoringCase(scheme, "applewebdata"))
+        return true;
+#endif
+    return equalIgnoringCase(scheme, "data");
+}
+
 std::chrono::microseconds CachedResource::freshnessLifetime(const ResourceResponse& response) const
 {
     if (!response.url().protocolIsInHTTPFamily()) {
-        // Don't cache non-HTTP main resources since we can't check for freshness.
-        // FIXME: We should not cache subresources either, but when we tried this
-        // it caused performance and flakiness issues in our test infrastructure.
-        if (m_type == MainResource && !SchemeRegistry::shouldCacheResponsesFromURLSchemeIndefinitely(response.url().protocol()))
-            return std::chrono::microseconds::zero();
+        String protocol = response.url().protocol();
+        if (!shouldCacheSchemeIndefinitely(protocol)) {
+            // Don't cache non-HTTP main resources since we can't check for freshness.
+            // FIXME: We should not cache subresources either, but when we tried this
+            // it caused performance and flakiness issues in our test infrastructure.
+            if (m_type == MainResource || SchemeRegistry::shouldAlwaysRevalidateURLScheme(protocol))
+                return std::chrono::microseconds::zero();
+        }
 
         return std::chrono::microseconds::max();
     }
@@ -405,6 +416,7 @@ void CachedResource::responseReceived(const ResourceResponse& response)
 void CachedResource::clearLoader()
 {
     ASSERT(m_loader);
+    m_identifierForLoadWithoutResourceLoader = m_loader->identifier();
     m_loader = nullptr;
     deleteIfPossible();
 }
@@ -504,10 +516,14 @@ void CachedResource::decodedDataDeletionTimerFired()
 
 bool CachedResource::deleteIfPossible()
 {
-    if (canDelete() && !inCache()) {
-        InspectorInstrumentation::willDestroyCachedResource(*this);
-        delete this;
-        return true;
+    if (canDelete()) {
+        if (!inCache()) {
+            InspectorInstrumentation::willDestroyCachedResource(*this);
+            delete this;
+            return true;
+        }
+        if (m_data)
+            m_data->hintMemoryNotNeededSoon();
     }
     return false;
 }
@@ -591,31 +607,27 @@ void CachedResource::setResourceToRevalidate(CachedResource* resource)
     ASSERT(resource != this);
     ASSERT(m_handlesToRevalidate.isEmpty());
     ASSERT(resource->type() == type());
+    ASSERT(!resource->m_proxyResource);
 
     LOG(ResourceLoading, "CachedResource %p setResourceToRevalidate %p", this, resource);
-
-    // The following assert should be investigated whenever it occurs. Although it should never fire, it currently does in rare circumstances.
-    // https://bugs.webkit.org/show_bug.cgi?id=28604.
-    // So the code needs to be robust to this assert failing thus the "if (m_resourceToRevalidate->m_proxyResource == this)" in CachedResource::clearResourceToRevalidate.
-    ASSERT(!resource->m_proxyResource);
 
     resource->m_proxyResource = this;
     m_resourceToRevalidate = resource;
 }
 
 void CachedResource::clearResourceToRevalidate() 
-{ 
+{
     ASSERT(m_resourceToRevalidate);
+    ASSERT(m_resourceToRevalidate->m_proxyResource == this);
+
     if (m_switchingClientsToRevalidatedResource)
         return;
 
-    // A resource may start revalidation before this method has been called, so check that this resource is still the proxy resource before clearing it out.
-    if (m_resourceToRevalidate->m_proxyResource == this) {
-        m_resourceToRevalidate->m_proxyResource = 0;
-        m_resourceToRevalidate->deleteIfPossible();
-    }
+    m_resourceToRevalidate->m_proxyResource = nullptr;
+    m_resourceToRevalidate->deleteIfPossible();
+
     m_handlesToRevalidate.clear();
-    m_resourceToRevalidate = 0;
+    m_resourceToRevalidate = nullptr;
     deleteIfPossible();
 }
     
@@ -628,9 +640,7 @@ void CachedResource::switchClientsToRevalidatedResource()
     LOG(ResourceLoading, "CachedResource %p switchClientsToRevalidatedResource %p", this, m_resourceToRevalidate);
 
     m_switchingClientsToRevalidatedResource = true;
-    HashSet<CachedResourceHandleBase*>::iterator end = m_handlesToRevalidate.end();
-    for (HashSet<CachedResourceHandleBase*>::iterator it = m_handlesToRevalidate.begin(); it != end; ++it) {
-        CachedResourceHandleBase* handle = *it;
+    for (auto& handle : m_handlesToRevalidate) {
         handle->m_resource = m_resourceToRevalidate;
         m_resourceToRevalidate->registerHandle(handle);
         --m_handleCount;
@@ -639,30 +649,28 @@ void CachedResource::switchClientsToRevalidatedResource()
     m_handlesToRevalidate.clear();
 
     Vector<CachedResourceClient*> clientsToMove;
-    HashCountedSet<CachedResourceClient*>::iterator end2 = m_clients.end();
-    for (HashCountedSet<CachedResourceClient*>::iterator it = m_clients.begin(); it != end2; ++it) {
-        CachedResourceClient* client = it->key;
-        unsigned count = it->value;
+    for (auto& entry : m_clients) {
+        CachedResourceClient* client = entry.key;
+        unsigned count = entry.value;
         while (count) {
             clientsToMove.append(client);
             --count;
         }
     }
 
-    unsigned moveCount = clientsToMove.size();
-    for (unsigned n = 0; n < moveCount; ++n)
-        removeClient(clientsToMove[n]);
+    for (auto& client : clientsToMove)
+        removeClient(client);
     ASSERT(m_clients.isEmpty());
 
-    for (unsigned n = 0; n < moveCount; ++n)
-        m_resourceToRevalidate->addClientToSet(clientsToMove[n]);
-    for (unsigned n = 0; n < moveCount; ++n) {
+    for (auto& client : clientsToMove)
+        m_resourceToRevalidate->addClientToSet(client);
+    for (auto& client : clientsToMove) {
         // Calling didAddClient may do anything, including trying to cancel revalidation.
         // Assert that it didn't succeed.
         ASSERT(m_resourceToRevalidate);
         // Calling didAddClient for a client may end up removing another client. In that case it won't be in the set anymore.
-        if (m_resourceToRevalidate->m_clients.contains(clientsToMove[n]))
-            m_resourceToRevalidate->didAddClient(clientsToMove[n]);
+        if (m_resourceToRevalidate->m_clients.contains(client))
+            m_resourceToRevalidate->didAddClient(client);
     }
     m_switchingClientsToRevalidatedResource = false;
 }
@@ -795,7 +803,9 @@ void CachedResource::tryReplaceEncodedData(SharedBuffer& newBuffer)
     if (m_data->size() != newBuffer.size() || memcmp(m_data->data(), newBuffer.data(), m_data->size()))
         return;
 
-    m_data->tryReplaceContentsWithPlatformBuffer(newBuffer);
+    if (m_data->tryReplaceContentsWithPlatformBuffer(newBuffer)) {
+        // FIXME: Should we call checkNotify() here to move already-decoded images to the new data source?
+    }
 }
 
 #endif

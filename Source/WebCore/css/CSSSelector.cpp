@@ -64,6 +64,9 @@ CSSSelector::CSSSelector(const QualifiedName& tagQName, bool tagIsForNamespaceRu
     , m_descendantDoubleChildSyntax(false)
 #endif
     , m_caseInsensitiveAttributeValueMatching(false)
+#if !ASSERT_WITH_SECURITY_IMPLICATION_DISABLED
+    , m_destructorHasBeenCalled(false)
+#endif
 {
     const AtomicString& tagLocalName = tagQName.localName();
     const AtomicString tagLocalNameASCIILowercase = tagLocalName.convertToASCIILowercase();
@@ -632,6 +635,11 @@ String CSSSelector::selectorText(const String& rightSide) const
             case CSSSelector::PseudoClassWindowInactive:
                 str.appendLiteral(":window-inactive");
                 break;
+#if ENABLE(SHADOW_DOM)
+            case CSSSelector::PseudoClassHost:
+                str.appendLiteral(":host");
+                break;
+#endif
             case CSSSelector::PseudoClassUnknown:
                 ASSERT_NOT_REACHED();
             }
@@ -740,13 +748,13 @@ void CSSSelector::setArgument(const AtomicString& value)
 void CSSSelector::setLangArgumentList(std::unique_ptr<Vector<AtomicString>> argumentList)
 {
     createRareData();
-    m_data.m_rareData->m_langArgumentList = WTF::move(argumentList);
+    m_data.m_rareData->m_langArgumentList = WTFMove(argumentList);
 }
 
 void CSSSelector::setSelectorList(std::unique_ptr<CSSSelectorList> selectorList)
 {
     createRareData();
-    m_data.m_rareData->m_selectorList = WTF::move(selectorList);
+    m_data.m_rareData->m_selectorList = WTFMove(selectorList);
 }
 
 bool CSSSelector::parseNth() const

@@ -26,6 +26,8 @@
 #ifndef LayerTreeHost_h
 #define LayerTreeHost_h
 
+#if USE(COORDINATED_GRAPHICS) || USE(TEXTURE_MAPPER)
+
 #include "LayerTreeContext.h"
 #include <WebCore/Color.h>
 #include <wtf/PassRefPtr.h>
@@ -44,7 +46,7 @@ class IntSize;
 class GraphicsLayer;
 class GraphicsLayerFactory;
 #if USE(COORDINATED_GRAPHICS_THREADED)
-class ViewportAttributes;
+struct ViewportAttributes;
 #endif
 }
 
@@ -92,7 +94,7 @@ public:
     virtual void scheduleAnimation() = 0;
 #endif
 
-#if USE(TEXTURE_MAPPER_GL) && PLATFORM(GTK)
+#if USE(TEXTURE_MAPPER) && PLATFORM(GTK)
     virtual void setNativeSurfaceHandleForCompositing(uint64_t) = 0;
 #endif
 
@@ -105,5 +107,7 @@ protected:
 };
 
 } // namespace WebKit
+
+#endif // USE(COORDINATED_GRAPHICS) || USE(TEXTURE_MAPPER)
 
 #endif // LayerTreeHost_h

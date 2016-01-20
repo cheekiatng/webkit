@@ -169,7 +169,14 @@ interface AccessibilityUIElement {
     readonly attribute AccessibilityUIElement verticalScrollbar;
 
     void scrollToMakeVisible();
+    void scrollToGlobalPoint(int x, int y);
+    void scrollToMakeVisibleWithSubFocus(int x, int y, int width, int height);
+
     void takeFocus();
+    boolean scrollPageDown();
+    boolean scrollPageUp();
+    boolean scrollPageLeft();
+    boolean scrollPageRight();
 
     // Text markers.
     AccessibilityTextMarkerRange lineTextMarkerRangeForTextMarker(AccessibilityTextMarker textMarker);
@@ -215,6 +222,12 @@ interface AccessibilityUIElement {
     AccessibilityUIElement headerElementAtIndex(unsigned long index);
     // This will simulate the accessibilityDidBecomeFocused API in UIKit.
     void assistiveTechnologySimulatedFocus();
+    readonly attribute boolean isSearchField;
+    readonly attribute boolean isTextArea;
+
+    // Fieldset
+    readonly attribute boolean hasContainedByFieldsetTrait;
+    AccessibilityUIElement fieldsetAncestorElement();
 
     // Notification support.
     boolean addNotificationListener(object callbackFunction);

@@ -39,11 +39,11 @@ bool WebEditorClient::executePendingEditorCommands(Frame* frame, const Vector<WT
 {
     Vector<Editor::Command> commands;
     for (auto& commandString : pendingEditorCommands) {
-        Editor::Command command = frame->editor().command(commandString.utf8().data());
+        Editor::Command command = frame->editor().command(commandString);
         if (command.isTextInsertion() && !allowTextInsertion)
             return false;
 
-        commands.append(WTF::move(command));
+        commands.append(WTFMove(command));
     }
 
     for (auto& command : commands) {

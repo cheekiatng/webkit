@@ -179,6 +179,7 @@ enum AccessibilityRole {
     RadioGroupRole,
     RowHeaderRole,
     RowRole,
+    RowGroupRole,
     RubyBaseRole,
     RubyBlockRole,
     RubyInlineRole,
@@ -247,7 +248,7 @@ struct AccessibilityText {
     AccessibilityText(const String& t, const AccessibilityTextSource& s, Vector<RefPtr<AccessibilityObject>> elements)
     : text(t)
     , textSource(s)
-    , textElements(WTF::move(elements))
+    , textElements(WTFMove(elements))
     { }
 
     AccessibilityText(const String& t, const AccessibilityTextSource& s, const RefPtr<AccessibilityObject> element)
@@ -279,6 +280,7 @@ struct AccessibilityTextUnderElementMode {
 enum AccessibilityOrientation {
     AccessibilityOrientationVertical,
     AccessibilityOrientationHorizontal,
+    AccessibilityOrientationUndefined,
 };
     
 enum AccessibilityObjectInclusion {
@@ -436,6 +438,8 @@ struct AccessibilitySelectTextCriteria {
 enum AccessibilityMathScriptObjectType { Subscript, Superscript };
 enum AccessibilityMathMultiscriptObjectType { PreSubscript, PreSuperscript, PostSubscript, PostSuperscript };
 
+enum AccessibilityARIACurrentState { ARIACurrentFalse, ARIACurrentTrue, ARIACurrentPage, ARIACurrentStep, ARIACurrentLocation, ARIACurrentDate, ARIACurrentTime };
+
 class AccessibilityObject : public RefCounted<AccessibilityObject> {
 protected:
     AccessibilityObject();
@@ -534,6 +538,8 @@ public:
     bool isColorWell() const { return roleValue() == ColorWellRole; }
     bool isRangeControl() const;
     bool isMeter() const;
+    bool isSplitter() const { return roleValue() == SplitterRole; }
+    bool isToolbar() const { return roleValue() == ToolbarRole; }
 
     virtual bool isChecked() const { return false; }
     virtual bool isEnabled() const { return false; }
@@ -623,6 +629,11 @@ public:
     String identifierAttribute() const;
     void classList(Vector<String>&) const;
     const AtomicString& roleDescription() const;
+    AccessibilityARIACurrentState ariaCurrentState() const;
+    
+    // This function checks if the object should be ignored when there's a modal dialog displayed.
+    bool ignoredFromARIAModalPresence() const;
+    bool isAriaModalDescendant(Node*) const;
     
     bool supportsARIASetSize() const;
     bool supportsARIAPosInSet() const;
@@ -657,8 +668,8 @@ public:
     virtual bool isDescendantOfBarrenParent() const { return false; }
     
     // Text selection
-    PassRefPtr<Range> rangeOfStringClosestToRangeInDirection(Range*, AccessibilitySearchDirection, Vector<String>&) const;
-    PassRefPtr<Range> selectionRange() const;
+    RefPtr<Range> rangeOfStringClosestToRangeInDirection(Range*, AccessibilitySearchDirection, Vector<String>&) const;
+    RefPtr<Range> selectionRange() const;
     String selectText(AccessibilitySelectTextCriteria*);
     
     virtual AccessibilityObject* observableObject() const { return nullptr; }
@@ -772,6 +783,8 @@ public:
     virtual void addChildren() { }
     virtual void addChild(AccessibilityObject*) { }
     virtual void insertChild(AccessibilityObject*, unsigned) { }
+
+    virtual bool shouldIgnoreAttributeRole() const { return false; }
     
     virtual bool canHaveChildren() const { return true; }
     virtual bool hasChildren() const { return m_haveChildren; }
@@ -804,6 +817,9 @@ public:
     virtual VisiblePositionRange visiblePositionRange() const { return VisiblePositionRange(); }
     virtual VisiblePositionRange visiblePositionRangeForLine(unsigned) const { return VisiblePositionRange(); }
     
+    RefPtr<Range> elementRange() const;
+    static bool replacedNodeNeedsCharacter(Node* replacedNode);
+    
     VisiblePositionRange visiblePositionRangeForUnorderedPositions(const VisiblePosition&, const VisiblePosition&) const;
     VisiblePositionRange positionOfLeftWord(const VisiblePosition&) const;
     VisiblePositionRange positionOfRightWord(const VisiblePosition&) const;
@@ -816,6 +832,7 @@ public:
     VisiblePositionRange lineRangeForPosition(const VisiblePosition&) const;
 
     String stringForVisiblePositionRange(const VisiblePositionRange&) const;
+    String stringForRange(RefPtr<Range>) const;
     virtual IntRect boundsForVisiblePositionRange(const VisiblePositionRange&) const { return IntRect(); }
     int lengthForVisiblePositionRange(const VisiblePositionRange&) const;
     virtual void setSelectedVisiblePositionRange(const VisiblePositionRange&) const { }
@@ -895,7 +912,13 @@ public:
     virtual void scrollToMakeVisibleWithSubFocus(const IntRect&) const;
     // Scroll this object to a given point in global coordinates of the top-level window.
     virtual void scrollToGlobalPoint(const IntPoint&) const;
-
+    
+    enum ScrollByPageDirection { Up, Down, Left, Right };
+    bool scrollByPage(ScrollByPageDirection) const;
+    IntPoint scrollPosition() const;
+    IntSize scrollContentsSize() const;    
+    IntRect scrollVisibleContentRect() const;
+    
     bool lastKnownIsIgnoredValue();
     void setLastKnownIsIgnoredValue(bool);
 
@@ -1016,7 +1039,9 @@ protected:
     // If this object itself scrolls, return its ScrollableArea.
     virtual ScrollableArea* getScrollableAreaIfScrollable() const { return nullptr; }
     virtual void scrollTo(const IntPoint&) const { }
-
+    ScrollableArea* scrollableAreaAncestor() const;
+    void scrollAreaAndAncestor(std::pair<ScrollableArea*, AccessibilityObject*>&) const;
+    
     static bool isAccessibilityObjectSearchMatchAtIndex(AccessibilityObject*, AccessibilitySearchCriteria*, size_t);
     static bool isAccessibilityObjectSearchMatch(AccessibilityObject*, AccessibilitySearchCriteria*);
     static bool isAccessibilityTextSearchMatch(AccessibilityObject*, AccessibilitySearchCriteria*);

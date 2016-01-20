@@ -39,12 +39,13 @@
 @class WebResource;
 
 namespace WebCore {
-    class AuthenticationChallenge;
-    class CachedFrame;
-    class HistoryItem;
-    class ProtectionSpace;
-    class ResourceLoader;
-    class ResourceRequest;
+class AuthenticationChallenge;
+class CachedFrame;
+class HistoryItem;
+class ProtectionSpace;
+class ResourceLoader;
+class ResourceRequest;
+class SessionID;
 }
 
 typedef HashMap<RefPtr<WebCore::ResourceLoader>, RetainPtr<WebResource>> ResourceMap;
@@ -72,7 +73,7 @@ private:
     virtual void detachedFromParent2() override;
     virtual void detachedFromParent3() override;
 
-    virtual void convertMainResourceLoadToDownload(WebCore::DocumentLoader*, const WebCore::ResourceRequest&, const WebCore::ResourceResponse&) override;
+    virtual void convertMainResourceLoadToDownload(WebCore::DocumentLoader*, WebCore::SessionID, const WebCore::ResourceRequest&, const WebCore::ResourceResponse&) override;
 
     virtual void assignIdentifierToInitialRequest(unsigned long identifier, WebCore::DocumentLoader*, const WebCore::ResourceRequest&) override;
 
@@ -95,7 +96,7 @@ private:
 
     virtual NSCachedURLResponse* willCacheResponse(WebCore::DocumentLoader*, unsigned long identifier, NSCachedURLResponse*) const override;
 
-    virtual void dispatchDidHandleOnloadEvents() override;
+    virtual void dispatchDidDispatchOnloadEvents() override;
     virtual void dispatchDidReceiveServerRedirectForProvisionalLoad() override;
     virtual void dispatchDidCancelClientRedirect() override;
     virtual void dispatchWillPerformClientRedirect(const WebCore::URL&, double interval, double fireDate) override;
@@ -157,6 +158,7 @@ private:
 
     virtual WebCore::ResourceError cancelledError(const WebCore::ResourceRequest&) override;
     virtual WebCore::ResourceError blockedError(const WebCore::ResourceRequest&) override;
+    virtual WebCore::ResourceError blockedByContentBlockerError(const WebCore::ResourceRequest&) override;
     virtual WebCore::ResourceError cannotShowURLError(const WebCore::ResourceRequest&) override;
     virtual WebCore::ResourceError interruptedForPolicyChangeError(const WebCore::ResourceRequest&) override;
 
@@ -212,7 +214,7 @@ private:
     virtual PassRefPtr<WebCore::Widget> createJavaAppletWidget(const WebCore::IntSize&, WebCore::HTMLAppletElement*, const WebCore::URL& baseURL,
         const Vector<WTF::String>& paramNames, const Vector<WTF::String>& paramValues) override;
     
-    virtual WebCore::ObjectContentType objectContentType(const WebCore::URL&, const WTF::String& mimeType, bool shouldPreferPlugInsForImages) override;
+    virtual WebCore::ObjectContentType objectContentType(const WebCore::URL&, const WTF::String& mimeType) override;
     virtual WTF::String overrideMediaType() const override;
     
     virtual void dispatchDidClearWindowObjectInWorld(WebCore::DOMWrapperWorld&) override;
@@ -246,6 +248,8 @@ private:
 #if ENABLE(CONTENT_FILTERING)
     void contentFilterDidBlockLoad(WebCore::ContentFilterUnblockHandler) override;
 #endif
+
+    void prefetchDNS(const String&) override;
 
     RetainPtr<WebFrame> m_webFrame;
 

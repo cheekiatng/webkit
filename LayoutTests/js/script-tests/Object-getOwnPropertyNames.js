@@ -57,7 +57,7 @@ var expectedPropertyNamesSet = {
     "Array": "['from', 'isArray', 'length', 'name', 'of', 'prototype']",
     "Array.prototype": "['concat', 'constructor', 'copyWithin', 'entries', 'every', 'fill', 'filter', 'find', 'findIndex', 'forEach', 'includes', 'indexOf', 'join', 'keys', 'lastIndexOf', 'length', 'map', 'pop', 'push', 'reduce', 'reduceRight', 'reverse', 'shift', 'slice', 'some', 'sort', 'splice', 'toLocaleString', 'toString', 'unshift', 'values']",
     "String": "['fromCharCode', 'fromCodePoint', 'length', 'name', 'prototype', 'raw']",
-    "String.prototype": "['anchor', 'big', 'blink', 'bold', 'charAt', 'charCodeAt', 'codePointAt', 'concat', 'constructor', 'endsWith', 'fixed', 'fontcolor', 'fontsize', 'includes', 'indexOf', 'italics', 'lastIndexOf', 'length', 'link', 'localeCompare', 'match', 'repeat', 'replace', 'search', 'slice', 'small', 'split', 'startsWith', 'strike', 'sub', 'substr', 'substring', 'sup', 'toLocaleLowerCase', 'toLocaleUpperCase', 'toLowerCase', 'toString', 'toUpperCase', 'trim', 'trimLeft', 'trimRight', 'valueOf']",
+    "String.prototype": "['anchor', 'big', 'blink', 'bold', 'charAt', 'charCodeAt', 'codePointAt', 'concat', 'constructor', 'endsWith', 'fixed', 'fontcolor', 'fontsize', 'includes', 'indexOf', 'italics', 'lastIndexOf', 'length', 'link', 'localeCompare', 'match', 'normalize', 'repeat', 'replace', 'search', 'slice', 'small', 'split', 'startsWith', 'strike', 'sub', 'substr', 'substring', 'sup', 'toLocaleLowerCase', 'toLocaleUpperCase', 'toLowerCase', 'toString', 'toUpperCase', 'trim', 'trimLeft', 'trimRight', 'valueOf']",
     "Boolean": "['length', 'name', 'prototype']",
     "Boolean.prototype": "['constructor', 'toString', 'valueOf']",
     "Number": "['EPSILON', 'MAX_SAFE_INTEGER', 'MAX_VALUE', 'MIN_SAFE_INTEGER', 'MIN_VALUE', 'NEGATIVE_INFINITY', 'NaN', 'POSITIVE_INFINITY', 'isFinite', 'isInteger', 'isNaN', 'isSafeInteger', 'length', 'name', 'parseFloat', 'parseInt', 'prototype']",
@@ -70,7 +70,7 @@ var expectedPropertyNamesSet = {
     "Error.prototype": "['constructor', 'message', 'name', 'toString']",
     "Math": "['E','LN10','LN2','LOG10E','LOG2E','PI','SQRT1_2','SQRT2','abs','acos','acosh','asin','asinh','atan','atan2','atanh','cbrt','ceil','clz32','cos','cosh','exp','expm1','floor','fround','hypot','imul','log','log10','log1p','log2','max','min','pow','random','round','sign','sin','sinh','sqrt','tan','tanh','trunc']",
     "JSON": "['parse', 'stringify']",
-    "Symbol": "['for', 'iterator', 'keyFor', 'length', 'name', 'prototype', 'unscopables']",
+    "Symbol": "['for', 'hasInstance', 'iterator', 'keyFor', 'length', 'name', 'prototype', 'toStringTag', 'unscopables']",
     "Symbol.prototype": "['constructor', 'toString', 'valueOf']"
 };
 

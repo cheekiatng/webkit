@@ -1,7 +1,7 @@
 /*
  *  Copyright (C) 1999-2001 Harri Porten (porten@kde.org)
  *  Copyright (C) 2001 Peter Kelly (pmk@post.com)
- *  Copyright (C) 2003, 2007, 2008, 2011, 2013, 2014 Apple Inc. All rights reserved.
+ *  Copyright (C) 2003, 2007, 2008, 2011, 2013-2015 Apple Inc. All rights reserved.
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -38,12 +38,36 @@ namespace JSC  {
     class Interpreter;
     class JSScope;
 
+    struct CallSiteIndex {
+        CallSiteIndex()
+            : m_bits(UINT_MAX)
+        {
+        }
+        
+        explicit CallSiteIndex(uint32_t bits)
+            : m_bits(bits)
+        { }
+#if USE(JSVALUE32_64)
+        explicit CallSiteIndex(Instruction* instruction)
+            : m_bits(bitwise_cast<uint32_t>(instruction))
+        { }
+#endif
+
+        explicit operator bool() const { return m_bits != UINT_MAX; }
+        
+        inline uint32_t bits() const { return m_bits; }
+
+    private:
+        uint32_t m_bits;
+    };
+
     // Represents the current state of script execution.
     // Passed as the first argument to most functions.
     class ExecState : private Register {
     public:
         JSValue calleeAsValue() const { return this[JSStack::Callee].jsValue(); }
         JSObject* callee() const { return this[JSStack::Callee].object(); }
+        JSValue unsafeCallee() const { return this[JSStack::Callee].asanUnsafeJSValue(); }
         CodeBlock* codeBlock() const { return this[JSStack::CodeBlock].Register::codeBlock(); }
         JSScope* scope(int scopeRegisterOffset) const
         {
@@ -96,6 +120,7 @@ namespace JSC  {
         CallFrame& operator=(const Register& r) { *static_cast<Register*>(this) = r; return *this; }
 
         CallFrame* callerFrame() const { return static_cast<CallFrame*>(callerFrameOrVMEntryFrame()); }
+        void* callerFrameOrVMEntryFrame() const { return callerFrameAndPC().callerFrame; }
 
         JS_EXPORT_PRIVATE CallFrame* callerFrame(VMEntryFrame*&);
 
@@ -107,51 +132,15 @@ namespace JSC  {
         static ptrdiff_t returnPCOffset() { return OBJECT_OFFSETOF(CallerFrameAndPC, pc); }
         AbstractPC abstractReturnPC(VM& vm) { return AbstractPC(vm, this); }
 
-        class Location {
-        public:
-            static inline uint32_t decode(uint32_t bits);
+        bool callSiteBitsAreBytecodeOffset() const;
+        bool callSiteBitsAreCodeOriginIndex() const;
 
-            static inline bool isBytecodeLocation(uint32_t bits);
-#if USE(JSVALUE64)
-            static inline uint32_t encodeAsBytecodeOffset(uint32_t bits);
-#else
-            static inline uint32_t encodeAsBytecodeInstruction(Instruction*);
-#endif
+        unsigned callSiteAsRawBits() const;
+        CallSiteIndex callSiteIndex() const;
+    private:
+        unsigned callSiteBitsAsBytecodeOffset() const;
+    public:
 
-            static inline bool isCodeOriginIndex(uint32_t bits);
-            static inline uint32_t encodeAsCodeOriginIndex(uint32_t bits);
-
-        private:
-            enum TypeTag {
-                BytecodeLocationTag = 0,
-                CodeOriginIndexTag = 1,
-            };
-
-            static inline uint32_t encode(TypeTag, uint32_t bits);
-
-            static const uint32_t s_mask = 0x1;
-#if USE(JSVALUE64)
-            static const uint32_t s_shift = 31;
-            static const uint32_t s_shiftedMask = s_mask << s_shift;
-#else
-            static const uint32_t s_shift = 1;
-#endif
-        };
-
-        bool hasLocationAsBytecodeOffset() const;
-        bool hasLocationAsCodeOriginIndex() const;
-
-        unsigned locationAsRawBits() const;
-        unsigned locationAsBytecodeOffset() const;
-        unsigned locationAsCodeOriginIndex() const;
-
-        void setLocationAsRawBits(unsigned);
-        void setLocationAsBytecodeOffset(unsigned);
-
-#if ENABLE(DFG_JIT)
-        unsigned bytecodeOffsetFromCodeOriginIndex();
-#endif
-        
         // This will try to get you the bytecode offset, but you should be aware that
         // this bytecode offset may be bogus in the presence of inlining. This will
         // also return 0 if the call frame has no notion of bytecode offsets (for
@@ -170,19 +159,8 @@ namespace JSC  {
             return topOfFrameInternal();
         }
     
-#if USE(JSVALUE32_64)
-        Instruction* currentVPC() const
-        {
-            return bitwise_cast<Instruction*>(this[JSStack::ArgumentCount].tag());
-        }
-        void setCurrentVPC(Instruction* vpc)
-        {
-            this[JSStack::ArgumentCount].tag() = bitwise_cast<int32_t>(vpc);
-        }
-#else
-        Instruction* currentVPC() const;
+        Instruction* currentVPC() const; // This only makes sense in the LLInt and baseline.
         void setCurrentVPC(Instruction* vpc);
-#endif
 
         void setCallerFrame(CallFrame* frame) { callerFrameAndPC().callerFrame = frame; }
         void setScope(int scopeRegisterOffset, JSScope* scope) { static_cast<Register*>(this)[scopeRegisterOffset] = scope; }
@@ -266,6 +244,8 @@ namespace JSC  {
         void setCodeBlock(CodeBlock* codeBlock) { static_cast<Register*>(this)[JSStack::CodeBlock] = codeBlock; }
         void setReturnPC(void* value) { callerFrameAndPC().pc = reinterpret_cast<Instruction*>(value); }
 
+        String friendlyFunctionName();
+
         // CallFrame::iterate() expects a Functor that implements the following method:
         //     StackVisitor::Status operator()(StackVisitor&);
 
@@ -306,8 +286,6 @@ namespace JSC  {
             size_t argIndex = offset - JSStack::FirstArgument;
             return argIndex;
         }
-
-        void* callerFrameOrVMEntryFrame() const { return callerFrameAndPC().callerFrame; }
 
         CallerFrameAndPC& callerFrameAndPC() { return *reinterpret_cast<CallerFrameAndPC*>(this); }
         const CallerFrameAndPC& callerFrameAndPC() const { return *reinterpret_cast<const CallerFrameAndPC*>(this); }

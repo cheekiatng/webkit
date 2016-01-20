@@ -1,6 +1,0 @@
-PASS successfullyParsed is true
-
-TEST COMPLETE
-PASS div scrolled to next window.
-PASS div honored snap points.
-

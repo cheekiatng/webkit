@@ -26,16 +26,16 @@
 #import "config.h"
 #import "PlatformCookieJar.h"
 
+#import "BlockExceptions.h"
 #import "CFNetworkSPI.h"
 #import "NetworkStorageSession.h"
+#import "WebCoreSystemInterface.h"
 
 #if !USE(CFNETWORK)
 
-#import "BlockExceptions.h"
 #import "Cookie.h"
 #import "CookieStorage.h"
 #import "URL.h"
-#import "WebCoreSystemInterface.h"
 #import <wtf/text/StringBuilder.h>
 
 namespace WebCore {
@@ -120,14 +120,11 @@ void setCookiesFromDOM(const NetworkStorageSession& session, const URL& firstPar
     NSURL *cookieURL = url;
     NSDictionary *headerFields = [NSDictionary dictionaryWithObject:cookieString forKey:@"Set-Cookie"];
 
-    NSArray *unfilteredCookies;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wundeclared-selector"
-    if ([[NSHTTPCookie class] respondsToSelector:@selector(_parsedCookiesWithResponseHeaderFields:forURL:)])
-        unfilteredCookies = [NSHTTPCookie performSelector:@selector(_parsedCookiesWithResponseHeaderFields:forURL:) withObject:headerFields withObject:cookieURL];
-#pragma clang diagnostic pop
-    else
-        unfilteredCookies = [NSHTTPCookie cookiesWithResponseHeaderFields:headerFields forURL:cookieURL];
+#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
+    NSArray *unfilteredCookies = [NSHTTPCookie _parsedCookiesWithResponseHeaderFields:headerFields forURL:cookieURL];
+#else
+    NSArray *unfilteredCookies = [NSHTTPCookie cookiesWithResponseHeaderFields:headerFields forURL:cookieURL];
+#endif
 
     RetainPtr<NSArray> filteredCookies = filterCookies(unfilteredCookies);
     ASSERT([filteredCookies.get() count] <= 1);
@@ -198,23 +195,6 @@ void getHostnamesWithCookies(const NetworkStorageSession& session, HashSet<Strin
     END_BLOCK_OBJC_EXCEPTIONS;
 }
 
-void deleteCookiesForHostname(const NetworkStorageSession& session, const String& hostname)
-{
-    BEGIN_BLOCK_OBJC_EXCEPTIONS;
-
-    RetainPtr<CFHTTPCookieStorageRef> cookieStorage = session.cookieStorage();
-    NSArray *cookies = wkHTTPCookies(cookieStorage.get());
-    if (!cookies)
-        return;
-    
-    for (NSHTTPCookie* cookie in cookies) {
-        if (hostname == String([cookie domain]))
-            wkDeleteHTTPCookie(cookieStorage.get(), cookie);
-    }
-    
-    END_BLOCK_OBJC_EXCEPTIONS;
-}
-
 void deleteAllCookies(const NetworkStorageSession& session)
 {
     wkDeleteAllHTTPCookies(session.cookieStorage().get());
@@ -235,6 +215,36 @@ static NSHTTPCookieStorage *cookieStorage(const NetworkStorageSession& session)
     return [[[NSHTTPCookieStorage alloc] _initWithCFHTTPCookieStorage:cookieStorage.get()] autorelease];
 }
 
+void deleteCookiesForHostnames(const NetworkStorageSession& session, const Vector<String>& hostnames)
+{
+    BEGIN_BLOCK_OBJC_EXCEPTIONS;
+
+    RetainPtr<CFHTTPCookieStorageRef> cookieStorage = session.cookieStorage();
+    NSArray *cookies = wkHTTPCookies(cookieStorage.get());
+    if (!cookies)
+        return;
+
+    HashMap<String, Vector<RetainPtr<NSHTTPCookie>>> cookiesByDomain;
+    for (NSHTTPCookie* cookie in cookies) {
+        auto& cookies = cookiesByDomain.add(cookie.domain, Vector<RetainPtr<NSHTTPCookie>>()).iterator->value;
+        cookies.append(cookie);
+    }
+
+    for (const auto& hostname : hostnames) {
+        auto it = cookiesByDomain.find(hostname);
+        if (it == cookiesByDomain.end())
+            continue;
+
+        for (auto& cookie : it->value)
+            wkDeleteHTTPCookie(cookieStorage.get(), cookie.get());
+    }
+
+    [WebCore::cookieStorage(session) _saveCookies];
+
+    END_BLOCK_OBJC_EXCEPTIONS;
+}
+
+
 void deleteAllCookiesModifiedSince(const NetworkStorageSession& session, std::chrono::system_clock::time_point timePoint)
 {
     if (![NSHTTPCookieStorage instancesRespondToSelector:@selector(removeCookiesSinceDate:)])
@@ -243,7 +253,10 @@ void deleteAllCookiesModifiedSince(const NetworkStorageSession& session, std::ch
     NSTimeInterval timeInterval = std::chrono::duration_cast<std::chrono::duration<double>>(timePoint.time_since_epoch()).count();
     NSDate *date = [NSDate dateWithTimeIntervalSince1970:timeInterval];
 
-    [cookieStorage(session) removeCookiesSinceDate:date];
+    NSHTTPCookieStorage *storage = cookieStorage(session);
+
+    [storage removeCookiesSinceDate:date];
+    [storage _saveCookies];
 }
 
 }

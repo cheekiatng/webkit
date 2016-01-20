@@ -40,7 +40,6 @@
 #import "WKContentViewInteraction.h"
 #import "WKGeolocationProviderIOS.h"
 #import "WKProcessPoolInternal.h"
-#import "WKViewPrivate.h"
 #import "WKWebViewConfigurationInternal.h"
 #import "WKWebViewContentProviderRegistry.h"
 #import "WKWebViewInternal.h"
@@ -111,15 +110,6 @@ namespace WebKit {
 PageClientImpl::PageClientImpl(WKContentView *contentView, WKWebView *webView)
     : m_contentView(contentView)
     , m_webView(webView)
-    , m_wkView(nil)
-    , m_undoTarget(adoptNS([[WKEditorUndoTargetObjC alloc] init]))
-{
-}
-
-PageClientImpl::PageClientImpl(WKContentView *contentView, WKView *wkView)
-    : m_contentView(contentView)
-    , m_webView(nil)
-    , m_wkView(wkView)
     , m_undoTarget(adoptNS([[WKEditorUndoTargetObjC alloc] init]))
 {
 }
@@ -182,7 +172,7 @@ bool PageClientImpl::isViewFocused()
 
 bool PageClientImpl::isViewVisible()
 {
-    if (isViewInWindow() && !m_contentView.isBackground)
+    if (isViewInWindow() && !m_webView._isBackground)
         return true;
     
     if ([m_webView _isShowingVideoPictureInPicture])
@@ -223,7 +213,6 @@ void PageClientImpl::didRelaunchProcess()
 {
     [m_contentView _didRelaunchProcess];
     [m_webView _didRelaunchProcess];
-    [m_wkView _didRelaunchProcess];
 }
 
 void PageClientImpl::pageClosed()
@@ -265,9 +254,12 @@ void PageClientImpl::didChangeContentSize(const WebCore::IntSize&)
     notImplemented();
 }
 
-void PageClientImpl::didChangeViewportMetaTagWidth(float newWidth)
+void PageClientImpl::disableDoubleTapGesturesDuringTapIfNecessary(uint64_t requestID)
 {
-    [m_webView _setViewportMetaTagWidth:newWidth];
+    if (!m_webView._allowsDoubleTapGestures)
+        return;
+
+    [m_contentView _disableDoubleTapGesturesDuringTapIfNecessary:requestID];
 }
 
 double PageClientImpl::minimumZoomScale() const
@@ -429,9 +421,9 @@ IntRect PageClientImpl::rootViewToAccessibilityScreen(const IntRect& rect)
     return enclosingIntRect(rootViewRect);
 }
     
-void PageClientImpl::doneWithKeyEvent(const NativeWebKeyboardEvent& event, bool)
+void PageClientImpl::doneWithKeyEvent(const NativeWebKeyboardEvent& event, bool eventWasHandled)
 {
-    [m_contentView _didHandleKeyEvent:event.nativeEvent()];
+    [m_contentView _didHandleKeyEvent:event.nativeEvent() eventWasHandled:eventWasHandled];
 }
 
 #if ENABLE(TOUCH_EVENTS)
@@ -441,23 +433,23 @@ void PageClientImpl::doneWithTouchEvent(const NativeWebTouchEvent& nativeWebtouc
 }
 #endif
 
-RefPtr<WebPopupMenuProxy> PageClientImpl::createPopupMenuProxy(WebPageProxy*)
+RefPtr<WebPopupMenuProxy> PageClientImpl::createPopupMenuProxy(WebPageProxy&)
 {
-    notImplemented();
     return nullptr;
 }
 
-RefPtr<WebContextMenuProxy> PageClientImpl::createContextMenuProxy(WebPageProxy*)
+#if ENABLE(CONTEXT_MENUS)
+std::unique_ptr<WebContextMenuProxy> PageClientImpl::createContextMenuProxy(WebPageProxy&, const UserData&)
 {
-    notImplemented();
     return nullptr;
 }
+#endif
 
-void PageClientImpl::setTextIndicator(Ref<TextIndicator> textIndicator, TextIndicatorLifetime)
+void PageClientImpl::setTextIndicator(Ref<TextIndicator> textIndicator, TextIndicatorWindowLifetime)
 {
 }
 
-void PageClientImpl::clearTextIndicator(TextIndicatorDismissalAnimation)
+void PageClientImpl::clearTextIndicator(TextIndicatorWindowDismissalAnimation)
 {
 }
 
@@ -475,6 +467,10 @@ void PageClientImpl::exitAcceleratedCompositingMode()
 }
 
 void PageClientImpl::updateAcceleratedCompositingMode(const LayerTreeContext&)
+{
+}
+
+void PageClientImpl::willEnterAcceleratedCompositingMode()
 {
 }
 
@@ -685,7 +681,7 @@ void PageClientImpl::didFinishDrawingPagesToPDF(const IPC::DataReference& pdfDat
 
 Vector<String> PageClientImpl::mimeTypesWithCustomContentProviders()
 {
-    return m_webView.configuration._contentProviderRegistry._mimeTypesWithCustomContentProviders;
+    return m_webView._contentProviderRegistry._mimeTypesWithCustomContentProviders;
 }
 
 void PageClientImpl::navigationGestureDidBegin()
@@ -713,6 +709,11 @@ void PageClientImpl::navigationGestureDidEnd()
 void PageClientImpl::willRecordNavigationSnapshot(WebBackForwardListItem& item)
 {
     NavigationState::fromWebPage(*m_webView->_page).willRecordNavigationSnapshot(item);
+}
+
+void PageClientImpl::didRemoveNavigationGestureSnapshot()
+{
+    NavigationState::fromWebPage(*m_webView->_page).navigationGestureSnapshotWasRemoved();
 }
 
 void PageClientImpl::didFirstVisuallyNonEmptyLayoutForMainFrame()
@@ -743,14 +744,16 @@ void PageClientImpl::refView()
 {
     [m_contentView retain];
     [m_webView retain];
-    [m_wkView retain];
 }
 
 void PageClientImpl::derefView()
 {
     [m_contentView release];
     [m_webView release];
-    [m_wkView release];
+}
+
+void PageClientImpl::didRestoreScrollPosition()
+{
 }
 
 } // namespace WebKit

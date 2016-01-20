@@ -1,3 +1,1203 @@
+2016-01-16  Timothy Hatcher  <timothy@apple.com>
+
+        Fix some responsive issues on smaller screens.
+
+        * wp-content/themes/webkit/style.css:
+        (.timeline .time):
+        (@media (max-width: 900px)):
+        (.timeline:before):
+        (.timeline > li):
+        (.timeline > li:before):
+        (.timeline .content):
+        (.timeline li .time::before):
+
+2016-01-14  Timothy Hatcher  <timothy@apple.com>
+
+        Eliminate the margin on timeline elements so multiple timelines can touch.
+
+        * wp-content/themes/webkit/style.css:
+        (.timeline):
+
+2016-01-14  Timothy Hatcher  <timothy@apple.com>
+
+        Use a 2px border radius instead to look good on 2x devices as well as 1x.
+
+        * wp-content/themes/webkit/style.css:
+        (.timeline .time):
+
+2016-01-14  Timothy Hatcher  <timothy@apple.com>
+
+        Fix hairline crack on 1x devices between arrow and time label.
+
+        * wp-content/themes/webkit/style.css:
+        (.timeline .content):
+        (.timeline .time):
+
+2016-01-13  Timothy Hatcher  <timothy@apple.com>
+
+        Correct some history timeline styles.
+
+        * wp-content/themes/webkit/style.css:
+        (.timeline .content):
+
+2016-01-13  Timothy Hatcher  <timothy@apple.com>
+
+        Add styles for a history timeline, needed by an upcoming blog post.
+
+        * wp-content/themes/webkit/style.css:
+        (.timeline):
+        (.timeline:after):
+        (.timeline *):
+        (.timeline:before):
+        (.timeline > li):
+        (.timeline > li:before):
+        (.timeline .content):
+        (.timeline figure):
+        (.timeline .time):
+        (.timeline h2, .timeline h3):
+        (.timeline .time::before):
+        (.timeline img):
+        (@media (min-width: 900px)):
+        (.timeline > li.force-clear):
+        (.timeline > li:nth-child(odd)):
+        (.timeline > li:nth-child(even)):
+        (.timeline > li.force-clear + li):
+        (.timeline li .time):
+        (.timeline li:nth-child(odd) .time):
+        (.timeline li:nth-child(even) .time):
+        (.timeline li:nth-child(even) .time::before):
+        (.timeline > li:nth-child(even):before):
+
+2016-01-06  Jonathan Davis  <jond@apple.com>
+
+        Fixed Individuals and Vendor Contact formatting.
+        https://bugs.webkit.org/show_bug.cgi?id=152714
+
+        Reviewed by Timothy Hatcher.
+
+        * security-policy.md:
+
+2015-12-09  Jonathan Davis  <jond@apple.com>
+
+        Fixed broken link: https://webkit.org/old/security/security-group-members.html
+        https://bugs.webkit.org/show_bug.cgi?id=152010
+
+        Reviewed by Timothy Hatcher.
+
+        * .htaccess:
+        * security-policy.md:
+        * wp-content/themes/webkit/style.css:
+        (article h4):
+        (article h5):
+
+2015-12-09  Jonathan Davis  <jond@apple.com>
+
+        Fix function reference change.
+
+        * wp-content/themes/webkit/scripts/global.js:
+
+2015-12-08  Jonathan Davis  <jond@apple.com>
+
+        Wide tables should be scrollable on narrow mobile screens.
+        https://bugs.webkit.org/show_bug.cgi?id=151941
+
+        Reviewed by Timothy Hatcher.
+
+        * wp-content/themes/webkit/scripts/global.js:
+        (inView):
+        (onMovement):
+        (updateImages):
+        (enableScrollableTables):
+        (update): Deleted.
+        * wp-content/themes/webkit/style.css:
+        (.pagination .prev-post):
+        (article .scrollable):
+        (.scrollable .scrollable-padding):
+
+2015-12-08  Jonathan Davis  <jond@apple.com>
+
+        Fix Code Style Guidelines code parsing.
+        https://bugs.webkit.org/show_bug.cgi?id=152024
+
+        Reviewed by Timothy Hatcher.
+
+        * wp-content/plugins/table-of-contents.php:
+
+2015-12-08  Jonathan Davis  <jond@apple.com>
+
+        Fix social meta for home page.
+        https://bugs.webkit.org/show_bug.cgi?id=151764
+
+        Reviewed by Timothy Hatcher.
+
+        * wp-content/plugins/social-meta.php:
+
+2015-12-07  Jonathan Davis  <jond@apple.com>
+
+        Implemented a workaround for sharp SVG WebKit logo.
+        https://bugs.webkit.org/show_bug.cgi?id=151971
+
+        Reviewed by Timothy Hatcher.
+
+        * wp-content/themes/webkit/images/webkit.svg:
+
+2015-12-07  Jonathan Davis  <jond@apple.com>
+
+        Address UX issues with the Contribute menu.
+        https://bugs.webkit.org/show_bug.cgi?id=151874
+
+        Reviewed by Timothy Hatcher.
+
+        * wp-content/themes/webkit/functions.php:
+        * wp-content/themes/webkit/header.php:
+        * wp-content/themes/webkit/style.css:
+        (time, mark, audio, video):
+        (footer, header, hgroup, menu, nav, section):
+        (html):
+        (body):
+        (ol, ul):
+        (blockquote, q):
+        (q:before, q:after):
+        (table):
+        (p:empty):
+        (.admin-bar p > a[name]::before):
+        (.screen-reader-text):
+        (.screen-reader-text:focus):
+        (pre):
+        (code):
+        (.feature-header:after):
+        (.feature.opened .feature-header:after):
+        (footer nav a:hover):
+        (header .menu-item-has-children .label-toggle::after):
+        (header .menu-item):
+        (.sub-menu-layer):
+        (.sub-menu-layer .menu-item:first-child):
+        (.menu > .menu-item > .menu-toggle:checked + .sub-menu):
+        (@media only screen and (max-width: 920px)):
+        (header .menu-item > .menu-toggle:checked + a > .label-toggle::after):
+        (header .menu):
+        (header .menu-toggle:checked ~ ul):
+        (header .sub-menu-layer:before):
+        (header .menu > .menu-item > .menu-toggle:checked ~ .sub-menu):
+        (footer nav li):
+        (@media only screen and (max-width: 690px)):
+        (.feature-filters:after):
+        (.feature-filters.opened:after):
+        (#wpadminbar):
+        (.table-of-contents label:after):
+        (.menu-toggle:checked ~ .table-of-contents label:after):
+        (.table-of-contents h6):
+        (header nav .menu-item-has-children .label-toggle): Deleted.
+        (header nav .menu-item): Deleted.
+        (header .menu > .menu-item-has-children:hover > a::before): Deleted.
+        (.menu > .menu-item > .menu-toggle:checked ~ .sub-menu): Deleted.
+        (header nav .menu-toggle:checked ~ ul): Deleted.
+        (header .menu-toggle:checked ~ .sub-menu): Deleted.
+        (@media only screen and (max-width: 782px)): Deleted.
+
+2015-12-05  Timothy Hatcher  <timothy@apple.com>
+
+        One last fix for https redirect.
+
+        * wp-content/themes/webkit/.htaccess:
+
+2015-12-05  Timothy Hatcher  <timothy@apple.com>
+
+        Attempt to fix www redirect again.
+
+        * wp-content/themes/webkit/.htaccess:
+
+2015-12-05  Timothy Hatcher  <timothy@apple.com>
+
+        Fix www redirect again.
+
+        * wp-content/themes/webkit/.htaccess:
+
+2015-12-05  Timothy Hatcher  <timothy@apple.com>
+
+        Fix www redirect when https was used and restore status URL code.
+
+        * wp-content/themes/webkit/.htaccess:
+        * wp-content/themes/webkit/status.php:
+
+2015-12-05  Timothy Hatcher  <timothy@apple.com>
+
+        Another attempt to fix a 404 error when the site loads via www.webkit.org.
+
+        * wp-content/themes/webkit/status.php:
+
+2015-12-05  Timothy Hatcher  <timothy@apple.com>
+
+        Fix a 404 error when the site loads via www.webkit.org.
+
+        * wp-content/themes/webkit/status.php:
+
+2015-12-04  Timothy Hatcher  <timothy@apple.com>
+
+        Fix toggling so hidden links are not clickable still.
+
+        * wp-content/themes/webkit/status.php:
+
+2015-12-04  Timothy Hatcher  <timothy@apple.com>
+
+        Fix another place where feature status internal reference links were wrong.
+
+        * wp-content/themes/webkit/status.php:
+
+2015-12-04  Jonathan Davis  <jond@apple.com>
+
+        Fixed feature status internal reference links.
+
+        * wp-content/themes/webkit/status.php:
+
+2015-12-04  Jonathan Davis  <jond@apple.com>
+
+        Update feature status for up-to-date status information.
+        https://bugs.webkit.org/show_bug.cgi?id=151821
+
+        Reviewed by Timothy Hatcher.
+
+        * wp-content/themes/webkit/status.php:
+
+2015-12-04  Jonathan Davis  <jond@apple.com>
+
+        Added redirects for old webkit.org archive.
+
+        * .htaccess:
+
+2015-12-04  Jonathan Davis  <jond@apple.com>
+
+        Removing empty directories from the old site.
+
+        Reviewed by Timothy Hatcher.
+
+        * blog: Removed.
+        * blog/wp-admin: Removed.
+        * blog/wp-admin/css: Removed.
+        * blog/wp-admin/css/colors: Removed.
+        * blog/wp-admin/css/colors/blue: Removed.
+        * blog/wp-admin/css/colors/coffee: Removed.
+        * blog/wp-admin/css/colors/ectoplasm: Removed.
+        * blog/wp-admin/css/colors/light: Removed.
+        * blog/wp-admin/css/colors/midnight: Removed.
+        * blog/wp-admin/css/colors/ocean: Removed.
+        * blog/wp-admin/css/colors/sunrise: Removed.
+        * blog/wp-admin/images: Removed.
+        * blog/wp-admin/includes: Removed.
+        * blog/wp-admin/js: Removed.
+        * blog/wp-admin/maint: Removed.
+        * blog/wp-admin/network: Removed.
+        * blog/wp-admin/user: Removed.
+        * blog/wp-content: Removed.
+        * blog/wp-content/plugins: Removed.
+        * blog/wp-content/plugins/akismet: Removed.
+        * blog/wp-content/themes: Removed.
+        * blog/wp-content/themes/classic: Removed.
+        * blog/wp-content/themes/default: Removed.
+        * blog/wp-content/themes/default/images: Removed.
+        * blog/wp-content/themes/webkit: Removed.
+        * blog/wp-content/uploads: Removed.
+        * blog/wp-content/uploads/2007: Removed.
+        * blog/wp-content/uploads/2007/06: Removed.
+        * blog/wp-includes: Removed.
+        * blog/wp-includes/ID3: Removed.
+        * blog/wp-includes/SimplePie: Removed.
+        * blog/wp-includes/SimplePie/Cache: Removed.
+        * blog/wp-includes/SimplePie/Content: Removed.
+        * blog/wp-includes/SimplePie/Content/Type: Removed.
+        * blog/wp-includes/SimplePie/Decode: Removed.
+        * blog/wp-includes/SimplePie/Decode/HTML: Removed.
+        * blog/wp-includes/SimplePie/HTTP: Removed.
+        * blog/wp-includes/SimplePie/Net: Removed.
+        * blog/wp-includes/SimplePie/Parse: Removed.
+        * blog/wp-includes/SimplePie/XML: Removed.
+        * blog/wp-includes/SimplePie/XML/Declaration: Removed.
+        * blog/wp-includes/Text: Removed.
+        * blog/wp-includes/Text/Diff: Removed.
+        * blog/wp-includes/Text/Diff/Engine: Removed.
+        * blog/wp-includes/Text/Diff/Renderer: Removed.
+        * blog/wp-includes/certificates: Removed.
+        * blog/wp-includes/css: Removed.
+        * blog/wp-includes/fonts: Removed.
+        * blog/wp-includes/images: Removed.
+        * blog/wp-includes/images/crystal: Removed.
+        * blog/wp-includes/images/media: Removed.
+        * blog/wp-includes/images/smilies: Removed.
+        * blog/wp-includes/images/wlw: Removed.
+        * blog/wp-includes/js: Removed.
+        * blog/wp-includes/js/crop: Removed.
+        * blog/wp-includes/js/imgareaselect: Removed.
+        * blog/wp-includes/js/jcrop: Removed.
+        * blog/wp-includes/js/jquery: Removed.
+        * blog/wp-includes/js/jquery/ui: Removed.
+        * blog/wp-includes/js/mediaelement: Removed.
+        * blog/wp-includes/js/plupload: Removed.
+        * blog/wp-includes/js/scriptaculous: Removed.
+        * blog/wp-includes/js/swfupload: Removed.
+        * blog/wp-includes/js/swfupload/plugins: Removed.
+        * blog/wp-includes/js/thickbox: Removed.
+        * blog/wp-includes/js/tinymce: Removed.
+        * blog/wp-includes/js/tinymce/langs: Removed.
+        * blog/wp-includes/js/tinymce/plugins: Removed.
+        * blog/wp-includes/js/tinymce/plugins/charmap: Removed.
+        * blog/wp-includes/js/tinymce/plugins/colorpicker: Removed.
+        * blog/wp-includes/js/tinymce/plugins/compat3x: Removed.
+        * blog/wp-includes/js/tinymce/plugins/compat3x/css: Removed.
+        * blog/wp-includes/js/tinymce/plugins/directionality: Removed.
+        * blog/wp-includes/js/tinymce/plugins/fullscreen: Removed.
+        * blog/wp-includes/js/tinymce/plugins/hr: Removed.
+        * blog/wp-includes/js/tinymce/plugins/image: Removed.
+        * blog/wp-includes/js/tinymce/plugins/inlinepopups: Removed.
+        * blog/wp-includes/js/tinymce/plugins/inlinepopups/skins: Removed.
+        * blog/wp-includes/js/tinymce/plugins/inlinepopups/skins/clearlooks2: Removed.
+        * blog/wp-includes/js/tinymce/plugins/inlinepopups/skins/clearlooks2/img: Removed.
+        * blog/wp-includes/js/tinymce/plugins/lists: Removed.
+        * blog/wp-includes/js/tinymce/plugins/media: Removed.
+        * blog/wp-includes/js/tinymce/plugins/media/css: Removed.
+        * blog/wp-includes/js/tinymce/plugins/media/js: Removed.
+        * blog/wp-includes/js/tinymce/plugins/paste: Removed.
+        * blog/wp-includes/js/tinymce/plugins/paste/js: Removed.
+        * blog/wp-includes/js/tinymce/plugins/spellchecker: Removed.
+        * blog/wp-includes/js/tinymce/plugins/spellchecker/classes: Removed.
+        * blog/wp-includes/js/tinymce/plugins/spellchecker/classes/utils: Removed.
+        * blog/wp-includes/js/tinymce/plugins/spellchecker/css: Removed.
+        * blog/wp-includes/js/tinymce/plugins/spellchecker/img: Removed.
+        * blog/wp-includes/js/tinymce/plugins/spellchecker/includes: Removed.
+        * blog/wp-includes/js/tinymce/plugins/tabfocus: Removed.
+        * blog/wp-includes/js/tinymce/plugins/textcolor: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wordpress: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wordpress/css: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wordpress/img: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wpautoresize: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wpdialogs: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wpdialogs/js: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wpeditimage: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wpeditimage/css: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wpeditimage/img: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wpeditimage/js: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wpemoji: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wpfullscreen: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wpfullscreen/css: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wpgallery: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wpgallery/img: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wplink: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wplink/css: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wplink/img: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wplink/js: Removed.
+        * blog/wp-includes/js/tinymce/plugins/wpview: Removed.
+        * blog/wp-includes/js/tinymce/skins: Removed.
+        * blog/wp-includes/js/tinymce/skins/lightgray: Removed.
+        * blog/wp-includes/js/tinymce/skins/lightgray/fonts: Removed.
+        * blog/wp-includes/js/tinymce/skins/lightgray/img: Removed.
+        * blog/wp-includes/js/tinymce/skins/wordpress: Removed.
+        * blog/wp-includes/js/tinymce/skins/wordpress/images: Removed.
+        * blog/wp-includes/js/tinymce/themes: Removed.
+        * blog/wp-includes/js/tinymce/themes/advanced: Removed.
+        * blog/wp-includes/js/tinymce/themes/advanced/img: Removed.
+        * blog/wp-includes/js/tinymce/themes/advanced/js: Removed.
+        * blog/wp-includes/js/tinymce/themes/advanced/skins: Removed.
+        * blog/wp-includes/js/tinymce/themes/advanced/skins/default: Removed.
+        * blog/wp-includes/js/tinymce/themes/advanced/skins/default/img: Removed.
+        * blog/wp-includes/js/tinymce/themes/advanced/skins/highcontrast: Removed.
+        * blog/wp-includes/js/tinymce/themes/advanced/skins/o2k7: Removed.
+        * blog/wp-includes/js/tinymce/themes/advanced/skins/o2k7/img: Removed.
+        * blog/wp-includes/js/tinymce/themes/advanced/skins/wp_theme: Removed.
+        * blog/wp-includes/js/tinymce/themes/advanced/skins/wp_theme/img: Removed.
+        * blog/wp-includes/js/tinymce/themes/modern: Removed.
+        * blog/wp-includes/js/tinymce/utils: Removed.
+        * blog/wp-includes/pomo: Removed.
+        * blog/wp-includes/theme-compat: Removed.
+        * building: Removed.
+        * coding: Removed.
+        * coding/images: Removed.
+        * css: Removed.
+        * images: Removed.
+        * misc: Removed.
+        * misc/DatabaseExample.html: Removed.
+        * misc/DatabaseTester.html: Removed.
+        * misc/WebKitDetect.html: Removed.
+        * misc/WebKitDetect.js: Removed.
+        * misc/drosera: Removed.
+        * misc/drosera/demo.js: Removed.
+        * misc/drosera/drosera.png: Removed.
+        * misc/drosera/index.html: Removed.
+        * misc/gradient-input.html: Removed.
+        * misc/morph.html: Removed.
+        * misc/related-target-and-shadow-dom.svg: Removed.
+        * projects: Removed.
+        * projects/accessibility: Removed.
+        * projects/cleanup: Removed.
+        * projects/compat: Removed.
+        * projects/css: Removed.
+        * projects/documentation: Removed.
+        * projects/dom: Removed.
+        * projects/editing: Removed.
+        * projects/forms: Removed.
+        * projects/html: Removed.
+        * projects/javascript: Removed.
+        * projects/layout: Removed.
+        * projects/mathml: Removed.
+        * projects/performance: Removed.
+        * projects/plugins: Removed.
+        * projects/portability: Removed.
+        * projects/printing: Removed.
+        * projects/svg: Removed.
+        * projects/webkit: Removed.
+        * projects/xml: Removed.
+        * projects/xslt: Removed.
+        * quality: Removed.
+        * security: Removed.
+
+2015-12-03  Timothy Hatcher  <timothy@apple.com>
+
+        Allow index.html indexes again.
+
+        * .htaccess:
+
+2015-12-03  Timothy Hatcher  <timothy@apple.com>
+
+        Remove the old site files.
+
+        * asking_questions.html: Removed.
+        * building/active-scheme-xcode4.png: Removed.
+        * building/build-settings-tab-xcode4.png: Removed.
+        * building/build.html: Removed.
+        * building/checkout.html: Removed.
+        * building/custom-executable-xcode4.png: Removed.
+        * building/cygwin-downloader.zip: Removed.
+        * building/debug-mac-uiprocess.html: Removed.
+        * building/debug.html: Removed.
+        * building/launch-debugger-vs2010-small.png: Removed.
+        * building/launch-debugger-vs2010.png: Removed.
+        * building/run-xcode4.png: Removed.
+        * building/run.html: Removed.
+        * building/set-as-startup-project-vs2010.png: Removed.
+        * building/set-debugging-properties-vs2010-small.png: Removed.
+        * building/set-debugging-properties-vs2010.png: Removed.
+        * building/tools.html: Removed.
+        * coding/RefPtr.html: Removed.
+        * coding/adding-features.html: Removed.
+        * coding/assertion-guidelines.html: Removed.
+        * coding/bsd-license.html: Removed.
+        * coding/coding-style.html: Removed.
+        * coding/commit-review-policy.html: Removed.
+        * coding/contributing.html: Removed.
+        * coding/dom-element-attach.html: Removed.
+        * coding/images/contribute_add_attachment.png: Removed.
+        * coding/images/contribute_mark_review.png: Removed.
+        * coding/images/dom-element-attach-large.png: Removed.
+        * coding/images/dom-element-attach-small.png: Removed.
+        * coding/images/dom-element-attach.graffle: Removed.
+        * coding/lgpl-license.html: Removed.
+        * coding/major-objects.html: Removed.
+        * coding/scripts.html: Removed.
+        * coding/technical-articles.html: Removed.
+        * contact.html: Removed.
+        * css/blue.css: Removed.
+        * css/gray.css: Removed.
+        * css/green.css: Removed.
+        * css/ie.css: Removed.
+        * css/main.css: Removed.
+        * css/pink.css: Removed.
+        * css/purple.css: Removed.
+        * css/yellow.css: Removed.
+        * demos/index.html: Removed.
+        * footer.inc: Removed.
+        * header.inc: Removed.
+        * images/DroseraPic.png: Removed.
+        * images/blank.png: Removed.
+        * images/blue-background.png: Removed.
+        * images/blue-bullet.png: Removed.
+        * images/download.png: Removed.
+        * images/end.png: Removed.
+        * images/gray-background.png: Removed.
+        * images/green-background.png: Removed.
+        * images/green-bullet.png: Removed.
+        * images/icon-gold.png: Removed.
+        * images/icon.png: Removed.
+        * images/ie-nav.png: Removed.
+        * images/middle.png: Removed.
+        * images/nav.png: Removed.
+        * images/pink-background.png: Removed.
+        * images/pink-bullet.png: Removed.
+        * images/purple-background.png: Removed.
+        * images/purple-bullet.png: Removed.
+        * images/surfin-safari.icns: Removed.
+        * images/yellow-background.png: Removed.
+        * images/yellow-bullet.png: Removed.
+        * index.html: Removed.
+        * nav.inc: Removed.
+        * pngbehavior.htc: Removed.
+        * projects/accessibility/index.html: Removed.
+        * projects/cleanup/index.html: Removed.
+        * projects/compat/index.html: Removed.
+        * projects/css/index.html: Removed.
+        * projects/documentation/index.html: Removed.
+        * projects/dom/index.html: Removed.
+        * projects/editing/index.html: Removed.
+        * projects/forms/image-usemap.png: Removed.
+        * projects/forms/image1.png: Removed.
+        * projects/forms/image10.png: Removed.
+        * projects/forms/image16.png: Removed.
+        * projects/forms/index.html: Removed.
+        * projects/forms/survey.html: Removed.
+        * projects/goals.html: Removed.
+        * projects/html/index.html: Removed.
+        * projects/index.html: Removed.
+        * projects/javascript/index.html: Removed.
+        * projects/layout/index.html: Removed.
+        * projects/mathml/index.html: Removed.
+        * projects/performance/index.html: Removed.
+        * projects/plugins/index.html: Removed.
+        * projects/portability/index.html: Removed.
+        * projects/printing/index.html: Removed.
+        * projects/svg/index.html: Removed.
+        * projects/svg/status.xml: Removed.
+        * projects/svg/svg-status.css: Removed.
+        * projects/svg/svg-status.xsl: Removed.
+        * projects/webkit/index.html: Removed.
+        * projects/xml/index.html: Removed.
+        * projects/xslt/index.html: Removed.
+        * quality/.htaccess: Removed.
+        * quality/Ahem.ttf: Removed.
+        * quality/bugpriorities.html: Removed.
+        * quality/bugwriting.html: Removed.
+        * quality/bugzilla.html: Removed.
+        * quality/crashlogs.html: Removed.
+        * quality/leakhunting.html: Removed.
+        * quality/lifecycle.html: Removed.
+        * quality/mac_reportbox.jpg: Removed.
+        * quality/mac_viewtrace.jpg: Removed.
+        * quality/reduction.html: Removed.
+        * quality/reporting.html: Removed.
+        * quality/testing.html: Removed.
+        * quality/testwriting.html: Removed.
+        * quality/win_installwatson.jpg: Removed.
+        * quality/win_watsongui.jpg: Removed.
+        * quality/win_watsoninstalled.jpg: Removed.
+        * security/index.html: Removed.
+        * security/security-group-members.html: Removed.
+        * status.html: Removed.
+        * team.html: Removed.
+
+2015-12-03  Timothy Hatcher  <timothy@apple.com>
+
+        Yet another attempt to fix the http blog redirects.
+
+        Removing the blog folder should do it.
+
+        * .htaccess:
+        * blog: Removed.
+
+2015-12-03  Timothy Hatcher  <timothy@apple.com>
+
+        Another attempt to fix the http blog redirects.
+
+        * .htaccess:
+
+2015-12-03  Timothy Hatcher  <timothy@apple.com>
+
+        Attempt to fix the http blog redirects.
+
+        * .htaccess:
+
+2015-12-03  Timothy Hatcher  <timothy@apple.com>
+
+        Another attempt to fix the https redirect.
+
+        * .htaccess:
+
+2015-12-03  Timothy Hatcher  <timothy@apple.com>
+
+        Attempt to fix the https redirect.
+
+        * .htaccess:
+
+2015-12-03  Timothy Hatcher  <timothy@apple.com>
+
+        Fix blog.webkit.org redirects.
+
+        * .htaccess:
+
+2015-12-03  Timothy Hatcher  <timothy@apple.com>
+
+        Add redirects for the demos folder.
+
+        * .htaccess:
+
+2015-12-03  Timothy Hatcher  <timothy@apple.com>
+
+        Remove duplicate redirect.
+
+        * .htaccess:
+
+2015-12-03  Timothy Hatcher  <timothy@apple.com>
+
+        One more attempt to clean up redirects.
+
+        * .htaccess:
+
+2015-12-03  Timothy Hatcher  <timothy@apple.com>
+
+        Avoid double slashes after redirect for directories.
+
+        * .htaccess:
+
+2015-12-03  Timothy Hatcher  <timothy@apple.com>
+
+        Fix directory redirects some more.
+
+        * .htaccess:
+
+2015-12-03  Timothy Hatcher  <timothy@apple.com>
+
+        Fix directory redirect ordering.
+
+        * .htaccess:
+
+2015-12-03  Jonathan Davis  <jond@apple.com>
+
+        Fixed cache logic so download data is correctly available.
+
+        * wp-content/themes/webkit/nightly.php:
+
+2015-12-03  Timothy Hatcher  <timothy@apple.com>
+
+        Add some missing redirects for directories of the old site.
+
+        * .htaccess:
+
+2015-12-03  Jonathan Davis  <jond@apple.com>
+
+        Fixed transient behavior when the cache plugin is enabled.
+
+        * wp-content/themes/webkit/functions.php:
+        * wp-content/themes/webkit/includes.php:
+        * wp-content/themes/webkit/nightly.php:
+
+2015-12-03  Jonathan Davis  <jond@apple.com>
+
+        Add sub-section anchors to code style guidelines
+        https://bugs.webkit.org/show_bug.cgi?id=151770
+
+        Reviewed by Timothy Hatcher.
+
+        * code-style.md:
+        * wp-content/plugins/table-of-contents.php:
+        * wp-content/themes/webkit/includes.php:
+        * wp-content/themes/webkit/style.css:
+        (a[name]):
+        (p > a[name]::before):
+        (a[name]:hover):
+        (h6 a[name]):
+        (.admin-bar a[name]):
+        (.admin-bar p > a[name]::before):
+        (.screen-reader-text):
+        (.table-of-contents ul li > ul):
+        (#post-4132 pre:nth-child(-n+10)):
+        (#post-4132 pre:nth-child(-n+8)): Deleted.
+
+2015-12-01  Jonathan Davis  <jond@apple.com>
+
+        Updated favicon.ico with the new logo.
+
+        * favicon.ico:
+
+2015-12-01  Jonathan Davis  <jond@apple.com>
+
+        Improved accessibility handling for the small drop-down menu.
+
+        * wp-content/themes/webkit/scripts/global.js:
+
+2015-12-01  Jonathan Davis  <jond@apple.com>
+
+        Fixed font rendering. Fixed SVG rendering for Firefox.
+
+        * wp-content/themes/webkit/images/icons.svg:
+        * wp-content/themes/webkit/images/inspector.svg:
+        * wp-content/themes/webkit/images/twitter.svg:
+        * wp-content/themes/webkit/style.css:
+        (code):
+        (a[name]):
+        (.screen-reader-text:focus):
+        (.page-width):
+        (.tile.category-web-inspector .background-image):
+        (.tile.category-performance .background-image):
+        (.tile.category-javascript .background-image):
+        (.tile.category-css .background-image):
+        (.tile.category-standards .background-image):
+        (.tile.category-contributing .background-image):
+        (.tile.category-storage .background-image):
+        (.tile.category-layout .background-image):
+        (.tile.tag-timeline .background-image):
+        (.tile.tag-console .background-image):
+        (.tile.tag-debugger .background-image):
+        (.tile.tag-shortcuts .background-image):
+        (.tile .background-image.loaded):
+        (body, input, textarea, select, button): Deleted.
+
+2015-12-01  Jonathan Davis  <jond@apple.com>
+
+        Removed escpaes to correctly pass query string arguments.
+
+        * .htaccess:
+
+2015-12-01  Jonathan Davis  <jond@apple.com>
+
+        Corrected rewrite rules to restore convenience paths.
+
+        * .htaccess:
+
+2015-12-01  Jonathan Davis  <jond@apple.com>
+
+        Fixed static reference PHP syntax for compatibility with the server environment.
+
+        * wp-content/plugins/table-of-contents.php:
+
+2015-12-01  Jonathan Davis  <jond@apple.com>
+
+        Fixed PHP syntax for compatibility with the server environment.
+
+        * wp-content/plugins/social-meta.php:
+        * wp-content/themes/webkit/functions.php:
+        * wp-content/themes/webkit/widgets/twitter.php:
+
+2015-12-01  Jonathan Davis  <jond@apple.com>
+
+        Updated webkit.org to use the new theme and WordPress deployment.
+
+        * .htaccess:
+        * blog/.htaccess:
+        * index.php: Added.
+
+2015-12-01  Jonathan Davis  <jond@apple.com>
+
+        Fixed data return format for tweets when updating cache.
+
+        * wp-content/themes/webkit/widgets/twitter.php:
+
+2015-12-01  Jonathan Davis  <jond@apple.com>
+
+        Theme update to tidy styles and add a theme screenshot.
+
+        * wp-content/themes/webkit/screenshot.png: Added.
+        * wp-content/themes/webkit/style.css:
+        (.featured-tile):
+        (.tile .background-image):
+
+2015-11-30  Jonathan Davis  <jond@apple.com>
+
+        Set max-height to prevent narrow images from upscaling.
+
+        * wp-content/themes/webkit/style.css:
+        (article figure > img):
+        (figure.widescreen):
+        (figure.widescreen figcaption):
+        (figure.widescreen img): Deleted.
+
+2015-11-30  Jonathan Davis  <jond@apple.com>
+
+        Added a new theme and plugins for a redesigned webkit.org.
+
+        Reviewed by Timothy Hatcher.
+
+        * apple-touch-icon-precomposed.png: Added.
+        * code-style.md: Added.
+        * commit-review.md: Added.
+        * favicon.png: Added.
+        * security-policy.md: Added.
+        * tabicon.svg: Added.
+        * wp-content: Added.
+        * wp-content/index.php: Added.
+        * wp-content/maintenance.php: Added.
+        * wp-content/plugins: Added.
+        * wp-content/plugins/analytics.php: Added.
+        * wp-content/plugins/hyperlight: Added.
+        * wp-content/plugins/hyperlight/hyperlight: Added.
+        * wp-content/plugins/hyperlight/hyperlight.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/hyperlight.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/apache.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/blocklist.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/code.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/cpp.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/csharp.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/css.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/diff.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/filetypes: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/html.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/ini.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/iphp.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/javascript.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/php.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/python.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/syntax.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/vb.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/languages/xml.php: Added.
+        * wp-content/plugins/hyperlight/hyperlight/preg_helper.php: Added.
+        * wp-content/plugins/index.php: Added.
+        * wp-content/plugins/social-meta.php: Added.
+        * wp-content/plugins/table-of-contents.php: Added.
+        * wp-content/plugins/visual-preview.php: Added.
+        * wp-content/themes: Added.
+        * wp-content/themes/index.php: Added.
+        * wp-content/themes/webkit: Added.
+        * wp-content/themes/webkit/404.php: Added.
+        * wp-content/themes/webkit/444.php: Added.
+        * wp-content/themes/webkit/footer.php: Added.
+        * wp-content/themes/webkit/front-header.php: Added.
+        * wp-content/themes/webkit/front-page.php: Added.
+        * wp-content/themes/webkit/functions.php: Added.
+        * wp-content/themes/webkit/header.php: Added.
+        * wp-content/themes/webkit/images: Added.
+        * wp-content/themes/webkit/images/download.svg: Added.
+        * wp-content/themes/webkit/images/icons.svg: Added.
+        * wp-content/themes/webkit/images/inspector.svg: Added.
+        * wp-content/themes/webkit/images/menu-down.svg: Added.
+        * wp-content/themes/webkit/images/squirrelfish-lives.svg: Added.
+        * wp-content/themes/webkit/images/twitter.svg: Added.
+        * wp-content/themes/webkit/images/webkit.svg: Added.
+        * wp-content/themes/webkit/includes.php: Added.
+        * wp-content/themes/webkit/index.php: Added.
+        * wp-content/themes/webkit/loop.php: Added.
+        * wp-content/themes/webkit/nightly.php: Added.
+        * wp-content/themes/webkit/page.php: Added.
+        * wp-content/themes/webkit/scripts: Added.
+        * wp-content/themes/webkit/scripts/global.js: Added.
+        * wp-content/themes/webkit/single.php: Added.
+        * wp-content/themes/webkit/sitemap.php: Added.
+        * wp-content/themes/webkit/status.php: Added.
+        * wp-content/themes/webkit/style.css: Added.
+        * wp-content/themes/webkit/team.php: Added.
+        * wp-content/themes/webkit/widgets: Added.
+        * wp-content/themes/webkit/widgets/icon.php: Added.
+        * wp-content/themes/webkit/widgets/page.php: Added.
+        * wp-content/themes/webkit/widgets/post.php: Added.
+        * wp-content/themes/webkit/widgets/twitter.php: Added.
+
+2015-11-18  Jonathan Davis  <jond@apple.com>
+
+        Adding a maintenance file for the old WordPress blog.
+
+        Reviewed by Timothy Hatcher.
+
+        * blog/wp-content/maintenance.php: Added.
+
+2015-10-26  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Add images needed for shadow DOM blog post
+        https://bugs.webkit.org/show_bug.cgi?id=150549
+
+        Reviewed by Timothy Hatcher.
+
+        Added images.
+
+        * blog-files/introducing-shadow-dom: Added.
+        * blog-files/introducing-shadow-dom/commit-queue-contact.png: Added.
+        * blog-files/introducing-shadow-dom/progress-bar.png: Added.
+
+2015-10-05  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Modify the image to fit the width of the blog.
+
+        * blog-files/web-inspector-keyboard-shortcuts/debugger-shortcuts.png:
+
+2015-10-05  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Add more assets for Web Inspector Keyboard Shortcuts blog post.
+
+        * blog-files/web-inspector-keyboard-shortcuts/icon-disable.png: Added.
+        * blog-files/web-inspector-keyboard-shortcuts/icon-play.png: Added.
+        * blog-files/web-inspector-keyboard-shortcuts/icon-step-in.png: Added.
+        * blog-files/web-inspector-keyboard-shortcuts/icon-step-out.png: Added.
+        * blog-files/web-inspector-keyboard-shortcuts/icon-step-over.png: Added.
+        * blog-files/web-inspector-keyboard-shortcuts/search.png: Added.
+
+2015-10-05  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Add assets for Web Inspector Keyboard Shortcuts blog post.
+
+        * blog-files/web-inspector-keyboard-shortcuts/clear-console.png: Added.
+        * blog-files/web-inspector-keyboard-shortcuts/console-filters.m4v: Added.
+        * blog-files/web-inspector-keyboard-shortcuts/debugger-shortcuts.png: Added.
+        * blog-files/web-inspector-keyboard-shortcuts/hide-element.m4v: Added.
+        * blog-files/web-inspector-keyboard-shortcuts/select-next-and-previous-tabs.m4v: Added.
+        * blog-files/web-inspector-keyboard-shortcuts/toggle-split-console.m4v: Added.
+        * blog-files/web-inspector-keyboard-shortcuts/tooltips.gif: Added.
+
+2015-09-15  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Add anchor tags for scroll snapping examples.
+
+        * demos/scroll-snap/index.html: Added anchor tags.
+
+2015-09-14  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Add scroll snap blog post resources.
+
+        * blog-files/scroll-snap/overflow-normal.mp4: Added.
+        * blog-files/scroll-snap/snap-2d-rotated.mp4: Added.
+        * blog-files/scroll-snap/snap-2d.mp4: Added.
+        * blog-files/scroll-snap/snap-coordinates-centered.mp4: Added.
+        * blog-files/scroll-snap/snap-coordinates.mp4: Added.
+        * blog-files/scroll-snap/snap-repeat-100.mp4: Added.
+
+2015-09-14  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Add scroll snap demo directory and files.
+
+        * demos/scroll-snap/images/1.png: Added.
+        * demos/scroll-snap/images/10.png: Added.
+        * demos/scroll-snap/images/11.png: Added.
+        * demos/scroll-snap/images/12.png: Added.
+        * demos/scroll-snap/images/13.png: Added.
+        * demos/scroll-snap/images/14.png: Added.
+        * demos/scroll-snap/images/15.png: Added.
+        * demos/scroll-snap/images/16.png: Added.
+        * demos/scroll-snap/images/2.png: Added.
+        * demos/scroll-snap/images/3.png: Added.
+        * demos/scroll-snap/images/4.png: Added.
+        * demos/scroll-snap/images/5.png: Added.
+        * demos/scroll-snap/images/6.png: Added.
+        * demos/scroll-snap/images/7.png: Added.
+        * demos/scroll-snap/images/8.png: Added.
+        * demos/scroll-snap/images/9.png: Added.
+        * demos/scroll-snap/images/bluecross.svg: Added.
+        * demos/scroll-snap/images/corner.svg: Added.
+        * demos/scroll-snap/index.html: Added.
+
+2015-09-03  Matt Baker  <mattbaker@apple.com>
+
+        Added and updated assets for Introducing the Rendering Frames Timeline blog post.
+
+        * blog-files/rendering-frames-timeline/inspector-rendering-frames-demo.mov: Added.
+        * blog-files/rendering-frames-timeline/inspector-rendering-frames-filtering.png:
+        * blog-files/rendering-frames-timeline/inspector-rendering-frames.png:
+        * blog-files/rendering-frames-timeline/inspector-task-filters.png:
+
+2015-09-03  Matt Baker  <mattbaker@apple.com>
+
+        Add assets for Introducing the Rendering Frames Timeline blog post.
+
+        * blog-files/rendering-frames-timeline/inspector-15ms-filter-after-2x.png: Added.
+        * blog-files/rendering-frames-timeline/inspector-15ms-filter-after.png: Added.
+        * blog-files/rendering-frames-timeline/inspector-15ms-filter-before-2x.png: Added.
+        * blog-files/rendering-frames-timeline/inspector-15ms-filter-before.png: Added.
+        * blog-files/rendering-frames-timeline/inspector-frames-graph-2x.png: Added.
+        * blog-files/rendering-frames-timeline/inspector-frames-graph.png: Added.
+        * blog-files/rendering-frames-timeline/inspector-rendering-frames-2x.png: Added.
+        * blog-files/rendering-frames-timeline/inspector-rendering-frames-filtering-2x.png: Added.
+        * blog-files/rendering-frames-timeline/inspector-rendering-frames-filtering.png: Added.
+        * blog-files/rendering-frames-timeline/inspector-rendering-frames.png: Added.
+        * blog-files/rendering-frames-timeline/inspector-task-filters-2x.png: Added.
+        * blog-files/rendering-frames-timeline/inspector-task-filters.png: Added.
+
+2015-08-28  Jonathan Davis  <jond@apple.com>
+
+        Add assets for Styles Sidebar Refinements in Web Inspector blog post.
+
+        * blog-files/styles-sidebar-refinements-in-web-inspector: Added.
+        * blog-files/styles-sidebar-refinements-in-web-inspector/ComputedToRules-1x.png: Added.
+        * blog-files/styles-sidebar-refinements-in-web-inspector/ComputedToRules-2x.png: Added.
+        * blog-files/styles-sidebar-refinements-in-web-inspector/Filter-1x.png: Added.
+        * blog-files/styles-sidebar-refinements-in-web-inspector/Filter-2x.png: Added.
+        * blog-files/styles-sidebar-refinements-in-web-inspector/FilterSelector-1x.png: Added.
+        * blog-files/styles-sidebar-refinements-in-web-inspector/FilterSelector-2x.png: Added.
+        * blog-files/styles-sidebar-refinements-in-web-inspector/SelectorHovering-1x.png: Added.
+        * blog-files/styles-sidebar-refinements-in-web-inspector/SelectorHovering-2x.png: Added.
+        * blog-files/styles-sidebar-refinements-in-web-inspector/Tabbing.mp4: Added.
+        * blog-files/styles-sidebar-refinements-in-web-inspector/WarningIcon-1x.png: Added.
+        * blog-files/styles-sidebar-refinements-in-web-inspector/WarningIcon-2x.png: Added.
+
+2015-08-26  Brent Fulgham  <bfulgham@apple.com>
+
+        Update Windows tool install instructions.
+
+        * building/tools.html:
+
+2015-08-24  Saam barati  <sbarati@apple.com>
+
+        Add mp4 version of types-changing video.
+
+        * blog-files/type-profiler-and-code-coverage-profiler/types-changing.mp4: Added.
+
+2015-08-23  Saam barati  <sbarati@apple.com>
+
+        Change compiler-pipeline image for type profiler and code coverage profiler blog post.
+
+        * blog-files/type-profiler-and-code-coverage-profiler/compiler-pipeline-1x.png: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/compiler-pipeline-2x.png: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/compiler-pipeline.png: Removed.
+
+2015-08-22  Saam barati  <sbarati@apple.com>
+
+        Change image for type profiler and code coverage profiler blog post.
+
+        * blog-files/type-profiler-and-code-coverage-profiler/code-coverage-1x.png:
+        * blog-files/type-profiler-and-code-coverage-profiler/code-coverage-2x.png:
+
+2015-08-22  Saam barati  <sbarati@apple.com>
+
+        Change video for type profiler and code coverage profiler blog post.
+
+        * blog-files/type-profiler-and-code-coverage-profiler/types-changing.mov:
+
+2015-08-22  Saam barati  <sbarati@apple.com>
+
+        Add 1x/2x resources for type profiler and code coverage profiler blog post.
+
+        * blog-files/type-profiler-and-code-coverage-profiler/code-coverage-1x.png: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/code-coverage-2x.png: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/code-coverage.png: Removed.
+        * blog-files/type-profiler-and-code-coverage-profiler/subtle-bug-1x.png: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/subtle-bug-2x.png: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/subtle-bug.png: Removed.
+        * blog-files/type-profiler-and-code-coverage-profiler/type-profiler-api-view-1x.png: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/type-profiler-api-view-2x.png: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/type-profiler-api-view.png: Removed.
+        * blog-files/type-profiler-and-code-coverage-profiler/types-everywhere-1x.png: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/types-everywhere-2x.png: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/types-everywhere.png: Removed.
+
+2015-08-21  Saam barati  <sbarati@apple.com>
+
+        Edit a resource for type profiler and code coverage profiler blog post.
+
+        * blog-files/type-profiler-and-code-coverage-profiler/types-everywhere.png:
+
+2015-08-21  Saam barati  <sbarati@apple.com>
+
+        Add resources for type profiler and code coverage profiler blog post.
+
+        * blog-files/type-profiler-and-code-coverage-profiler: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/code-coverage-video.mp4: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/code-coverage.png: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/compiler-pipeline.png: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/subtle-bug.png: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/type-profiler-api-view.png: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/types-changing.mov: Added.
+        * blog-files/type-profiler-and-code-coverage-profiler/types-everywhere.png: Added.
+
+2015-08-06  Brent Fulgham  <bfulgham@apple.com>
+
+        Correct a typo in the explanatory text.
+
+        * demos/backdrop-filter/index.html:
+
+2015-08-06  Brent Fulgham  <bfulgham@apple.com>
+
+        Add an example of backdrop-filter.
+
+        * demos/backdrop-filter: Added.
+        * demos/backdrop-filter/dynamic_poster.jpg: Added.
+        * demos/backdrop-filter/dynamic_source.m4v: Added.
+        * demos/backdrop-filter/index.html: Added.
+        * demos/backdrop-filter/inverted_color.jpg: Added.
+        * demos/backdrop-filter/multiple.jpg: Added.
+        * demos/backdrop-filter/simple_blur.jpg: Added.
+
+2015-08-06  Brent Fulgham  <bfulgham@apple.com>
+
+        Add a poster image for the video.
+
+        * blog-files/backdrop-filters/dynamic_poster.jpg: Added.
+
+2015-08-06  Brent Fulgham  <bfulgham@apple.com>
+
+        Add more media control examples.
+
+        * blog-files/backdrop-filters/dynamic_backdrop.m4v: Added.
+        * blog-files/backdrop-filters/Media_Controls_Complete_2x.jpg: Added.
+        * blog-files/backdrop-filters/Media_Controls_Complete_2x.jpg: Added.
+
+2015-08-06  Brent Fulgham  <bfulgham@apple.com>
+
+        Add two more files for a future blog post.
+
+        * blog-files/backdrop-filters/Media_Controls_1x.jpg: Added.
+        * blog-files/backdrop-filters/Media_Controls_2x.jpg: Added.
+
+2015-08-05  Benjamin Poulain  <benjamin@webkit.org>
+
+        Fix the twitter links on the status page
+
+        * status.html:
+
+2015-08-03  Benjamin Poulain  <benjamin@webkit.org>
+
+        Prepare screenshots for a potential blog post
+
+        * blog-files/css-selectors-level-4/dynamic-specificity-1x.png: Added.
+        * blog-files/css-selectors-level-4/dynamic-specificity-2x.png: Added.
+
+2015-07-28  Geoffrey Garen  <ggaren@apple.com>
+
+        SunSpider is no longer maintained
+        https://bugs.webkit.org/show_bug.cgi?id=147370
+
+        Reviewed by Michael Saboff.
+
+        Add an indicator to show that SunSpider is no longer maintained.
+
+        * perf/sunspider/sunspider.css:
+        (#logo):
+        (.topbox):
+        (.bottombox):
+        * perf/sunspider/sunspider.html:
+
+2015-07-24  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Add image for a blog post
+
+        * blog-files/el-capitan-system-font.png: Added.
+
+2015-07-23  Timothy Hatcher  <timothy@apple.com>
+
+        Change some images for a blog post and add 2x images.
+
+        * blog-files/inspector-elements-tab-2x.png: Added.
+        * blog-files/inspector-elements-tab.png: Updated.
+        * blog-files/inspector-network-tab-2x.png: Added.
+        * blog-files/inspector-network-tab.png: Updated.
+        * blog-files/inspector-tab-bar-2x.png: Added.
+        * blog-files/inspector-tab-bar.png: Updated.
+
+2015-07-23  Timothy Hatcher  <timothy@apple.com>
+
+        Change some images for a blog post.
+
+        * blog-files/inspector-elements-tab.png:
+        * blog-files/inspector-network-tab.png:
+
+2015-07-23  Timothy Hatcher  <timothy@apple.com>
+
+        Add and change some images for a blog post.
+
+        * blog-files/inspector-elements-network-tabs.png: Removed.
+        * blog-files/inspector-elements-tab.png: Added.
+        * blog-files/inspector-network-tab.png: Added.
+        * blog-files/inspector-tab-bar.png:
+
+2015-07-23  Brent Fulgham  <bfulgham@apple.com>
+
+        Correct rest of the images to match.
+
+        * blog-files/backdrop-filters/backdrop_correct_1x.jpg:
+        * blog-files/backdrop-filters/backdrop_correct_2x.jpg:
+        * blog-files/backdrop-filters/backdrop_invert_1x.jpg:
+        * blog-files/backdrop-filters/backdrop_invert_2x.jpg:
+        * blog-files/backdrop-filters/backdrop_mixed_1x.jpg:
+
+2015-07-23  Brent Fulgham  <bfulgham@apple.com>
+
+        Adjust image sizes to avoid page scaling.
+
+        * blog-files/backdrop-filters/Screen_OSX_Yosemite_Finder-iCloud-WaterBg_1x.jpg:
+        * blog-files/backdrop-filters/Screen_OSX_Yosemite_Finder-iCloud-WaterBg_2x.jpg:
+        * blog-files/backdrop-filters/Screen_V_iOS8_ControlCenter_BlueGradient_1x.jpg:
+        * blog-files/backdrop-filters/Screen_V_iOS8_ControlCenter_BlueGradient_2x.jpg:
+        * blog-files/backdrop-filters/backdrop_mixed_2x.jpg:
+
 2015-07-22  Brent Fulgham  <bfulgham@apple.com>
 
         Add some images needed for an upcoming blog post.

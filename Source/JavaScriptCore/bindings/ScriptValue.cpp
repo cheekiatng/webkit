@@ -130,13 +130,13 @@ static RefPtr<InspectorValue> jsToInspectorValue(ExecState* scriptState, JSValue
                 RefPtr<InspectorValue> elementValue = jsToInspectorValue(scriptState, element, maxDepth);
                 if (!elementValue)
                     return nullptr;
-                inspectorArray->pushValue(WTF::move(elementValue));
+                inspectorArray->pushValue(WTFMove(elementValue));
             }
-            return WTF::move(inspectorArray);
+            return WTFMove(inspectorArray);
         }
         Ref<InspectorObject> inspectorObject = InspectorObject::create();
         JSObject* object = value.getObject();
-        PropertyNameArray propertyNames(scriptState);
+        PropertyNameArray propertyNames(scriptState, PropertyNameMode::Strings);
         object->methodTable()->getOwnPropertyNames(object, scriptState, propertyNames, EnumerationMode());
         for (size_t i = 0; i < propertyNames.size(); i++) {
             const Identifier& name = propertyNames[i];
@@ -144,9 +144,9 @@ static RefPtr<InspectorValue> jsToInspectorValue(ExecState* scriptState, JSValue
             RefPtr<InspectorValue> inspectorValue = jsToInspectorValue(scriptState, propertyValue, maxDepth);
             if (!inspectorValue)
                 return nullptr;
-            inspectorObject->setValue(name.string(), WTF::move(inspectorValue));
+            inspectorObject->setValue(name.string(), WTFMove(inspectorValue));
         }
-        return WTF::move(inspectorObject);
+        return WTFMove(inspectorObject);
     }
 
     ASSERT_NOT_REACHED();

@@ -31,6 +31,7 @@
 #include "InternalFunction.h"
 #include "JSCJSValue.h"
 #include "JSCellInlines.h"
+#include "JSObject.h"
 #include "JSFunction.h"
 #include <wtf/text/StringImpl.h>
 
@@ -45,7 +46,7 @@ ALWAYS_INLINE int32_t JSValue::toInt32(ExecState* exec) const
 
 inline uint32_t JSValue::toUInt32(ExecState* exec) const
 {
-    // See comment on JSC::toUInt32, above.
+    // See comment on JSC::toUInt32, in JSCJSValue.h.
     return toInt32(exec);
 }
 
@@ -749,6 +750,24 @@ inline void JSValue::put(ExecState* exec, PropertyName propertyName, JSValue val
         return;
     }
     asCell()->methodTable(exec->vm())->put(asCell(), exec, propertyName, value, slot);
+}
+
+ALWAYS_INLINE void JSValue::putInline(ExecState* exec, PropertyName propertyName, JSValue value, PutPropertySlot& slot)
+{
+    if (UNLIKELY(!isCell())) {
+        putToPrimitive(exec, propertyName, value, slot);
+        return;
+    }
+    JSCell* cell = asCell();
+    auto putMethod = cell->methodTable(exec->vm())->put;
+    if (LIKELY(putMethod == JSObject::put)) {
+        JSObject::putInline(cell, exec, propertyName, value, slot);
+        return;
+    }
+
+    PutPropertySlot otherSlot = slot;
+    putMethod(cell, exec, propertyName, value, otherSlot);
+    slot = otherSlot;
 }
 
 inline void JSValue::putByIndex(ExecState* exec, unsigned propertyName, JSValue value, bool shouldThrow)

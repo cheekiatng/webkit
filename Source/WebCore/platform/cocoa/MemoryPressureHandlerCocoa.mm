@@ -68,16 +68,12 @@ void MemoryPressureHandler::platformReleaseMemory(Critical critical)
     }
 #endif
 
-#if PLATFORM(IOS) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
     if (critical == Critical::Yes && !isUnderMemoryPressure()) {
         // libcache listens to OS memory notifications, but for process suspension
         // or memory pressure simulation, we need to prod it manually:
         ReliefLogger log("Purging libcache caches");
         cache_simulate_memory_warning_event(DISPATCH_MEMORYPRESSURE_CRITICAL);
     }
-#else
-    UNUSED_PARAM(critical);
-#endif
 }
 
 static dispatch_source_t _cache_event_source = 0;
@@ -256,7 +252,7 @@ void MemoryPressureHandler::setReceivedMemoryPressure(MemoryPressureReason reaso
     m_underMemoryPressure = true;
 
     {
-        MutexLocker locker(m_observerMutex);
+        LockHolder locker(m_observerMutex);
         if (!m_observer) {
             m_observer = CFRunLoopObserverCreate(NULL, kCFRunLoopBeforeWaiting | kCFRunLoopExit, NO /* don't repeat */,
                 0, WebCore::respondToMemoryPressureCallback, NULL);
@@ -272,14 +268,14 @@ void MemoryPressureHandler::clearMemoryPressure()
     m_underMemoryPressure = false;
 
     {
-        MutexLocker locker(m_observerMutex);
+        LockHolder locker(m_observerMutex);
         m_memoryPressureReason = MemoryPressureReasonNone;
     }
 }
 
 bool MemoryPressureHandler::shouldWaitForMemoryClearMessage()
 {
-    MutexLocker locker(m_observerMutex);
+    LockHolder locker(m_observerMutex);
     return m_memoryPressureReason & MemoryPressureReasonVMStatus;
 }
 
@@ -288,7 +284,7 @@ void MemoryPressureHandler::respondToMemoryPressureIfNeeded()
     ASSERT(WebThreadIsLockedOrDisabled());
 
     {
-        MutexLocker locker(m_observerMutex);
+        LockHolder locker(m_observerMutex);
         m_observer = 0;
     }
 

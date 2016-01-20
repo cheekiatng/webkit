@@ -72,6 +72,8 @@ rect: style.getPropertyValue(clip) : auto
 rect: style.getPropertyCSSValue(clip) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(color) : rgb(0, 0, 0)
 rect: style.getPropertyCSSValue(color) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(content) : 
+rect: style.getPropertyCSSValue(content) : [object CSSValueList]
 rect: style.getPropertyValue(cursor) : auto
 rect: style.getPropertyCSSValue(cursor) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(direction) : ltr
@@ -268,8 +270,6 @@ rect: style.getPropertyValue(-webkit-box-reflect) : none
 rect: style.getPropertyCSSValue(-webkit-box-reflect) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-box-shadow) : none
 rect: style.getPropertyCSSValue(-webkit-box-shadow) : [object CSSPrimitiveValue]
-rect: style.getPropertyValue(-webkit-color-correction) : default
-rect: style.getPropertyCSSValue(-webkit-color-correction) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-column-break-after) : auto
 rect: style.getPropertyCSSValue(-webkit-column-break-after) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-column-break-before) : auto
@@ -300,6 +300,8 @@ rect: style.getPropertyValue(align-items) : start
 rect: style.getPropertyCSSValue(align-items) : [object CSSValueList]
 rect: style.getPropertyValue(align-self) : start
 rect: style.getPropertyCSSValue(align-self) : [object CSSValueList]
+rect: style.getPropertyValue(filter) : none
+rect: style.getPropertyCSSValue(filter) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(flex-direction) : row
 rect: style.getPropertyCSSValue(flex-direction) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(flex-wrap) : nowrap
@@ -314,8 +316,18 @@ rect: style.getPropertyValue(-webkit-font-kerning) : auto
 rect: style.getPropertyCSSValue(-webkit-font-kerning) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-font-smoothing) : auto
 rect: style.getPropertyCSSValue(-webkit-font-smoothing) : [object CSSPrimitiveValue]
-rect: style.getPropertyValue(-webkit-font-variant-ligatures) : normal
-rect: style.getPropertyCSSValue(-webkit-font-variant-ligatures) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(font-variant-ligatures) : normal
+rect: style.getPropertyCSSValue(font-variant-ligatures) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(font-variant-position) : normal
+rect: style.getPropertyCSSValue(font-variant-position) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(font-variant-caps) : normal
+rect: style.getPropertyCSSValue(font-variant-caps) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(font-variant-numeric) : normal
+rect: style.getPropertyCSSValue(font-variant-numeric) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(font-variant-alternates) : normal
+rect: style.getPropertyCSSValue(font-variant-alternates) : [object CSSPrimitiveValue]
+rect: style.getPropertyValue(font-variant-east-asian) : normal
+rect: style.getPropertyCSSValue(font-variant-east-asian) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-grid-auto-columns) : auto
 rect: style.getPropertyCSSValue(-webkit-grid-auto-columns) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-grid-auto-flow) : row
@@ -420,7 +432,7 @@ rect: style.getPropertyValue(-webkit-text-emphasis-style) : none
 rect: style.getPropertyCSSValue(-webkit-text-emphasis-style) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-text-fill-color) : rgb(0, 0, 0)
 rect: style.getPropertyCSSValue(-webkit-text-fill-color) : [object CSSPrimitiveValue]
-rect: style.getPropertyValue(-webkit-text-orientation) : vertical-right
+rect: style.getPropertyValue(-webkit-text-orientation) : mixed
 rect: style.getPropertyCSSValue(-webkit-text-orientation) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(-webkit-text-security) : none
 rect: style.getPropertyCSSValue(-webkit-text-security) : [object CSSPrimitiveValue]
@@ -470,7 +482,7 @@ rect: style.getPropertyValue(color-interpolation-filters) : linearrgb
 rect: style.getPropertyCSSValue(color-interpolation-filters) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(color-rendering) : auto
 rect: style.getPropertyCSSValue(color-rendering) : [object CSSPrimitiveValue]
-rect: style.getPropertyValue(fill) : #0000ff
+rect: style.getPropertyValue(fill) : rgb(0, 0, 255)
 rect: style.getPropertyCSSValue(fill) : [object SVGPaint]
 rect: style.getPropertyValue(fill-opacity) : 1
 rect: style.getPropertyCSSValue(fill-opacity) : [object CSSPrimitiveValue]
@@ -484,7 +496,7 @@ rect: style.getPropertyValue(marker-start) : none
 rect: style.getPropertyCSSValue(marker-start) : [object CSSPrimitiveValue]
 rect: style.getPropertyValue(shape-rendering) : auto
 rect: style.getPropertyCSSValue(shape-rendering) : [object CSSPrimitiveValue]
-rect: style.getPropertyValue(stroke) : #ffa500
+rect: style.getPropertyValue(stroke) : rgb(255, 165, 0)
 rect: style.getPropertyCSSValue(stroke) : [object SVGPaint]
 rect: style.getPropertyValue(stroke-dasharray) : none
 rect: style.getPropertyCSSValue(stroke-dasharray) : [object CSSPrimitiveValue]
@@ -594,6 +606,8 @@ g: style.getPropertyValue(clip) : auto
 g: style.getPropertyCSSValue(clip) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(color) : rgb(0, 0, 0)
 g: style.getPropertyCSSValue(color) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(content) : 
+g: style.getPropertyCSSValue(content) : [object CSSValueList]
 g: style.getPropertyValue(cursor) : auto
 g: style.getPropertyCSSValue(cursor) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(direction) : ltr
@@ -790,8 +804,6 @@ g: style.getPropertyValue(-webkit-box-reflect) : none
 g: style.getPropertyCSSValue(-webkit-box-reflect) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-box-shadow) : none
 g: style.getPropertyCSSValue(-webkit-box-shadow) : [object CSSPrimitiveValue]
-g: style.getPropertyValue(-webkit-color-correction) : default
-g: style.getPropertyCSSValue(-webkit-color-correction) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-column-break-after) : auto
 g: style.getPropertyCSSValue(-webkit-column-break-after) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-column-break-before) : auto
@@ -822,6 +834,8 @@ g: style.getPropertyValue(align-items) : start
 g: style.getPropertyCSSValue(align-items) : [object CSSValueList]
 g: style.getPropertyValue(align-self) : start
 g: style.getPropertyCSSValue(align-self) : [object CSSValueList]
+g: style.getPropertyValue(filter) : none
+g: style.getPropertyCSSValue(filter) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(flex-direction) : row
 g: style.getPropertyCSSValue(flex-direction) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(flex-wrap) : nowrap
@@ -836,8 +850,18 @@ g: style.getPropertyValue(-webkit-font-kerning) : auto
 g: style.getPropertyCSSValue(-webkit-font-kerning) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-font-smoothing) : auto
 g: style.getPropertyCSSValue(-webkit-font-smoothing) : [object CSSPrimitiveValue]
-g: style.getPropertyValue(-webkit-font-variant-ligatures) : normal
-g: style.getPropertyCSSValue(-webkit-font-variant-ligatures) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(font-variant-ligatures) : normal
+g: style.getPropertyCSSValue(font-variant-ligatures) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(font-variant-position) : normal
+g: style.getPropertyCSSValue(font-variant-position) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(font-variant-caps) : normal
+g: style.getPropertyCSSValue(font-variant-caps) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(font-variant-numeric) : normal
+g: style.getPropertyCSSValue(font-variant-numeric) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(font-variant-alternates) : normal
+g: style.getPropertyCSSValue(font-variant-alternates) : [object CSSPrimitiveValue]
+g: style.getPropertyValue(font-variant-east-asian) : normal
+g: style.getPropertyCSSValue(font-variant-east-asian) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-grid-auto-columns) : auto
 g: style.getPropertyCSSValue(-webkit-grid-auto-columns) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-grid-auto-flow) : row
@@ -942,7 +966,7 @@ g: style.getPropertyValue(-webkit-text-emphasis-style) : none
 g: style.getPropertyCSSValue(-webkit-text-emphasis-style) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-text-fill-color) : rgb(0, 0, 0)
 g: style.getPropertyCSSValue(-webkit-text-fill-color) : [object CSSPrimitiveValue]
-g: style.getPropertyValue(-webkit-text-orientation) : vertical-right
+g: style.getPropertyValue(-webkit-text-orientation) : mixed
 g: style.getPropertyCSSValue(-webkit-text-orientation) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(-webkit-text-security) : none
 g: style.getPropertyCSSValue(-webkit-text-security) : [object CSSPrimitiveValue]
@@ -992,7 +1016,7 @@ g: style.getPropertyValue(color-interpolation-filters) : linearrgb
 g: style.getPropertyCSSValue(color-interpolation-filters) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(color-rendering) : auto
 g: style.getPropertyCSSValue(color-rendering) : [object CSSPrimitiveValue]
-g: style.getPropertyValue(fill) : #000000
+g: style.getPropertyValue(fill) : rgb(0, 0, 0)
 g: style.getPropertyCSSValue(fill) : [object SVGPaint]
 g: style.getPropertyValue(fill-opacity) : 1
 g: style.getPropertyCSSValue(fill-opacity) : [object CSSPrimitiveValue]
@@ -1006,7 +1030,7 @@ g: style.getPropertyValue(marker-start) : none
 g: style.getPropertyCSSValue(marker-start) : [object CSSPrimitiveValue]
 g: style.getPropertyValue(shape-rendering) : auto
 g: style.getPropertyCSSValue(shape-rendering) : [object CSSPrimitiveValue]
-g: style.getPropertyValue(stroke) : #ffa500
+g: style.getPropertyValue(stroke) : rgb(255, 165, 0)
 g: style.getPropertyCSSValue(stroke) : [object SVGPaint]
 g: style.getPropertyValue(stroke-dasharray) : none
 g: style.getPropertyCSSValue(stroke-dasharray) : [object CSSPrimitiveValue]

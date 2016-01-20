@@ -757,7 +757,7 @@ String HTMLConverterCaches::propertyValueForNode(Node& node, CSSPropertyID prope
             inherit = true;
         break;
     case CSSPropertyFontFamily:
-    case CSSPropertyFontVariant:
+    case CSSPropertyFontVariantCaps:
     case CSSPropertyTextTransform:
     case CSSPropertyTextShadow:
     case CSSPropertyVisibility:
@@ -873,7 +873,7 @@ static NSBundle *_webKitBundle()
 
 static inline UIColor *_platformColor(Color color)
 {
-    return [getUIColorClass() _disambiguated_due_to_CIImage_colorWithCGColor:cachedCGColor(color, WebCore::ColorSpaceDeviceRGB)];
+    return [getUIColorClass() _disambiguated_due_to_CIImage_colorWithCGColor:cachedCGColor(color)];
 }
 #else
 static inline NSColor *_platformColor(Color color)
@@ -1118,7 +1118,7 @@ NSDictionary *HTMLConverter::computedAttributesForElement(Element& element)
                 font = originalFont;
         }
 #if !PLATFORM(IOS) // IJB: No small caps support on iOS
-        if (_caches->propertyValueForNode(element, CSSPropertyFontVariant) == "small-caps") {
+        if (_caches->propertyValueForNode(element, CSSPropertyFontVariantCaps) == "small-caps") {
             // ??? synthesize small-caps if [font isEqual:originalFont]
             NSFont *originalFont = font;
             font = [fontManager convertFont:font toHaveTrait:NSSmallCapsFontMask];
@@ -1156,7 +1156,7 @@ NSDictionary *HTMLConverter::computedAttributesForElement(Element& element)
         }
     }
 
-    String fontLigatures = _caches->propertyValueForNode(element, CSSPropertyWebkitFontVariantLigatures);
+    String fontLigatures = _caches->propertyValueForNode(element, CSSPropertyFontVariantLigatures);
     if (fontLigatures.length()) {
         if (fontLigatures.contains("normal"))
             ;   // default: whatever the system decides to do
@@ -1372,7 +1372,11 @@ static Class _WebMessageDocumentClass()
     static BOOL lookedUpClass = NO;
     if (!lookedUpClass) {
         // If the class is not there, we don't want to try again
+#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200
+        _WebMessageDocumentClass = objc_lookUpClass("WebMessageDocument");
+#else
         _WebMessageDocumentClass = objc_lookUpClass("MFWebMessageDocument");
+#endif
         if (_WebMessageDocumentClass && ![_WebMessageDocumentClass respondsToSelector:@selector(document:attachment:forURL:)])
             _WebMessageDocumentClass = Nil;
         lookedUpClass = YES;
@@ -2019,7 +2023,6 @@ void HTMLConverter::_addMarkersToList(NSTextList *list, NSRange range)
     NSArray *textLists;
     CGFloat markerLocation;
     CGFloat listLocation;
-    CGFloat pointSize;
     
     if (range.length == 0 || range.location >= textLength)
         return;
@@ -2034,7 +2037,6 @@ void HTMLConverter::_addMarkersToList(NSTextList *list, NSRange range)
                 paragraphRange = [string paragraphRangeForRange:NSMakeRange(idx, 0)];
                 paragraphStyle = [_attrStr attribute:NSParagraphStyleAttributeName atIndex:idx effectiveRange:&styleRange];
                 font = [_attrStr attribute:NSFontAttributeName atIndex:idx effectiveRange:NULL];
-                pointSize = font ? [font pointSize] : 12;
                 if ([[paragraphStyle textLists] count] == listIndex + 1) {
                     stringToInsert = [NSString stringWithFormat:@"\t%@\t", [list markerForItemNumber:itemNum++]];
                     insertLength = [stringToInsert length];
@@ -2231,12 +2233,12 @@ void HTMLConverter::_processText(CharacterData& characterData)
     String originalString = characterData.data();
     unsigned startOffset = 0;
     unsigned endOffset = originalString.length();
-    if (&characterData == m_range->startContainer()) {
+    if (&characterData == &m_range->startContainer()) {
         startOffset = m_range->startOffset();
         _domRangeStartIndex = [_attrStr length];
         _flags.reachedStart = YES;
     }
-    if (&characterData == m_range->endContainer()) {
+    if (&characterData == &m_range->endContainer()) {
         endOffset = m_range->endOffset();
         _flags.reachedEnd = YES;
     }
@@ -2307,12 +2309,12 @@ void HTMLConverter::_traverseNode(Node& node, unsigned depth, bool embedded)
     unsigned endOffset = UINT_MAX;
     bool isStart = false;
     bool isEnd = false;
-    if (&node == m_range->startContainer()) {
+    if (&node == &m_range->startContainer()) {
         startOffset = m_range->startOffset();
         isStart = true;
         _flags.reachedStart = YES;
     }
-    if (&node == m_range->endContainer()) {
+    if (&node == &m_range->endContainer()) {
         endOffset = m_range->endOffset();
         isEnd = true;
     }
@@ -2368,12 +2370,12 @@ void HTMLConverter::_traverseFooterNode(Element& element, unsigned depth)
     unsigned endOffset = UINT_MAX;
     bool isStart = false;
     bool isEnd = false;
-    if (&element == m_range->startContainer()) {
+    if (&element == &m_range->startContainer()) {
         startOffset = m_range->startOffset();
         isStart = true;
         _flags.reachedStart = YES;
     }
-    if (&element == m_range->endContainer()) {
+    if (&element == &m_range->endContainer()) {
         endOffset = m_range->endOffset();
         isEnd = true;
     }
@@ -2411,8 +2413,8 @@ void HTMLConverter::_adjustTrailingNewline()
 
 Node* HTMLConverterCaches::cacheAncestorsOfStartToBeConverted(const Range& range)
 {
-    Node* commonAncestor = range.commonAncestorContainer(ASSERT_NO_EXCEPTION);
-    Node* ancestor = range.startContainer();
+    Node* commonAncestor = range.commonAncestorContainer();
+    Node* ancestor = &range.startContainer();
 
     while (ancestor) {
         m_ancestorsUnderCommonAncestor.add(ancestor);
@@ -2499,14 +2501,14 @@ NSAttributedString *editingAttributedStringFromRange(Range& range, IncludeImages
 
     for (TextIterator it(&range); !it.atEnd(); it.advance()) {
         RefPtr<Range> currentTextRange = it.range();
-        Node* startContainer = currentTextRange->startContainer();
-        Node* endContainer = currentTextRange->endContainer();
+        Node& startContainer = currentTextRange->startContainer();
+        Node& endContainer = currentTextRange->endContainer();
         int startOffset = currentTextRange->startOffset();
         int endOffset = currentTextRange->endOffset();
 
         if (includeOrSkipImages == IncludeImagesInAttributedString::Yes) {
-            if (startContainer == endContainer && (startOffset == endOffset - 1)) {
-                Node* node = startContainer->traverseToChildAt(startOffset);
+            if (&startContainer == &endContainer && (startOffset == endOffset - 1)) {
+                Node* node = startContainer.traverseToChildAt(startOffset);
                 if (is<HTMLImageElement>(node)) {
                     NSFileWrapper* fileWrapper = fileWrapperForElement(downcast<HTMLImageElement>(node));
                     NSTextAttachment* attachment = [[NSTextAttachment alloc] initWithFileWrapper:fileWrapper];
@@ -2520,7 +2522,7 @@ NSAttributedString *editingAttributedStringFromRange(Range& range, IncludeImages
         if (!currentTextLength)
             continue;
 
-        RenderObject* renderer = startContainer->renderer();
+        RenderObject* renderer = startContainer.renderer();
         ASSERT(renderer);
         if (!renderer)
             continue;

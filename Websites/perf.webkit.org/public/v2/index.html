@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>WebKit Performance Monitor (Beta)</title>
+    <title>Performance Dashboard is Loading...</title>
 
     <link rel="prefetch" href="../data/manifest.json">
     <script type="application/json" src="../data/manifest.json"></script>
@@ -170,7 +170,6 @@
                             ranges=ranges
                             domain=mainPlotDomain
                             interactive=true
-                            chartPointRadius=2
                             currentItem=hoveredOrSelectedItem
                             currentTime=sharedTime
                             selectedItem=selectedItem
@@ -486,7 +485,7 @@
 
     <script type="text/x-handlebars" data-template-name="navbar">
         <nav id="navigation" role="navigation">
-            <h1><a href="#">WebKit Perf Monitor</a></h1>
+            <h1><a href="#">{{App.Manifest.siteTitle}}</a></h1>
             <ul>
                 {{#each App.Manifest.dashboards}}
                     {{#if name}}
@@ -602,7 +601,6 @@
                         ranges=pane.ranges
                         domain=overviewDomain
                         interactive=true
-                        chartPointRadius=2
                         currentItem=pane.hoveredOrSelectedItem
                         selectedPoints=pane.selectedPoints
                         selection=timeRange
@@ -683,7 +681,6 @@
                     {{interactive-chart
                         chartData=referenceChart.data
                         domain=overviewDomain
-                        chartPointRadius=2
                         showYAxis=false
                         enableSelection=false
                         highlightedItems=referenceChart.highlightedItems}}
@@ -726,9 +723,14 @@
                             <tr>
                                 <th>{{name}}</th>
                                 {{#each sets}}
-                                    <td>{{view Ember.Select name=name content=options
-                                        optionValuePath="content.value" optionLabelPath="content.label"
-                                        selection=selection}}</td>
+                                    <td>
+                                        {{view Ember.Select name=name content=options
+                                            optionValuePath="content.value" optionLabelPath="content.label"
+                                            selection=selection}}
+                                        {{#if selection.isCustom}}
+                                            {{input name="customValue" type=text value=customValue}}
+                                        {{/if}}
+                                        </td>
                                 {{/each}}
                             </tr>
                         {{/each}}

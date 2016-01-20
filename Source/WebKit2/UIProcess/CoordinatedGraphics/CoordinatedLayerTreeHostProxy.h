@@ -21,7 +21,7 @@
 #ifndef CoordinatedLayerTreeHostProxy_h
 #define CoordinatedLayerTreeHostProxy_h
 
-#if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
+#if USE(COORDINATED_GRAPHICS)
 
 #include "CoordinatedGraphicsArgumentCoders.h"
 #include "CoordinatedGraphicsScene.h"
@@ -53,7 +53,7 @@ public:
     virtual void renderNextFrame() override;
     virtual void purgeBackingStores() override;
 
-    virtual void commitScrollOffset(uint32_t layerID, const WebCore::IntSize& offset);
+    virtual void commitScrollOffset(uint32_t layerID, const WebCore::IntSize& offset) override;
 
 protected:
     void dispatchUpdate(std::function<void()>);
@@ -69,6 +69,6 @@ protected:
 
 } // namespace WebKit
 
-#endif // USE(COORDINATED_GRAPHICS_MULTIPROCESS)
+#endif // USE(COORDINATED_GRAPHICS)
 
 #endif // CoordinatedLayerTreeHostProxy_h

@@ -31,6 +31,7 @@
 #include <wtf/HashMap.h>
 #include <wtf/HashSet.h>
 #include <wtf/MainThread.h>
+#include <wtf/NeverDestroyed.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/text/StringHash.h>
 
@@ -277,28 +278,27 @@ static void initializeSupportedImageMIMETypesForEncoding()
 
 static void initializeSupportedJavaScriptMIMETypes()
 {
-    /*
-        Mozilla 1.8 and WinIE 7 both accept text/javascript and text/ecmascript.
-        Mozilla 1.8 accepts application/javascript, application/ecmascript, and application/x-javascript, but WinIE 7 doesn't.
-        WinIE 7 accepts text/javascript1.1 - text/javascript1.3, text/jscript, and text/livescript, but Mozilla 1.8 doesn't.
-        Mozilla 1.8 allows leading and trailing whitespace, but WinIE 7 doesn't.
-        Mozilla 1.8 and WinIE 7 both accept the empty string, but neither accept a whitespace-only string.
-        We want to accept all the values that either of these browsers accept, but not other values.
-     */
+    // https://html.spec.whatwg.org/multipage/scripting.html#javascript-mime-type
     static const char* types[] = {
         "text/javascript",
         "text/ecmascript",
         "application/javascript",
         "application/ecmascript",
         "application/x-javascript",
+        "application/x-ecmascript",
+        "text/javascript1.0",
         "text/javascript1.1",
         "text/javascript1.2",
         "text/javascript1.3",
+        "text/javascript1.4",
+        "text/javascript1.5",
         "text/jscript",
         "text/livescript",
+        "text/x-javascript",
+        "text/x-ecmascript"
     };
-    for (size_t i = 0; i < WTF_ARRAY_LENGTH(types); ++i)
-      supportedJavaScriptMIMETypes->add(types[i]);
+    for (auto* type : types)
+        supportedJavaScriptMIMETypes->add(type);
 }
 
 static void initializePDFMIMETypes()
@@ -353,16 +353,16 @@ static void initializeSupportedNonImageMimeTypes()
 
 static MediaMIMETypeMap& mediaMIMETypeMap()
 {
-    DEPRECATED_DEFINE_STATIC_LOCAL(MediaMIMETypeMap, mediaMIMETypeForExtensionMap, ());
+    static NeverDestroyed<MediaMIMETypeMap> mediaMIMETypeForExtensionMap;
 
-    if (!mediaMIMETypeForExtensionMap.isEmpty())
+    if (!mediaMIMETypeForExtensionMap.get().isEmpty())
         return mediaMIMETypeForExtensionMap;
 
     const unsigned numPairs = sizeof(commonMediaTypes) / sizeof(commonMediaTypes[0]);
     for (unsigned ndx = 0; ndx < numPairs; ++ndx) {
 
-        if (mediaMIMETypeForExtensionMap.contains(commonMediaTypes[ndx].extension))
-            mediaMIMETypeForExtensionMap.get(commonMediaTypes[ndx].extension)->append(commonMediaTypes[ndx].type);
+        if (mediaMIMETypeForExtensionMap.get().contains(commonMediaTypes[ndx].extension))
+            mediaMIMETypeForExtensionMap.get().get(commonMediaTypes[ndx].extension)->append(commonMediaTypes[ndx].type);
         else {
             Vector<String>* synonyms = new Vector<String>;
 
@@ -372,7 +372,7 @@ static MediaMIMETypeMap& mediaMIMETypeMap()
             if (!systemType.isEmpty() && commonMediaTypes[ndx].type != systemType)
                 synonyms->append(systemType);
             synonyms->append(commonMediaTypes[ndx].type);
-            mediaMIMETypeForExtensionMap.add(commonMediaTypes[ndx].extension, synonyms);
+            mediaMIMETypeForExtensionMap.get().add(commonMediaTypes[ndx].extension, synonyms);
         }
     }
 
@@ -643,7 +643,7 @@ HashSet<String>& MIMETypeRegistry::getUnsupportedTextMIMETypes()
 
 const String& defaultMIMEType()
 {
-    DEPRECATED_DEFINE_STATIC_LOCAL(const String, defaultMIMEType, (ASCIILiteral("application/octet-stream")));
+    static NeverDestroyed<const String> defaultMIMEType(ASCIILiteral("application/octet-stream"));
     return defaultMIMEType;
 }
 

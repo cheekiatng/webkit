@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2013-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,29 +28,40 @@
 
 #if ENABLE(FTL_JIT)
 
+#include "B3Procedure.h"
 #include "DFGCommon.h"
 #include "DFGGraph.h"
-#include "FTLAbbreviations.h"
+#include "FTLAbbreviatedTypes.h"
 #include "FTLGeneratedFunction.h"
 #include "FTLInlineCacheDescriptor.h"
 #include "FTLJITCode.h"
 #include "FTLJITFinalizer.h"
 #include "FTLJSCall.h"
 #include "FTLJSCallVarargs.h"
+#include "FTLJSTailCall.h"
 #include "FTLStackMaps.h"
-#include "FTLState.h"
+#include <wtf/Box.h>
 #include <wtf/Noncopyable.h>
 
-namespace JSC { namespace FTL {
+namespace JSC {
+
+namespace B3 {
+class PatchpointValue;
+class StackSlotValue;
+} // namespace B3
+
+namespace FTL {
+
+class PatchpointExceptionHandle;
 
 inline bool verboseCompilationEnabled()
 {
     return DFG::verboseCompilationEnabled(DFG::FTLMode);
 }
 
-inline bool shouldShowDisassembly()
+inline bool shouldDumpDisassembly()
 {
-    return DFG::shouldShowDisassembly(DFG::FTLMode);
+    return DFG::shouldDumpDisassembly(DFG::FTLMode);
 }
 
 class State {
@@ -63,6 +74,9 @@ public:
     // None of these things is owned by State. It is the responsibility of
     // FTL phases to properly manage the lifecycle of the module and function.
     DFG::Graph& graph;
+#if FTL_USES_B3
+    std::unique_ptr<B3::Procedure> proc;
+#endif
     LContext context;
     LModule module;
     LValue function;
@@ -70,17 +84,35 @@ public:
     RefPtr<JITCode> jitCode;
     GeneratedFunction generatedFunction;
     JITFinalizer* finalizer;
-    unsigned handleStackOverflowExceptionStackmapID;
-    unsigned handleExceptionStackmapID;
-    unsigned capturedStackmapID;
-    unsigned varargsSpillSlotsStackmapID;
+#if FTL_USES_B3
+    // Top-level exception handler. Jump here if you know that you have to genericUnwind() and there
+    // are no applicable catch blocks anywhere in the Graph.
+    RefPtr<PatchpointExceptionHandle> defaultExceptionHandle;
+    Box<CCallHelpers::Label> exceptionHandler { Box<CCallHelpers::Label>::create() };
+    B3::StackSlotValue* capturedValue { nullptr };
+#else // FTL_USES_B3
+    unsigned handleStackOverflowExceptionStackmapID { UINT_MAX };
+    unsigned handleExceptionStackmapID { UINT_MAX };
+    unsigned capturedStackmapID { UINT_MAX };
+    unsigned varargsSpillSlotsStackmapID { UINT_MAX };
+    unsigned exceptionHandlingSpillSlotStackmapID { UINT_MAX };
+#endif // FTL_USE_B3
     SegmentedVector<GetByIdDescriptor> getByIds;
     SegmentedVector<PutByIdDescriptor> putByIds;
     SegmentedVector<CheckInDescriptor> checkIns;
+    SegmentedVector<BinaryOpDescriptor> binaryOps;
+    SegmentedVector<LazySlowPathDescriptor> lazySlowPaths;
+#if ENABLE(MASM_PROBE)
+    SegmentedVector<ProbeDescriptor> probes;
+#endif
+#if !FTL_USES_B3
     Vector<JSCall> jsCalls;
     Vector<JSCallVarargs> jsCallVarargses;
+    Vector<JSTailCall> jsTailCalls;
     Vector<CString> codeSectionNames;
     Vector<CString> dataSectionNames;
+    SegmentedVector<OSRExitDescriptorImpl> osrExitDescriptorImpls;
+#endif // !FTL_USES_B3
     void* unwindDataSection;
     size_t unwindDataSectionSize;
     RefPtr<DataSection> stackmapsSection;
@@ -89,10 +121,6 @@ public:
     void dumpState(LModule, const char* when);
 
     HashSet<CString> nativeLoadedLibraries;
-
-#if ENABLE(FTL_NATIVE_CALL_INLINING)
-    HashMap<CString, CString> symbolTable;
-#endif
 };
 
 } } // namespace JSC::FTL

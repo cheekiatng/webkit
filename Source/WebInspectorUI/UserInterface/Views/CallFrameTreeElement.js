@@ -45,8 +45,6 @@ WebInspector.CallFrameTreeElement = class CallFrameTreeElement extends WebInspec
         }
 
         this._callFrame = callFrame;
-
-        this.small = true;
     }
 
     // Public
@@ -60,7 +58,7 @@ WebInspector.CallFrameTreeElement = class CallFrameTreeElement extends WebInspec
 
     onattach()
     {
-        WebInspector.GeneralTreeElement.prototype.onattach.call(this);
+        super.onattach();
 
         console.assert(this.element);
 

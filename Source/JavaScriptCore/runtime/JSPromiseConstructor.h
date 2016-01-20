@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Apple Inc. All rights reserved.
+ * Copyright (C) 2013, 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,8 +26,6 @@
 #ifndef JSPromiseConstructor_h
 #define JSPromiseConstructor_h
 
-#if ENABLE(PROMISES)
-
 #include "InternalFunction.h"
 
 namespace JSC {
@@ -45,20 +43,19 @@ public:
 
     DECLARE_INFO;
 
+    static bool getOwnPropertySlot(JSObject*, ExecState*, PropertyName, PropertySlot&);
+
 protected:
+    JSPromiseConstructor(VM&, Structure*);
     void finishCreation(VM&, JSPromisePrototype*);
 
 private:
-    JSPromiseConstructor(VM&, Structure*);
     static ConstructType getConstructData(JSCell*, ConstructData&);
     static CallType getCallData(JSCell*, CallData&);
-    static bool getOwnPropertySlot(JSObject*, ExecState*, PropertyName, PropertySlot&);
+
+    void addOwnInternalSlots(VM&, JSGlobalObject*);
 };
 
-JSPromise* constructPromise(ExecState*, JSGlobalObject*, JSFunction*);
-
 } // namespace JSC
-
-#endif // ENABLE(PROMISES)
 
 #endif // JSPromiseConstructor_h

@@ -25,10 +25,11 @@
 
 #import <wtf/Platform.h>
 
-#if PLATFORM(MAC)
 
 #import <WebCore/DataDetectorsCoreSPI.h>
 #import <WebCore/SoftLinking.h>
+
+#if PLATFORM(MAC)
 
 #if USE(APPLE_INTERNAL_SDK)
 
@@ -46,6 +47,8 @@
 @property (retain) __attribute__((NSObject)) DDResultRef mainResult;
 @property (assign) BOOL altMode;
 @property (assign) BOOL immediate;
+
+@property (copy) NSArray *allowedActionUTIs;
 
 - (DDActionContext *)contextForView:(NSView *)view altMode:(BOOL)altMode interactionStartedHandler:(void (^)(void))interactionStartedHandler interactionChangedHandler:(void (^)(void))interactionChangedHandler interactionStoppedHandler:(void (^)(void))interactionStoppedHandler;
 

@@ -24,6 +24,9 @@
  */
 
 #include "config.h"
+
+#if USE(COORDINATED_GRAPHICS) || USE(TEXTURE_MAPPER)
+
 #include "LayerTreeHost.h"
 
 #if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
@@ -40,10 +43,10 @@ namespace WebKit {
 
 PassRefPtr<LayerTreeHost> LayerTreeHost::create(WebPage* webPage)
 {
-#if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
-    return CoordinatedLayerTreeHost::create(webPage);
-#elif USE(COORDINATED_GRAPHICS_THREADED)
+#if USE(COORDINATED_GRAPHICS_THREADED)
     return ThreadedCoordinatedLayerTreeHost::create(webPage);
+#elif USE(COORDINATED_GRAPHICS_MULTIPROCESS)
+    return CoordinatedLayerTreeHost::create(webPage);
 #elif PLATFORM(GTK) && USE(TEXTURE_MAPPER_GL)
     return LayerTreeHostGtk::create(webPage);
 #else
@@ -62,3 +65,5 @@ LayerTreeHost::~LayerTreeHost()
 }
 
 } // namespace WebKit
+
+#endif // USE(COORDINATED_GRAPHICS) || USE(TEXTURE_MAPPER)

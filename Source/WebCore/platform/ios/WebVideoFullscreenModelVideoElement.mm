@@ -69,8 +69,10 @@ void WebVideoFullscreenModelVideoElement::setWebVideoFullscreenInterface(WebVide
 
     if (m_videoFullscreenInterface) {
         m_videoFullscreenInterface->resetMediaState();
-        if (m_videoElement)
+        if (m_videoElement) {
             m_videoFullscreenInterface->setVideoDimensions(true, m_videoElement->videoWidth(), m_videoElement->videoHeight());
+            m_videoFullscreenInterface->setWirelessVideoPlaybackDisabled(m_videoElement->mediaSession().wirelessVideoPlaybackDisabled(*m_videoElement));
+        }
     }
 }
 
@@ -86,7 +88,7 @@ void WebVideoFullscreenModelVideoElement::setVideoElement(HTMLVideoElement* vide
         m_videoElement->setVideoFullscreenLayer(nullptr);
 
     if (m_videoElement && m_isListening) {
-        for (auto eventName : observedEventNames())
+        for (auto& eventName : observedEventNames())
             m_videoElement->removeEventListener(eventName, this, false);
     }
     m_isListening = false;
@@ -96,19 +98,20 @@ void WebVideoFullscreenModelVideoElement::setVideoElement(HTMLVideoElement* vide
     if (!m_videoElement)
         return;
 
-    for (auto eventName : observedEventNames())
+    for (auto& eventName : observedEventNames())
         m_videoElement->addEventListener(eventName, this, false);
     m_isListening = true;
 
     updateForEventName(eventNameAll());
 
-    if (m_videoFullscreenInterface)
+    if (m_videoFullscreenInterface) {
         m_videoFullscreenInterface->setVideoDimensions(true, videoElement->videoWidth(), videoElement->videoHeight());
+        m_videoFullscreenInterface->setWirelessVideoPlaybackDisabled(m_videoElement->mediaSession().wirelessVideoPlaybackDisabled(*m_videoElement));
+    }
 }
 
 void WebVideoFullscreenModelVideoElement::handleEvent(WebCore::ScriptExecutionContext*, WebCore::Event* event)
 {
-    LOG(Media, "handleEvent %s", event->type().characters8());
     updateForEventName(event->type());
 }
 
@@ -153,8 +156,8 @@ void WebVideoFullscreenModelVideoElement::updateForEventName(const WTF::AtomicSt
         String localizedDeviceName;
 
         if (m_videoElement->mediaControlsHost()) {
-            DEPRECATED_DEFINE_STATIC_LOCAL(String, airplay, (ASCIILiteral("airplay")));
-            DEPRECATED_DEFINE_STATIC_LOCAL(String, tvout, (ASCIILiteral("tvout")));
+            static NeverDestroyed<String> airplay(ASCIILiteral("airplay"));
+            static NeverDestroyed<String> tvout(ASCIILiteral("tvout"));
             
             String type = m_videoElement->mediaControlsHost()->externalDeviceType();
             if (type == airplay)
@@ -164,6 +167,7 @@ void WebVideoFullscreenModelVideoElement::updateForEventName(const WTF::AtomicSt
             localizedDeviceName = m_videoElement->mediaControlsHost()->externalDeviceDisplayName();
         }
         m_videoFullscreenInterface->setExternalPlayback(enabled, targetType, localizedDeviceName);
+        m_videoFullscreenInterface->setWirelessVideoPlaybackDisabled(m_videoElement->mediaSession().wirelessVideoPlaybackDisabled(*m_videoElement));
     }
 }
 
@@ -240,10 +244,10 @@ void WebVideoFullscreenModelVideoElement::endScanning()
         m_videoElement->endScanning();
 }
 
-void WebVideoFullscreenModelVideoElement::requestExitFullscreen()
+void WebVideoFullscreenModelVideoElement::requestFullscreenMode(HTMLMediaElementEnums::VideoFullscreenMode mode)
 {
-    if (m_videoElement && m_videoElement->isFullscreen())
-        m_videoElement->exitFullscreen();
+    if (m_videoElement && m_videoElement->fullscreenMode() != mode)
+        m_videoElement->setFullscreenMode(mode);
 }
 
 void WebVideoFullscreenModelVideoElement::setVideoLayerFrame(FloatRect rect)
@@ -382,6 +386,17 @@ void WebVideoFullscreenModelVideoElement::fullscreenModeChanged(HTMLMediaElement
 {
     if (m_videoElement)
         m_videoElement->fullscreenModeChanged(videoFullscreenMode);
+}
+
+bool WebVideoFullscreenModelVideoElement::isVisible() const
+{
+    if (!m_videoElement)
+        return false;
+
+    if (Page* page = m_videoElement->document().page())
+        return page->isVisible();
+
+    return false;
 }
 
 #endif

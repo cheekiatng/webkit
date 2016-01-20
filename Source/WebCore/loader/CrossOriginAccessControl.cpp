@@ -141,11 +141,6 @@ bool passesAccessControlCheck(const ResourceResponse& response, StoredCredential
     if (accessControlOriginString == "*" && includeCredentials == DoNotAllowStoredCredentials)
         return true;
 
-    if (securityOrigin->isUnique()) {
-        errorDescription = "Cannot make any requests from " + securityOrigin->toString() + ".";
-        return false;
-    }
-
     // FIXME: Access-Control-Allow-Origin can contain a list of origins.
     if (accessControlOriginString != securityOrigin->toString()) {
         if (accessControlOriginString == "*")
@@ -170,8 +165,8 @@ void parseAccessControlExposeHeadersAllowList(const String& headerValue, HTTPHea
 {
     Vector<String> headers;
     headerValue.split(',', false, headers);
-    for (unsigned headerCount = 0; headerCount < headers.size(); headerCount++) {
-        String strippedHeader = headers[headerCount].stripWhiteSpace();
+    for (auto& header : headers) {
+        String strippedHeader = header.stripWhiteSpace();
         if (!strippedHeader.isEmpty())
             headerSet.add(strippedHeader);
     }

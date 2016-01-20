@@ -40,10 +40,12 @@
 #include <wtf/UniStdExtras.h>
 
 #if PLATFORM(GTK)
-#include <glib.h>
+#include <gio/gio.h>
 #endif
 
-#ifdef SOCK_SEQPACKET
+// Although it's available on Darwin, SOCK_SEQPACKET seems to work differently
+// than in traditional Unix so fallback to STREAM on that platform.
+#if defined(SOCK_SEQPACKET) && !OS(DARWIN)
 #define SOCKET_TYPE SOCK_SEQPACKET
 #else
 #if PLATFORM(GTK)
@@ -147,7 +149,9 @@ void Connection::platformInvalidate()
     if (!m_isConnected)
         return;
 
-#if PLATFORM(GTK) || PLATFORM(EFL)
+#if PLATFORM(GTK)
+    m_socketMonitor.stop();
+#elif PLATFORM(EFL)
     m_connectionQueue->unregisterSocketEventHandler(m_socketDescriptor);
 #endif
 
@@ -243,9 +247,9 @@ bool Connection::processMessage()
     if (messageInfo.isMessageBodyIsOutOfLine())
         messageBody = reinterpret_cast<uint8_t*>(oolMessageBody->data());
 
-    auto decoder = std::make_unique<MessageDecoder>(DataReference(messageBody, messageInfo.bodySize()), WTF::move(attachments));
+    auto decoder = std::make_unique<MessageDecoder>(DataReference(messageBody, messageInfo.bodySize()), WTFMove(attachments));
 
-    processIncomingMessage(WTF::move(decoder));
+    processIncomingMessage(WTFMove(decoder));
 
     if (m_readBufferSize > messageLength) {
         memmove(m_readBuffer.data(), m_readBuffer.data() + messageLength, m_readBufferSize - messageLength);
@@ -338,8 +342,10 @@ void Connection::readyReadHandler()
             if (errno == EAGAIN || errno == EWOULDBLOCK)
                 return;
 
-            WTFLogAlways("Error receiving IPC message on socket %d in process %d: %s", m_socketDescriptor, getpid(), strerror(errno));
-            connectionDidClose();
+            if (m_isConnected) {
+                WTFLogAlways("Error receiving IPC message on socket %d in process %d: %s", m_socketDescriptor, getpid(), strerror(errno));
+                connectionDidClose();
+            }
             return;
         }
 
@@ -372,13 +378,21 @@ bool Connection::open()
     RefPtr<Connection> protectedThis(this);
     m_isConnected = true;
 #if PLATFORM(GTK)
-    m_connectionQueue->registerSocketEventHandler(m_socketDescriptor,
-        [protectedThis] {
-            protectedThis->readyReadHandler();
-        },
-        [protectedThis] {
+    GRefPtr<GSocket> socket = adoptGRef(g_socket_new_from_fd(m_socketDescriptor, nullptr));
+    m_socketMonitor.start(socket.get(), G_IO_IN, m_connectionQueue->runLoop(), [protectedThis] (GIOCondition condition) -> gboolean {
+        if (condition & G_IO_HUP || condition & G_IO_ERR || condition & G_IO_NVAL) {
             protectedThis->connectionDidClose();
-        });
+            return G_SOURCE_REMOVE;
+        }
+
+        if (condition & G_IO_IN) {
+            protectedThis->readyReadHandler();
+            return G_SOURCE_CONTINUE;
+        }
+
+        ASSERT_NOT_REACHED();
+        return G_SOURCE_REMOVE;
+    });
 #elif PLATFORM(EFL)
     m_connectionQueue->registerSocketEventHandler(m_socketDescriptor,
         [protectedThis] {
@@ -513,7 +527,8 @@ bool Connection::sendOutgoingMessage(std::unique_ptr<MessageEncoder> encoder)
             continue;
         }
 
-        WTFLogAlways("Error sending IPC message: %s", strerror(errno));
+        if (m_isConnected)
+            WTFLogAlways("Error sending IPC message: %s", strerror(errno));
         return false;
     }
     return true;

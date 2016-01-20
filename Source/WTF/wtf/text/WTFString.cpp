@@ -663,7 +663,7 @@ String String::isolatedCopy() &&
     if (isSafeToSendToAnotherThread()) {
         // Since we know that our string is a temporary that will be destroyed
         // we can just steal the m_impl from it, thus avoiding a copy.
-        return String(WTF::move(*this));
+        return String(WTFMove(*this));
     }
 
     if (!m_impl)
@@ -795,6 +795,11 @@ CString String::utf8(ConversionMode mode) const
         return CString("", 0);
     
     return m_impl->utf8(mode);
+}
+
+CString String::utf8() const
+{
+    return utf8(LenientConversion);
 }
 
 String String::make8BitFrom16BitSource(const UChar* source, size_t length)

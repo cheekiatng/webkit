@@ -37,6 +37,7 @@
 #include "PingLoader.h"
 #include "RuntimeEnabledFeatures.h"
 #include "SchemeRegistry.h"
+#include "ScriptController.h"
 #include "ScriptState.h"
 #include "SecurityOrigin.h"
 #include "SecurityPolicyViolationEvent.h"
@@ -46,6 +47,7 @@
 #include <inspector/ScriptCallStack.h>
 #include <inspector/ScriptCallStackFactory.h>
 #include <wtf/HashSet.h>
+#include <wtf/NeverDestroyed.h>
 #include <wtf/text/TextPosition.h>
 
 using namespace Inspector;
@@ -993,7 +995,7 @@ bool CSPDirectiveList::checkSourceAndReportViolation(SourceListDirective* direct
 
 bool CSPDirectiveList::allowJavaScriptURLs(const String& contextURL, const WTF::OrdinalNumber& contextLine, ContentSecurityPolicy::ReportingStatus reportingStatus) const
 {
-    DEPRECATED_DEFINE_STATIC_LOCAL(String, consoleMessage, (ASCIILiteral("Refused to execute JavaScript URL because it violates the following Content Security Policy directive: ")));
+    static NeverDestroyed<String> consoleMessage(ASCIILiteral("Refused to execute JavaScript URL because it violates the following Content Security Policy directive: "));
     return reportingStatus == ContentSecurityPolicy::ReportingStatus::SendReport ?
         checkInlineAndReportViolation(operativeDirective(m_scriptSrc.get()), consoleMessage, contextURL, contextLine, true)
         : (m_reportOnly || checkInline(operativeDirective(m_scriptSrc.get())));
@@ -1001,7 +1003,7 @@ bool CSPDirectiveList::allowJavaScriptURLs(const String& contextURL, const WTF::
 
 bool CSPDirectiveList::allowInlineEventHandlers(const String& contextURL, const WTF::OrdinalNumber& contextLine, ContentSecurityPolicy::ReportingStatus reportingStatus) const
 {
-    DEPRECATED_DEFINE_STATIC_LOCAL(String, consoleMessage, (ASCIILiteral("Refused to execute inline event handler because it violates the following Content Security Policy directive: ")));
+    static NeverDestroyed<String> consoleMessage(ASCIILiteral("Refused to execute inline event handler because it violates the following Content Security Policy directive: "));
     return reportingStatus == ContentSecurityPolicy::ReportingStatus::SendReport ?
         checkInlineAndReportViolation(operativeDirective(m_scriptSrc.get()), consoleMessage, contextURL, contextLine, true)
         : (m_reportOnly || checkInline(operativeDirective(m_scriptSrc.get())));
@@ -1009,7 +1011,7 @@ bool CSPDirectiveList::allowInlineEventHandlers(const String& contextURL, const 
 
 bool CSPDirectiveList::allowInlineScript(const String& contextURL, const WTF::OrdinalNumber& contextLine, ContentSecurityPolicy::ReportingStatus reportingStatus) const
 {
-    DEPRECATED_DEFINE_STATIC_LOCAL(String, consoleMessage, (ASCIILiteral("Refused to execute inline script because it violates the following Content Security Policy directive: ")));
+    static NeverDestroyed<String> consoleMessage(ASCIILiteral("Refused to execute inline script because it violates the following Content Security Policy directive: "));
     return reportingStatus == ContentSecurityPolicy::ReportingStatus::SendReport ?
         checkInlineAndReportViolation(operativeDirective(m_scriptSrc.get()), consoleMessage, contextURL, contextLine, true) :
         (m_reportOnly || checkInline(operativeDirective(m_scriptSrc.get())));
@@ -1017,7 +1019,7 @@ bool CSPDirectiveList::allowInlineScript(const String& contextURL, const WTF::Or
 
 bool CSPDirectiveList::allowInlineStyle(const String& contextURL, const WTF::OrdinalNumber& contextLine, ContentSecurityPolicy::ReportingStatus reportingStatus) const
 {
-    DEPRECATED_DEFINE_STATIC_LOCAL(String, consoleMessage, (ASCIILiteral("Refused to apply inline style because it violates the following Content Security Policy directive: ")));
+    static NeverDestroyed<String> consoleMessage(ASCIILiteral("Refused to apply inline style because it violates the following Content Security Policy directive: "));
     return reportingStatus == ContentSecurityPolicy::ReportingStatus::SendReport ?
         checkInlineAndReportViolation(operativeDirective(m_styleSrc.get()), consoleMessage, contextURL, contextLine, false) :
         (m_reportOnly || checkInline(operativeDirective(m_styleSrc.get())));
@@ -1025,7 +1027,7 @@ bool CSPDirectiveList::allowInlineStyle(const String& contextURL, const WTF::Ord
 
 bool CSPDirectiveList::allowEval(JSC::ExecState* state, ContentSecurityPolicy::ReportingStatus reportingStatus) const
 {
-    DEPRECATED_DEFINE_STATIC_LOCAL(String, consoleMessage, (ASCIILiteral("Refused to evaluate script because it violates the following Content Security Policy directive: ")));
+    static NeverDestroyed<String> consoleMessage(ASCIILiteral("Refused to evaluate script because it violates the following Content Security Policy directive: "));
     return reportingStatus == ContentSecurityPolicy::ReportingStatus::SendReport ?
         checkEvalAndReportViolation(operativeDirective(m_scriptSrc.get()), consoleMessage, String(), WTF::OrdinalNumber::beforeFirst(), state) :
         (m_reportOnly || checkEval(operativeDirective(m_scriptSrc.get())));
@@ -1638,7 +1640,7 @@ void ContentSecurityPolicy::reportViolation(const String& directiveText, const S
     // directive that was violated. The document's URL is safe to send because
     // it's the document itself that's requesting that it be sent. You could
     // make an argument that we shouldn't send HTTPS document URLs to HTTP
-    // report-uris (for the same reasons that we supress the Referer in that
+    // report-uris (for the same reasons that we suppress the Referer in that
     // case), but the Referer is sent implicitly whereas this request is only
     // sent explicitly. As for which directive was violated, that's pretty
     // harmless information.
@@ -1675,12 +1677,12 @@ void ContentSecurityPolicy::reportViolation(const String& directiveText, const S
 
 void ContentSecurityPolicy::reportUnsupportedDirective(const String& name) const
 {
-    DEPRECATED_DEFINE_STATIC_LOCAL(String, allow, (ASCIILiteral("allow")));
-    DEPRECATED_DEFINE_STATIC_LOCAL(String, options, (ASCIILiteral("options")));
-    DEPRECATED_DEFINE_STATIC_LOCAL(String, policyURI, (ASCIILiteral("policy-uri")));
-    DEPRECATED_DEFINE_STATIC_LOCAL(String, allowMessage, (ASCIILiteral("The 'allow' directive has been replaced with 'default-src'. Please use that directive instead, as 'allow' has no effect.")));
-    DEPRECATED_DEFINE_STATIC_LOCAL(String, optionsMessage, (ASCIILiteral("The 'options' directive has been replaced with 'unsafe-inline' and 'unsafe-eval' source expressions for the 'script-src' and 'style-src' directives. Please use those directives instead, as 'options' has no effect.")));
-    DEPRECATED_DEFINE_STATIC_LOCAL(String, policyURIMessage, (ASCIILiteral("The 'policy-uri' directive has been removed from the specification. Please specify a complete policy via the Content-Security-Policy header.")));
+    static NeverDestroyed<String> allow(ASCIILiteral("allow"));
+    static NeverDestroyed<String> options(ASCIILiteral("options"));
+    static NeverDestroyed<String> policyURI(ASCIILiteral("policy-uri"));
+    static NeverDestroyed<String> allowMessage(ASCIILiteral("The 'allow' directive has been replaced with 'default-src'. Please use that directive instead, as 'allow' has no effect."));
+    static NeverDestroyed<String> optionsMessage(ASCIILiteral("The 'options' directive has been replaced with 'unsafe-inline' and 'unsafe-eval' source expressions for the 'script-src' and 'style-src' directives. Please use those directives instead, as 'options' has no effect."));
+    static NeverDestroyed<String> policyURIMessage(ASCIILiteral("The 'policy-uri' directive has been removed from the specification. Please specify a complete policy via the Content-Security-Policy header."));
 
     String message;
     if (equalIgnoringCase(name, allow))
@@ -1780,4 +1782,14 @@ bool ContentSecurityPolicy::experimentalFeaturesEnabled() const
 #endif
 }
 
+bool ContentSecurityPolicy::shouldBypassMainWorldContentSecurityPolicy(ScriptExecutionContext& context)
+{
+    if (is<Document>(context)) {
+        auto& document = downcast<Document>(context);
+        return document.frame() && document.frame()->script().shouldBypassMainWorldContentSecurityPolicy();
+    }
+    
+    return false;
+}
+    
 }

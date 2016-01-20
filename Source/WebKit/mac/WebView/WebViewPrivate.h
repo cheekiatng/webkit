@@ -198,10 +198,8 @@ typedef enum {
 
 @interface WebView (WebPendingPublic)
 
-#if !TARGET_OS_IPHONE
 - (void)scheduleInRunLoop:(NSRunLoop *)runLoop forMode:(NSString *)mode;
 - (void)unscheduleFromRunLoop:(NSRunLoop *)runLoop forMode:(NSString *)mode;
-#endif
 
 - (BOOL)findString:(NSString *)string options:(WebFindOptions)options;
 - (DOMRange *)DOMRangeOfString:(NSString *)string relativeTo:(DOMRange *)previousRange options:(WebFindOptions)options;
@@ -518,9 +516,6 @@ Could be worth adding to the API.
 + (NSString *)_decodeData:(NSData *)data;
 
 + (void)_setAlwaysUsesComplexTextCodePath:(BOOL)f;
-
-+ (void)_setAllowsRoundingHacks:(BOOL)allowsRoundingHacks;
-+ (BOOL)_allowsRoundingHacks;
 
 #if !TARGET_OS_IPHONE
 - (NSCachedURLResponse *)_cachedResponseForURL:(NSURL *)URL;

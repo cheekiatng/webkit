@@ -6,15 +6,18 @@ set(WTF_HEADERS
     BagToHashMap.h
     BitVector.h
     Bitmap.h
+    BubbleSort.h
     BumpPointerAllocator.h
     ByteOrder.h
     CompilationThread.h
     Compiler.h
+    Condition.h
     CryptographicUtilities.h
     CryptographicallyRandomNumber.h
     CurrentTime.h
     DataLog.h
     DateMath.h
+    Dominators.h
     DecimalNumber.h
     DeferrableRefCounted.h
     Deque.h
@@ -28,8 +31,10 @@ set(WTF_HEADERS
     FunctionDispatcher.h
     Functional.h
     GetPtr.h
+    GraphNodeWorklist.h
     GregorianDateTime.h
     HashCountedSet.h
+    Hasher.h
     HashFunctions.h
     HashIterators.h
     HashMap.h
@@ -41,6 +46,7 @@ set(WTF_HEADERS
     IteratorAdaptors.h
     IteratorRange.h
     ListHashSet.h
+    Lock.h
     Locker.h
     MD5.h
     MainThread.h
@@ -57,10 +63,13 @@ set(WTF_HEADERS
     PageAllocation.h
     PageBlock.h
     PageReservation.h
+    ParallelHelperPool.h
     ParallelJobs.h
     ParallelJobsGeneric.h
     ParallelJobsLibdispatch.h
     ParallelJobsOpenMP.h
+    ParallelVectorIterator.h
+    ParkingLot.h
     PassRefPtr.h
     Platform.h
     PrintStream.h
@@ -78,17 +87,18 @@ set(WTF_HEADERS
     RetainPtr.h
     RunLoop.h
     SHA1.h
+    SharedTask.h
     SaturatedArithmetic.h
+    ScopedLambda.h
     SegmentedVector.h
-    SpinLock.h
     StackBounds.h
     StackStats.h
     StaticConstructors.h
     StdLibExtras.h
     Stopwatch.h
     StringExtras.h
-    StringHasher.h
     StringPrintStream.h
+    SystemTracing.h
     ThreadIdentifierDataPthreads.h
     ThreadSafeRefCounted.h
     ThreadSpecific.h
@@ -101,6 +111,7 @@ set(WTF_HEADERS
     VectorTraits.h
     WTFThreadData.h
     WeakPtr.h
+    WordLock.h
     WorkQueue.h
     dtoa.h
 
@@ -156,6 +167,7 @@ set(WTF_SOURCES
     FunctionDispatcher.cpp
     GregorianDateTime.cpp
     HashTable.cpp
+    Lock.cpp
     MD5.cpp
     MainThread.cpp
     MediaTime.cpp
@@ -163,7 +175,9 @@ set(WTF_SOURCES
     NumberOfCores.cpp
     OSRandomSource.cpp
     PageBlock.cpp
+    ParallelHelperPool.cpp
     ParallelJobsGeneric.cpp
+    ParkingLot.cpp
     PrintStream.cpp
     RAMSize.cpp
     RandomNumber.cpp
@@ -177,6 +191,7 @@ set(WTF_SOURCES
     StringPrintStream.cpp
     Threading.cpp
     WTFThreadData.cpp
+    WordLock.cpp
     WorkQueue.cpp
     dtoa.cpp
 
@@ -223,8 +238,16 @@ set(WTF_LIBRARIES
     ${CMAKE_DL_LIBS}
 )
 
-# FIXME: Port bmalloc to Windows. https://bugs.webkit.org/show_bug.cgi?id=143310
-if (NOT WIN32)
+if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    list(APPEND WTF_HEADERS
+        spi/darwin/CommonCryptoSPI.h
+    )
+    list(APPEND WTF_INCLUDE_DIRECTORIES
+        "${WTF_DIR}/wtf/spi/darwin"
+    )
+endif ()
+
+if (NOT USE_SYSTEM_MALLOC)
     list(APPEND WTF_LIBRARIES bmalloc)
 endif ()
 
@@ -266,6 +289,17 @@ target_link_libraries(WTF ${WTF_LIBRARIES})
 set_target_properties(WTF PROPERTIES COMPILE_DEFINITIONS "BUILDING_WTF")
 set_target_properties(WTF PROPERTIES FOLDER "JavaScriptCore")
 
+if (MSVC)
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
+endif ()
+
+if (WTF_POST_BUILD_COMMAND)
+    add_custom_command(TARGET WTF POST_BUILD COMMAND ${WTF_POST_BUILD_COMMAND} VERBATIM)
+endif ()
+
 if (WTF_OUTPUT_NAME)
     set_target_properties(WTF PROPERTIES OUTPUT_NAME ${WTF_OUTPUT_NAME})
 endif ()
+
+WEBKIT_FRAMEWORK(WTF)

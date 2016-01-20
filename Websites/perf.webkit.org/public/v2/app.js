@@ -38,6 +38,7 @@ App.DashboardRow = Ember.Object.extend({
             store: this.get('store'),
             platformId: paneInfo ? paneInfo[0] : null,
             metricId: paneInfo ? paneInfo[1] : null,
+            inDashboard: true
         });
 
         return App.DashboardPaneProxyForPicker.create({content: pane});
@@ -61,7 +62,7 @@ App.IndexRoute = Ember.Route.extend({
     {
         var self = this;
         App.Manifest.fetch(this.store).then(function () {
-            self.transitionTo('dashboard', App.Manifest.defaultDashboardName());
+            self.transitionTo('dashboard', App.Manifest.defaultDashboardName() || '');
         });
     },
 });
@@ -300,6 +301,7 @@ App.Pane = Ember.Object.extend({
     selectedPoints: null,
     hoveredOrSelectedItem: null,
     showFullYAxis: false,
+    inDashboard: false,
     searchCommit: function (repository, keyword) {
         var self = this;
         var repositoryId = repository.get('id');
@@ -353,12 +355,15 @@ App.Pane = Ember.Object.extend({
             var useCache = true;
             App.Manifest.fetchRunsWithPlatformAndMetric(this.get('store'), platformId, metricId, null, useCache)
                 .then(function (result) {
-                    if (result || result.shouldRefetch)
+                    if (!result || !result.data || result.shouldRefetch)
                         self.refetchRuns(platformId, metricId);
                     else
                         self._didFetchRuns(result);
-                }, this._handleFetchErrors.bind(this, platformId, metricId));
-            this.fetchAnalyticRanges();
+                }, function () {
+                    self.refetchRuns(platformId, metricId);
+                });
+            if (!this.get('inDashboard'))
+                this.fetchAnalyticRanges();
         }
     }.observes('platformId', 'metricId').on('init'),
     refetchRuns: function (platformId, metricId) {
@@ -378,6 +383,12 @@ App.Pane = Ember.Object.extend({
         this.set('metric', result.metric);
         this._setNewChartData(result.data);
     },
+    _showOutlierChanged: function ()
+    {
+        var chartData = this.get('chartData');
+        if (chartData)
+            this._setNewChartData(chartData);
+    }.observes('showOutlier'),
     _setNewChartData: function (chartData)
     {
         var newChartData = {};
@@ -420,15 +431,43 @@ App.Pane = Ember.Object.extend({
         var metricId = this.get('metricId');
         var self = this;
         this.get('store')
-            .find('analysisTask', {platform: platformId, metric: metricId})
+            .findAll('analysisTask') // FIXME: Fetch only analysis tasks relevant for this pane.
             .then(function (tasks) {
-                self.set('analyticRanges', tasks.filter(function (task) { return task.get('startRun') && task.get('endRun'); }));
+                self.set('analyticRanges', tasks.filter(function (task) {
+                    return task.get('platform').get('id') == platformId
+                        && task.get('metric').get('id') == metricId
+                        && task.get('startRun') && task.get('endRun');
+                }));
             });
     },
     ranges: function ()
     {
-        return this.getWithDefault('analyticRanges', []).concat(this.getWithDefault('testRangeCandidates', []));
-    }.property('analyticRanges', 'testRangeCandidates'),
+        var chartData = this.get('chartData');
+        if (!chartData || !chartData.unfilteredCurrentTimeSeries)
+            return [];
+
+        function midPoint(firstPoint, secondPoint) {
+            if (firstPoint && secondPoint)
+                return (+firstPoint.time + +secondPoint.time) / 2;
+            if (firstPoint)
+                return firstPoint.time;
+            return secondPoint.time;
+        }
+
+        var timeSeries = chartData.unfilteredCurrentTimeSeries;
+        var ranges = this.getWithDefault('analyticRanges', []);
+        var testranges = this.getWithDefault('testRangeCandidates', []);
+        return this.getWithDefault('analyticRanges', []).concat(this.getWithDefault('testRangeCandidates', [])).map(function (range) {
+            var start = timeSeries.findPointByMeasurementId(range.get('startRun'));
+            var end = timeSeries.findPointByMeasurementId(range.get('endRun'));
+
+            return Ember.ObjectProxy.create({
+                content: range,
+                startTime: start ? midPoint(timeSeries.previousPoint(start), start) : null,
+                endTime: end ? midPoint(end, timeSeries.nextPoint(end)) : null,
+            });
+        });
+    }.property('chartData', 'analyticRanges', 'testRangeCandidates'),
     _isValidId: function (id)
     {
         if (typeof(id) == "number")
@@ -447,15 +486,27 @@ App.Pane = Ember.Object.extend({
         var className = '';
         var formatter = d3.format('.3p');
 
+        function labelForDiff(diff, name) { return formatter(Math.abs(diff)) + ' ' + (diff > 0 ? 'above' : 'below') + ' ' + name; }
+
         var smallerIsBetter = chartData.smallerIsBetter;
-        if (diffFromBaseline !== undefined && diffFromBaseline > 0 == smallerIsBetter) {
-            label = formatter(Math.abs(diffFromBaseline)) + ' ' + (smallerIsBetter ? 'above' : 'below') + ' baseline';
-            className = 'worse';
-        } else if (diffFromTarget !== undefined && diffFromTarget < 0 == smallerIsBetter) {
-            label = formatter(Math.abs(diffFromTarget)) + ' ' + (smallerIsBetter ? 'below' : 'above') + ' target';
-            className = 'better';
-        } else if (diffFromTarget !== undefined)
-            label = formatter(Math.abs(diffFromTarget)) + ' until target';
+        if (diffFromBaseline !== undefined && diffFromTarget !== undefined) {
+            if (diffFromBaseline > 0 == smallerIsBetter) {
+                label = labelForDiff(diffFromBaseline, 'baseline');
+                className = 'worse';
+            } else if (diffFromTarget < 0 == smallerIsBetter) {
+                label = labelForDiff(diffFromBaseline, 'target');
+                className = 'better';
+            } else
+                label = formatter(Math.abs(diffFromTarget)) + ' until target';
+        } else if (diffFromBaseline !== undefined) {
+            label = labelForDiff(diffFromBaseline, 'baseline');
+            if (diffFromBaseline > 0 == smallerIsBetter)
+                className = 'worse';
+        } else if (diffFromTarget !== undefined) {
+            label = labelForDiff(diffFromTarget, 'target');
+            if (diffFromTarget < 0 == smallerIsBetter)
+                className = 'better';
+        }
 
         var valueDelta = null;
         var relativeDelta = null;
@@ -1013,12 +1064,7 @@ App.PaneController = Ember.ObjectController.extend({
         },
         toggleShowOutlier: function ()
         {
-            var pane = this.get('model');
-            pane.toggleProperty('showOutlier');
-            var chartData = pane.get('chartData');
-            if (!chartData)
-                return;
-            pane._setNewChartData(chartData);
+            this.get('model').toggleProperty('showOutlier');
         },
         createAnalysisTask: function ()
         {
@@ -1285,13 +1331,15 @@ App.AnalysisTaskController = Ember.Controller.extend({
             return null;
 
         var currentTimeSeries = chartData.current;
-        if (!currentTimeSeries)
-            return null; // FIXME: Report an error.
+        Ember.assert('chartData.current should always be defined', currentTimeSeries);
 
         var start = currentTimeSeries.findPointByMeasurementId(this.get('model').get('startRun'));
         var end = currentTimeSeries.findPointByMeasurementId(this.get('model').get('endRun'));
-        if (!start || !end)
-            return null; // FIXME: Report an error.
+        if (!start || !end) {
+            if (!pane.get('showOutlier'))
+                pane.set('showOutlier', true);
+            return;
+        }
 
         var highlightedItems = {};
         highlightedItems[start.measurement.id()] = true;
@@ -1360,12 +1408,14 @@ App.AnalysisTaskController = Ember.Controller.extend({
     _createConfiguration: function(repository, commits, analysisPoints) {
         var repositoryId = repository.get('id');
 
-        var options = [{label: 'None'}];
         var revisionToPoints = {};
+        var missingPoints = [];
         analysisPoints.forEach(function (point, pointIndex) {
             var revision = point.measurement.revisionForRepository(repositoryId);
-            if (!revision)
+            if (!revision) {
+                missingPoints.push(pointIndex);
                 return;
+            }
             if (!revisionToPoints[revision])
                 revisionToPoints[revision] = [];
             revisionToPoints[revision].push(pointIndex);
@@ -1377,15 +1427,31 @@ App.AnalysisTaskController = Ember.Controller.extend({
                 commits.push({revision: revision});
         }
 
+        var options = [{label: 'None'}, {label: 'Custom', isCustom: true}];
+        if (missingPoints.length) {
+            options[0].label += ' ' + this._labelForPoints(missingPoints);
+            options[0].points = missingPoints;
+        }
+
         for (var commit of commits) {
             var revision = commit.revision;
-            var label = Measurement.formatRevisionRange(revision).label;
             var points = revisionToPoints[revision];
-            if (points) {
-                var serializedPoints = this._serializeNumbersSkippingConsecutiveEntries(revisionToPoints[revision]);
-                label += ' ' + ['(', points.length > 1 ? 'points' : 'point', serializedPoints, ')'].join(' ');
-            }
-            options.push({value: revision, label: label});
+            var label = Measurement.formatRevisionRange(revision).label;
+            if (points)
+                label += ' ' + this._labelForPoints(points);
+            options.push({value: revision, label: label, points: points});
+        }
+
+        var firstOption = null;
+        var lastOption = null;
+        for (var option of options) {
+            var points = option.points;
+            if (!points)
+                continue;
+            if (points.indexOf(0) >= 0)
+                firstOption = option;
+            if (points.indexOf(analysisPoints.length - 1) >= 0)
+                lastOption = option;
         }
 
         return Ember.Object.create({
@@ -1394,11 +1460,16 @@ App.AnalysisTaskController = Ember.Controller.extend({
             sets: [
                 Ember.Object.create({name: 'A[' + repositoryId + ']',
                     options: options,
-                    selection: options[1]}),
+                    selection: firstOption}),
                 Ember.Object.create({name: 'B[' + repositoryId + ']',
                     options: options,
-                    selection: options[options.length - 1]}),
+                    selection: lastOption}),
             ]});
+    },
+    _labelForPoints: function (points)
+    {
+        var serializedPoints = this._serializeNumbersSkippingConsecutiveEntries(points);
+        return ['(', points.length > 1 ? 'points' : 'point', serializedPoints, ')'].join(' ');
     },
     _serializeNumbersSkippingConsecutiveEntries: function (numbers) {
         var result = numbers[0];
@@ -1464,14 +1535,20 @@ App.AnalysisTaskController = Ember.Controller.extend({
             var rootConfigurations = this.get('rootConfigurations').toArray();
             for (var root of rootConfigurations) {
                 var sets = root.get('sets');
-                var hasSelection = function (item) { return item.get('selection') && item.get('selection').value; };
+                var hasSelection = function (item) {
+                    var selection = item.get('selection');
+                    return selection.value || (selection.isCustom && item.get('customValue'));
+                }
                 if (!sets.any(hasSelection))
                     continue;
                 if (!sets.every(hasSelection)) {
                     alert('Only some configuration specifies ' + root.get('name'));
                     return;
                 }
-                roots[root.get('name')] = sets.map(function (item) { return item.get('selection').value; });                
+                roots[root.get('name')] = sets.map(function (item) {
+                    var selection = item.get('selection');
+                    return selection.isCustom ? item.get('customValue') : selection.value;
+                });
             }
 
             App.TestGroup.create(analysisTask, name, roots, repetitionCount).then(function () {

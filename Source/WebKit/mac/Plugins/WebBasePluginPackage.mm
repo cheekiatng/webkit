@@ -69,7 +69,6 @@ using namespace WebCore;
     WTF::initializeMainThreadToProcessMainThread();
     RunLoop::initializeMainRunLoop();
 #endif
-    WebCoreObjCFinalizeOnMainThread(self);
 }
 
 + (WebBasePluginPackage *)pluginWithPath:(NSString *)pluginPath
@@ -88,10 +87,8 @@ using namespace WebCore;
     return [pluginPackage autorelease];
 }
 
-#if COMPILER(CLANG)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
 // FIXME: Rewrite this in terms of -[NSURL URLByResolvingBookmarkData:…].
 static NSString *pathByResolvingSymlinksAndAliases(NSString *thePath)
 {
@@ -120,9 +117,7 @@ static NSString *pathByResolvingSymlinksAndAliases(NSString *thePath)
 
     return newPath;
 }
-#if COMPILER(CLANG)
 #pragma clang diagnostic pop
-#endif
 
 - (id)initWithPath:(NSString *)pluginPath
 {
@@ -275,14 +270,6 @@ static NSString *pathByResolvingSymlinksAndAliases(NSString *thePath)
     [pluginDatabases release];
     
     [super dealloc];
-}
-
-- (void)finalize
-{
-    ASSERT(!pluginDatabases || [pluginDatabases count] == 0);
-    [pluginDatabases release];
-
-    [super finalize];
 }
 
 - (const String&)path

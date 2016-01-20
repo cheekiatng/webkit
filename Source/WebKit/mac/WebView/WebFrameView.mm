@@ -100,7 +100,7 @@ using namespace WebCore;
 @end
 
 #if PLATFORM(MAC)
-@interface NSView (Details)
+@interface NSView ()
 - (void)setBackgroundColor:(NSColor *)color;
 @end
 #endif
@@ -419,14 +419,6 @@ static inline void addTypesFromClass(NSMutableDictionary *allTypes, Class objCCl
     [super dealloc];
 }
 
-- (void)finalize 
-{
-    if (_private && _private->includedInWebKitStatistics)
-        --WebFrameViewCount;
-
-    [super finalize];
-}
-
 #if PLATFORM(IOS)
 - (BOOL)scrollView:(WAKScrollView *)scrollView shouldScrollToPoint:(CGPoint)point
 {
@@ -526,7 +518,7 @@ static inline void addTypesFromClass(NSMutableDictionary *allTypes, Class objCCl
             NSRectFill(rect);
 #else
             CGContextRef cgContext = WKGetCurrentGraphicsContext();
-            CGContextSetFillColorWithColor(cgContext, cachedCGColor(Color::white, ColorSpaceDeviceRGB));
+            CGContextSetFillColorWithColor(cgContext, cachedCGColor(Color::white));
             WKRectFill(cgContext, rect);
 #endif
         }
@@ -538,7 +530,7 @@ static inline void addTypesFromClass(NSMutableDictionary *allTypes, Class objCCl
             NSRectFill(rect);
 #else
             CGContextRef cgContext = WKGetCurrentGraphicsContext();
-            CGContextSetFillColorWithColor(cgContext, cachedCGColor(Color::cyan, ColorSpaceDeviceRGB));
+            CGContextSetFillColorWithColor(cgContext, cachedCGColor(Color::cyan));
             WKRectFill(cgContext, rect);
 #endif
         }

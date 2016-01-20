@@ -49,7 +49,7 @@
 namespace WebCore {
 
 RenderRegion::RenderRegion(Element& element, Ref<RenderStyle>&& style, RenderFlowThread* flowThread)
-    : RenderBlockFlow(element, WTF::move(style))
+    : RenderBlockFlow(element, WTFMove(style))
     , m_flowThread(flowThread)
     , m_parentNamedFlowThread(nullptr)
     , m_isValid(false)
@@ -57,7 +57,7 @@ RenderRegion::RenderRegion(Element& element, Ref<RenderStyle>&& style, RenderFlo
 }
 
 RenderRegion::RenderRegion(Document& document, Ref<RenderStyle>&& style, RenderFlowThread* flowThread)
-    : RenderBlockFlow(document, WTF::move(style))
+    : RenderBlockFlow(document, WTFMove(style))
     , m_flowThread(flowThread)
     , m_parentNamedFlowThread(nullptr)
     , m_isValid(false)
@@ -159,7 +159,7 @@ LayoutRect RenderRegion::overflowRectForFlowThreadPortion(const LayoutRect& flow
     LayoutRect flowThreadOverflow = overflowType == VisualOverflow ? visualOverflowRectForBox(*m_flowThread) : layoutOverflowRectForBox(m_flowThread);
 
     // We are interested about the outline size only when computing the visual overflow.
-    LayoutUnit outlineSize = overflowType == VisualOverflow ? LayoutUnit(maximalOutlineSize(PaintPhaseOutline)) : LayoutUnit();
+    LayoutUnit outlineSize = overflowType == VisualOverflow ? LayoutUnit(view().maximalOutlineSize()) : LayoutUnit();
     LayoutRect clipRect;
     if (m_flowThread->isHorizontalWritingMode()) {
         LayoutUnit minY = isFirstPortion ? (flowThreadOverflow.y() - outlineSize) : flowThreadPortionRect.y();

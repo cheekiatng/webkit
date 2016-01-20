@@ -26,6 +26,7 @@ VPATH = \
     $(WebKit2)/DatabaseProcess/IndexedDB \
     $(WebKit2)/DatabaseProcess/mac \
     $(WebKit2)/NetworkProcess \
+    $(WebKit2)/NetworkProcess/CustomProtocols \
     $(WebKit2)/NetworkProcess/mac \
     $(WebKit2)/PluginProcess \
     $(WebKit2)/PluginProcess/mac \
@@ -33,7 +34,6 @@ VPATH = \
     $(WebKit2)/Shared \
     $(WebKit2)/Shared/API/Cocoa \
     $(WebKit2)/Shared/Authentication \
-    $(WebKit2)/Shared/Network/CustomProtocols \
     $(WebKit2)/Shared/mac \
     $(WebKit2)/WebProcess/ApplicationCache \
     $(WebKit2)/WebProcess/Cookies \
@@ -103,13 +103,11 @@ MESSAGE_RECEIVERS = \
     ViewGestureController \
     ViewGestureGeometryCollector \
     ViewUpdateDispatcher \
-    VisitedLinkProvider \
+    VisitedLinkStore \
     VisitedLinkTableController \
     WebConnection \
     WebCookieManager \
     WebCookieManagerProxy \
-    WebDatabaseManager \
-    WebDatabaseManagerProxy \
     WebFullScreenManager \
     WebFullScreenManagerProxy \
     WebGeolocationManager \

@@ -43,15 +43,20 @@ class AlternativeTextUIController;
 
 namespace WebKit {
 
+class WebViewImpl;
+
 class PageClientImpl final : public PageClient
 #if ENABLE(FULLSCREEN_API)
     , public WebFullScreenManagerProxyClient
 #endif
     {
 public:
-    PageClientImpl(WKView *, WKWebView *);
+    PageClientImpl(NSView *, WKWebView *);
     virtual ~PageClientImpl();
-    
+
+    // FIXME: Eventually WebViewImpl should become the PageClient.
+    void setImpl(WebViewImpl& impl) { m_impl = &impl; }
+
     void viewWillMoveToAnotherWindow();
 
 private:
@@ -103,9 +108,6 @@ private:
     virtual void resetSecureInputState() override;
     virtual void notifyInputContextAboutDiscardedComposition() override;
     virtual void selectionDidChange() override;
-#if PLATFORM(MAC) && !USE(ASYNC_NSTEXTINPUTCLIENT)
-    virtual void notifyApplicationAboutInputContextChange() override;
-#endif
 
     virtual WebCore::FloatRect convertToDeviceSpace(const WebCore::FloatRect&) override;
     virtual WebCore::FloatRect convertToUserSpace(const WebCore::FloatRect&) override;
@@ -120,23 +122,29 @@ private:
 
     virtual void doneWithKeyEvent(const NativeWebKeyboardEvent&, bool wasEventHandled) override;
 
-    virtual RefPtr<WebPopupMenuProxy> createPopupMenuProxy(WebPageProxy*) override;
-    virtual RefPtr<WebContextMenuProxy> createContextMenuProxy(WebPageProxy*) override;
+    virtual RefPtr<WebPopupMenuProxy> createPopupMenuProxy(WebPageProxy&) override;
+#if ENABLE(CONTEXT_MENUS)
+    virtual std::unique_ptr<WebContextMenuProxy> createContextMenuProxy(WebPageProxy&, const ContextMenuContextData&, const UserData&) override;
+#endif
 
 #if ENABLE(INPUT_TYPE_COLOR)
     virtual RefPtr<WebColorPicker> createColorPicker(WebPageProxy*, const WebCore::Color& initialColor, const WebCore::IntRect&) override;
 #endif
 
-    virtual void setTextIndicator(Ref<WebCore::TextIndicator>, WebCore::TextIndicatorLifetime = WebCore::TextIndicatorLifetime::Permanent) override;
-    virtual void clearTextIndicator(WebCore::TextIndicatorDismissalAnimation = WebCore::TextIndicatorDismissalAnimation::FadeOut) override;
+    virtual void setTextIndicator(Ref<WebCore::TextIndicator>, WebCore::TextIndicatorWindowLifetime) override;
+    virtual void clearTextIndicator(WebCore::TextIndicatorWindowDismissalAnimation) override;
     virtual void setTextIndicatorAnimationProgress(float) override;
 
     virtual void enterAcceleratedCompositingMode(const LayerTreeContext&) override;
     virtual void exitAcceleratedCompositingMode() override;
     virtual void updateAcceleratedCompositingMode(const LayerTreeContext&) override;
+    virtual void willEnterAcceleratedCompositingMode() override;
 
     virtual PassRefPtr<ViewSnapshot> takeViewSnapshot() override;
     virtual void wheelEventWasNotHandledByWebCore(const NativeWebWheelEvent&) override;
+#if ENABLE(MAC_GESTURE_EVENTS)
+    virtual void gestureEventWasNotHandledByWebCore(const NativeWebGestureEvent&) override;
+#endif
 
     virtual void accessibilityWebProcessTokenReceived(const IPC::DataReference&) override;
 
@@ -145,7 +153,7 @@ private:
 
     virtual void makeFirstResponder() override;
     
-    virtual void didPerformDictionaryLookup(const DictionaryPopupInfo&) override;
+    virtual void didPerformDictionaryLookup(const WebCore::DictionaryPopupInfo&) override;
     virtual void dismissContentRelativeChildWindows(bool withAnimation = true) override;
 
     virtual void showCorrectionPanel(WebCore::AlternativeTextType, const WebCore::FloatRect& boundingBoxOfReplacedString, const String& replacedString, const String& replacementString, const Vector<String>& alternativeReplacementStrings) override;
@@ -155,7 +163,6 @@ private:
 
     virtual void recommendedScrollbarStyleDidChange(WebCore::ScrollbarStyle) override;
 
-    virtual WKView* wkView() const override { return m_wkView; }
     virtual void intrinsicContentSizeDidChange(const WebCore::IntSize& intrinsicContentSize) override;
 
 #if USE(DICTATION_ALTERNATIVES)
@@ -188,6 +195,7 @@ private:
     virtual void navigationGestureDidEnd(bool willNavigate, WebBackForwardListItem&) override;
     virtual void navigationGestureDidEnd() override;
     virtual void willRecordNavigationSnapshot(WebBackForwardListItem&) override;
+    virtual void didRemoveNavigationGestureSnapshot() override;
 
     NSView *activeView() const;
     NSWindow *activeWindow() const;
@@ -198,14 +206,24 @@ private:
     virtual void didSameDocumentNavigationForMainFrame(SameDocumentNavigationType) override;
     virtual void removeNavigationGestureSnapshot() override;
 
-    virtual void didPerformImmediateActionHitTest(const WebHitTestResult::Data&, bool contentPreventsDefault, API::Object*) override;
+    virtual void didPerformImmediateActionHitTest(const WebHitTestResultData&, bool contentPreventsDefault, API::Object*) override;
+    virtual void* immediateActionAnimationControllerForHitTestResult(RefPtr<API::HitTestResult>, uint64_t, RefPtr<API::Object>) override;
+
     virtual void showPlatformContextMenu(NSMenu *, WebCore::IntPoint) override;
 
     virtual void didChangeBackgroundColor() override;
 
-    WKView *m_wkView;
+    virtual void startWindowDrag() override;
+    virtual NSWindow *platformWindow() override;
+
+#if WK_API_ENABLED
+    virtual NSView *inspectorAttachmentView() override;
+    virtual _WKRemoteObjectRegistry *remoteObjectRegistry() override;
+#endif
+
+    NSView *m_view;
     WKWebView *m_webView;
-    RetainPtr<WKEditorUndoTargetObjC> m_undoTarget;
+    WebViewImpl* m_impl { nullptr };
 #if USE(AUTOCORRECTION_PANEL)
     CorrectionPanel m_correctionPanel;
 #endif
@@ -219,6 +237,8 @@ private:
 
     virtual void refView() override;
     virtual void derefView() override;
+
+    virtual void didRestoreScrollPosition() override;
 };
 
 } // namespace WebKit

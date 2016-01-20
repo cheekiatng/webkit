@@ -29,6 +29,7 @@
 
 #include "WebView.h"
 
+#include "APIPageConfiguration.h"
 #include "CoordinatedDrawingAreaProxy.h"
 #include "CoordinatedGraphicsScene.h"
 #include "CoordinatedLayerTreeHostProxy.h"
@@ -37,6 +38,7 @@
 #include "WebBackForwardList.h"
 #include "WebBackForwardListItem.h"
 #include "WebContextMenuProxy.h"
+#include "WebPageGroup.h"
 #include "WebPageProxy.h"
 
 #if ENABLE(FULLSCREEN_API)
@@ -47,16 +49,14 @@ using namespace WebCore;
 
 namespace WebKit {
 
-WebView::WebView(WebProcessPool* context, WebPageGroup* pageGroup)
+WebView::WebView(WebProcessPool* context, API::PageConfiguration& pageConfiguration)
     : m_focused(false)
     , m_visible(false)
     , m_opacity(1.0)
 {
-    WebPageConfiguration webPageConfiguration;
-    webPageConfiguration.pageGroup = pageGroup;
-
     // Need to call createWebPage after other data members, specifically m_visible, are initialized.
-    m_page = context->createWebPage(*this, WTF::move(webPageConfiguration));
+    m_page = context->createWebPage(*this, pageConfiguration.copy());
+    m_page->initializeWebPage();
 
     m_page->pageGroup().preferences().setAcceleratedCompositingEnabled(true);
     m_page->pageGroup().preferences().setForceCompositingMode(true);
@@ -73,12 +73,6 @@ WebView::~WebView()
         return;
 
     m_page->close();
-}
-
-void WebView::initialize()
-{
-    m_page->initializeWebPage();
-    setActive(true);
 }
 
 void WebView::setContentScaleFactor(float scaleFactor)
@@ -171,12 +165,12 @@ bool WebView::drawsBackground() const
 
 void WebView::setDrawsTransparentBackground(bool transparentBackground)
 {
-    m_page->setDrawsTransparentBackground(transparentBackground);
+    m_page->setDrawsBackground(!transparentBackground);
 }
 
 bool WebView::drawsTransparentBackground() const
 {
-    return m_page->drawsTransparentBackground();
+    return !m_page->drawsBackground();
 }
 
 void WebView::suspendActiveDOMObjectsAndAnimations()
@@ -228,7 +222,7 @@ void WebView::didFindZoomableArea(const WebCore::IntPoint& target, const WebCore
 
 AffineTransform WebView::transformFromScene() const
 {
-    return transformToScene().inverse();
+    return transformToScene().inverse().valueOr(AffineTransform());
 }
 
 AffineTransform WebView::transformToScene() const
@@ -430,13 +424,13 @@ void WebView::doneWithTouchEvent(const NativeWebTouchEvent& event, bool wasEvent
 }
 #endif
 
-RefPtr<WebPopupMenuProxy> WebView::createPopupMenuProxy(WebPageProxy*)
+RefPtr<WebPopupMenuProxy> WebView::createPopupMenuProxy(WebPageProxy&)
 {
     notImplemented();
     return nullptr;
 }
 
-RefPtr<WebContextMenuProxy> WebView::createContextMenuProxy(WebPageProxy*)
+std::unique_ptr<WebContextMenuProxy> WebView::createContextMenuProxy(WebPageProxy&, const ContextMenuContextData&, const UserData&)
 {
     notImplemented();
     return nullptr;
@@ -449,21 +443,6 @@ RefPtr<WebColorPicker> WebView::createColorPicker(WebPageProxy*, const WebCore::
     return nullptr;
 }
 #endif
-
-void WebView::setTextIndicator(Ref<WebCore::TextIndicator>, WebCore::TextIndicatorLifetime)
-{
-    notImplemented();
-}
-
-void WebView::clearTextIndicator(WebCore::TextIndicatorDismissalAnimation)
-{
-    notImplemented();
-}
-
-void WebView::setTextIndicatorAnimationProgress(float)
-{
-    notImplemented();
-}
 
 void WebView::enterAcceleratedCompositingMode(const LayerTreeContext&)
 {
@@ -519,6 +498,7 @@ void WebView::didChangeViewportProperties(const WebCore::ViewportAttributes& att
     m_client.didChangeViewportAttributes(this, attr);
 }
 
+#if USE(COORDINATED_GRAPHICS_MULTIPROCESS)
 void WebView::pageDidRequestScroll(const IntPoint& position)
 {
     FloatPoint uiPosition(position);
@@ -541,6 +521,7 @@ void WebView::findZoomableAreaForPoint(const IntPoint& point, const IntSize& siz
 {
     m_page->findZoomableAreaForPoint(transformFromScene().mapPoint(point), transformFromScene().mapSize(size));
 }
+#endif
 
 } // namespace WebKit
 

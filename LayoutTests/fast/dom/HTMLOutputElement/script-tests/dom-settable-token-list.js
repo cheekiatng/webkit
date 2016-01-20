@@ -14,10 +14,14 @@ function createElement(tokenList)
 
 debug('- Tests from http://simon.html5.org/test/html/dom/reflecting/DOMTokenList/');
 
-// HTMLOutputElement::htmlFor is readonly attribute.
+// HTMLOutputElement::htmlFor should be settable.
 createElement('x');
-element.htmlFor = 'y';
-shouldBeEqualToString('String(element.htmlFor)', 'x');
+shouldBe('element.htmlFor.__proto__', 'DOMSettableTokenList.prototype');
+element.htmlFor = 'y  z';
+shouldBeEqualToString('String(element.htmlFor)', 'y z');
+shouldBeEqualToString('element.getAttribute("for")', 'y z');
+element.setAttribute('for', 'r s t');
+shouldBeEqualToString('String(element.htmlFor)', 'r s t');
 
 // http://simon.html5.org/test/html/dom/reflecting/DOMTokenList/getting/001.htm
 createElement('');
@@ -29,7 +33,7 @@ shouldEvaluateTo('element.htmlFor.length', 1);
 
 // http://simon.html5.org/test/html/dom/reflecting/DOMTokenList/getting/003.htm
 createElement('x x');
-shouldEvaluateTo('element.htmlFor.length', 2);
+shouldEvaluateTo('element.htmlFor.length', 1);
 
 // http://simon.html5.org/test/html/dom/reflecting/DOMTokenList/getting/004.htm
 createElement('x y');
@@ -48,7 +52,7 @@ shouldBeEqualToString('element.htmlFor.toString()', 'x');
 // http://simon.html5.org/test/html/dom/reflecting/DOMTokenList/getting/007.htm
 createElement('x  x');
 element.htmlFor.add('x');
-shouldBeEqualToString('element.htmlFor.toString()', 'x  x');
+shouldBeEqualToString('element.htmlFor.toString()', 'x');
 
 // http://simon.html5.org/test/html/dom/reflecting/DOMTokenList/getting/008.htm
 createElement('y');
@@ -68,7 +72,7 @@ shouldBeEqualToString('element.htmlFor.toString()', '');
 // http://simon.html5.org/test/html/dom/reflecting/DOMTokenList/getting/011.htm
 createElement(' y x  y ');
 element.htmlFor.remove('x');
-shouldBeEqualToString('element.htmlFor.toString()', ' y y ');
+shouldBeEqualToString('element.htmlFor.toString()', 'y');
 
 // http://simon.html5.org/test/html/dom/reflecting/DOMTokenList/getting/012.htm
 createElement(' x y  x ');
@@ -101,11 +105,11 @@ shouldBeEqualToString('element.htmlFor.toString()', 'x y');
 
 createElement('x\t');
 element.htmlFor.add('y');
-shouldBeEqualToString('element.htmlFor.toString()', 'x\ty');
+shouldBeEqualToString('element.htmlFor.toString()', 'x y');
 
 createElement(' ');
 element.htmlFor.add('y');
-shouldBeEqualToString('element.htmlFor.toString()', ' y');
+shouldBeEqualToString('element.htmlFor.toString()', 'y');
 
 
 debug('- Test invalid tokens');
@@ -182,8 +186,8 @@ shouldBeEqualToString('element.htmlFor[0]', 'x');
 shouldBeEqualToString('element.htmlFor.item(0)', 'x');
 
 createElement('x x');
-shouldBeEqualToString('element.htmlFor[1]', 'x');
-shouldBeEqualToString('element.htmlFor.item(1)', 'x');
+shouldBeUndefined('element.htmlFor[1]');
+shouldBeNull('element.htmlFor.item(1)');
 
 createElement('x y');
 shouldBeEqualToString('element.htmlFor[1]', 'y');

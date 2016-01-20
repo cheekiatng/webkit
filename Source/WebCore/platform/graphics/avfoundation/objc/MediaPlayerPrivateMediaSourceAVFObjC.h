@@ -86,6 +86,7 @@ public:
     bool hasStreamSession() { return m_streamSession; }
     AVStreamSession *streamSession();
     virtual void setCDMSession(CDMSession*) override;
+    CDMSessionMediaSourceAVFObjC* cdmSession() const { return m_session; }
     void keyNeeded(Uint8Array*);
 #endif
 
@@ -147,8 +148,8 @@ private:
 
     virtual void setSize(const IntSize&) override;
 
-    virtual void paint(GraphicsContext*, const FloatRect&) override;
-    virtual void paintCurrentFrameInContext(GraphicsContext*, const FloatRect&) override;
+    virtual void paint(GraphicsContext&, const FloatRect&) override;
+    virtual void paintCurrentFrameInContext(GraphicsContext&, const FloatRect&) override;
 
     virtual bool hasAvailableVideoFrame() const override;
 
@@ -181,7 +182,6 @@ private:
     void ensureLayer();
     void destroyLayer();
     bool shouldBePlaying() const;
-    void seekTimerFired();
 
     friend class MediaSourcePrivateAVFObjC;
 

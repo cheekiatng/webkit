@@ -4,19 +4,13 @@ require_once('../include/json-header.php');
 
 class ReportProcessor {
     private $db;
-    private $name_to_aggregator;
+    private $name_to_aggregator_id;
     private $report_id;
     private $runs;
 
     function __construct($db) {
         $this->db = $db;
-        $this->name_to_aggregator = array();
-        $aggregator_table = $db->fetch_table('aggregators');
-        if ($aggregator_table) {
-            foreach ($aggregator_table as $aggregator_row) {
-                $this->name_to_aggregator[$aggregator_row['aggregator_name']] = $aggregator_row;
-            }
-        }
+        $this->name_to_aggregator_id = array();
     }
 
     private function exit_with_error($message, $details = NULL) {
@@ -78,7 +72,9 @@ class ReportProcessor {
         if (!$existing_report_id)
             $this->store_report($report, $build_data);
 
-        $this->runs = new TestRunsGenerator($this->db, $this->name_to_aggregator, $this->report_id);
+        $this->ensure_aggregators();
+
+        $this->runs = new TestRunsGenerator($this->db, $this->name_to_aggregator_id, $this->report_id);
         $this->recursively_ensure_tests($report['tests']);
 
         $this->runs->aggregate();
@@ -111,6 +107,15 @@ class ReportProcessor {
             'content' => json_encode($report)));
         if (!$this->report_id)
             $this->exit_with_error('FailedToStoreRunReport');
+    }
+
+    private function ensure_aggregators() {
+        foreach (TestRunsGenerator::$aggregators as $name) {
+            $id = $this->db->select_or_insert_row('aggregators', 'aggregator', array('name' => $name));
+            if (!$id)
+                $this->exit_with_error('FailedToInsertAggregator', array('aggregator' => $name));
+            $this->name_to_aggregator_id[$name] = $id;
+        }
     }
 
     private function resolve_build_id($build_data, $revisions, $build_request_id) {
@@ -152,7 +157,7 @@ class ReportProcessor {
                 array('repository' => $repository_id, 'revision' => $revision_data['revision']), $commit_data, '*');
             if (!$commit_row)
                 $this->exit_with_error('FailedToRecordCommit', $commit_data);
-            if (abs($commit_row['commit_time'] - $commit_data['time']) > 1.0)
+            if ($commit_data['time'] && abs($commit_row['commit_time'] - $commit_data['time']) > 1.0)
                 $this->exit_with_error('MismatchingCommitTime', array('existing' => $commit_row, 'new' => $commit_data));
 
             if (!$this->db->select_or_insert_row('build_commits', null,
@@ -209,15 +214,15 @@ class ReportProcessor {
 
 class TestRunsGenerator {
     private $db;
-    private $name_to_aggregator;
+    private $name_to_aggregator_id;
     private $report_id;
     private $metrics_to_aggregate;
     private $parent_to_values;
     private $values_to_commit;
 
-    function __construct($db, $name_to_aggregator, $report_id) {
+    function __construct($db, $name_to_aggregator_id, $report_id) {
         $this->db = $db;
-        $this->name_to_aggregator = $name_to_aggregator or array();
+        $this->name_to_aggregator_id = $name_to_aggregator_id;
         $this->report_id = $report_id;
         $this->metrics_to_aggregate = array();
         $this->parent_to_values = array();
@@ -232,10 +237,11 @@ class TestRunsGenerator {
     }
 
     function add_aggregated_metric($parent_id, $test_id, $test_name, $metric_name, $aggregator_name, $level) {
-        array_key_exists($aggregator_name, $this->name_to_aggregator) or $this->exit_with_error('AggregatorNotFound', array('name' => $aggregator_name));
+        array_key_exists($aggregator_name, $this->name_to_aggregator_id)
+            or $this->exit_with_error('AggregatorNotFound', array('name' => $aggregator_name));
 
         $metric_id = $this->db->select_or_insert_row('test_metrics', 'metric', array('name' => $metric_name,
-            'test' => $test_id, 'aggregator' => $this->name_to_aggregator[$aggregator_name]['aggregator_id']));
+            'test' => $test_id, 'aggregator' => $this->name_to_aggregator_id[$aggregator_name]));
         if (!$metric_id)
             $this->exit_with_error('FailedToAddAggregatedMetric', array('name' => $metric_name, 'test' => $test_id, 'aggregator' => $aggregator_name));
 
@@ -246,7 +252,6 @@ class TestRunsGenerator {
             'test_name' => $test_name,
             'metric_name' => $metric_name,
             'aggregator' => $aggregator_name,
-            'aggregator_definition' => $this->name_to_aggregator[$aggregator_name]['aggregator_definition'],
             'level' => $level));
     }
 
@@ -355,17 +360,19 @@ class TestRunsGenerator {
         return array('values' => $values_by_iterations, 'group_sizes' => $group_sizes);
     }
 
+    static public $aggregators = array('Arithmetic', 'Geometric', 'Harmonic', 'Total');
+
     private function aggregate_values($aggregator, $values) {
         switch ($aggregator) {
         case 'Arithmetic':
             return array_sum($values) / count($values);
         case 'Geometric':
-            return pow(array_product($values), 1 / count($values));
+            return exp(array_sum(array_map(function ($x) { return log($x); }, $values)) / count($values));
         case 'Harmonic':
             return count($values) / array_sum(array_map(function ($x) { return 1 / $x; }, $values));
         case 'Total':
             return array_sum($values);
-        case 'SquareSum':
+        case 'SquareSum': # This aggregator is only used internally to compute run_square_sum_cache in test_runs table.
             return array_sum(array_map(function ($x) { return $x * $x; }, $values));
         default:
             $this->exit_with_error('UnknownAggregator', array('aggregator' => $aggregator));

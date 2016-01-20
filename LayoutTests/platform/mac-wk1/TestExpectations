@@ -1,6 +1,16 @@
 # This file should contain entries for expectations that are specific
 # to the Apple Mac port running WebKit1 (DumpRenderTree)
 
+#//////////////////////////////////////////////////////////////////////////////////////////
+# Platform-specific tests. Skipped globally, then re-enabled here.
+#//////////////////////////////////////////////////////////////////////////////////////////
+
+fast/forms/attributed-strings.html [ Pass ]
+
+#//////////////////////////////////////////////////////////////////////////////////////////
+# End platform-specific directories.
+#//////////////////////////////////////////////////////////////////////////////////////////
+
 ###### This file has two sections. When adding new tests, make sure to
 ###### add to the right section:
 
@@ -38,26 +48,88 @@ webkit.org/b/145432 media/video-transformed-by-javascript.html [ Failure ]
 
 webkit.org/b/146622 [ Yosemite Debug ] webgl/1.0.2/conformance/more/functions/copyTexImage2DBadArgs.html [ Pass Failure ]
 
+webkit.org/b/150564 svg/repaint/add-background-property-on-root.html [ Pass Timeout ]
+
+webkit.org/b/152272 [ Debug ] js/regress/generator-with-several-types.html [ Pass Timeout ]
+
+webkit.org/b/152485 webaudio/audiocontext-state-interrupted.html [ Pass Crash ]
+
+webkit.org/b/152487 inspector/debugger/command-line-api-exception-nested-catch.html [ Pass Timeout ]
+
+webkit.org/b/152506 webgl/1.0.2/conformance/extensions/get-extension.html [ Pass Timeout ]
+
+webkit.org/b/152789 webarchive/adopt-attribute-styled-body-webarchive.html [ Pass Crash ]
+
 ### END OF (1) Failures with bug reports
 ########################################
 
 ########################################
 ### START OF (2) Failures without bug reports
 
-# IndexedDB is not yet enabled in Mac WK1
-storage/indexeddb
-fast/history/page-cache-indexed-closed-db.html
-fast/history/page-cache-indexed-opened-db.html
-http/tests/security/cross-origin-indexeddb-allowed.html
-http/tests/security/cross-origin-indexeddb.html
+# Our IDL parser test harness is not what this test expects
+imported/w3c/indexeddb/interfaces.html [ Skip ]
+
+# W3C IDB tests where the test is wrong (the spec, other browsers, and WebKit all agree)
+# Covered by https://github.com/w3c/web-platform-tests/issues/2456
+imported/w3c/indexeddb/idbindex_get7.htm [ Failure ]
+imported/w3c/indexeddb/idbindex_getKey7.htm [ Failure ]
+imported/w3c/indexeddb/idbindex_openCursor2.htm [ Failure ]
+imported/w3c/indexeddb/idbindex_openKeyCursor3.htm [ Failure ]
+
+# Times out for unexplored reasons                                                             
+storage/indexeddb/database-quota.html [ Skip ]
+storage/indexeddb/database-quota-private.html [ Skip ]
+
+# Modern IDB page cache interaction not yet sorted out
+fast/history/page-cache-indexed-closed-db.html [ Failure ]
+
+# IDB is currently disabled in private browsing.
+# With Modern IDB and the in-memory backing store, that should change.
+storage/indexeddb/open-db-private-browsing.html [ Failure ]
+
+# Relies on internals.observeGC
+storage/indexeddb/connection-leak.html [ Skip ]
+storage/indexeddb/cursor-leak.html [ Failure ]
+storage/indexeddb/cursor-request-cycle.html [ Failure ]
+storage/indexeddb/delete-closed-database-object.html [ Skip ]
+storage/indexeddb/delete-closed-database-object-private.html [ Skip ]
+storage/indexeddb/request-leak.html [ Failure ]
+
+# No workers support in Modern IDB yet
 http/tests/security/cross-origin-worker-indexeddb-allowed.html
 http/tests/security/cross-origin-worker-indexeddb.html
-http/tests/security/no-indexeddb-from-sandbox.html
-crypto/subtle/rsa-indexeddb.html
-crypto/subtle/rsa-indexeddb-non-exportable.html
+storage/indexeddb/basics-workers.html
+storage/indexeddb/cursor-advance-workers.html
+storage/indexeddb/deletedatabase-delayed-by-open-and-versionchange-workers.html
+storage/indexeddb/dont-commit-on-blocked.html
+storage/indexeddb/factory-basics-workers.html
+storage/indexeddb/index-basics-workers.html
+storage/indexeddb/objectstore-basics-workers.html
+storage/indexeddb/open-twice-workers.html
+storage/indexeddb/pending-activity-workers.html
+storage/indexeddb/pending-version-change-on-exit.html
+storage/indexeddb/pending-version-change-on-exit-private.html
+storage/indexeddb/pending-version-change-stuck-works-with-terminate.html
+storage/indexeddb/pending-version-change-stuck.html
+storage/indexeddb/pending-version-change-stuck-private.html
+storage/indexeddb/transaction-complete-workers.html
+storage/indexeddb/transaction-complete-workers-private.html
+storage/indexeddb/unprefix-workers.html
 
-# But since it is disabled at runtime, we should make sure it is correctly disabled
-storage/indexeddb/properties-disabled-at-runtime.html [ Pass ]
+# Need a different way to get database names to the web inspector
+inspector/indexeddb/requestDatabaseNames.html
+
+# Test's behavior specific to Legacy IDB with LevelDB backend
+# Modern IDB is spec-compliant without supporting this behavior
+storage/indexeddb/transaction-starvation.html [ Skip ]
+
+# Times out because we only consider "onblocked"'ing one test at a time,
+# which is allowed by the spec and is what Firefox and Edge do.
+storage/indexeddb/deletedatabase-delayed-by-versionchange.html [ Skip ]
+
+# We allowed disabling IDB at runtime to support polyfills in WK1 before Modern IDB.
+# It's unclear if we need to continue supporting this.
+storage/indexeddb/properties-disabled-at-runtime.html [ Failure ]
 
 # Fails with WebKit1 only.
 editing/secure-input/reset-state-on-navigation.html [ Failure ]
@@ -65,17 +137,25 @@ editing/secure-input/reset-state-on-navigation.html [ Failure ]
 # Plug-in blocking callback doesn't exist in WebKit1.
 plugins/unavailable-plugin-indicator-obscurity.html
 
-# Color input is not yet enabled on Mac WK1.
-fast/forms/color/input-color-onchange-event.html [ Skip ]
+# Color input is not yet implemented on Mac WK1. Currently, using it erroneously triggers an ASSERT_NOT_REACHED.
+webkit.org/b/119094 fast/forms/color/input-color-onchange-event.html [ Skip ]
+webkit.org/b/119094 fast/forms/color/color-suggestion-picker-crash-on-set-value.html [ Skip ]
 
 # WK1 and WK2 mousemove events are subtly different in ways that break this test on WK1.
 fast/events/ghostly-mousemoves-in-subframe.html [ Skip ]
+
+# Media Stream API testing is not supported for WK1 yet.
+fast/mediastream
+http/tests/media/media-stream
 
 # Disable snapshotting tests on WK1 only
 plugins/snapshotting
 
 # WK1 doesn't do pending WebGL policies 
 fast/canvas/webgl/useWhilePending.html [ Skip ]
+
+# Mac-WK1 only caches frames containing HTML at the moment.
+http/tests/navigation/page-cache-iframe-no-current-historyItem.html
 
 # Animated image throttling behaves differently on WK1.
 fast/images/animated-gif-body-outside-viewport.html [ Skip ]
@@ -85,7 +165,7 @@ fast/images/animated-gif-zooming.html [ Skip ]
 # Mavericks and prior do not support contentInset
 [ Mavericks ] platform/mac/fast/events/content-inset-hit-testing.html [ Skip ]
 [ Mavericks ] platform/mac/fast/events/content-inset-hit-testing-in-frame.html [ Skip ]
-[ Mavericks ] platform/mac/fast/scrolling/scroll-select-bottom-test.html [ Skip ]
+[ Mavericks ] fast/scrolling/latching/scroll-select-bottom-test.html [ Skip ]
 [ Mavericks ] platform/mac-wk1/fast/backgrounds/top-content-inset-fixed-attachment.html [ Skip ]
 
 # WK1 uses the native scrollview for scrolling by page.
@@ -98,6 +178,9 @@ scrollbars/scrolling-by-page-ignoring-hidden-fixed-elements-on-keyboard-spacebar
 scrollbars/scrolling-by-page-ignoring-transparent-fixed-elements-on-keyboard-spacebar.html
 scrollbars/scrolling-by-page-on-keyboard-spacebar.html
 
+# This test times out.
+webkit.org/b/147683 fast/scrolling/latching/scroll-div-with-nested-nonscrollable-iframe.html [ Skip ]
+
 compositing/rtl/rtl-fixed-overflow-scrolled.html [ Failure ]
 
 compositing/iframes/overlapped-nested-iframes.html [ Pass Failure ]
@@ -105,22 +188,52 @@ compositing/iframes/overlapped-nested-iframes.html [ Pass Failure ]
 # Disk cache is WK2 only
 http/tests/cache/disk-cache
 
-# There is not yet support for force events in WK1.
-fast/events/mouse-force-changed.html [ Skip ]
-fast/events/mouse-force-down.html [ Skip ]
-fast/events/mouse-force-up.html [ Skip ]
-
-[ Yosemite+ ] platform/mac/fast/ruby/ruby-expansion-cjk-2.html [ ImageOnlyFailure ]
+[ Yosemite+ ] fast/ruby/ruby-expansion-cjk-2.html [ ImageOnlyFailure ]
 
 # ShouldOpenExternalURLs not yet supported in WK1
 loader/navigation-policy [ Skip ]
 
-[ Mavericks Debug ] fast/canvas/webgl/tex-image-and-sub-image-2d-with-video-rgba4444.html [ Pass Timeout ]
-[ Mavericks Debug ] fast/canvas/webgl/tex-image-and-sub-image-2d-with-video-rgba5551.html [ Pass Timeout ]
-[ Mavericks Debug ] fast/canvas/webgl/tex-image-and-sub-image-2d-with-video.html [ Pass Timeout ]
-[ Mavericks Debug ] fast/canvas/webgl/tex-image-and-uniform-binding-bugs.html [ Pass Timeout ]
+webkit.org/b/150367 [ Mavericks ] fast/canvas/webgl/tex-image-and-sub-image-2d-with-video-rgba4444.html [ Pass Timeout ]
+webkit.org/b/150367 [ Mavericks ] fast/canvas/webgl/tex-image-and-sub-image-2d-with-video-rgba5551.html [ Pass Timeout ]
+webkit.org/b/150367 [ Mavericks ] fast/canvas/webgl/tex-image-and-sub-image-2d-with-video.html [ Pass Timeout ]
+webkit.org/b/150367 [ Mavericks ] fast/canvas/webgl/tex-image-and-uniform-binding-bugs.html [ Pass Timeout ]
+webkit.org/b/150367 [ Mavericks ] fast/canvas/webgl/oes-texture-half-float.html [ Pass Timeout ]
 
 [ ElCapitan+ ] css3/masking/mask-repeat-space-padding.html [ ImageOnlyFailure ]
 
+# This test gives a different output on ElCapitan-wk1 only.
+webkit.org/b/152178 [ Yosemite+ ] fast/replaced/replaced-breaking.html [ Failure ]
+
 ### END OF (2) Failures without bug reports
 ########################################
+
+# This test is WebKit2-only
+http/tests/contentfiltering/load-substitute-data-from-appcache.html
+
+# Testing the system language declaratively only makes sense in WK2, because it's implemented in WebKitTestRunner by launching a new WebContent process.
+fast/text/international/system-language [ Pass Failure ImageOnlyFailure ]
+
+# Imported Blink tests which have not been investigated.
+imported/blink/fast/canvas/bug382588.html [ Pass Timeout ImageOnlyFailure ]
+[ Debug ] imported/blink/compositing/video/video-controls-layer-creation-squashing.html [ Pass ImageOnlyFailure ]
+
+# Blink tests that time out waiting on requestAnimationFrame callbacks. http://webkit.org/b/150050
+imported/blink/animations/background-shorthand-crash.html [ Pass Timeout ]
+imported/blink/compositing/squashing/invalidate-on-grouped-mapping-reorder.html [ Pass Timeout ]
+imported/blink/css3/calc/transition-asan-crash.html [ Pass Timeout ]
+imported/blink/fast/images/image-hover-display-alt.html [ Pass Timeout ]
+imported/blink/fast/inline/reparent-inline-box.html [ Pass Timeout ]
+imported/blink/fast/text-autosizing/print-autosizing.html  [ Pass Timeout ]
+imported/blink/paint/theme/search-field-resuts-decoration-crash.html [ Pass Timeout ]
+imported/blink/svg/filters/feColorMatrix-setAttribute-crash1.html [ Pass Timeout ]
+imported/blink/svg/hittest/rect-miterlimit.html [ Pass Timeout ]
+imported/blink/compositing/reorder-z-with-style.html [ Pass Timeout ]
+imported/blink/svg/custom/marker-layout-invalidation.html [ Pass Timeout ]
+imported/blink/fast/css/crash-corner-present.html [ Pass Timeout ]
+imported/blink/compositing/layer-creation/iframe-clip-removed.html [ Pass Timeout ]
+
+# ASAN test only fails on WK1:
+webgl/1.0.3/151055_asan.html [ Failure ]
+
+# Lacking WK1 TestRunner API that evaluates JavaScript through JSC APIs and not WebCore APIs
+inspector/script-profiler/event-type-API.html

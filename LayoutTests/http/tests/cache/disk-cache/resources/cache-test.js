@@ -33,19 +33,23 @@ function makeHeaderValue(value)
         return (new Date(new Date().getTime() + serverClientTimeDelta)).toUTCString();
     if (value == 'now(100)')
         return (new Date(new Date().getTime() + serverClientTimeDelta + 100 * 1000)).toUTCString();
+    if (value == 'now(-1000)')
+        return (new Date(new Date().getTime() - serverClientTimeDelta - 1000 * 1000)).toUTCString()
     if (value == 'unique()')
         return "" + uniqueIdCounter++;
     return value;
 }
 
-function generateTestURL(test, includeBody, expiresInFutureIn304)
+function generateTestURL(test)
 {
-    includeBody = typeof includeBody !== 'undefined' ? includeBody : true;
-    expiresInFutureIn304 = typeof expiresInFutureIn304 !== 'undefined' ? expiresInFutureIn304 : false;
+    var body = typeof test.body !== 'undefined' ? test.body : "";
+    var expiresInFutureIn304 = typeof test.expiresInFutureIn304 !== 'undefined' ? test.expiresInFutureIn304 : false;
     var uniqueTestId = Math.floor((Math.random() * 1000000000000));
-    var testURL = "resources/generate-response.cgi?include-body=" + (includeBody ? "1" : "0");
+    var testURL = "resources/generate-response.cgi?body=" + body;
     if (expiresInFutureIn304)
         testURL += "&expires-in-future-in-304=1";
+    if (test.delay)
+        testURL += "&delay=" + test.delay;
     testURL += "&uniqueId=" + uniqueTestId++;
     if (!test.responseHeaders || !test.responseHeaders["Content-Type"])
         testURL += "&Content-Type=text/plain";
@@ -57,10 +61,12 @@ function generateTestURL(test, includeBody, expiresInFutureIn304)
 function loadResource(test, onload)
 {
     if (!test.url)
-        test.url = generateTestURL(test, test.includeBody, test.expiresInFutureIn304);
+        test.url = generateTestURL(test);
 
     test.xhr = new XMLHttpRequest();
     test.xhr.onload = onload;
+    test.xhr.onerror = onload;
+    test.xhr.onabort = onload;
     test.xhr.open("get", test.url, true);
 
     for (var header in test.requestHeaders)
@@ -69,19 +75,25 @@ function loadResource(test, onload)
     test.xhr.send();
 }
 
-function loadResources(tests, completetion)
+function loadResourcesWithOptions(tests, options, completetion)
 {
-    // Otherwise we just get responses from the memory cache.
-    internals.clearMemoryCache();
-    
+    if (options["ClearMemoryCache"])
+        internals.clearMemoryCache();
+    internals.setStrictRawResourceValidationPolicyDisabled(options["SubresourceValidationPolicy"]);
+
     var pendingCount = tests.length;
     for (var i = 0; i < tests.length; ++i) {
         loadResource(tests[i], function (ev) {
             --pendingCount;
             if (!pendingCount)
-                completetion();
+                completetion(ev);
          });
     }
+}
+
+function loadResources(tests, completetion)
+{
+    loadResourcesWithOptions(tests, { "ClearMemoryCache" : true }, completetion);
 }
 
 function printResults(tests)
@@ -104,12 +116,21 @@ function runTests(tests, completionHandler)
     loadResources(tests, function () {
         // Wait a bit so things settle down in the disk cache.
         setTimeout(function () {
-            loadResources(tests, function () {
+            debug("--------Testing loads from disk cache--------");
+            loadResourcesWithOptions(tests, { "ClearMemoryCache" : true }, function () {
                 printResults(tests);
-                if (completionHandler)
-                    completionHandler();
-                else
-                    finishJSTest();
+                debug("--------Testing loads through memory cache (XHR behavior)--------");
+                loadResourcesWithOptions(tests, { }, function () {
+                    printResults(tests);
+                    debug("--------Testing loads through memory cache (subresource behavior)--------");
+                    loadResourcesWithOptions(tests, { "SubresourceValidationPolicy": true }, function () {
+                        printResults(tests);
+                        if (completionHandler)
+                            completionHandler();
+                        else
+                            finishJSTest();
+                    });
+                });
             });
         }, 100);
     });
@@ -149,7 +170,8 @@ function generateTests(testMatrix, includeBody)
                 mergeFields(test[field], component[field]);
             }
         }
-        test.includeBody = includeBody;
+        if (includeBody && !test.body)
+            test.body = "test body";
         tests.push(test);
     }
     return tests;

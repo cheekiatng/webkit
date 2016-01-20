@@ -26,8 +26,6 @@
 #include "config.h"
 #include "NetworkProcessProxy.h"
 
-#if ENABLE(NETWORK_PROCESS)
-
 #include "AuthenticationChallengeProxy.h"
 #include "CustomProtocolManagerProxyMessages.h"
 #include "DownloadProxyMessages.h"
@@ -83,6 +81,7 @@ NetworkProcessProxy::~NetworkProcessProxy()
 void NetworkProcessProxy::getLaunchOptions(ProcessLauncher::LaunchOptions& launchOptions)
 {
     launchOptions.processType = ProcessLauncher::NetworkProcess;
+    ChildProcessProxy::getLaunchOptions(launchOptions);
     platformGetLaunchOptions(launchOptions);
 }
 
@@ -128,7 +127,7 @@ void NetworkProcessProxy::fetchWebsiteData(SessionID sessionID, WebsiteDataTypes
     auto token = throttler().backgroundActivityToken();
 
     m_pendingFetchWebsiteDataCallbacks.add(callbackID, [token, completionHandler](WebsiteData websiteData) {
-        completionHandler(WTF::move(websiteData));
+        completionHandler(WTFMove(websiteData));
     });
 
     send(Messages::WebProcess::FetchWebsiteData(sessionID, dataTypes, callbackID), 0);
@@ -169,10 +168,10 @@ void NetworkProcessProxy::networkProcessCrashedOrFailedToLaunch()
     while (!m_pendingConnectionReplies.isEmpty()) {
         RefPtr<Messages::WebProcessProxy::GetNetworkProcessConnection::DelayedReply> reply = m_pendingConnectionReplies.takeFirst();
 
-#if OS(DARWIN)
-        reply->send(IPC::Attachment(0, MACH_MSG_TYPE_MOVE_SEND));
-#elif USE(UNIX_DOMAIN_SOCKETS)
+#if USE(UNIX_DOMAIN_SOCKETS)
         reply->send(IPC::Attachment());
+#elif OS(DARWIN)
+        reply->send(IPC::Attachment(0, MACH_MSG_TYPE_MOVE_SEND));
 #else
         notImplemented();
 #endif
@@ -235,10 +234,10 @@ void NetworkProcessProxy::didCreateNetworkConnectionToWebProcess(const IPC::Atta
     // Grab the first pending connection reply.
     RefPtr<Messages::WebProcessProxy::GetNetworkProcessConnection::DelayedReply> reply = m_pendingConnectionReplies.takeFirst();
 
-#if OS(DARWIN)
-    reply->send(IPC::Attachment(connectionIdentifier.port(), MACH_MSG_TYPE_MOVE_SEND));
-#elif USE(UNIX_DOMAIN_SOCKETS)
+#if USE(UNIX_DOMAIN_SOCKETS)
     reply->send(connectionIdentifier);
+#elif OS(DARWIN)
+    reply->send(IPC::Attachment(connectionIdentifier.port(), MACH_MSG_TYPE_MOVE_SEND));
 #else
     notImplemented();
 #endif
@@ -335,8 +334,7 @@ void NetworkProcessProxy::sendProcessWillSuspendImminently()
         return;
 
     bool handled = false;
-    sendSync(Messages::NetworkProcess::ProcessWillSuspendImminently(), Messages::NetworkProcess::ProcessWillSuspendImminently::Reply(handled),
-        0, std::chrono::seconds(1), IPC::InterruptWaitingIfSyncMessageArrives);
+    sendSync(Messages::NetworkProcess::ProcessWillSuspendImminently(), Messages::NetworkProcess::ProcessWillSuspendImminently::Reply(handled), 0, std::chrono::seconds(1));
 }
     
 void NetworkProcessProxy::sendPrepareToSuspend()
@@ -377,5 +375,3 @@ void NetworkProcessProxy::setIsHoldingLockedFiles(bool isHoldingLockedFiles)
 }
 
 } // namespace WebKit
-
-#endif // ENABLE(NETWORK_PROCESS)

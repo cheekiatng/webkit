@@ -58,7 +58,8 @@ void ProcessLauncher::didFinishLaunchingProcess(PlatformProcessIdentifier proces
     
     if (!m_client) {
         // FIXME: Make Identifier a move-only object and release port rights/connections in the destructor.
-#if OS(DARWIN)
+#if OS(DARWIN) && !PLATFORM(GTK)
+        // FIXME: Should really be something like USE(MACH)
         if (identifier.port)
             mach_port_mod_refs(mach_task_self(), identifier.port, MACH_PORT_RIGHT_RECEIVE, -1);
 #endif
@@ -83,10 +84,8 @@ const char* ProcessLauncher::processTypeAsString(ProcessType processType)
     case PluginProcess:
         return "pluginprocess";
 #endif
-#if ENABLE(NETWORK_PROCESS)
     case NetworkProcess:
         return "networkprocess";
-#endif
 #if ENABLE(DATABASE_PROCESS)
     case DatabaseProcess:
         return "databaseprocess";
@@ -111,12 +110,10 @@ bool ProcessLauncher::getProcessTypeFromString(const char* string, ProcessType& 
     }
 #endif
 
-#if ENABLE(NETWORK_PROCESS)
     if (!strcmp(string, "networkprocess")) {
         processType = NetworkProcess;
         return true;
     }
-#endif
 
 #if ENABLE(DATABASE_PROCESS)
     if (!strcmp(string, "databaseprocess")) {

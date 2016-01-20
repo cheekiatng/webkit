@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Apple Inc. All Rights Reserved.
+ * Copyright (C) 2011, 2016 Apple Inc. All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -67,11 +67,13 @@
 #define WIRRawDataKey                           @"WIRRawDataKey"
 #define WIRListingMessage                       @"WIRListingMessage"
 #define WIRListingKey                           @"WIRListingKey"
+#define WIRRemoteAutomationEnabledKey           @"WIRRemoteAutomationEnabledKey"
 #define WIRDestinationKey                       @"WIRDestinationKey"
 #define WIRConnectionDiedMessage                @"WIRConnectionDiedMessage"
 #define WIRTypeKey                              @"WIRTypeKey"
 #define WIRTypeJavaScript                       @"WIRTypeJavaScript"
 #define WIRTypeWeb                              @"WIRTypeWeb"
+#define WIRTypeAutomation                       @"WIRTypeAutomation"
 #define WIRAutomaticallyPause                   @"WIRAutomaticallyPause"
 
 #define WIRAutomaticInspectionEnabledKey           @"WIRAutomaticInspectionEnabledKey"

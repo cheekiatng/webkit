@@ -78,12 +78,12 @@ bool HTMLTextFormControlElement::childShouldCreateRenderer(const Node& child) co
 
 Node::InsertionNotificationRequest HTMLTextFormControlElement::insertedInto(ContainerNode& insertionPoint)
 {
-    HTMLFormControlElementWithState::insertedInto(insertionPoint);
+    InsertionNotificationRequest insertionNotificationRequest = HTMLFormControlElementWithState::insertedInto(insertionPoint);
     if (!insertionPoint.inDocument())
-        return InsertionDone;
+        return insertionNotificationRequest;
     String initialValue = value();
     setTextAsOfLastFormControlChangeEvent(initialValue.isNull() ? emptyString() : initialValue);
-    return InsertionDone;
+    return insertionNotificationRequest;
 }
 
 void HTMLTextFormControlElement::dispatchFocusEvent(RefPtr<Element>&& oldFocusedElement, FocusDirection direction)
@@ -91,7 +91,7 @@ void HTMLTextFormControlElement::dispatchFocusEvent(RefPtr<Element>&& oldFocused
     if (supportsPlaceholder())
         updatePlaceholderVisibility();
     handleFocusEvent(oldFocusedElement.get(), direction);
-    HTMLFormControlElementWithState::dispatchFocusEvent(WTF::move(oldFocusedElement), direction);
+    HTMLFormControlElementWithState::dispatchFocusEvent(WTFMove(oldFocusedElement), direction);
 }
 
 void HTMLTextFormControlElement::dispatchBlurEvent(RefPtr<Element>&& newFocusedElement)
@@ -99,7 +99,7 @@ void HTMLTextFormControlElement::dispatchBlurEvent(RefPtr<Element>&& newFocusedE
     if (supportsPlaceholder())
         updatePlaceholderVisibility();
     handleBlurEvent();
-    HTMLFormControlElementWithState::dispatchBlurEvent(WTF::move(newFocusedElement));
+    HTMLFormControlElementWithState::dispatchBlurEvent(WTFMove(newFocusedElement));
 }
 
 void HTMLTextFormControlElement::didEditInnerTextValue()
@@ -375,9 +375,9 @@ int HTMLTextFormControlElement::computeSelectionEnd() const
 
 static const AtomicString& directionString(TextFieldSelectionDirection direction)
 {
-    DEPRECATED_DEFINE_STATIC_LOCAL(const AtomicString, none, ("none", AtomicString::ConstructFromLiteral));
-    DEPRECATED_DEFINE_STATIC_LOCAL(const AtomicString, forward, ("forward", AtomicString::ConstructFromLiteral));
-    DEPRECATED_DEFINE_STATIC_LOCAL(const AtomicString, backward, ("backward", AtomicString::ConstructFromLiteral));
+    static NeverDestroyed<const AtomicString> none("none", AtomicString::ConstructFromLiteral);
+    static NeverDestroyed<const AtomicString> forward("forward", AtomicString::ConstructFromLiteral);
+    static NeverDestroyed<const AtomicString> backward("backward", AtomicString::ConstructFromLiteral);
 
     switch (direction) {
     case SelectionHasNoDirection:

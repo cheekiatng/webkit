@@ -89,9 +89,8 @@ private:
 
     // ActiveDOMObject API.
     const char* activeDOMObjectName() const override;
-    bool canSuspendForPageCache() const override;
+    bool canSuspendForDocumentSuspension() const override;
 
-    void pendingEventsTimerFired() { firePendingEvents(); }
     void scheduleEvent(PassRefPtr<Event>);
     void firePendingEvents();
     bool resolveFontStyle(const String&, FontCascade&);
@@ -100,7 +99,7 @@ private:
     EventTargetData m_eventTargetData;
     unsigned m_numLoadingFromCSS;
     unsigned m_numLoadingFromJS;
-    Vector<RefPtr<Event>> m_pendingEvents;
+    Vector<Ref<Event>> m_pendingEvents;
     Vector<RefPtr<VoidCallback>> m_callbacks;
     RefPtr<Event> m_loadingDoneEvent;
     Timer m_pendingEventsTimer;

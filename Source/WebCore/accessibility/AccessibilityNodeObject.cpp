@@ -152,8 +152,11 @@ void AccessibilityNodeObject::childrenChanged()
         // In other words, they need to be sent even when the screen reader has not accessed this live region since the last update.
 
         // If this element supports ARIA live regions, then notify the AT of changes.
+        // Sometimes this function can be called many times within a short period of time, leading to posting too many AXLiveRegionChanged
+        // notifications. To fix this, we used a timer to make sure we only post one notification for the children changes within a pre-defined
+        // time interval.
         if (parent->supportsARIALiveRegion())
-            cache->postNotification(parent, parent->document(), AXObjectCache::AXLiveRegionChanged);
+            cache->postLiveRegionChangeNotification(parent);
         
         // If this element is an ARIA text control, notify the AT of changes.
         if ((parent->isARIATextControl() || parent->hasContentEditableAttributeSet()) && !parent->isNativeTextControl())
@@ -491,9 +494,10 @@ bool AccessibilityNodeObject::isSearchField() const
     if (roleValue() == SearchFieldRole)
         return true;
 
-    HTMLInputElement* inputElement = node->toInputElement();
-    if (!inputElement)
+    if (!is<HTMLInputElement>(*node))
         return false;
+
+    auto& inputElement = downcast<HTMLInputElement>(*node);
 
     // Some websites don't label their search fields as such. However, they will
     // use the word "search" in either the form or input type. This won't catch every case,
@@ -505,7 +509,7 @@ bool AccessibilityNodeObject::isSearchField() const
         return true;
 
     // Check the form action and the name, which will sometimes be "search".
-    HTMLFormElement* form = inputElement->form();
+    auto* form = inputElement.form();
     if (form && (form->name().contains("search", false) || form->action().contains("search", false)))
         return true;
 
@@ -539,18 +543,14 @@ bool AccessibilityNodeObject::isImage() const
 
 bool AccessibilityNodeObject::isPasswordField() const
 {
-    Node* node = this->node();
-    if (!node || !node->isHTMLElement())
+    auto* node = this->node();
+    if (!is<HTMLInputElement>(node))
         return false;
 
     if (ariaRoleAttribute() != UnknownRole)
         return false;
 
-    HTMLInputElement* inputElement = node->toInputElement();
-    if (!inputElement)
-        return false;
-
-    return inputElement->isPasswordField();
+    return downcast<HTMLInputElement>(*node).isPasswordField();
 }
 
 AccessibilityObject* AccessibilityNodeObject::passwordFieldOrContainingPasswordField()
@@ -559,16 +559,14 @@ AccessibilityObject* AccessibilityNodeObject::passwordFieldOrContainingPasswordF
     if (!node)
         return nullptr;
 
-    if (HTMLInputElement* inputElement = node->toInputElement()) {
-        if (inputElement->isPasswordField())
-            return this;
-    }
+    if (is<HTMLInputElement>(*node) && downcast<HTMLInputElement>(*node).isPasswordField())
+        return this;
 
-    Element* element = node->shadowHost();
-    if (!element || !is<HTMLInputElement>(element))
+    auto* element = node->shadowHost();
+    if (!is<HTMLInputElement>(element))
         return nullptr;
 
-    if (AXObjectCache* cache = axObjectCache())
+    if (auto* cache = axObjectCache())
         return cache->getOrCreate(element);
 
     return nullptr;
@@ -640,14 +638,11 @@ bool AccessibilityNodeObject::isMenuItem() const
 bool AccessibilityNodeObject::isNativeCheckboxOrRadio() const
 {
     Node* node = this->node();
-    if (!node)
+    if (!is<HTMLInputElement>(node))
         return false;
 
-    HTMLInputElement* input = node->toInputElement();
-    if (input)
-        return input->isCheckbox() || input->isRadioButton();
-
-    return false;
+    auto& input = downcast<HTMLInputElement>(*node);
+    return input.isCheckbox() || input.isRadioButton();
 }
 
 bool AccessibilityNodeObject::isEnabled() const
@@ -673,15 +668,8 @@ bool AccessibilityNodeObject::isEnabled() const
 
 bool AccessibilityNodeObject::isIndeterminate() const
 {
-    Node* node = this->node();
-    if (!node)
-        return false;
-
-    HTMLInputElement* inputElement = node->toInputElement();
-    if (!inputElement)
-        return false;
-
-    return inputElement->shouldAppearIndeterminate();
+    auto* node = this->node();
+    return is<HTMLInputElement>(node) && downcast<HTMLInputElement>(*node).shouldAppearIndeterminate();
 }
 
 bool AccessibilityNodeObject::isPressed() const
@@ -713,9 +701,8 @@ bool AccessibilityNodeObject::isChecked() const
         return false;
 
     // First test for native checkedness semantics
-    HTMLInputElement* inputElement = node->toInputElement();
-    if (inputElement)
-        return inputElement->shouldAppearChecked();
+    if (is<HTMLInputElement>(*node))
+        return downcast<HTMLInputElement>(*node).shouldAppearChecked();
 
     // Else, if this is an ARIA checkbox or radio, respect the aria-checked attribute
     bool validRole = false;
@@ -1458,7 +1445,7 @@ void AccessibilityNodeObject::ariaLabeledByText(Vector<AccessibilityText>& textO
             axElements.append(axElement);
         }
         
-        textOrder.append(AccessibilityText(ariaLabeledBy, AlternativeText, WTF::move(axElements)));
+        textOrder.append(AccessibilityText(ariaLabeledBy, AlternativeText, WTFMove(axElements)));
     }
 }
     
@@ -1699,12 +1686,6 @@ String AccessibilityNodeObject::textUnderElement(AccessibilityTextUnderElementMo
     Node* node = this->node();
     if (is<Text>(node))
         return downcast<Text>(*node).wholeText();
-
-    // The render tree should be stable before going ahead. Otherwise, further uses of the
-    // TextIterator will force a layout update, potentially altering the accessibility tree
-    // and leading to crashes in the loop that computes the result text from the children.
-    ASSERT(!document()->renderView()->layoutState());
-    ASSERT(!document()->childNeedsStyleRecalc());
 
     StringBuilder builder;
     for (AccessibilityObject* child = firstChild(); child; child = child->nextSibling()) {

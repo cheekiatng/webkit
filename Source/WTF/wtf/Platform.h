@@ -518,9 +518,6 @@
 
 #if !PLATFORM(WATCHOS) && !PLATFORM(APPLETV)
 #define HAVE_AVKIT 1
-#endif
-
-#if !PLATFORM(WATCHOS)
 #define HAVE_PARENTAL_CONTROLS 1
 #endif
 
@@ -534,6 +531,7 @@
 #define HAVE_SEC_KEYCHAIN 1
 
 #if CPU(X86_64)
+#define HAVE_NETWORK_EXTENSION 1
 #define USE_PLUGIN_HOST_PROCESS 1
 #endif
 
@@ -547,15 +545,19 @@
 
 #if PLATFORM(IOS)
 
+#define HAVE_NETWORK_EXTENSION 1
 #define HAVE_READLINE 1
 #if USE(APPLE_INTERNAL_SDK)
 #define USE_CFNETWORK 1
 #endif
 #define USE_UIKIT_EDITING 1
 #define USE_WEB_THREAD 1
-#define USE_QUICK_LOOK 1
 
-#if defined(TARGET_OS_IOS) && TARGET_OS_IOS && __IPHONE_OS_VERSION_MIN_REQUIRED >= 90000
+#if !PLATFORM(WATCHOS) && !PLATFORM(APPLETV)
+#define USE_QUICK_LOOK 1
+#endif
+
+#if TARGET_OS_IOS
 #define HAVE_APP_LINKS 1
 #endif
 
@@ -615,7 +617,7 @@
 #endif
 #endif
 
-#if OS(DARWIN) || OS(FREEBSD) || OS(NETBSD)
+#if (OS(DARWIN) || OS(FREEBSD) || OS(NETBSD)) && !defined(__GLIBC__)
 #define HAVE_STAT_BIRTHTIME 1
 #endif
 
@@ -630,12 +632,15 @@
 #define HAVE_DISPATCH_H 1
 #define HAVE_MADV_FREE 1
 #define HAVE_MADV_FREE_REUSE 1
+#define HAVE_MADV_DONTNEED 1
 #define HAVE_MERGESORT 1
 #define HAVE_PTHREAD_SETNAME_NP 1
 #define HAVE_READLINE 1
 #define HAVE_SYS_TIMEB_H 1
-#define USE_ACCELERATE 1
 
+#if !PLATFORM(GTK)
+#define USE_ACCELERATE 1
+#endif
 #if !PLATFORM(IOS)
 #define HAVE_HOSTED_CORE_ANIMATION 1
 #endif
@@ -772,37 +777,33 @@
    values get stored to atomically. This is trivially true on 64-bit platforms,
    but not true at all on 32-bit platforms where values are composed of two
    separate sub-values. */
-#if (OS(DARWIN) || PLATFORM(EFL) || PLATFORM(GTK)) && ENABLE(DFG_JIT) && USE(JSVALUE64)
+#if (OS(DARWIN) || PLATFORM(EFL) || PLATFORM(GTK) || PLATFORM(WIN)) && ENABLE(DFG_JIT) && USE(JSVALUE64)
 #define ENABLE_CONCURRENT_JIT 1
+#endif
+
+/* The B3 compiler is an experimental backend that is still in development. We will keep it building
+   on Mac/x86-64 for now, though it is unused except for tests. */
+#if (PLATFORM(MAC) || PLATFORM(IOS)) && (CPU(X86_64) || CPU(ARM64)) && ENABLE(FTL_JIT)
+#define ENABLE_B3_JIT 1
 #endif
 
 /* If the baseline jit is not available, then disable upper tiers as well: */
 #if !ENABLE(JIT)
-#undef ENABLE_DFG_JIT      /* Undef so that we can redefine it. */
-#undef ENABLE_FTL_JIT      /* Undef so that we can redefine it. */
+#undef ENABLE_DFG_JIT
+#undef ENABLE_FTL_JIT
+#undef ENABLE_B3_JIT
 #define ENABLE_DFG_JIT 0
 #define ENABLE_FTL_JIT 0
+#define ENABLE_B3_JIT 0
 #endif
 
-#if !defined(ENABLE_FTL_NATIVE_CALL_INLINING)
-#define ENABLE_FTL_NATIVE_CALL_INLINING 0
-#endif
-
-/* Used to make GCC's optimization not throw away a symbol that we would need for native inlining */
-#if ENABLE(FTL_NATIVE_CALL_INLINING) && COMPILER(GCC) && !COMPILER(CLANG)
-#define ATTR_USED __attribute__ ((used))
+/* The SamplingProfiler is the probabilistic and low-overhead profiler used by
+ * JSC to measure where time is spent inside a JavaScript program. */
+#if (OS(DARWIN) || OS(WINDOWS)) && ENABLE(JIT)
+#define ENABLE_SAMPLING_PROFILER 1
 #else
-#define ATTR_USED
+#define ENABLE_SAMPLING_PROFILER 0
 #endif
-
-/* Generational collector for JSC */
-#if !defined(ENABLE_GGC)
-#if CPU(X86_64) || CPU(X86) || CPU(ARM64) || CPU(ARM)
-#define ENABLE_GGC 1
-#else
-#define ENABLE_GGC 0
-#endif /* CPU(X86_64) || CPU(X86) || CPU(ARM64) || CPU(ARM) */
-#endif /* !defined(ENABLE_GGC) */
 
 /* Counts uses of write barriers using sampling counters. Be sure to also
    set ENABLE_SAMPLING_COUNTERS to 1. */
@@ -833,14 +834,14 @@
 /* Configure the JIT */
 #if CPU(X86) && COMPILER(MSVC)
 #define JSC_HOST_CALL __fastcall
-#elif CPU(X86) && COMPILER(GCC)
+#elif CPU(X86) && COMPILER(GCC_OR_CLANG)
 #define JSC_HOST_CALL __attribute__ ((fastcall))
 #else
 #define JSC_HOST_CALL
 #endif
 
 /* Configure the interpreter */
-#if COMPILER(GCC)
+#if COMPILER(GCC_OR_CLANG)
 #define HAVE_COMPUTED_GOTO 1
 #endif
 
@@ -881,9 +882,11 @@
 #endif
 #endif
 
-#if ENABLE(JIT)
 /* Enable the following if you want to use the MacroAssembler::probe() facility
    to do JIT debugging. */
+#if (CPU(X86) || CPU(X86_64) || CPU(ARM64) || (CPU(ARM_THUMB2) && PLATFORM(IOS))) && ENABLE(JIT) && OS(DARWIN) && !defined(NDEBUG)
+#define ENABLE_MASM_PROBE 1
+#else
 #define ENABLE_MASM_PROBE 0
 #endif
 
@@ -938,10 +941,6 @@
 /* Set up a define for a common error that is intended to cause a build error -- thus the space after Error. */
 #define WTF_PLATFORM_CFNETWORK Error USE_macro_should_be_used_with_CFNETWORK
 
-#if PLATFORM(WIN)
-#define USE_CROSS_PLATFORM_CONTEXT_MENUS 1
-#endif
-
 #if PLATFORM(COCOA) && HAVE(ACCESSIBILITY)
 #define USE_ACCESSIBILITY_CONTEXT_MENUS 1
 #endif
@@ -986,14 +985,6 @@
 #define USE_IMLANG_FONT_LINK2 1
 #endif
 
-#if !defined(ENABLE_COMPARE_AND_SWAP) && (OS(WINDOWS) || (COMPILER(GCC) && (CPU(X86) || CPU(X86_64) || CPU(ARM_THUMB2) || CPU(ARM64))))
-#define ENABLE_COMPARE_AND_SWAP 1
-#endif
-
-#if !defined(ENABLE_PARALLEL_GC) && (OS(DARWIN) || PLATFORM(EFL) || PLATFORM(GTK)) && ENABLE(COMPARE_AND_SWAP)
-#define ENABLE_PARALLEL_GC 1
-#endif
-
 #if !defined(ENABLE_GC_VALIDATION) && !defined(NDEBUG)
 #define ENABLE_GC_VALIDATION 1
 #endif
@@ -1014,21 +1005,21 @@
 #endif
 #endif
 
-#if (PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 60000) || PLATFORM(MAC)
+#if PLATFORM(IOS) || PLATFORM(MAC)
 #define USE_COREMEDIA 1
 #define HAVE_AVFOUNDATION_VIDEO_OUTPUT 1
 #endif
 
-#if (PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 50000) || (PLATFORM(MAC) || (OS(WINDOWS) && USE(CG)) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1080)
+#if PLATFORM(IOS) || PLATFORM(MAC) || (OS(WINDOWS) && USE(CG))
 #define HAVE_AVFOUNDATION_MEDIA_SELECTION_GROUP 1
 #endif
 
-#if (PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 70000) || ((PLATFORM(MAC) || (OS(WINDOWS) && USE(CG))) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090)
+#if PLATFORM(IOS) || PLATFORM(MAC) || (OS(WINDOWS) && USE(CG))
 #define HAVE_AVFOUNDATION_LEGIBLE_OUTPUT_SUPPORT 1
 #define HAVE_MEDIA_ACCESSIBILITY_FRAMEWORK 1
 #endif
 
-#if (PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 60000) || PLATFORM(MAC)
+#if PLATFORM(IOS) || PLATFORM(MAC)
 #define HAVE_AVFOUNDATION_LOADER_DELEGATE 1
 #endif
 
@@ -1053,13 +1044,13 @@
 #endif
 
 #ifndef HAVE_QOS_CLASSES
-#if PLATFORM(IOS) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000)
+#if PLATFORM(COCOA)
 #define HAVE_QOS_CLASSES 1
 #endif
 #endif
 
 #ifndef HAVE_VOUCHERS
-#if PLATFORM(IOS) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000)
+#if PLATFORM(COCOA)
 #define HAVE_VOUCHERS 1
 #endif
 #endif
@@ -1083,16 +1074,12 @@
 #define USE_MARKER_REMOVAL_UPON_EDITING 1
 #endif
 
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
+#if PLATFORM(MAC)
 #define USE_INSERTION_UNDO_GROUPING 1
 #endif
 
-#if (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100) || (PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 90000)
+#if (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100) || PLATFORM(IOS)
 #define HAVE_TIMINGDATAOPTIONS 1
-#endif
-
-#if PLATFORM(IOS)
-#define USE_PLATFORM_TEXT_TRACK_MENU 1
 #endif
 
 #if PLATFORM(COCOA)
@@ -1101,6 +1088,10 @@
 
 #if PLATFORM(COCOA) && !PLATFORM(IOS_SIMULATOR)
 #define USE_IOSURFACE 1
+#endif
+
+#if PLATFORM(COCOA)
+#define ENABLE_RESOURCE_USAGE_OVERLAY 1
 #endif
 
 #if PLATFORM(GTK) || PLATFORM(EFL)
@@ -1120,16 +1111,14 @@
 #if COMPILER(MSVC)
 #undef __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS
+#if _MSC_VER < 1900
 #undef _HAS_EXCEPTIONS
 #define _HAS_EXCEPTIONS 1
+#endif
 #endif
 
 #if PLATFORM(MAC)
 #define HAVE_NS_ACTIVITY 1
-#endif
-
-#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
-#define USE_ASYNC_NSTEXTINPUTCLIENT 1
 #endif
 
 #if (OS(DARWIN) && USE(CG)) || USE(FREETYPE) || (PLATFORM(WIN) && (USE(CG) || USE(CAIRO)))
@@ -1147,7 +1136,7 @@
 #define USE_MEDIATOOLBOX 1
 #endif
 
-#if PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 90000
+#if PLATFORM(IOS)
 #define ENABLE_VIDEO_PRESENTATION_MODE 1
 #endif
 

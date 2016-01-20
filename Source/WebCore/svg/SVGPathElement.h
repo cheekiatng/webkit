@@ -57,9 +57,9 @@ class SVGPathElement final : public SVGGraphicsElement,
 public:
     static Ref<SVGPathElement> create(const QualifiedName&, Document&);
     
-    float getTotalLength();
-    SVGPoint getPointAtLength(float distance);
-    unsigned getPathSegAtLength(float distance);
+    float getTotalLength() const;
+    SVGPoint getPointAtLength(float distance) const;
+    unsigned getPathSegAtLength(float distance) const;
 
     Ref<SVGPathSegClosePath> createSVGPathSegClosePath(SVGPathSegRole = PathSegUndefinedRole);
     Ref<SVGPathSegMovetoAbs> createSVGPathSegMovetoAbs(float x, float y, SVGPathSegRole = PathSegUndefinedRole);
@@ -87,7 +87,7 @@ public:
     SVGPathSegListPropertyTearOff* normalizedPathSegList();
     SVGPathSegListPropertyTearOff* animatedNormalizedPathSegList();
 
-    SVGPathByteStream* pathByteStream() const;
+    const SVGPathByteStream& pathByteStream() const;
 
     void pathSegListChanged(SVGPathSegRole, ListModification = ListModificationUnknown);
 
@@ -96,6 +96,8 @@ public:
     static const SVGPropertyInfo* dPropertyInfo();
 
     bool isAnimValObserved() const { return m_isAnimValObserved; }
+
+    WeakPtr<SVGPathElement> createWeakPtr() const { return m_weakPtrFactory.createWeakPtr(); }
 
 private:
     SVGPathElement(const QualifiedName&, Document&);
@@ -124,8 +126,9 @@ private:
     void invalidateMPathDependencies();
 
 private:
-    std::unique_ptr<SVGPathByteStream> m_pathByteStream;
+    SVGPathByteStream m_pathByteStream;
     mutable SVGSynchronizableAnimatedProperty<SVGPathSegList> m_pathSegList;
+    WeakPtrFactory<SVGPathElement> m_weakPtrFactory;
     bool m_isAnimValObserved;
 };
 

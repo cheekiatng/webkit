@@ -38,7 +38,7 @@
 }
 
 .CodeMirror pre {
-    padding: 1px 3px 1px 7px;
+    padding: 0 3px 0 7px;
 }
 
 .CodeMirror .CodeMirror-selected {
@@ -82,4 +82,10 @@
 
 .CodeMirror-linewidget {
     -webkit-user-select: text;
+}
+
+.CodeMirror .CodeMirror-placeholder {
+    font-family: -apple-system, sans-serif;
+    color: hsl(0, 0%, 65%);
+    text-indent: 0;
 }

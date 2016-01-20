@@ -82,14 +82,11 @@ private:
     virtual WebCore::IntPoint screenToRootView(const WebCore::IntPoint&) override;
     virtual WebCore::IntRect rootViewToScreen(const WebCore::IntRect&) override;
     virtual void doneWithKeyEvent(const NativeWebKeyboardEvent&, bool wasEventHandled) override;
-    virtual RefPtr<WebPopupMenuProxy> createPopupMenuProxy(WebPageProxy*) override;
-    virtual RefPtr<WebContextMenuProxy> createContextMenuProxy(WebPageProxy*) override;
+    virtual RefPtr<WebPopupMenuProxy> createPopupMenuProxy(WebPageProxy&) override;
+    virtual std::unique_ptr<WebContextMenuProxy> createContextMenuProxy(WebPageProxy&, const ContextMenuContextData&, const UserData&) override;
 #if ENABLE(INPUT_TYPE_COLOR)
     virtual RefPtr<WebColorPicker> createColorPicker(WebPageProxy*, const WebCore::Color& intialColor, const WebCore::IntRect&) override;
 #endif
-    virtual void setTextIndicator(Ref<WebCore::TextIndicator>, WebCore::TextIndicatorLifetime = WebCore::TextIndicatorLifetime::Permanent) override;
-    virtual void clearTextIndicator(WebCore::TextIndicatorDismissalAnimation = WebCore::TextIndicatorDismissalAnimation::FadeOut) override;
-    virtual void setTextIndicatorAnimationProgress(float) override;
     virtual void selectionDidChange() override;
 #if ENABLE(DRAG_SUPPORT)
     virtual void startDrag(const WebCore::DragData&, PassRefPtr<ShareableBitmap> dragImage) override;
@@ -98,6 +95,7 @@ private:
     virtual void enterAcceleratedCompositingMode(const LayerTreeContext&) override;
     virtual void exitAcceleratedCompositingMode() override;
     virtual void updateAcceleratedCompositingMode(const LayerTreeContext&) override;
+    void willEnterAcceleratedCompositingMode() override;
 
     virtual void handleDownloadRequest(DownloadProxy*) override;
     virtual void didChangeContentSize(const WebCore::IntSize&) override { }
@@ -126,17 +124,26 @@ private:
     virtual void navigationGestureDidEnd(bool, WebBackForwardListItem&) override;
     virtual void navigationGestureDidEnd() override;
     virtual void willRecordNavigationSnapshot(WebBackForwardListItem&) override;
+    virtual void didRemoveNavigationGestureSnapshot() override;
 
     virtual void didFirstVisuallyNonEmptyLayoutForMainFrame() override;
     virtual void didFinishLoadForMainFrame() override;
     virtual void didSameDocumentNavigationForMainFrame(SameDocumentNavigationType) override;
 
+#if ENABLE(TOUCH_EVENTS)
     virtual void doneWithTouchEvent(const NativeWebTouchEvent&, bool wasEventHandled) override;
+#endif
 
     virtual void didChangeBackgroundColor() override;
 
     virtual void refView() override;
     virtual void derefView() override;
+
+    virtual void didRestoreScrollPosition() override { }
+
+#if ENABLE(VIDEO) && USE(GSTREAMER)
+    virtual bool decidePolicyForInstallMissingMediaPluginsPermissionRequest(InstallMissingMediaPluginsPermissionRequest&) override;
+#endif
 
     // Members of PageClientImpl class
     GtkWidget* m_viewWidget;

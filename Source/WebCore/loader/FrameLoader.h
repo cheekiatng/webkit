@@ -123,7 +123,7 @@ public:
     WEBCORE_EXPORT void urlSelected(const URL&, const String& target, Event*, LockHistory, LockBackForwardList, ShouldSendReferrer, ShouldOpenExternalURLsPolicy);
     void submitForm(PassRefPtr<FormSubmission>);
 
-    WEBCORE_EXPORT void reload(bool endToEndReload = false);
+    WEBCORE_EXPORT void reload(bool endToEndReload = false, bool contentBlockersEnabled = true);
     WEBCORE_EXPORT void reloadWithOverrideEncoding(const String& overrideEncoding);
 
     void open(CachedFrameBase&);
@@ -133,6 +133,7 @@ public:
     void retryAfterFailedCacheOnlyMainResourceLoad();
 
     static void reportLocalLoadFailed(Frame*, const String& url);
+    static void reportBlockedPortFailed(Frame*, const String& url);
 
     // FIXME: These are all functions which stop loads. We have too many.
     WEBCORE_EXPORT void stopAllLoaders(ClearProvisionalItemPolicy = ShouldClearProvisionalItem);
@@ -170,6 +171,8 @@ public:
     void handleFallbackContent();
 
     WEBCORE_EXPORT ResourceError cancelledError(const ResourceRequest&) const;
+    WEBCORE_EXPORT ResourceError blockedByContentBlockerError(const ResourceRequest&) const;
+    ResourceError blockedError(const ResourceRequest&) const;
 
     bool isHostedByObjectElement() const;
 
@@ -211,7 +214,7 @@ public:
 
     void receivedFirstData();
 
-    void handledOnloadEvents();
+    void dispatchOnloadEvents();
     String userAgent(const URL&) const;
 
     void dispatchDidClearWindowObjectInWorld(DOMWrapperWorld&);
@@ -248,7 +251,7 @@ public:
 
     FrameLoaderStateMachine& stateMachine() { return m_stateMachine; }
 
-    WEBCORE_EXPORT Frame* findFrameForNavigation(const AtomicString& name, Document* activeDocument = 0);
+    WEBCORE_EXPORT Frame* findFrameForNavigation(const AtomicString& name, Document* activeDocument = nullptr);
 
     void applyUserAgent(ResourceRequest&);
 
@@ -285,6 +288,9 @@ public:
 
     void setOverrideCachePolicyForTesting(ResourceRequestCachePolicy policy) { m_overrideCachePolicyForTesting = policy; }
     void setOverrideResourceLoadPriorityForTesting(ResourceLoadPriority priority) { m_overrideResourceLoadPriorityForTesting = priority; }
+    void setStrictRawResourceValidationPolicyDisabledForTesting(bool disabled) { m_isStrictRawResourceValidationPolicyDisabledForTesting = disabled; }
+    bool isStrictRawResourceValidationPolicyDisabledForTesting() { return m_isStrictRawResourceValidationPolicyDisabledForTesting; }
+
     WEBCORE_EXPORT void clearTestingOverrides();
 
     const URL& provisionalLoadErrorBeingHandledURL() const { return m_provisionalLoadErrorBeingHandledURL; }
@@ -316,7 +322,8 @@ private:
 
     SubstituteData defaultSubstituteDataForURL(const URL&);
 
-    bool handleBeforeUnloadEvent(Chrome&, FrameLoader* frameLoaderBeingNavigated);
+    bool dispatchBeforeUnloadEvent(Chrome&, FrameLoader* frameLoaderBeingNavigated);
+    void dispatchUnloadEvents(UnloadEventPolicy);
 
     void continueLoadAfterNavigationPolicy(const ResourceRequest&, PassRefPtr<FormState>, bool shouldContinue, AllowNavigationToInvalidURL);
     void continueLoadAfterNewWindowPolicy(const ResourceRequest&, PassRefPtr<FormState>, const String& frameName, const NavigationAction&, bool shouldContinue, AllowNavigationToInvalidURL, NewFrameOpenerPolicy);
@@ -442,6 +449,7 @@ private:
 
     Optional<ResourceRequestCachePolicy> m_overrideCachePolicyForTesting;
     Optional<ResourceLoadPriority> m_overrideResourceLoadPriorityForTesting;
+    bool m_isStrictRawResourceValidationPolicyDisabledForTesting { false };
 
     URL m_previousURL;
     RefPtr<HistoryItem> m_requestedHistoryItem;

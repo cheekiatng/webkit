@@ -114,14 +114,8 @@ PASS win['DocumentType'] == '[object DocumentTypeConstructor]' is true
 PASS win['DocumentType'] == '[object DocumentTypeConstructor]' is true
 PASS win['Element'] == '[object ElementConstructor]' is true
 PASS win['Element'] == '[object ElementConstructor]' is true
-PASS win['Entity'] == '[object EntityConstructor]' is true
-PASS win['Entity'] == '[object EntityConstructor]' is true
-PASS win['EntityReference'] == '[object EntityReferenceConstructor]' is true
-PASS win['EntityReference'] == '[object EntityReferenceConstructor]' is true
 PASS win['Event'] == '[object EventConstructor]' is true
 PASS win['Event'] == '[object EventConstructor]' is true
-PASS win['EventException'] == '[object EventExceptionConstructor]' is true
-PASS win['EventException'] == '[object EventExceptionConstructor]' is true
 PASS win['HTMLAnchorElement'] == '[object HTMLAnchorElementConstructor]' is true
 PASS win['HTMLAnchorElement'] == '[object HTMLAnchorElementConstructor]' is true
 PASS win['HTMLAppletElement'] == '[object HTMLAppletElementConstructor]' is true
@@ -132,8 +126,6 @@ PASS win['HTMLBRElement'] == '[object HTMLBRElementConstructor]' is true
 PASS win['HTMLBRElement'] == '[object HTMLBRElementConstructor]' is true
 PASS win['HTMLBaseElement'] == '[object HTMLBaseElementConstructor]' is true
 PASS win['HTMLBaseElement'] == '[object HTMLBaseElementConstructor]' is true
-PASS win['HTMLBaseFontElement'] == '[object HTMLBaseFontElementConstructor]' is true
-PASS win['HTMLBaseFontElement'] == '[object HTMLBaseFontElementConstructor]' is true
 PASS win['HTMLBodyElement'] == '[object HTMLBodyElementConstructor]' is true
 PASS win['HTMLBodyElement'] == '[object HTMLBodyElementConstructor]' is true
 PASS win['HTMLButtonElement'] == '[object HTMLButtonElementConstructor]' is true

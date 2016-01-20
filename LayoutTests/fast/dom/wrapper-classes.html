@@ -78,7 +78,7 @@ function runTest()
     test("document.implementation", "DOMImplementation");
     test("root.attributes", "NamedNodeMap");
     test("document.createNodeIterator(root, 0, null, false)", "NodeIterator");
-    test("document.getElementsByTagName('div')", "NodeList");
+    test("document.getElementsByTagName('div')", "HTMLCollection");
     test("document.createRange()", "Range");
     test("document.createTextNode()", "Text");
     test("document.createTreeWalker(root, 0, null, false)", "TreeWalker");
@@ -90,7 +90,6 @@ function runTest()
     test("xmlDocument", "Document");
     test("xmlDocument.createCDATASection()", "CDATASection");
     test("xmlDocument.createElementNS('x', 'x', 'x')", "Element");
-    test("xmlDocument.createEntityReference()", "EntityReference");
     test("xmlDocument.createProcessingInstruction()", "ProcessingInstruction");
 
     debug('');
@@ -157,7 +156,6 @@ function runTest()
     testTag("aside", "HTMLElement");
     testTag("b", "HTMLElement");
     testTag("base", "HTMLBaseElement");
-    testTag("basefont", "HTMLBaseFontElement");
     testTag("bdo", "HTMLElement");
     testTag("big", "HTMLElement");
     testTag("blockquote", "HTMLQuoteElement");
@@ -249,10 +247,10 @@ function runTest()
     testTag("sup", "HTMLElement");
     testTag("table", "HTMLTableElement");
     testTag("tbody", "HTMLTableSectionElement");
-    testTag("td", "HTMLTableCellElement");
+    testTag("td", "HTMLTableDataCellElement");
     testTag("textarea", "HTMLTextAreaElement");
     testTag("tfoot", "HTMLTableSectionElement");
-    testTag("th", "HTMLTableCellElement");
+    testTag("th", "HTMLTableHeaderCellElement");
     testTag("thead", "HTMLTableSectionElement");
     testTag("title", "HTMLTitleElement");
     testTag("tr", "HTMLTableRowElement");

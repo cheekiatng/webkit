@@ -29,17 +29,21 @@ $_config = NULL;
 
 define('CONFIG_DIR', dirname(__FILE__) . '/../../');
 
-function config($key) {
+function config($key, $default = NULL) {
     global $_config;
     if (!$_config)
         $_config = json_decode(file_get_contents(CONFIG_DIR . 'config.json'), true);
-    return $_config[$key];
+    return array_get($_config, $key, $default);
+}
+
+function config_path($key, $path) {
+    return CONFIG_DIR . config($key) . '/' . $path;
 }
 
 function generate_data_file($filename, $content) {
     if (!assert(ctype_alnum(str_replace(array('-', '_', '.'), '', $filename))))
         return FALSE;
-    return file_put_contents(CONFIG_DIR . config('dataDirectory') . '/' . $filename, $content);
+    return file_put_contents(config_path('dataDirectory', $filename), $content, LOCK_EX);
 }
 
 if (config('debug')) {
@@ -78,7 +82,7 @@ class Database
 
     function connect() {
         $databaseConfig = config('database');
-        $this->connection = pg_connect('host=' . $databaseConfig['host'] . ' port=' . $databaseConfig['port']
+        $this->connection = @pg_connect('host=' . $databaseConfig['host'] . ' port=' . $databaseConfig['port']
             . ' dbname=' . $databaseConfig['name'] . ' user=' . $databaseConfig['username'] . ' password=' . $databaseConfig['password']);
         return $this->connection ? true : false;
     }

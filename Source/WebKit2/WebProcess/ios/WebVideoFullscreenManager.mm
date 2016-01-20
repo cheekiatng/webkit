@@ -80,7 +80,7 @@ WebVideoFullscreenInterfaceContext::~WebVideoFullscreenInterfaceContext()
 
 void WebVideoFullscreenInterfaceContext::setLayerHostingContext(std::unique_ptr<LayerHostingContext>&& context)
 {
-    m_layerHostingContext = WTF::move(context);
+    m_layerHostingContext = WTFMove(context);
 }
 
 void WebVideoFullscreenInterfaceContext::resetMediaState()
@@ -149,6 +149,12 @@ void WebVideoFullscreenInterfaceContext::setExternalPlayback(bool enabled, Exter
         m_manager->setExternalPlayback(m_contextId, enabled, type, localizedDeviceName);
 }
 
+void WebVideoFullscreenInterfaceContext::setWirelessVideoPlaybackDisabled(bool disabled)
+{
+    if (m_manager)
+        m_manager->setWirelessVideoPlaybackDisabled(m_contextId, disabled);
+}
+
 #pragma mark - WebVideoFullscreenManager
 
 Ref<WebVideoFullscreenManager> WebVideoFullscreenManager::create(PassRefPtr<WebPage> page)
@@ -189,7 +195,7 @@ WebVideoFullscreenManager::ModelInterfaceTuple WebVideoFullscreenManager::create
     interface->setLayerHostingContext(LayerHostingContext::createForExternalHostingProcess());
     model->setWebVideoFullscreenInterface(interface.get());
 
-    return std::make_tuple(WTF::move(model), WTF::move(interface));
+    return std::make_tuple(WTFMove(model), WTFMove(interface));
 }
 
 WebVideoFullscreenManager::ModelInterfaceTuple& WebVideoFullscreenManager::ensureModelAndInterface(uint64_t contextId)
@@ -234,11 +240,13 @@ void WebVideoFullscreenManager::enterVideoFullscreenForVideoElement(HTMLVideoEle
 
     FloatRect clientRect = clientRectForElement(&videoElement);
     FloatRect videoLayerFrame = FloatRect(0, 0, clientRect.width(), clientRect.height());
-    
+
+    HTMLMediaElementEnums::VideoFullscreenMode oldMode = interface->fullscreenMode();
     interface->setTargetIsFullscreen(true);
     interface->setFullscreenMode(mode);
     model->setVideoElement(&videoElement);
-    model->setVideoLayerFrame(videoLayerFrame);
+    if (oldMode == HTMLMediaElementEnums::VideoFullscreenModeNone)
+        model->setVideoLayerFrame(videoLayerFrame);
 
     if (interface->isAnimating())
         return;
@@ -308,7 +316,7 @@ void WebVideoFullscreenManager::setSeekableRanges(uint64_t contextId, const WebC
         rangesVector.append(std::pair<double,double>(start, end));
     }
 
-    m_page->send(Messages::WebVideoFullscreenManagerProxy::SetSeekableRangesVector(contextId, WTF::move(rangesVector)), m_page->pageID());
+    m_page->send(Messages::WebVideoFullscreenManagerProxy::SetSeekableRangesVector(contextId, WTFMove(rangesVector)), m_page->pageID());
 }
 
 void WebVideoFullscreenManager::setCanPlayFastReverse(uint64_t contextId, bool value)
@@ -329,6 +337,11 @@ void WebVideoFullscreenManager::setLegibleMediaSelectionOptions(uint64_t context
 void WebVideoFullscreenManager::setExternalPlayback(uint64_t contextId, bool enabled, WebVideoFullscreenInterface::ExternalPlaybackTargetType targetType, String localizedDeviceName)
 {
     m_page->send(Messages::WebVideoFullscreenManagerProxy::SetExternalPlaybackProperties(contextId, enabled, static_cast<uint32_t>(targetType), localizedDeviceName), m_page->pageID());
+}
+
+void WebVideoFullscreenManager::setWirelessVideoPlaybackDisabled(uint64_t contextId, bool disabled)
+{
+    m_page->send(Messages::WebVideoFullscreenManagerProxy::SetWirelessVideoPlaybackDisabled(contextId, disabled));
 }
 
 #pragma mark Messages from WebVideoFullscreenManagerProxy:
@@ -383,9 +396,9 @@ void WebVideoFullscreenManager::endScanning(uint64_t contextId)
     ensureModel(contextId).endScanning();
 }
 
-void WebVideoFullscreenManager::requestExitFullscreen(uint64_t contextId)
+void WebVideoFullscreenManager::requestFullscreenMode(uint64_t contextId, WebCore::HTMLMediaElementEnums::VideoFullscreenMode mode)
 {
-    ensureModel(contextId).requestExitFullscreen();
+    ensureModel(contextId).requestFullscreenMode(mode);
 }
 
 void WebVideoFullscreenManager::selectAudioMediaOption(uint64_t contextId, uint64_t index)
@@ -416,7 +429,7 @@ void WebVideoFullscreenManager::didSetupFullscreen(uint64_t contextId)
     [CATransaction setDisableActions:YES];
 
     [videoLayer setPosition:CGPointMake(0, 0)];
-    [videoLayer setBackgroundColor:cachedCGColor(WebCore::Color::transparent, WebCore::ColorSpaceDeviceRGB)];
+    [videoLayer setBackgroundColor:cachedCGColor(WebCore::Color::transparent)];
 
     // Set a scale factor here to make convertRect:toLayer:nil take scale factor into account. <rdar://problem/18316542>.
     // This scale factor is inverted in the hosting process.
@@ -529,6 +542,11 @@ void WebVideoFullscreenManager::setVideoLayerFrameFenced(uint64_t contextId, Web
     RefPtr<WebVideoFullscreenInterfaceContext> interface;
     std::tie(model, interface) = ensureModelAndInterface(contextId);
 
+    if (std::isnan(bounds.x()) || std::isnan(bounds.y()) || std::isnan(bounds.width()) || std::isnan(bounds.height())) {
+        FloatRect clientRect = clientRectForElement(model->videoElement());
+        bounds = FloatRect(0, 0, clientRect.width(), clientRect.height());
+    }
+    
     [CATransaction begin];
     [CATransaction setAnimationDuration:0];
     if (interface->layerHostingContext())

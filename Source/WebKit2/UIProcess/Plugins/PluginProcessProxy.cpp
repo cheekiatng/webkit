@@ -85,6 +85,7 @@ PluginProcessProxy::~PluginProcessProxy()
 void PluginProcessProxy::getLaunchOptions(ProcessLauncher::LaunchOptions& launchOptions)
 {
     launchOptions.processType = ProcessLauncher::PluginProcess;
+    ChildProcessProxy::getLaunchOptions(launchOptions);
     platformGetLaunchOptions(launchOptions, m_pluginProcessAttributes);
 }
 
@@ -112,7 +113,7 @@ void PluginProcessProxy::getPluginProcessConnection(PassRefPtr<Messages::WebProc
 void PluginProcessProxy::fetchWebsiteData(std::function<void (Vector<String>)> completionHandler)
 {
     uint64_t callbackID = generateCallbackID();
-    m_pendingFetchWebsiteDataCallbacks.set(callbackID, WTF::move(completionHandler));
+    m_pendingFetchWebsiteDataCallbacks.set(callbackID, WTFMove(completionHandler));
 
     if (state() == State::Launching) {
         m_pendingFetchWebsiteDataRequests.append(callbackID);
@@ -125,7 +126,7 @@ void PluginProcessProxy::fetchWebsiteData(std::function<void (Vector<String>)> c
 void PluginProcessProxy::deleteWebsiteData(std::chrono::system_clock::time_point modifiedSince, std::function<void ()> completionHandler)
 {
     uint64_t callbackID = generateCallbackID();
-    m_pendingDeleteWebsiteDataCallbacks.set(callbackID, WTF::move(completionHandler));
+    m_pendingDeleteWebsiteDataCallbacks.set(callbackID, WTFMove(completionHandler));
 
     if (state() == State::Launching) {
         m_pendingDeleteWebsiteDataRequests.append({ modifiedSince, callbackID });
@@ -138,7 +139,7 @@ void PluginProcessProxy::deleteWebsiteData(std::chrono::system_clock::time_point
 void PluginProcessProxy::deleteWebsiteDataForHostNames(const Vector<String>& hostNames, std::function<void ()> completionHandler)
 {
     uint64_t callbackID = generateCallbackID();
-    m_pendingDeleteWebsiteDataForHostNamesCallbacks.set(callbackID, WTF::move(completionHandler));
+    m_pendingDeleteWebsiteDataForHostNamesCallbacks.set(callbackID, WTFMove(completionHandler));
 
     if (state() == State::Launching) {
         m_pendingDeleteWebsiteDataForHostNamesRequests.append({ hostNames, callbackID });
@@ -154,10 +155,10 @@ void PluginProcessProxy::pluginProcessCrashedOrFailedToLaunch()
     while (!m_pendingConnectionReplies.isEmpty()) {
         RefPtr<Messages::WebProcessProxy::GetPluginProcessConnection::DelayedReply> reply = m_pendingConnectionReplies.takeFirst();
 
-#if OS(DARWIN)
-        reply->send(IPC::Attachment(0, MACH_MSG_TYPE_MOVE_SEND), false);
-#elif USE(UNIX_DOMAIN_SOCKETS)
+#if USE(UNIX_DOMAIN_SOCKETS)
         reply->send(IPC::Attachment(), false);
+#elif OS(DARWIN)
+        reply->send(IPC::Attachment(0, MACH_MSG_TYPE_MOVE_SEND), false);
 #else
         notImplemented();
 #endif
@@ -268,10 +269,10 @@ void PluginProcessProxy::didCreateWebProcessConnection(const IPC::Attachment& co
     // Grab the first pending connection reply.
     RefPtr<Messages::WebProcessProxy::GetPluginProcessConnection::DelayedReply> reply = m_pendingConnectionReplies.takeFirst();
 
-#if OS(DARWIN)
-    reply->send(IPC::Attachment(connectionIdentifier.port(), MACH_MSG_TYPE_MOVE_SEND), supportsAsynchronousPluginInitialization);
-#elif USE(UNIX_DOMAIN_SOCKETS)
+#if USE(UNIX_DOMAIN_SOCKETS)
     reply->send(connectionIdentifier, supportsAsynchronousPluginInitialization);
+#elif OS(DARWIN)
+    reply->send(IPC::Attachment(connectionIdentifier.port(), MACH_MSG_TYPE_MOVE_SEND), supportsAsynchronousPluginInitialization);
 #else
     notImplemented();
 #endif

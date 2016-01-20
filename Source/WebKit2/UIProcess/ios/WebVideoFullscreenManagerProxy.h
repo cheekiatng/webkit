@@ -32,6 +32,7 @@
 #include <WebCore/GraphicsLayer.h>
 #include <WebCore/WebVideoFullscreenInterfaceAVKit.h>
 #include <WebCore/WebVideoFullscreenModel.h>
+#include <wtf/HashMap.h>
 #include <wtf/PassRefPtr.h>
 #include <wtf/RefCounted.h>
 #include <wtf/RefPtr.h>
@@ -54,7 +55,7 @@ public:
     void invalidate() { m_manager = nullptr; }
 
     UIView *layerHostView() const { return m_layerHostView.get(); }
-    void setLayerHostView(RetainPtr<UIView>&& layerHostView) { m_layerHostView = WTF::move(layerHostView); }
+    void setLayerHostView(RetainPtr<UIView>&& layerHostView) { m_layerHostView = WTFMove(layerHostView); }
 
 private:
     WebVideoFullscreenModelContext(WebVideoFullscreenManagerProxy& manager, uint64_t contextId)
@@ -74,12 +75,13 @@ private:
     virtual void beginScanningForward() override;
     virtual void beginScanningBackward() override;
     virtual void endScanning() override;
-    virtual void requestExitFullscreen() override;
+    virtual void requestFullscreenMode(WebCore::HTMLMediaElementEnums::VideoFullscreenMode) override;
     virtual void setVideoLayerFrame(WebCore::FloatRect) override;
     virtual void setVideoLayerGravity(VideoGravity) override;
     virtual void selectAudioMediaOption(uint64_t) override;
     virtual void selectLegibleMediaOption(uint64_t) override;
     virtual void fullscreenModeChanged(WebCore::HTMLMediaElementEnums::VideoFullscreenMode) override;
+    virtual bool isVisible() const override;
 
     // WebVideoFullscreenChangeObserver
     virtual void didSetupFullscreen() override;
@@ -103,6 +105,8 @@ public:
     void requestHideAndExitFullscreen();
     bool hasMode(WebCore::HTMLMediaElementEnums::VideoFullscreenMode) const;
     bool mayAutomaticallyShowVideoPictureInPicture() const;
+    void applicationDidBecomeActive();
+    bool isVisible() const;
 
 private:
     friend class WebVideoFullscreenModelContext;
@@ -127,6 +131,7 @@ private:
     void setAudioMediaSelectionOptions(uint64_t contextId, Vector<String> options, uint64_t selectedIndex);
     void setLegibleMediaSelectionOptions(uint64_t contextId, Vector<String> options, uint64_t selectedIndex);
     void setExternalPlaybackProperties(uint64_t contextId, bool enabled, uint32_t targetType, String localizedDeviceName);
+    void setWirelessVideoPlaybackDisabled(uint64_t contextId, bool);
     void setDuration(uint64_t contextId, double duration);
     void setRate(uint64_t contextId, bool isPlaying, double rate);
     void enterFullscreen(uint64_t contextId);
@@ -145,7 +150,7 @@ private:
     void beginScanningForward(uint64_t contextId);
     void beginScanningBackward(uint64_t contextId);
     void endScanning(uint64_t contextId);
-    void requestExitFullscreen(uint64_t contextId);
+    void requestFullscreenMode(uint64_t contextId, WebCore::HTMLMediaElementEnums::VideoFullscreenMode);
     void didSetupFullscreen(uint64_t contextId);
     void didExitFullscreen(uint64_t contextId);
     void didEnterFullscreen(uint64_t contextId);

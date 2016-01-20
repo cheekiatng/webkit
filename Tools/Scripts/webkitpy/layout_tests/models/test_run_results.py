@@ -67,6 +67,8 @@ class TestRunResults(object):
     def add(self, test_result, expected, test_is_slow):
         self.tests_by_expectation[test_result.type].add(test_result.test_name)
         self.results_by_name[test_result.test_name] = test_result
+        if test_result.is_other_crash:
+            return
         if test_result.type != test_expectations.SKIP:
             self.all_results.append(test_result)
         self.remaining -= 1
@@ -133,7 +135,7 @@ def summarize_results(port_obj, expectations, initial_results, retry_results, en
         'tests': a dict of tests -> {'expected': '...', 'actual': '...'}
     """
     results = {}
-    results['version'] = 3
+    results['version'] = 4
 
     tbe = initial_results.tests_by_expectation
     tbt = initial_results.tests_by_timeline
@@ -152,6 +154,7 @@ def summarize_results(port_obj, expectations, initial_results, retry_results, en
         keywords[modifier_enum] = modifier_string.upper()
 
     tests = {}
+    other_crashes_dict = {}
 
     for test_name, result in initial_results.results_by_name.iteritems():
         # Note that if a test crashed in the original run, we ignore
@@ -162,6 +165,10 @@ def summarize_results(port_obj, expectations, initial_results, retry_results, en
         actual = [keywords[result_type]]
 
         if result_type == test_expectations.SKIP:
+            continue
+
+        if result.is_other_crash:
+            other_crashes_dict[test_name] = {}
             continue
 
         test_dict = {}
@@ -256,6 +263,7 @@ def summarize_results(port_obj, expectations, initial_results, retry_results, en
     results['layout_tests_dir'] = port_obj.layout_tests_dir()
     results['has_pretty_patch'] = port_obj.pretty_patch.pretty_patch_available()
     results['pixel_tests_enabled'] = port_obj.get_option('pixel_tests')
+    results['other_crashes'] = other_crashes_dict
 
     try:
         # We only use the svn revision for using trac links in the results.html file,

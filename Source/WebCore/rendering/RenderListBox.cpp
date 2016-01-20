@@ -83,7 +83,7 @@ const int defaultSize = 4;
 const int baselineAdjustment = 7;
 
 RenderListBox::RenderListBox(HTMLSelectElement& element, Ref<RenderStyle>&& style)
-    : RenderBlockFlow(element, WTF::move(style))
+    : RenderBlockFlow(element, WTFMove(style))
     , m_optionsChanged(true)
     , m_scrollToRevealSelectionAfterLayout(false)
     , m_inAutoscroll(false)
@@ -119,9 +119,9 @@ void RenderListBox::updateFromElement()
                 text = downcast<HTMLOptionElement>(*element).textIndentedToRespectGroupLabel();
             else if (is<HTMLOptGroupElement>(*element)) {
                 text = downcast<HTMLOptGroupElement>(*element).groupLabelText();
-                FontDescription d = itemFont.fontDescription();
-                d.setWeight(d.bolderWeight());
-                itemFont = FontCascade(d, itemFont.letterSpacing(), itemFont.wordSpacing());
+                auto description = itemFont.fontDescription();
+                description.setWeight(description.bolderWeight());
+                itemFont = FontCascade(description, itemFont.letterSpacing(), itemFont.wordSpacing());
                 itemFont.update(&document().fontSelector());
             }
 
@@ -129,7 +129,6 @@ void RenderListBox::updateFromElement()
                 applyTextTransform(style(), text, ' ');
                 // FIXME: Why is this always LTR? Can't text direction affect the width?
                 TextRun textRun = constructTextRun(this, itemFont, text, style(), AllowTrailingExpansion);
-                textRun.disableRoundingHacks();
                 float textWidth = itemFont.width(textRun);
                 width = std::max(width, textWidth);
             }
@@ -174,7 +173,7 @@ void RenderListBox::layout()
     }
 
     if (m_scrollToRevealSelectionAfterLayout) {
-        LayoutStateDisabler layoutStateDisabler(&view());
+        LayoutStateDisabler layoutStateDisabler(view());
         scrollToRevealSelection();
     }
 }
@@ -345,7 +344,7 @@ void RenderListBox::paintScrollbar(PaintInfo& paintInfo, const LayoutPoint& pain
             m_vBar->width(),
             height() - (borderTop() + borderBottom()));
         m_vBar->setFrameRect(scrollRect);
-        m_vBar->paint(paintInfo.context, snappedIntRect(paintInfo.rect));
+        m_vBar->paint(paintInfo.context(), snappedIntRect(paintInfo.rect));
     }
 }
 
@@ -396,23 +395,22 @@ void RenderListBox::paintItemForeground(PaintInfo& paintInfo, const LayoutPoint&
             textColor = theme().inactiveListBoxSelectionForegroundColor();
     }
 
-    ColorSpace colorSpace = itemStyle.colorSpace();
-    paintInfo.context->setFillColor(textColor, colorSpace);
+    paintInfo.context().setFillColor(textColor);
 
-    TextRun textRun(itemText, 0, 0, AllowTrailingExpansion, itemStyle.direction(), isOverride(itemStyle.unicodeBidi()), true, TextRun::NoRounding);
+    TextRun textRun(itemText, 0, 0, AllowTrailingExpansion, itemStyle.direction(), isOverride(itemStyle.unicodeBidi()), true);
     FontCascade itemFont = style().fontCascade();
     LayoutRect r = itemBoundingBoxRect(paintOffset, listIndex);
     r.move(itemOffsetForAlignment(textRun, &itemStyle, itemFont, r));
 
     if (is<HTMLOptGroupElement>(*listItemElement)) {
-        FontDescription d = itemFont.fontDescription();
-        d.setWeight(d.bolderWeight());
-        itemFont = FontCascade(d, itemFont.letterSpacing(), itemFont.wordSpacing());
+        auto description = itemFont.fontDescription();
+        description.setWeight(description.bolderWeight());
+        itemFont = FontCascade(description, itemFont.letterSpacing(), itemFont.wordSpacing());
         itemFont.update(&document().fontSelector());
     }
 
     // Draw the item text
-    paintInfo.context->drawBidiText(itemFont, textRun, roundedIntPoint(r.location()));
+    paintInfo.context().drawBidiText(itemFont, textRun, roundedIntPoint(r.location()));
 }
 
 void RenderListBox::paintItemBackground(PaintInfo& paintInfo, const LayoutPoint& paintOffset, int listIndex)
@@ -432,10 +430,9 @@ void RenderListBox::paintItemBackground(PaintInfo& paintInfo, const LayoutPoint&
 
     // Draw the background for this list box item
     if (itemStyle.visibility() != HIDDEN) {
-        ColorSpace colorSpace = itemStyle.colorSpace();
         LayoutRect itemRect = itemBoundingBoxRect(paintOffset, listIndex);
         itemRect.intersect(controlClipRect(paintOffset));
-        paintInfo.context->fillRect(snappedIntRect(itemRect), backColor, colorSpace);
+        paintInfo.context().fillRect(snappedIntRect(itemRect), backColor);
     }
 }
 
@@ -605,12 +602,22 @@ int RenderListBox::scrollSize(ScrollbarOrientation orientation) const
     return ((orientation == VerticalScrollbar) && m_vBar) ? (m_vBar->totalSize() - m_vBar->visibleSize()) : 0;
 }
 
-int RenderListBox::scrollPosition(Scrollbar*) const
+int RenderListBox::scrollOffset(ScrollbarOrientation) const
 {
     return m_indexOffset;
 }
 
-void RenderListBox::setScrollOffset(const IntPoint& offset)
+ScrollPosition RenderListBox::minimumScrollPosition() const
+{
+    return { 0, 0 };
+}
+
+ScrollPosition RenderListBox::maximumScrollPosition() const
+{
+    return { 0, numItems() - numVisibleItems() };
+}
+
+void RenderListBox::setScrollOffset(const ScrollOffset& offset)
 {
     scrollTo(offset.y());
 }
@@ -632,7 +639,7 @@ LayoutUnit RenderListBox::itemHeight() const
 
 int RenderListBox::verticalScrollbarWidth() const
 {
-    return m_vBar && !m_vBar->isOverlayScrollbar() ? m_vBar->width() : 0;
+    return m_vBar ? m_vBar->occupiedWidth() : 0;
 }
 
 // FIXME: We ignore padding in the vertical direction as far as these values are concerned, since that's
@@ -640,12 +647,12 @@ int RenderListBox::verticalScrollbarWidth() const
 int RenderListBox::scrollWidth() const
 {
     // There is no horizontal scrolling allowed.
-    return pixelSnappedClientWidth();
+    return roundToInt(clientWidth());
 }
 
 int RenderListBox::scrollHeight() const
 {
-    return std::max(pixelSnappedClientHeight(), roundToInt(listHeight()));
+    return roundToInt(std::max(clientHeight(), listHeight()));
 }
 
 int RenderListBox::scrollLeft() const
@@ -805,7 +812,7 @@ bool RenderListBox::hasScrollableOrRubberbandableAncestor()
     return enclosingLayer() && enclosingLayer()->hasScrollableOrRubberbandableAncestor();
 }
 
-IntRect RenderListBox::scrollableAreaBoundingBox() const
+IntRect RenderListBox::scrollableAreaBoundingBox(bool*) const
 {
     return absoluteBoundingBoxRect();
 }

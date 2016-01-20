@@ -26,8 +26,6 @@
 #ifndef NetworkBlobRegistry_h
 #define NetworkBlobRegistry_h
 
-#if ENABLE(NETWORK_PROCESS)
-
 #include <WebCore/URLHash.h>
 #include <wtf/HashMap.h>
 #include <wtf/HashSet.h>
@@ -57,7 +55,7 @@ public:
 
     void connectionToWebProcessDidClose(NetworkConnectionToWebProcess*);
 
-    Vector<RefPtr<WebCore::BlobDataFileReference>> filesInBlob(NetworkConnectionToWebProcess*, const WebCore::URL&);
+    Vector<RefPtr<WebCore::BlobDataFileReference>> filesInBlob(NetworkConnectionToWebProcess&, const WebCore::URL&);
 
 private:
     ~NetworkBlobRegistry();
@@ -67,7 +65,5 @@ private:
 };
 
 }
-
-#endif // ENABLE(NETWORK_PROCESS)
 
 #endif // NetworkBlobRegistry_h

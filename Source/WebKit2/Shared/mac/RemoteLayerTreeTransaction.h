@@ -32,10 +32,12 @@
 #include <WebCore/FilterOperations.h>
 #include <WebCore/FloatPoint3D.h>
 #include <WebCore/FloatSize.h>
+#include <WebCore/LayoutMilestones.h>
 #include <WebCore/PlatformCALayer.h>
 #include <WebCore/TransformationMatrix.h>
 #include <wtf/HashMap.h>
 #include <wtf/HashSet.h>
+#include <wtf/text/StringHash.h>
 #include <wtf/text/WTFString.h>
 
 namespace IPC {
@@ -222,6 +224,12 @@ public:
     double maximumScaleFactor() const { return m_maximumScaleFactor; }
     void setMaximumScaleFactor(double scale) { m_maximumScaleFactor = scale; }
 
+    double initialScaleFactor() const { return m_initialScaleFactor; }
+    void setInitialScaleFactor(double scale) { m_initialScaleFactor = scale; }
+
+    double viewportMetaTagWidth() const { return m_viewportMetaTagWidth; }
+    void setViewportMetaTagWidth(double width) { m_viewportMetaTagWidth = width; }
+
     bool allowsUserScaling() const { return m_allowsUserScaling; }
     void setAllowsUserScaling(bool allowsUserScaling) { m_allowsUserScaling = allowsUserScaling; }
 
@@ -230,7 +238,10 @@ public:
 
     typedef uint64_t TransactionCallbackID;
     const Vector<TransactionCallbackID>& callbackIDs() const { return m_callbackIDs; }
-    void setCallbackIDs(Vector<TransactionCallbackID> callbackIDs) { m_callbackIDs = WTF::move(callbackIDs); }
+    void setCallbackIDs(Vector<TransactionCallbackID>&& callbackIDs) { m_callbackIDs = WTFMove(callbackIDs); }
+
+    WebCore::LayoutMilestones newlyReachedLayoutMilestones() const { return m_newlyReachedLayoutMilestones; }
+    void setNewlyReachedLayoutMilestones(WebCore::LayoutMilestones milestones) { m_newlyReachedLayoutMilestones = milestones; }
     
 private:
     WebCore::GraphicsLayer::PlatformLayerID m_rootLayerID;
@@ -250,13 +261,16 @@ private:
     WebCore::IntPoint m_scrollPosition;
 #endif
     WebCore::Color m_pageExtendedBackgroundColor;
-    double m_pageScaleFactor;
-    double m_minimumScaleFactor;
-    double m_maximumScaleFactor;
-    uint64_t m_renderTreeSize;
-    uint64_t m_transactionID;
-    bool m_scaleWasSetByUIProcess;
-    bool m_allowsUserScaling;
+    double m_pageScaleFactor { 1 };
+    double m_minimumScaleFactor { 1 };
+    double m_maximumScaleFactor { 1 };
+    double m_initialScaleFactor { 1 };
+    double m_viewportMetaTagWidth { -1 };
+    uint64_t m_renderTreeSize { 0 };
+    uint64_t m_transactionID { 0 };
+    WebCore::LayoutMilestones m_newlyReachedLayoutMilestones { 0 };
+    bool m_scaleWasSetByUIProcess { false };
+    bool m_allowsUserScaling { false };
 };
 
 } // namespace WebKit

@@ -115,7 +115,7 @@ inline JSPropertyNameEnumerator* propertyNameEnumerator(ExecState* exec, JSObjec
 
     uint32_t numberStructureProperties = 0;
 
-    PropertyNameArray propertyNames(exec);
+    PropertyNameArray propertyNames(exec, PropertyNameMode::Strings);
 
     if (structure->canAccessPropertiesQuickly() && indexedLength == base->getArrayLength()) {
         base->methodTable(vm)->getStructurePropertyNames(base, exec, propertyNames, EnumerationMode());
@@ -123,8 +123,12 @@ inline JSPropertyNameEnumerator* propertyNameEnumerator(ExecState* exec, JSObjec
         numberStructureProperties = propertyNames.size();
 
         base->methodTable(vm)->getGenericPropertyNames(base, exec, propertyNames, EnumerationMode());
-    } else
+    } else {
+        // Generic property names vector contains all indexed property names.
+        // So disable indexed property enumeration phase by setting |indexedLength| to 0.
+        indexedLength = 0;
         base->methodTable(vm)->getPropertyNames(base, exec, propertyNames, EnumerationMode());
+    }
 
     ASSERT(propertyNames.size() < UINT32_MAX);
 

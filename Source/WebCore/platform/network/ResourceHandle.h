@@ -118,6 +118,10 @@ public:
     virtual void receivedChallengeRejection(const AuthenticationChallenge&) override;
 #endif
 
+#if PLATFORM(COCOA) || USE(CFNETWORK)
+    bool tryHandlePasswordBasedAuthentication(const AuthenticationChallenge&);
+#endif
+
 #if PLATFORM(COCOA) && USE(PROTECTION_SPACE_AUTH_CALLBACK)
     bool canAuthenticateAgainstProtectionSpace(const ProtectionSpace&);
 #endif
@@ -131,7 +135,6 @@ public:
 #endif
         
 #if PLATFORM(COCOA) && ENABLE(WEB_TIMING)
-    void setCollectsTimingData();
 #if USE(CFNETWORK)
     static void getConnectionTimingData(CFURLConnectionRef, ResourceLoadTiming&);
 #else
@@ -155,7 +158,7 @@ public:
 
 #if USE(QUICK_LOOK)
     QuickLookHandle* quickLookHandle() { return m_quickLook.get(); }
-    void setQuickLookHandle(std::unique_ptr<QuickLookHandle> handle) { m_quickLook = WTF::move(handle); }
+    void setQuickLookHandle(std::unique_ptr<QuickLookHandle> handle) { m_quickLook = WTFMove(handle); }
 #endif
 
 #if PLATFORM(WIN) && USE(CURL)
@@ -196,7 +199,7 @@ public:
 
     // The client may be 0, in which case no callbacks will be made.
     ResourceHandleClient* client() const;
-    WEBCORE_EXPORT void setClient(ResourceHandleClient*);
+    WEBCORE_EXPORT void clearClient();
 
     // Called in response to ResourceHandleClient::willSendRequestAsync().
     WEBCORE_EXPORT void continueWillSendRequest(const ResourceRequest&);
@@ -246,6 +249,8 @@ public:
 protected:
     ResourceHandle(NetworkingContext*, const ResourceRequest&, ResourceHandleClient*, bool defersLoading, bool shouldContentSniff);
 
+    bool usesAsyncCallbacks() const;
+
 private:
     enum FailureType {
         NoFailure,
@@ -279,8 +284,8 @@ private:
     void createNSURLConnection(id delegate, bool shouldUseCredentialStorage, bool shouldContentSniff, SchedulingBehavior, NSDictionary *connectionProperties);
 #endif
 
-#if PLATFORM(COCOA) && ENABLE(WEB_TIMING)
-static void getConnectionTimingData(NSDictionary *timingData, ResourceLoadTiming&);
+#if USE(SOUP)
+    void timeoutFired();
 #endif
 
     friend class ResourceHandleInternal;

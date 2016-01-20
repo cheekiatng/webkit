@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012 Google Inc. All rights reserved.
- * Copyright (C) 2013, 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2013-2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,6 +51,12 @@ enum MediaSessionInterruptingCategory {
     "transient-solo"
 };
 
+enum MediaControlEvent {
+    "play-pause",
+    "next-track",
+    "previous-track"
+};
+
 [
     NoInterfaceObject,
 ] interface Internals {
@@ -72,6 +78,7 @@ enum MediaSessionInterruptingCategory {
     long memoryCacheSize();
     void setOverrideCachePolicy(CachePolicy policy);
     void setOverrideResourceLoadPriority(ResourceLoadPriority priority);
+    void setStrictRawResourceValidationPolicyDisabled(boolean disabled);
 
     void clearPageCache();
     unsigned int pageCacheSize();
@@ -108,9 +115,7 @@ enum MediaSessionInterruptingCategory {
     [RaisesException] boolean attached(Node node);
 
     DOMString visiblePlaceholder(Element element);
-#if defined(ENABLE_INPUT_TYPE_COLOR) && ENABLE_INPUT_TYPE_COLOR
     void selectColorInColorChooser(Element element, DOMString colorValue);
-#endif
     [RaisesException] DOMString[] formControlStateOfPreviousHistoryItem();
     [RaisesException] void setFormControlStateOfPreviousHistoryItem(sequence<DOMString> values);
 
@@ -124,6 +129,7 @@ enum MediaSessionInterruptingCategory {
     [RaisesException] unsigned long markerCountForNode(Node node, DOMString markerType);
     [RaisesException] Range markerRangeForNode(Node node, DOMString markerType, unsigned long index);
     [RaisesException] DOMString markerDescriptionForNode(Node node, DOMString markerType, unsigned long index);
+    [RaisesException] DOMString dumpMarkerRects(DOMString markerType);
     void addTextMatchMarker(Range range, boolean isActive);
     [RaisesException] void setMarkedTextMatchesAreHighlighted(boolean flag);
 
@@ -199,6 +205,8 @@ enum MediaSessionInterruptingCategory {
 
     [RaisesException] boolean isPageBoxVisible(long pageNumber);
 
+    [RaisesException] unsigned long imageFrameIndex(Element element);
+
     readonly attribute InternalSettings settings;
     readonly attribute unsigned long workerThreadCount;
 
@@ -216,9 +224,14 @@ enum MediaSessionInterruptingCategory {
 
     [RaisesException] DOMString repaintRectsAsText();
 
-    [RaisesException] void garbageCollectDocumentResources();
+    // These throw if the element does not have a compositing layer.
+    [RaisesException] void setElementUsesDisplayListDrawing(Element element, boolean usesDisplayListDrawing);
 
-    void allowRoundingHacks();
+    // Flags for displayListForElement.
+    const unsigned short DISPLAY_LIST_INCLUDES_PLATFORM_OPERATIONS = 1;
+    [RaisesException] DOMString displayListForElement(Element element, optional unsigned short flags);
+
+    [RaisesException] void garbageCollectDocumentResources();
 
     [RaisesException] void insertAuthorCSS(DOMString css);
     [RaisesException] void insertUserCSS(DOMString css);
@@ -238,7 +251,6 @@ enum MediaSessionInterruptingCategory {
 
     unsigned long numberOfLiveNodes();
     unsigned long numberOfLiveDocuments();
-    sequence<DOMString> consoleMessageArgumentCounts();
     DOMWindow openDummyInspectorFrontend(DOMString url);
     void closeDummyInspectorFrontend();
     [RaisesException] void setJavaScriptProfilingEnabled(boolean creates);
@@ -324,6 +336,8 @@ enum MediaSessionInterruptingCategory {
 
     void forceReload(boolean endToEnd);
 
+    void enableAutoSizeMode(boolean enabled, long minimumWidth, long minimumHeight, long maximumWidth, long maximumHeight);
+
     [Conditional=VIDEO] void simulateAudioInterruption(Node node);
     [Conditional=VIDEO, RaisesException] boolean mediaElementHasCharacteristic(Node node, DOMString characteristic);
 
@@ -355,29 +369,37 @@ enum MediaSessionInterruptingCategory {
 
     [Conditional=MEDIA_SOURCE] void initializeMockMediaSource();
     [Conditional=MEDIA_SOURCE] DOMString[] bufferedSamplesForTrackID(SourceBuffer buffer, DOMString trackID);
+    [Conditional=MEDIA_SOURCE] void setShouldGenerateTimestamps(SourceBuffer buffer, boolean flag);
 
-    [Conditional=VIDEO] void beginMediaSessionInterruption();
+    [Conditional=VIDEO, RaisesException] void beginMediaSessionInterruption(DOMString interruptionType);
     [Conditional=VIDEO] void endMediaSessionInterruption(DOMString flags);
     [Conditional=MEDIA_SESSION] void sendMediaSessionStartOfInterruptionNotification(MediaSessionInterruptingCategory category);
     [Conditional=MEDIA_SESSION] void sendMediaSessionEndOfInterruptionNotification(MediaSessionInterruptingCategory category);
     [Conditional=MEDIA_SESSION] DOMString mediaSessionCurrentState(MediaSession session);
-    [Conditional=VIDEO] void applicationWillEnterForeground();
+    [Conditional=MEDIA_SESSION] double mediaElementPlayerVolume(HTMLMediaElement element);
+    [Conditional=MEDIA_SESSION] void sendMediaControlEvent(MediaControlEvent event);
+    [Conditional=VIDEO] void applicationDidEnterForeground();
     [Conditional=VIDEO] void applicationWillEnterBackground();
     [Conditional=VIDEO, RaisesException] void setMediaSessionRestrictions(DOMString mediaType, DOMString restrictions);
     [Conditional=VIDEO, RaisesException] void setMediaElementRestrictions(HTMLMediaElement element, DOMString restrictions);
     [Conditional=WEB_AUDIO, RaisesException] void setAudioContextRestrictions(AudioContext context, DOMString restrictions);
     [Conditional=VIDEO, RaisesException] void postRemoteControlCommand(DOMString command);
-    
+    [Conditional=WIRELESS_PLAYBACK_TARGET] void setMockMediaPlaybackTargetPickerEnabled(boolean enabled);
+    [Conditional=WIRELESS_PLAYBACK_TARGET, RaisesException] void setMockMediaPlaybackTargetPickerState(DOMString deviceName, DOMString deviceState);
+    [Conditional=MEDIA_STREAM] void setMockMediaCaptureDevicesEnabled(boolean enabled);
+
     [Conditional=VIDEO] void simulateSystemSleep();
     [Conditional=VIDEO] void simulateSystemWake();
     [Conditional=VIDEO] boolean elementIsBlockingDisplaySleep(Element element);
 
-    [RaisesException] void installMockPageOverlay(PageOverlayType type);
+    [RaisesException] MockPageOverlay installMockPageOverlay(PageOverlayType type);
     [RaisesException] DOMString pageOverlayLayerTreeAsText();
 
     void setPageMuted(boolean muted);
     boolean isPagePlayingAudio();
-    
+
+    void setPageDefersLoading(boolean defersLoading);
+
     File createFile(DOMString url);
     void queueMicroTask(long testNumber);
     boolean testPreloaderSettingViewport();
@@ -389,4 +411,12 @@ enum MediaSessionInterruptingCategory {
 #endif
 
     [RaisesException] DOMString pathStringWithShrinkWrappedRects(sequence<double> rectComponents, double radius);
+
+    [Conditional=VIDEO] DOMString getCurrentMediaControlsStatusForElement(HTMLMediaElement element);
+
+    DOMString userVisibleString(DOMURL url);
+
+    void setShowAllPlugins(boolean showAll);
+
+    [Conditional=STREAMS_API, CallWith=ScriptState] boolean isReadableStreamDisturbed(any stream);
 };

@@ -44,6 +44,7 @@ BEGIN {
 my (
     $threeDTransformsSupport,
     $accelerated2DCanvasSupport,
+    $allInOneBuild,
     $arrowfunctionSyntax,
     $attachmentElementSupport,
     $batteryStatusSupport,
@@ -51,6 +52,7 @@ my (
     $canvasProxySupport,
     $channelMessagingSupport,
     $classSyntax,
+    $currentsrcSupport,
     $templateLiteralSyntax,
     $cspNextSupport,
     $css3TextSupport,
@@ -65,6 +67,7 @@ my (
     $cssRegionsSupport,
     $cssShapesSupport,
     $cssCompositingSupport,
+    $customElementsSupport,
     $customSchemeHandlerSupport,
     $dataTransferItemsSupport,
     $datalistElementSupport,
@@ -73,10 +76,12 @@ my (
     $directoryUploadSupport,
     $dom4EventsConstructor,
     $downloadAttributeSupport,
+    $fetchAPISupport,
     $fontLoadEventsSupport,
     $ftpDirSupport,
     $fullscreenAPISupport,
     $gamepadSupport,
+    $generatorsSupport,
     $geolocationSupport,
     $hardwareConcurrencySupport,
     $highDPICanvasSupport,
@@ -104,6 +109,7 @@ my (
     $mediaStreamSupport,
     $meterElementSupport,
     $mhtmlSupport,
+    $modulesSupport,
     $mouseCursorScaleSupport,
     $netscapePluginAPISupport,
     $nosniffSupport,
@@ -111,7 +117,6 @@ my (
     $orientationEventsSupport,
     $pageVisibilityAPISupport,
     $performanceTimelineSupport,
-    $pictureSizesSupport,
     $promiseSupport,
     $proximityEventsSupport,
     $quotaSupport,
@@ -121,10 +126,10 @@ my (
     $resourceTimingSupport,
     $scriptedSpeechSupport,
     $seccompFiltersSupport,
+    $shadowDOMSupport,
     $streamsAPISupport,
     $styleScopedSupport,
     $subtleCrypto,
-    $suidLinuxSandbox,
     $svgDOMObjCBindingsSupport,
     $svgFontsSupport,
     $systemMallocSupport,
@@ -141,11 +146,11 @@ my (
     $videoTrackSupport,
     $webglSupport,
     $webAssemblySupport,
+    $webAnimationsSupport,
     $webAudioSupport,
     $webReplaySupport,
     $webSocketsSupport,
     $webTimingSupport,
-    $xhrTimeoutSupport,
     $xsltSupport,
     $ftlJITSupport,
 );
@@ -156,6 +161,9 @@ my @features = (
 
     { option => "accelerated-2d-canvas", desc => "Toggle Accelerated 2D Canvas support",
       define => "ENABLE_ACCELERATED_2D_CANVAS", default => isGtk(), value => \$accelerated2DCanvasSupport },
+
+    { option => "allinone-build", desc => "Toggle all-in-one build",
+      define => "ENABLE_ALLINONE_BUILD", default => isWindows(), value => \$allInOneBuild },
 
     { option => "arrowfunction-syntax", desc => "Toggle ES6 arrow function syntax support",
       define => "ENABLE_ES6_ARROWFUNCTION_SYNTAX", default => 1, value => \$arrowfunctionSyntax },
@@ -177,6 +185,12 @@ my @features = (
 
     { option => "class-syntax", desc => "Toggle ES6 class syntax support",
       define => "ENABLE_ES6_CLASS_SYNTAX", default => 1, value => \$classSyntax },
+
+    { option => "generators", desc => "Toggle ES6 generators support",
+      define => "ENABLE_ES6_GENERATORS", default => 1, value => \$generatorsSupport },
+
+    { option => "modules", desc => "Toggle ES6 modules support",
+      define => "ENABLE_ES6_MODULES", default => 0, value => \$modulesSupport },
 
     { option => "template-literal-syntax", desc => "Toggle ES6 template literal syntax support",
       define => "ENABLE_ES6_TEMPLATE_LITERAL_SYNTAX", default => 1, value => \$templateLiteralSyntax },
@@ -217,6 +231,12 @@ my @features = (
     { option => "css-compositing", desc => "Toggle CSS Compositing support",
       define => "ENABLE_CSS_COMPOSITING", default => isAppleWebKit(), value => \$cssCompositingSupport },
 
+    { option => "currentsrc", desc => "Toggle currentSrc attribute support",
+      define => "ENABLE_CURRENTSRC", default => 1, value => \$currentsrcSupport },
+
+    { option => "custom-elements", desc => "Toggle custom elements support",
+      define => "ENABLE_CUSTOM_ELEMENTS", default => (isAppleMacWebKit() || isIOSWebKit()), value => \$customElementsSupport },
+
     { option => "custom-scheme-handler", desc => "Toggle Custom Scheme Handler support",
       define => "ENABLE_CUSTOM_SCHEME_HANDLER", default => isEfl(), value => \$customSchemeHandlerSupport },
 
@@ -237,6 +257,9 @@ my @features = (
 
     { option => "download-attribute", desc => "Toggle Download Attribute support",
       define => "ENABLE_DOWNLOAD_ATTRIBUTE", default => isEfl(), value => \$downloadAttributeSupport },
+
+    { option => "fetch-api", desc => "Toggle Fetch API support",
+      define => "ENABLE_FETCH_API", default => 1, value => \$fetchAPISupport },
 
     { option => "font-load-events", desc => "Toggle Font Load Events support",
       define => "ENABLE_FONT_LOAD_EVENTS", default => 0, value => \$fontLoadEventsSupport },
@@ -260,7 +283,7 @@ my @features = (
       define => "ENABLE_ICONDATABASE", default => !isIOSWebKit(), value => \$icondatabaseSupport },
 
     { option => "indexed-database", desc => "Toggle Indexed Database support",
-      define => "ENABLE_INDEXED_DATABASE", default => isGtk(), value => \$indexedDatabaseSupport },
+      define => "ENABLE_INDEXED_DATABASE", default => (isEfl() || isGtk()), value => \$indexedDatabaseSupport },
 
     { option => "input-speech", desc => "Toggle Input Speech support",
       define => "ENABLE_INPUT_SPEECH", default => 0, value => \$inputSpeechSupport },
@@ -287,7 +310,7 @@ my @features = (
       define => "ENABLE_INPUT_TYPE_WEEK", default => 0, value => \$inputTypeWeekSupport },
 
     { option => "intl", desc => "Toggle Intl support",
-      define => "ENABLE_INTL", default => 0, value => \$intlSupport },
+      define => "ENABLE_INTL", default => 1, value => \$intlSupport },
 
     { option => "legacy-notifications", desc => "Toggle Legacy Notifications support",
       define => "ENABLE_LEGACY_NOTIFICATIONS", default => 0, value => \$legacyNotificationsSupport },
@@ -349,9 +372,6 @@ my @features = (
     { option => "performance-timeline", desc => "Toggle Performance Timeline support",
       define => "ENABLE_PERFORMANCE_TIMELINE", default => isGtk(), value => \$performanceTimelineSupport },
 
-    { option => "picture-sizes", desc => "Toggle sizes attribute support",
-      define => "ENABLE_PICTURE_SIZES", default => 1, value => \$pictureSizesSupport },
-
     { option => "promises", desc => "Toggle Promise support",
       define => "ENABLE_PROMISES", default => 1, value => \$promiseSupport },
 
@@ -376,19 +396,19 @@ my @features = (
     { option => "scripted-speech", desc => "Toggle Scripted Speech support",
       define => "ENABLE_SCRIPTED_SPEECH", default => 0, value => \$scriptedSpeechSupport },
 
+    { option => "shadow-dom", desc => "Toggle Shadow DOM support",
+      define => "ENABLE_SHADOW_DOM", default => (isAppleMacWebKit() || isIOSWebKit()), value => \$shadowDOMSupport },
+
     { option => "streams-api", desc => "Toggle Streams API support",
       define => "ENABLE_STREAMS_API", default => 1, value => \$streamsAPISupport },
 
     { option => "subtle-crypto", desc => "Toggle WebCrypto Subtle-Crypto support",
       define => "ENABLE_SUBTLE_CRYPTO", default => (isGtk() || isEfl() || isAppleMacWebKit() || isIOSWebKit()), value => \$subtleCrypto },
 
-    { option => "suid-linux-sandbox", desc => "Toggle suid sandbox for linux",
-      define => "ENABLE_SUID_SANDBOX_LINUX", default => 0, value => \$suidLinuxSandbox },
-
     { option => "svg-fonts", desc => "Toggle SVG Fonts support",
       define => "ENABLE_SVG_FONTS", default => 1, value => \$svgFontsSupport },
 
-    { option => "system-malloc", desc => "Toggle system allocator instead of TCmalloc",
+    { option => "system-malloc", desc => "Toggle system allocator instead of bmalloc",
       define => "USE_SYSTEM_MALLOC", default => 0, value => \$systemMallocSupport },
 
     { option => "template-element", desc => "Toggle HTMLTemplateElement support",
@@ -427,6 +447,9 @@ my @features = (
     { option => "webassembly", desc => "Toggle WebAssembly support",
       define => "ENABLE_WEBASSEMBLY", default => 0, value => \$webAssemblySupport },
 
+    { option => "web-animations", desc => "Toggle Web Animations support",
+      define => "ENABLE_WEB_ANIMATIONS", default => 0, value => \$webAnimationsSupport },
+
     { option => "web-audio", desc => "Toggle Web Audio support",
       define => "ENABLE_WEB_AUDIO", default => (isEfl() || isGtk()), value => \$webAudioSupport },
 
@@ -439,14 +462,11 @@ my @features = (
     { option => "web-timing", desc => "Toggle Web Timing support",
       define => "ENABLE_WEB_TIMING", default => (isGtk() || isEfl()), value => \$webTimingSupport },
 
-    { option => "xhr-timeout", desc => "Toggle XHR Timeout support",
-      define => "ENABLE_XHR_TIMEOUT", default => (isEfl() || isGtk() || isAppleMacWebKit()), value => \$xhrTimeoutSupport },
-
     { option => "xslt", desc => "Toggle XSLT support",
       define => "ENABLE_XSLT", default => 1, value => \$xsltSupport },
 
     { option => "ftl-jit", desc => "Toggle FTLJIT support",
-      define => "ENABLE_FTL_JIT", default => 0, value => \$ftlJITSupport },
+      define => "ENABLE_FTL_JIT", default => (isX86_64() && (isGtk() || isEfl())) , value => \$ftlJITSupport },
 );
 
 sub getFeatureOptionList()

@@ -52,11 +52,24 @@ class Assembler
 
     def enterAsm
         @outp.puts "OFFLINE_ASM_BEGIN" if !$emitWinAsm
+
+        if !$emitWinAsm
+            @outp.puts "OFFLINE_ASM_GLOBAL_LABEL(llintPCRangeStart)"
+        else
+            putsProc("llintPCRangeStart", "")
+            putsProcEndIfNeeded
+        end
         @state = :asm
     end
     
     def leaveAsm
         putsProcEndIfNeeded if $emitWinAsm
+        if !$emitWinAsm
+            @outp.puts "OFFLINE_ASM_GLOBAL_LABEL(llintPCRangeEnd)"
+        else
+            putsProc("llintPCRangeEnd", "")
+            putsProcEndIfNeeded
+        end
         putsLastComment
         @outp.puts "OFFLINE_ASM_END" if !$emitWinAsm
         @state = :cpp
@@ -282,8 +295,6 @@ asmFile = ARGV.shift
 offsetsFile = ARGV.shift
 outputFlnm = ARGV.shift
 
-$stderr.puts "offlineasm: Parsing #{asmFile} and #{offsetsFile} and creating assembly file #{outputFlnm}."
-
 begin
     configurationList = offsetsAndConfigurationIndex(offsetsFile)
 rescue MissingMagicValuesException
@@ -335,6 +346,3 @@ File.open(outputFlnm, "w") {
         }
     }
 }
-
-$stderr.puts "offlineasm: Assembly file #{outputFlnm} successfully generated."
-

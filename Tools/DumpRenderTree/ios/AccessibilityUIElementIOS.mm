@@ -45,12 +45,15 @@ typedef void (*AXPostedNotificationCallback)(id element, NSString* notification,
 
 AccessibilityUIElement::AccessibilityUIElement(PlatformUIElement element)
     : m_element(element)
+    , m_notificationHandler(0)
 {
     [m_element retain];
 }
 
 AccessibilityUIElement::AccessibilityUIElement(const AccessibilityUIElement& other)
     : m_element(other.m_element)
+    , m_notificationHandler(0)
+
 {
     [m_element retain];
 }
@@ -80,6 +83,17 @@ AccessibilityUIElement::~AccessibilityUIElement()
 - (void)_accessibilitySetValue:(NSString *)value;
 - (void)_accessibilityActivate;
 - (UIAccessibilityTraits)_axSelectedTrait;
+- (UIAccessibilityTraits)_axTextAreaTrait;
+- (UIAccessibilityTraits)_axSearchFieldTrait;
+- (NSString *)accessibilityARIACurrentStatus;
+- (NSUInteger)accessibilityRowCount;
+- (NSUInteger)accessibilityColumnCount;
+- (NSUInteger)accessibilityARIARowCount;
+- (NSUInteger)accessibilityARIAColumnCount;
+- (NSUInteger)accessibilityARIARowIndex;
+- (NSUInteger)accessibilityARIAColumnIndex;
+- (UIAccessibilityTraits)_axContainedByFieldsetTrait;
+- (id)_accessibilityFieldsetAncestor;
 @end
 
 @interface NSObject (WebAccessibilityObjectWrapperPrivate)
@@ -107,6 +121,16 @@ JSStringRef AccessibilityUIElement::identifier()
     return concatenateAttributeAndValue(@"AXIdentifier", [m_element accessibilityIdentifier]);
 }
 
+bool AccessibilityUIElement::isTextArea() const
+{
+    return ([m_element accessibilityTraits] & [m_element _axTextAreaTrait]) == [m_element _axTextAreaTrait];
+}
+
+bool AccessibilityUIElement::isSearchField() const
+{
+    return ([m_element accessibilityTraits] & [m_element _axSearchFieldTrait]) == [m_element _axSearchFieldTrait];
+}
+
 JSStringRef AccessibilityUIElement::traits()
 {
     return concatenateAttributeAndValue(@"AXTraits", [NSString stringWithFormat:@"%qu", [m_element accessibilityTraits]]);
@@ -123,6 +147,22 @@ int AccessibilityUIElement::elementTextLength()
     NSRange range = [[m_element valueForKey:@"elementTextRange"] rangeValue];
     return range.length;    
 }
+
+bool AccessibilityUIElement::hasContainedByFieldsetTrait()
+{
+    UIAccessibilityTraits traits = [m_element accessibilityTraits];
+    return (traits & [m_element _axContainedByFieldsetTrait]) == [m_element _axContainedByFieldsetTrait];
+}
+
+AccessibilityUIElement AccessibilityUIElement::fieldsetAncestorElement()
+{
+    id ancestorElement = [m_element _accessibilityFieldsetAncestor];
+    if (ancestorElement)
+        return AccessibilityUIElement(ancestorElement);
+    
+    return nullptr;
+}
+
 
 JSStringRef AccessibilityUIElement::url()
 {
@@ -406,6 +446,9 @@ JSStringRef AccessibilityUIElement::stringAttributeValue(JSStringRef attribute)
     if (JSStringIsEqualToUTF8CString(attribute, "AXPlaceholderValue"))
         return [[m_element accessibilityPlaceholderValue] createJSStringRef];
     
+    if (JSStringIsEqualToUTF8CString(attribute, "AXARIACurrent"))
+        return [[m_element accessibilityARIACurrentStatus] createJSStringRef];
+    
     return JSStringCreateWithCharacters(0, 0);
 }
 
@@ -452,6 +495,25 @@ JSStringRef AccessibilityUIElement::role()
 JSStringRef AccessibilityUIElement::subrole()
 {
     return JSStringCreateWithCharacters(0, 0);
+}
+
+bool AccessibilityUIElement::scrollPageUp()
+{
+    return [m_element accessibilityScroll:UIAccessibilityScrollDirectionUp];
+}
+
+bool AccessibilityUIElement::scrollPageDown()
+{
+    return [m_element accessibilityScroll:UIAccessibilityScrollDirectionDown];
+}
+bool AccessibilityUIElement::scrollPageLeft()
+{
+    return [m_element accessibilityScroll:UIAccessibilityScrollDirectionLeft];
+}
+
+bool AccessibilityUIElement::scrollPageRight()
+{
+    return [m_element accessibilityScroll:UIAccessibilityScrollDirectionRight];
 }
 
 JSStringRef AccessibilityUIElement::roleDescription()
@@ -621,12 +683,12 @@ JSStringRef AccessibilityUIElement::attributesOfHeader()
 
 int AccessibilityUIElement::rowCount()
 {
-    return -1;
+    return [m_element accessibilityRowCount];
 }
 
 int AccessibilityUIElement::columnCount()
 {
-    return -1;
+    return [m_element accessibilityColumnCount];
 }
 
 int AccessibilityUIElement::indexInTable()
@@ -654,6 +716,16 @@ AccessibilityUIElement AccessibilityUIElement::cellForColumnAndRow(unsigned col,
 }
 
 void AccessibilityUIElement::scrollToMakeVisible()
+{
+    // FIXME: implement
+}
+
+void AccessibilityUIElement::scrollToMakeVisibleWithSubFocus(int x, int y, int width, int height)
+{
+    // FIXME: implement
+}
+
+void AccessibilityUIElement::scrollToGlobalPoint(int x, int y)
 {
     // FIXME: implement
 }
@@ -827,7 +899,16 @@ JSStringRef AccessibilityUIElement::selectTextWithCriteria(JSContextRef context,
 
 double AccessibilityUIElement::numberAttributeValue(JSStringRef attribute)
 {
-    // FIXME: implement
+    // Support test for table related attributes.
+    if (JSStringIsEqualToUTF8CString(attribute, "AXARIAColumnCount"))
+        return [m_element accessibilityARIAColumnCount];
+    if (JSStringIsEqualToUTF8CString(attribute, "AXARIARowCount"))
+        return [m_element accessibilityARIARowCount];
+    if (JSStringIsEqualToUTF8CString(attribute, "AXARIAColumnIndex"))
+        return [m_element accessibilityARIAColumnIndex];
+    if (JSStringIsEqualToUTF8CString(attribute, "AXARIARowIndex"))
+        return [m_element accessibilityARIARowIndex];
+    
     return 0;
 }
 

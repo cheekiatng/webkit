@@ -34,13 +34,13 @@
 #include "DatabaseProcessIDBConnectionMessages.h"
 #include "DatabaseToWebProcessConnectionMessages.h"
 #include "Logging.h"
-#include "SecurityOriginData.h"
 #include "WebCoreArgumentCoders.h"
 #include "WebProcess.h"
 #include "WebToDatabaseProcessConnection.h"
 #include <WebCore/IDBDatabaseMetadata.h>
 #include <WebCore/IDBKeyRangeData.h>
 #include <WebCore/SecurityOrigin.h>
+#include <WebCore/SecurityOriginData.h>
 
 using namespace WebCore;
 
@@ -454,7 +454,7 @@ void WebIDBServerConnection::didPutRecord(uint64_t requestID, const WebCore::IDB
     if (!serverRequest)
         return;
 
-    serverRequest->completeRequest(resultKey.isNull ? nullptr : resultKey.maybeCreateIDBKey(), errorCode ? IDBDatabaseError::create(errorCode, errorMessage) : nullptr);
+    serverRequest->completeRequest(resultKey.isNull() ? nullptr : resultKey.maybeCreateIDBKey(), errorCode ? IDBDatabaseError::create(errorCode, errorMessage) : nullptr);
 }
 
 void WebIDBServerConnection::didGetRecord(uint64_t requestID, const WebCore::IDBGetResult& getResult, uint32_t errorCode, const String& errorMessage)

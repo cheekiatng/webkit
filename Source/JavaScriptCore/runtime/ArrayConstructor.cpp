@@ -51,8 +51,8 @@ const ClassInfo ArrayConstructor::s_info = { "Function", &InternalFunction::s_in
 /* Source for ArrayConstructor.lut.h
 @begin arrayConstructorTable
   isArray   arrayConstructorIsArray     DontEnum|Function 1
-  of        arrayConstructorOf          DontEnum|Function 0
-  from      arrayConstructorFrom        DontEnum|Function 0
+  of        JSBuiltin                   DontEnum|Function 0
+  from      JSBuiltin                   DontEnum|Function 0
 @end
 */
 
@@ -75,33 +75,33 @@ bool ArrayConstructor::getOwnPropertySlot(JSObject* object, ExecState* exec, Pro
 
 // ------------------------------ Functions ---------------------------
 
-JSObject* constructArrayWithSizeQuirk(ExecState* exec, ArrayAllocationProfile* profile, JSGlobalObject* globalObject, JSValue length)
+JSObject* constructArrayWithSizeQuirk(ExecState* exec, ArrayAllocationProfile* profile, JSGlobalObject* globalObject, JSValue length, JSValue newTarget)
 {
     if (!length.isNumber())
-        return constructArrayNegativeIndexed(exec, profile, globalObject, &length, 1);
+        return constructArrayNegativeIndexed(exec, profile, globalObject, &length, 1, newTarget);
     
     uint32_t n = length.toUInt32(exec);
     if (n != length.toNumber(exec))
         return exec->vm().throwException(exec, createRangeError(exec, ASCIILiteral("Array size is not a small enough positive integer.")));
-    return constructEmptyArray(exec, profile, globalObject, n);
+    return constructEmptyArray(exec, profile, globalObject, n, newTarget);
 }
 
-static inline JSObject* constructArrayWithSizeQuirk(ExecState* exec, const ArgList& args)
+static inline JSObject* constructArrayWithSizeQuirk(ExecState* exec, const ArgList& args, JSValue newTarget)
 {
     JSGlobalObject* globalObject = asInternalFunction(exec->callee())->globalObject();
 
     // a single numeric argument denotes the array size (!)
     if (args.size() == 1)
-        return constructArrayWithSizeQuirk(exec, 0, globalObject, args.at(0));
+        return constructArrayWithSizeQuirk(exec, nullptr, globalObject, args.at(0), newTarget);
 
     // otherwise the array is constructed with the arguments in it
-    return constructArray(exec, 0, globalObject, args);
+    return constructArray(exec, nullptr, globalObject, args, newTarget);
 }
 
 static EncodedJSValue JSC_HOST_CALL constructWithArrayConstructor(ExecState* exec)
 {
     ArgList args(exec);
-    return JSValue::encode(constructArrayWithSizeQuirk(exec, args));
+    return JSValue::encode(constructArrayWithSizeQuirk(exec, args, exec->newTarget()));
 }
 
 ConstructType ArrayConstructor::getConstructData(JSCell*, ConstructData& constructData)
@@ -113,7 +113,7 @@ ConstructType ArrayConstructor::getConstructData(JSCell*, ConstructData& constru
 static EncodedJSValue JSC_HOST_CALL callArrayConstructor(ExecState* exec)
 {
     ArgList args(exec);
-    return JSValue::encode(constructArrayWithSizeQuirk(exec, args));
+    return JSValue::encode(constructArrayWithSizeQuirk(exec, args, JSValue()));
 }
 
 CallType ArrayConstructor::getCallData(JSCell*, CallData& callData)

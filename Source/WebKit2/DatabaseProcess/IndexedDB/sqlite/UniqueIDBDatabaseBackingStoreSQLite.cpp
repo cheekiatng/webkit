@@ -762,7 +762,7 @@ bool UniqueIDBDatabaseBackingStoreSQLite::createIndex(const IDBIdentifier& trans
     m_cursors.set(cursor->identifier(), cursor);
 
     std::unique_ptr<JSLockHolder> locker;
-    while (!cursor->currentKey().isNull) {
+    while (!cursor->currentKey().isNull()) {
         const IDBKeyData& key = cursor->currentKey();
         const Vector<uint8_t>& valueBuffer = cursor->currentValueBuffer();
 
@@ -776,7 +776,7 @@ bool UniqueIDBDatabaseBackingStoreSQLite::createIndex(const IDBIdentifier& trans
         if (!locker)
             locker = std::make_unique<JSLockHolder>(m_vm.get());
 
-        Deprecated::ScriptValue value = deserializeIDBValueBuffer(m_globalObject->globalExec(), valueBuffer, true);
+        Deprecated::ScriptValue value = deserializeIDBValueBuffer(m_globalObject->globalExec(), Vector<uint8_t>(valueBuffer), true);
         Vector<IDBKeyData> indexKeys;
         generateIndexKeysForValue(m_globalObject->globalExec(), metadata, value, indexKeys);
 
@@ -1066,7 +1066,7 @@ bool UniqueIDBDatabaseBackingStoreSQLite::getIndexRecord(const IDBIdentifier& tr
         result = IDBGetResult(cursor->currentPrimaryKey());
     else {
         result = IDBGetResult(SharedBuffer::create(cursor->currentValueBuffer().data(), cursor->currentValueBuffer().size()));
-        result.keyData = cursor->currentPrimaryKey();
+        result.setKeyData(cursor->currentPrimaryKey());
     }
 
     // Closing the cursor will destroy the cursor object and remove it from our cursor set.

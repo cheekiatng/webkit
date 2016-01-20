@@ -18,8 +18,7 @@ var objects_exception = [
     'CDATASection',
     'DocumentType',
     'Element',
-    'Entity',
-    'EntityReference',
+    'EventTarget',
     'HTMLDocument',
     'Node',
     'ProcessingInstruction',
@@ -28,7 +27,6 @@ var objects_exception = [
     'HTMLAppletElement',
     'HTMLAreaElement',
     'HTMLBaseElement',
-    'HTMLBaseFontElement',
     'HTMLBodyElement',
     'HTMLBRElement',
     'HTMLButtonElement',
@@ -146,7 +144,7 @@ var objects_constructor = [
 // These objects should have no constructor.
 var objects_no_constructor = [
     'EventTargetNode', 'UndetectableHTMLCollection',
-    'XPathNSResolver', 'EventTarget', 'EventListener', 'NPObject'
+    'XPathNSResolver', 'EventListener', 'NPObject'
 ];
 
 // These objects should have a working constructor, but their constructed

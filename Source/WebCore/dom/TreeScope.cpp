@@ -284,7 +284,6 @@ Element* TreeScope::findAnchor(const String& name)
 
 void TreeScope::adoptIfNeeded(Node* node)
 {
-    ASSERT(this);
     ASSERT(node);
     ASSERT(!node->isDocumentNode());
     ASSERT(!node->m_deletionHasBegun);
@@ -313,7 +312,7 @@ Element* TreeScope::focusedElement()
         return nullptr;
     TreeScope* treeScope = &element->treeScope();
     while (treeScope != this && treeScope != &document) {
-        element = downcast<ShadowRoot>(treeScope->rootNode()).hostElement();
+        element = downcast<ShadowRoot>(treeScope->rootNode()).host();
         treeScope = &element->treeScope();
     }
     if (this != treeScope)

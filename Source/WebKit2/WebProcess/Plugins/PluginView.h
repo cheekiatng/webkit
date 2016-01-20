@@ -47,8 +47,6 @@
 // FIXME: Eventually this should move to WebCore.
 
 #if PLATFORM(COCOA)
-#include "WebHitTestResult.h"
-
 OBJC_CLASS NSDictionary;
 OBJC_CLASS PDFSelection;
 #endif
@@ -97,6 +95,7 @@ public:
     void setPageScaleFactor(double scaleFactor, WebCore::IntPoint origin);
     double pageScaleFactor() const;
     bool handlesPageScaleFactor() const;
+    bool requiresUnifiedScaleFactor() const;
 
     void pageScaleFactorDidChange();
     void topContentInsetDidChange();
@@ -171,7 +170,7 @@ private:
 
     // WebCore::Widget
     virtual void setFrameRect(const WebCore::IntRect&) override;
-    virtual void paint(WebCore::GraphicsContext*, const WebCore::IntRect&) override;
+    virtual void paint(WebCore::GraphicsContext&, const WebCore::IntRect&) override;
     virtual void invalidateRect(const WebCore::IntRect&) override;
     virtual void setFocus(bool) override;
     virtual void frameRectsChanged() override;
@@ -196,6 +195,7 @@ private:
     virtual String userAgent() override;
     virtual void loadURL(uint64_t requestID, const String& method, const String& urlString, const String& target, const WebCore::HTTPHeaderMap& headerFields, const Vector<uint8_t>& httpBody, bool allowPopups) override;
     virtual void cancelStreamLoad(uint64_t streamID) override;
+    virtual void continueStreamLoad(uint64_t streamID) override;
     virtual void cancelManualStreamLoad() override;
 #if ENABLE(NETSCAPE_PLUGIN_API)
     virtual NPObject* windowScriptNPObject() override;

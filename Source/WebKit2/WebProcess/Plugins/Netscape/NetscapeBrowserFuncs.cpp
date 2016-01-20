@@ -303,7 +303,7 @@ static NPError NPN_PostURL(NPP npp, const char* url, const char* target, uint32_
         return error;
 
     RefPtr<NetscapePlugin> plugin = NetscapePlugin::fromNPP(npp);
-    plugin->loadURL("POST", makeURLString(url), target, WTF::move(headerFields), postData, false, 0);
+    plugin->loadURL("POST", makeURLString(url), target, WTFMove(headerFields), postData, false, 0);
     return NPERR_NO_ERROR;
 }
 
@@ -983,6 +983,13 @@ static NPBool NPN_ConvertPoint(NPP npp, double sourceX, double sourceY, NPCoordi
 }
 #endif
 
+static void NPN_URLRedirectResponse(NPP npp, void* notifyData, NPBool allow)
+{
+    RefPtr<NetscapePlugin> plugin = NetscapePlugin::fromNPP(npp);
+
+    plugin->urlRedirectResponse(notifyData, allow);
+}
+
 static void initializeBrowserFuncs(NPNetscapeFuncs &netscapeFuncs)
 {
     netscapeFuncs.size = sizeof(NPNetscapeFuncs);
@@ -1046,6 +1053,7 @@ static void initializeBrowserFuncs(NPNetscapeFuncs &netscapeFuncs)
     netscapeFuncs.popupcontextmenu = 0;
     netscapeFuncs.convertpoint = 0;
 #endif
+    netscapeFuncs.urlredirectresponse = NPN_URLRedirectResponse;
 }
     
 NPNetscapeFuncs* netscapeBrowserFuncs()

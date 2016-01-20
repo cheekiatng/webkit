@@ -2,197 +2,121 @@
 <script src='../../resources/testharness.js'></script>
 <script src='../../resources/testharnessreport.js'></script>
 <script src='resources/streams-utils.js'></script>
-<script src='resources/count-queuing-strategy.js'></script>
 <script>
-test(function() {
-    new CountQueuingStrategy({ highWaterMark: 4 });
-}, 'Can construct a CountQueuingStrategy with a valid high water mark');
+// This is updated till https://github.com/whatwg/streams/commit/4ba861e6f60c248060811830e11271c84b439cc3
 
 test(function() {
-    for (var highWaterMark of [-Infinity, NaN, 'foo', {}, function () {}]) {
-        var strategy = new CountQueuingStrategy({ highWaterMark });
-        assert_true(Object.is(strategy.highWaterMark, highWaterMark), highWaterMark + ' gets set correctly');
-    }
-}, 'Can construct a CountQueuingStrategy with any value as its high water mark');
+    new WritableStream({}, new CountQueuingStrategy({ highWaterMark: 4 })); // Does not throw.
+}, 'Can construct a writable stream with a valid CountQueuingStrategy');
 
-test(function() {
-    var strategy = new CountQueuingStrategy({ highWaterMark: 4 });
-
-    assert_object_equals(Object.getOwnPropertyDescriptor(strategy, 'highWaterMark'),
-                         { value: 4, writable: true, enumerable: true, configurable: true },
-                         'highWaterMark property should be a data property with the value passed the connstructor');
-    assert_equals(typeof strategy.size, 'function');
-}, 'CountQueuingStrategy instances have the correct properties');
-
-test(function() {
-    new ReadableStream({}, new CountQueuingStrategy({ highWaterMark: 4 }));
-}, 'Can construct a readable stream with a valid CountQueuingStrategy');
-
-var test1 = async_test('Correctly governs the return value of a ReadableStream\'s enqueue function (HWM = 0)');
+var test1 = async_test('Correctly governs the value of a WritableStream\'s state property (HWM = 0)');
 test1.step(function() {
-    var controller;
-    var rs = new ReadableStream({
-        start: function(c) {
-            controller = c;
-        }
-    },
-    new CountQueuingStrategy({ highWaterMark: 0 })
-    );
-    var reader = rs.getReader();
+    var dones = Object.create(null);
 
-    assert_equals(controller.desiredSize, 0, '0 reads, 0 enqueues: desiredSize should be 0');
-    controller.enqueue('a');
-    assert_equals(controller.desiredSize, -1, '0 reads, 1 enqueue: desiredSize should be -1');
-    controller.enqueue('b');
-    assert_equals(controller.desiredSize, -2, '0 reads, 2 enqueues: desiredSize should be -2');
-    controller.enqueue('c');
-    assert_equals(controller.desiredSize, -3, '0 reads, 3 enqueues: desiredSize should be -3');
-    controller.enqueue('d');
-    assert_equals(controller.desiredSize, -4, '0 reads, 4 enqueues: desiredSize should be -4');
-
-    reader.read().then(test1.step_func(function(result) {
-        assert_object_equals(result, { value: 'a', done: false }, '1st read gives back the 1st chunk enqueued (queue now contains 3 chunks)');
-        return reader.read();
-    })).then(test1.step_func(function(result) {
-        assert_object_equals(result, { value: 'b', done: false }, '2nd read gives back the 2nd chunk enqueued (queue now contains 2 chunks)');
-        return reader.read();
-    })).then(test1.step_func(function(result) {
-        assert_object_equals(result, { value: 'c', done: false }, '3rd read gives back the 3rd chunk enqueued (queue now contains 1 chunk)');
-
-        assert_equals(controller.desiredSize, -1, '3 reads, 4 enqueues: desiredSize should be -1');
-        controller.enqueue('e');
-        assert_equals(controller.desiredSize, -2, '3 reads, 5 enqueues: desiredSize should be -2');
-
-        return reader.read();
-    })).then(test1.step_func(function(result) {
-        assert_object_equals(result, { value: 'd', done: false }, '4th read gives back the 4th chunk enqueued (queue now contains 1 chunks)');
-        return reader.read();
-    })).then(test1.step_func(function(result) {
-        assert_object_equals(result, { value: 'e', done: false }, '5th read gives back the 5th chunk enqueued (queue now contains 0 chunks)');
-
-        assert_equals(controller.desiredSize, 0, '5 reads, 5 enqueues: desiredSize should be 0');
-        controller.enqueue('f');
-        assert_equals(controller.desiredSize, -1, '5 reads, 6 enqueues: desiredSize should be -1');
-        controller.enqueue('g');
-        assert_equals(controller.desiredSize, -2, '5 reads, 7 enqueues: desiredSize should be -2');
-
-        test1.done();
-    })).catch(test1.step_func(function(e) { assert_unreached(e); } ));
-});
-
-var test2 = async_test('Correctly governs a ReadableStreamController\'s desiredSize property (HWM = 1)');
-test2.step(function() {
-    var controller;
-    var rs = new ReadableStream({
-        start: function(c) {
-            controller = c;
+    var ws = new WritableStream(
+        {
+            write: function(chunk) {
+                return new Promise(test1.step_func(function(resolve) { dones[chunk] = resolve; }));
+            }
         },
-    },
-    new CountQueuingStrategy({ highWaterMark: 1 })
+        new CountQueuingStrategy({ highWaterMark: 0 })
     );
-    var reader = rs.getReader();
 
-    assert_equals(controller.desiredSize, 1, '0 reads, 0 enqueues: desiredSize should be 1');
-    controller.enqueue('a');
-    assert_equals(controller.desiredSize, 0, '0 reads, 1 enqueue: desiredSize should be 0');
-    controller.enqueue('b');
-    assert_equals(controller.desiredSize, -1, '0 reads, 2 enqueues: desiredSize should be -1');
-    controller.enqueue('c');
-    assert_equals(controller.desiredSize, -2, '0 reads, 3 enqueues: desiredSize should be -2');
-    controller.enqueue('d');
-    assert_equals(controller.desiredSize, -3, '0 reads, 4 enqueues: desiredSize should be -3');
+    setTimeout(test1.step_func(function() {
+        assert_equals(ws.state, 'writable', 'After 0 writes, 0 of which finished, state should be \'writable\'');
 
-    reader.read().then(test2.step_func(function(result) {
-        assert_object_equals(result, { value: 'a', done: false }, '1st read gives back the 1st chunk enqueued (queue now contains 3 chunks)');
-        return reader.read();
-    })).then(test2.step_func(function(result) {
-        assert_object_equals(result, { value: 'b', done: false }, '2nd read gives back the 2nd chunk enqueued (queue now contains 2 chunks)');
-        return reader.read();
-    })).then(test2.step_func(function(result) {
-        assert_object_equals(result, { value: 'c', done: false }, '3rd read gives back the 3rd chunk enqueued (queue now contains 1 chunk)');
+        var writePromiseA = ws.write('a');
+        assert_equals(ws.state, 'waiting', 'After 1 write, 0 of which finished, state should be \'waiting\'');
 
-        assert_equals(controller.desiredSize, 0, '3 reads, 4 enqueues: desiredSize should be 0');
-        controller.enqueue('e');
-        assert_equals(controller.desiredSize, -1, '3 reads, 5 enqueues: desiredSize should be -1');
+        var writePromiseB = ws.write('b');
+        assert_equals(ws.state, 'waiting', 'After 2 writes, 0 of which finished, state should be \'waiting\'');
 
-        return reader.read();
-    })).then(test2.step_func(function(result) {
-        assert_object_equals(result, { value: 'd', done: false }, '4th read gives back the 4th chunk enqueued (queue now contains 1 chunks)');
-        return reader.read();
-    })).then(test2.step_func(function(result) {
-        assert_object_equals(result, { value: 'e', done: false }, '5th read gives back the 5th chunk enqueued (queue now contains 0 chunks)');
+        dones.a();
+        writePromiseA.then(test1.step_func(function() {
+            assert_equals(ws.state, 'waiting', 'After 2 writes, 1 of which finished, state should be \'waiting\'');
 
-        assert_equals(controller.desiredSize, 1, '5 reads, 5 enqueues: desiredSize should be 1');
-        controller.enqueue('f');
-        assert_equals(controller.desiredSize, 0, '5 reads, 6 enqueues: desiredSize should be 0');
-        controller.enqueue('g');
-        assert_equals(controller.desiredSize, -1, '5 reads, 7 enqueues: desiredSize should be -1');
+            dones.b();
+            return writePromiseB.then(test1.step_func(function() {
+                assert_equals(ws.state, 'writable', 'After 2 writes, 2 of which finished, state should be \'writable\'');
 
-        test2.done();
-    })).catch(test2.step_func(function(e) { assert_unreached(e); } ));
+                var writePromiseC = ws.write('c');
+                assert_equals(ws.state, 'waiting', 'After 3 writes, 2 of which finished, state should be \'waiting\'');
+
+                dones.c();
+                return writePromiseC.then(test1.step_func(function() {
+                    assert_equals(ws.state, 'writable', 'After 3 writes, 3 of which finished, state should be \'writable\'');
+
+                    test1.done();
+                }));
+            }));
+        })).catch(test1.step_func(function(e) { assert_unreached("uncaught error " + e); }));
+    }), 0);
 });
 
-var test3 = async_test('Correctly governs a ReadableStreamController\'s desiredSize property (HWM = 4)');
-test3.step(function() {
-    var controller;
-    var rs = new ReadableStream({
-        start: function(c) {
-            controller = c;
-        }
-    },
-    new CountQueuingStrategy({ highWaterMark: 4 })
+var test2 = async_test('Correctly governs the value of a WritableStream\'s state property (HWM = 4)');
+test2.step(function() {
+    var dones = Object.create(null);
+
+    var ws = new WritableStream(
+        {
+            write: function(chunk) {
+                return new Promise(test2.step_func(function(resolve) { dones[chunk] = resolve; }));
+            }
+        },
+        new CountQueuingStrategy({ highWaterMark: 4 })
     );
-    var reader = rs.getReader();
 
-    assert_equals(controller.desiredSize, 4, '0 reads, 0 enqueues: desiredSize should be 4');
-    controller.enqueue('a');
-    assert_equals(controller.desiredSize, 3, '0 reads, 1 enqueue: desiredSize should be 3');
-    controller.enqueue('b');
-    assert_equals(controller.desiredSize, 2, '0 reads, 2 enqueues: desiredSize should be 2');
-    controller.enqueue('c');
-    assert_equals(controller.desiredSize, 1, '0 reads, 3 enqueues: desiredSize should be 1');
-    controller.enqueue('d');
-    assert_equals(controller.desiredSize, 0, '0 reads, 4 enqueues: desiredSize should be 0');
-    controller.enqueue('e');
-    assert_equals(controller.desiredSize, -1, '0 reads, 5 enqueues: desiredSize should be -1');
-    controller.enqueue('f');
-    assert_equals(controller.desiredSize, -2, '0 reads, 6 enqueues: desiredSize should be -2');
+    setTimeout(test2.step_func(function() {
+        assert_equals(ws.state, 'writable', 'After 0 writes, 0 of which finished, state should be \'writable\'');
 
+        var writePromiseA = ws.write('a');
+        assert_equals(ws.state, 'writable', 'After 1 write, 0 of which finished, state should be \'writable\'');
 
-    reader.read().then(test3.step_func(function(result) {
-        assert_object_equals(result, { value: 'a', done: false }, '1st read gives back the 1st chunk enqueued (queue now contains 5 chunks)');
-        return reader.read();
-    })).then(test3.step_func(function(result) {
-        assert_object_equals(result, { value: 'b', done: false }, '2nd read gives back the 2nd chunk enqueued (queue now contains 4 chunks)');
+        var writePromiseB = ws.write('b');
+        assert_equals(ws.state, 'writable', 'After 2 writes, 0 of which finished, state should be \'writable\'');
 
-        assert_equals(controller.desiredSize, 0, '2 reads, 6 enqueues: desiredSize should be 0');
-        controller.enqueue('g');
-        assert_equals(controller.desiredSize, -1, '2 reads, 7 enqueues: desiredSize should be -1');
+        var writePromiseC = ws.write('c');
+        assert_equals(ws.state, 'writable', 'After 3 writes, 0 of which finished, state should be \'writable\'');
 
-        return reader.read();
-    })).then(test3.step_func(function(result) {
-        assert_object_equals(result, { value: 'c', done: false }, '3rd read gives back the 3rd chunk enqueued (queue now contains 4 chunks)');
-        return reader.read();
-    })).then(test3.step_func(function(result) {
-        assert_object_equals(result, { value: 'd', done: false }, '4th read gives back the 4th chunk enqueued (queue now contains 3 chunks)');
-        return reader.read();
-    })).then(test3.step_func(function(result) {
-        assert_object_equals(result, { value: 'e', done: false }, '5th read gives back the 5th chunk enqueued (queue now contains 2 chunks)');
-        return reader.read();
-    })).then(test3.step_func(function(result) {
-        assert_object_equals(result, { value: 'f', done: false }, '6th read gives back the 6th chunk enqueued (queue now contains 0 chunks)');
+        var writePromiseD = ws.write('d');
+        assert_equals(ws.state, 'writable', 'After 4 writes, 0 of which finished, state should be \'writable\'');
 
-        assert_equals(controller.desiredSize, 3, '6 reads, 7 enqueues: desiredSize should be 3');
-        controller.enqueue('h');
-        assert_equals(controller.desiredSize, 2, '6 reads, 8 enqueues: desiredSize should be 2');
-        controller.enqueue('i');
-        assert_equals(controller.desiredSize, 1, '6 reads, 9 enqueues: desiredSize should be 1');
-        controller.enqueue('j');
-        assert_equals(controller.desiredSize, 0, '6 reads, 10 enqueues: desiredSize should be 0');
-        controller.enqueue('k');
-        assert_equals(controller.desiredSize, -1, '6 reads, 11 enqueues: desiredSize should be -1');
+        ws.write('e');
+        assert_equals(ws.state, 'waiting', 'After 5 writes, 0 of which finished, state should be \'waiting\'');
 
-        test3.done();
-    })).catch(test3.step_func(function(e) { assert_unreached(e); } ));
+        ws.write('f');
+        assert_equals(ws.state, 'waiting', 'After 6 writes, 0 of which finished, state should be \'waiting\'');
+
+        ws.write('g');
+        assert_equals(ws.state, 'waiting', 'After 7 writes, 0 of which finished, state should be \'waiting\'');
+
+        dones.a();
+        writePromiseA.then(test2.step_func(function() {
+            assert_equals(ws.state, 'waiting', 'After 7 writes, 1 of which finished, state should be \'waiting\'');
+
+            dones.b();
+            return writePromiseB.then(test2.step_func(function() {
+                assert_equals(ws.state, 'waiting', 'After 7 writes, 2 of which finished, state should be \'waiting\'');
+
+                dones.c();
+                return writePromiseC.then(test2.step_func(function() {
+                    assert_equals(ws.state, 'writable', 'After 7 writes, 3 of which finished, state should be \'writable\'');
+
+                    ws.write('h');
+                    assert_equals(ws.state, 'waiting', 'After 8 writes, 3 of which finished, state should be \'waiting\'');
+
+                    dones.d();
+                    return writePromiseD.then(test2.step_func(function() {
+                        assert_equals(ws.state, 'writable', 'After 8 writes, 4 of which finished, state should be \'writable\'');
+
+                        ws.write('i');
+                        assert_equals(ws.state, 'waiting', 'After 9 writes, 4 of which finished, state should be \'waiting\'');
+
+                        test2.done();
+                    }));
+                }));
+            }));
+        })).catch(test2.step_func(function(e) { assert_unreached("uncaught error " + e); }));
+    }), 0);
 });
 </script>

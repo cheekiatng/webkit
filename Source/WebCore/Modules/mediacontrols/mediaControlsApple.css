@@ -52,7 +52,7 @@ video:-webkit-full-page-media::-webkit-media-controls-panel.no-video {
     width: inherit;
     height: inherit;
     position: relative;
-    display: -webkit-flex;
+    display: -webkit-flex !important;
     -webkit-align-items: stretch;
     -webkit-justify-content: flex-end;
     -webkit-flex-direction: column;
@@ -104,6 +104,24 @@ video::-webkit-media-controls-panel.paused,
 video::-webkit-media-controls-panel:hover {
     cursor: inherit;
     opacity: 1;
+}
+
+audio::-webkit-media-show-controls {
+    display: none !important;
+}
+video::-webkit-media-show-controls {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    display: block;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 10px;
+    opacity: 0;
+    border: 0;
+    background: none;
+    -webkit-appearance: none;
 }
 
 video::-webkit-media-controls-panel-background-container,
@@ -596,6 +614,7 @@ audio::-webkit-media-controls-timeline-container {
     -webkit-align-items: center;
     -webkit-user-select: none;
     -webkit-flex: 1 1 0;
+    min-width: 0;
     position: relative;
     padding: 0;
 }
@@ -604,7 +623,8 @@ video::-webkit-media-controls-panel .thumbnail-track,
 audio::-webkit-media-controls-panel .thumbnail-track {
     position: relative;
     -webkit-flex: 1 1 0;
-    height: 17 px;
+    min-width: 0;
+    height: 17px;
     margin: 0 2px;
     display: -webkit-flex;
     -webkit-align-items: stretch;

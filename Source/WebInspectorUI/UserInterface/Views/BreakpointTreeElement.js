@@ -35,6 +35,7 @@ WebInspector.BreakpointTreeElement = class BreakpointTreeElement extends WebInsp
         super(["breakpoint", className], title, null, breakpoint, false);
 
         this._breakpoint = breakpoint;
+        this._probeSet = null;
 
         this._listeners = new WebInspector.EventListenerSet(this, "BreakpointTreeElement listeners");
         if (!title)
@@ -57,7 +58,6 @@ WebInspector.BreakpointTreeElement = class BreakpointTreeElement extends WebInsp
         this._updateStatus();
 
         this.status = this._statusImageElement;
-        this.small = true;
 
         this._iconAnimationLayerElement = document.createElement("span");
         this.iconElement.appendChild(this._iconAnimationLayerElement);
@@ -72,7 +72,7 @@ WebInspector.BreakpointTreeElement = class BreakpointTreeElement extends WebInsp
 
     get filterableData()
     {
-        return {text: this.breakpoint.url};
+        return {text: [this.breakpoint.url]};
     }
 
     ondelete()
@@ -98,14 +98,13 @@ WebInspector.BreakpointTreeElement = class BreakpointTreeElement extends WebInsp
 
     oncontextmenu(event)
     {
-        var contextMenu = new WebInspector.ContextMenu(event);
-        this._breakpoint.appendContextMenuItems(contextMenu, this._statusImageElement);
-        contextMenu.show();
+        let contextMenu = WebInspector.ContextMenu.createFromEvent(event);
+        WebInspector.breakpointPopoverController.appendContextMenuItems(contextMenu, this._breakpoint, this._statusImageElement);
     }
 
     onattach()
     {
-        WebInspector.GeneralTreeElement.prototype.onattach.call(this);
+        super.onattach();
 
         this._listeners.install();
 
@@ -116,7 +115,7 @@ WebInspector.BreakpointTreeElement = class BreakpointTreeElement extends WebInsp
 
     ondetach()
     {
-        WebInspector.GeneralTreeElement.prototype.ondetach.call(this);
+        super.ondetach();
 
         this._listeners.uninstall();
 
@@ -194,7 +193,7 @@ WebInspector.BreakpointTreeElement = class BreakpointTreeElement extends WebInsp
 
         probeSet.removeEventListener(WebInspector.ProbeSet.Event.SamplesCleared, this._samplesCleared, this);
         probeSet.dataTable.removeEventListener(WebInspector.ProbeSetDataTable.Event.FrameInserted, this._dataUpdated, this);
-        delete this._probeSet;
+        this._probeSet = null;
     }
 
     _probeSetAdded(event)

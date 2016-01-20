@@ -9,7 +9,7 @@ import time
 import urllib
 import urllib2
 
-from util import setup_auth
+from util import load_server_config
 
 
 def main():
@@ -27,14 +27,9 @@ def main():
 
     configurations = load_config(args.builder_config_json, args.buildbot_url.strip('/'))
 
-    with open(args.server_config_json) as server_config_json:
-        server_config = json.load(server_config_json)
-        setup_auth(server_config['server'])
-
-    build_requests_url = server_config['server']['url'] + '/api/build-requests/' + args.triggerable
-
     request_updates = {}
     while True:
+        server_config = load_server_config(args.server_config_json)
         request_updates.update(find_request_updates(configurations, args.lookback_count))
         if request_updates:
             print 'Updating the build requests %s...' % ', '.join(map(str, request_updates.keys()))
@@ -45,6 +40,8 @@ def main():
             'buildRequestUpdates': request_updates,
             'slaveName': server_config['slave']['name'],
             'slavePassword': server_config['slave']['password']}
+
+        build_requests_url = server_config['server']['url'] + '/api/build-requests/' + args.triggerable
         response = update_and_fetch_build_requests(build_requests_url, payload)
         open_requests = response.get('buildRequests', [])
 
@@ -68,13 +65,35 @@ def main():
 
 def load_config(config_json_path, buildbot_url):
     with open(config_json_path) as config_json:
-        configurations = json.load(config_json)
+        options = json.load(config_json)
 
+    shared_config = options['shared']
+    type_config = options['types']
+    builder_config = options['builders']
+
+    def merge(config, config_to_merge):
+        for key, value in config_to_merge.iteritems():
+            if isinstance(value, dict):
+                config.setdefault(key, {})
+                config[key].update(value)
+            else:
+                config[key] = value
+
+    scheduled_requests_by_builder = {}
+
+    configurations = options['configurations']
     for config in configurations:
+
+        merge(config, shared_config)
+        merge(config, type_config[config.pop('type')])
+        merge(config, builder_config[config.pop('builder')])
+
         escaped_builder_name = urllib.quote(config['builder'])
         config['url'] = '%s/builders/%s/' % (buildbot_url, escaped_builder_name)
         config['jsonURL'] = '%s/json/builders/%s/' % (buildbot_url, escaped_builder_name)
-        config['scheduledRequests'] = set()
+
+        scheduled_requests_by_builder.setdefault(config['builder'], set())
+        config['scheduledRequests'] = scheduled_requests_by_builder[config['builder']]
 
     return configurations
 
@@ -83,12 +102,15 @@ def find_request_updates(configurations, lookback_count):
     request_updates = {}
 
     for config in configurations:
+        config['scheduledRequests'].clear()
+
+    for config in configurations:
         try:
             pending_builds = fetch_json(config['jsonURL'] + 'pendingBuilds')
             scheduled_requests = filter(None, [request_id_from_build(config, build) for build in pending_builds])
             for request_id in scheduled_requests:
                 request_updates[request_id] = {'status': 'scheduled', 'url': config['url']}
-            config['scheduledRequests'] = set(scheduled_requests)
+                config['scheduledRequests'].add(request_id)
         except (IOError, ValueError) as error:
             print >> sys.stderr, "Failed to fetch pending builds for %s: %s" % (config['builder'], str(error))
 

@@ -53,8 +53,6 @@ typedef enum {
 } WebStorageBlockingPolicy;
 
 typedef enum {
-    WebKitJavaScriptRuntimeFlagsSymbolDisabled = 1u << 0,
-    WebKitJavaScriptRuntimeFlagsPromiseDisabled = 1u << 1,
     WebKitJavaScriptRuntimeFlagsAllEnabled = 0
 } WebKitJavaScriptRuntimeFlags;
 
@@ -202,6 +200,9 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (BOOL)acceleratedDrawingEnabled;
 - (void)setAcceleratedDrawingEnabled:(BOOL)enabled;
 
+- (BOOL)displayListDrawingEnabled;
+- (void)setDisplayListDrawingEnabled:(BOOL)enabled;
+
 - (BOOL)canvasUsesAcceleratedDrawing;
 - (void)setCanvasUsesAcceleratedDrawing:(BOOL)enabled;
 
@@ -247,8 +248,17 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (void)setMediaPlaybackRequiresUserGesture:(BOOL)flag;
 - (BOOL)mediaPlaybackRequiresUserGesture;
 
+- (void)setAudioPlaybackRequiresUserGesture:(BOOL)flag;
+- (BOOL)audioPlaybackRequiresUserGesture;
+
 - (void)setMediaPlaybackAllowsInline:(BOOL)flag;
 - (BOOL)mediaPlaybackAllowsInline;
+
+- (void)setInlineMediaPlaybackRequiresPlaysInlineAttribute:(BOOL)flag;
+- (BOOL)inlineMediaPlaybackRequiresPlaysInlineAttribute;
+
+- (void)setInvisibleAutoplayNotPermitted:(BOOL)flag;
+- (BOOL)invisibleAutoplayNotPermitted;
 
 - (void)setMediaControlsScaleWithPageZoom:(BOOL)flag;
 - (BOOL)mediaControlsScaleWithPageZoom;
@@ -451,10 +461,10 @@ extern NSString *WebPreferencesCacheModelChangedInternalNotification;
 - (void)setHTTPEquivEnabled:(BOOL)flag;
 - (BOOL)httpEquivEnabled;
 
-@property (nonatomic) BOOL javaScriptMarkupEnabled;
+- (void)setMockCaptureDevicesEnabled:(BOOL)flag;
+- (BOOL)mockCaptureDevicesEnabled;
 
-#if TARGET_OS_IPHONE && __IPHONE_OS_VERSION_MIN_REQUIRED < 80000
-- (void)_setAllowCompositingLayerVisualDegradation:(BOOL)flag;
-#endif
+@property (nonatomic) BOOL javaScriptMarkupEnabled;
+@property (nonatomic) BOOL mediaDataLoadsAutomatically;
 
 @end

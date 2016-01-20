@@ -33,6 +33,7 @@
 #import <JavaScriptCore/JSRetainPtr.h>
 #import <JavaScriptCore/JSStringRef.h>
 #import <JavaScriptCore/JSStringRefCF.h>
+#import <UIKit/UIAccessibility.h>
 #import <WebKit/WKBundle.h>
 #import <WebKit/WKBundlePage.h>
 #import <WebKit/WKBundlePagePrivate.h>
@@ -41,7 +42,18 @@ namespace WTR {
 
 bool AccessibilityController::addNotificationListener(JSValueRef functionCallback)
 {
-    return false;
+    if (!functionCallback)
+        return false;
+    
+    // Mac programmers should not be adding more than one global notification listener.
+    // Other platforms may be different.
+    if (m_globalNotificationHandler)
+        return false;
+    m_globalNotificationHandler = [[AccessibilityNotificationHandler alloc] init];
+    [m_globalNotificationHandler setCallback:functionCallback];
+    [m_globalNotificationHandler startObserving];
+    
+    return true;
 }
 
 bool AccessibilityController::removeNotificationListener()

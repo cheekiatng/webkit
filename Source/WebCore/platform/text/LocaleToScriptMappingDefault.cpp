@@ -33,6 +33,7 @@
 
 #include <wtf/HashMap.h>
 #include <wtf/HashSet.h>
+#include <wtf/NeverDestroyed.h>
 #include <wtf/text/StringHash.h>
 
 namespace WebCore {
@@ -163,14 +164,14 @@ typedef HashMap<String, UScriptCode, DefaultHash<String>::Hash, ScriptNameCodeMa
 
 UScriptCode scriptNameToCode(const String& scriptName)
 {
-    DEPRECATED_DEFINE_STATIC_LOCAL(ScriptNameCodeMap, scriptNameCodeMap, ());
-    if (scriptNameCodeMap.isEmpty()) {
+    static NeverDestroyed<ScriptNameCodeMap> scriptNameCodeMap;
+    if (scriptNameCodeMap.get().isEmpty()) {
         for (size_t i = 0; i < sizeof(scriptNameCodeList) / sizeof(ScriptNameCode); ++i)
-            scriptNameCodeMap.set(ASCIILiteral(scriptNameCodeList[i].name), scriptNameCodeList[i].code);
+            scriptNameCodeMap.get().set(ASCIILiteral(scriptNameCodeList[i].name), scriptNameCodeList[i].code);
     }
 
-    ScriptNameCodeMap::iterator it = scriptNameCodeMap.find(scriptName.lower());
-    if (it != scriptNameCodeMap.end())
+    ScriptNameCodeMap::iterator it = scriptNameCodeMap.get().find(scriptName.lower());
+    if (it != scriptNameCodeMap.get().end())
         return it->value;
     return USCRIPT_INVALID_CODE;
 }
@@ -375,7 +376,7 @@ static const LocaleScript localeScriptList[] = {
     { "yap", USCRIPT_LATIN },
     { "yo", USCRIPT_LATIN },
     { "za", USCRIPT_LATIN },
-    { "zh", USCRIPT_SIMPLIFIED_HAN },
+    { "zh", USCRIPT_HAN },
     { "zh_hk", USCRIPT_TRADITIONAL_HAN },
     { "zh_tw", USCRIPT_TRADITIONAL_HAN },
     { "zu", USCRIPT_LATIN }
@@ -389,16 +390,16 @@ typedef HashMap<String, UScriptCode, DefaultHash<String>::Hash, LocaleScriptMapH
 
 UScriptCode localeToScriptCodeForFontSelection(const String& locale)
 {
-    DEPRECATED_DEFINE_STATIC_LOCAL(LocaleScriptMap, localeScriptMap, ());
-    if (localeScriptMap.isEmpty()) {
+    static NeverDestroyed<LocaleScriptMap> localeScriptMap;
+    if (localeScriptMap.get().isEmpty()) {
         for (size_t i = 0; i < sizeof(localeScriptList) / sizeof(LocaleScript); ++i)
-            localeScriptMap.set(ASCIILiteral(localeScriptList[i].locale), localeScriptList[i].script);
+            localeScriptMap.get().set(ASCIILiteral(localeScriptList[i].locale), localeScriptList[i].script);
     }
 
     String canonicalLocale = locale.lower().replace('-', '_');
     while (!canonicalLocale.isEmpty()) {
-        LocaleScriptMap::iterator it = localeScriptMap.find(canonicalLocale);
-        if (it != localeScriptMap.end())
+        LocaleScriptMap::iterator it = localeScriptMap.get().find(canonicalLocale);
+        if (it != localeScriptMap.get().end())
             return it->value;
         size_t pos = canonicalLocale.reverseFind('_');
         if (pos == notFound)

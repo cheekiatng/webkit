@@ -255,11 +255,6 @@ SOFT_LINK_CONSTANT(AVFoundation, AVSampleBufferDisplayLayerFailedToDecodeNotific
 #endif
     ASSERT(streamDataParser == _parser);
 
-    if (isMainThread()) {
-        _parent->willProvideContentKeyRequestInitializationDataForTrackID(trackID);
-        return;
-    }
-
     // We must call synchronously to the main thread, as the AVStreamSession must be associated
     // with the streamDataParser before the delegate method returns.
     RetainPtr<WebAVStreamDataParserListener> strongSelf = self;
@@ -278,10 +273,12 @@ SOFT_LINK_CONSTANT(AVFoundation, AVSampleBufferDisplayLayerFailedToDecodeNotific
     RetainPtr<WebAVStreamDataParserListener> strongSelf = self;
 
     RetainPtr<NSData> strongData = initData;
-    callOnMainThread([strongSelf, strongData, trackID] {
+    OSObjectPtr<dispatch_semaphore_t> hasSessionSemaphore = adoptOSObject(dispatch_semaphore_create(0));
+    callOnMainThread([strongSelf, strongData, trackID,  hasSessionSemaphore] {
         if (strongSelf->_parent)
-            strongSelf->_parent->didProvideContentKeyRequestInitializationDataForTrackID(strongData.get(), trackID);
+            strongSelf->_parent->didProvideContentKeyRequestInitializationDataForTrackID(strongData.get(), trackID, hasSessionSemaphore);
     });
+    dispatch_semaphore_wait(hasSessionSemaphore.get(), DISPATCH_TIME_FOREVER);
 }
 @end
 
@@ -459,6 +456,7 @@ private:
     virtual PlatformSample platformSample() override;
     virtual void dump(PrintStream&) const override;
     virtual void offsetTimestampsBy(const MediaTime&) override;
+    virtual void setTimestamps(const MediaTime&, const MediaTime&) override;
 
     RetainPtr<CMSampleBufferRef> m_sample;
     AtomicString m_id;
@@ -505,7 +503,7 @@ FloatSize MediaSampleAVFObjC::presentationSize() const
 
 void MediaSampleAVFObjC::dump(PrintStream& out) const
 {
-    out.print("{PTS(", presentationTime(), "), DTS(", decodeTime(), "), duration(", duration(), "), flags(", (int)flags(), "), presentationSize(", presentationSize(), ")}");
+    out.print("{PTS(", presentationTime(), "), DTS(", decodeTime(), "), duration(", duration(), "), flags(", (int)flags(), "), presentationSize(", presentationSize().width(), "x", presentationSize().height(), ")}");
 }
 
 void MediaSampleAVFObjC::offsetTimestampsBy(const MediaTime& offset)
@@ -522,6 +520,29 @@ void MediaSampleAVFObjC::offsetTimestampsBy(const MediaTime& offset)
     for (auto& timing : timingInfoArray) {
         timing.presentationTimeStamp = toCMTime(toMediaTime(timing.presentationTimeStamp) + offset);
         timing.decodeTimeStamp = toCMTime(toMediaTime(timing.decodeTimeStamp) + offset);
+    }
+
+    CMSampleBufferRef newSample;
+    if (noErr != CMSampleBufferCreateCopyWithNewTiming(kCFAllocatorDefault, m_sample.get(), itemCount, timingInfoArray.data(), &newSample))
+        return;
+
+    m_sample = adoptCF(newSample);
+}
+
+void MediaSampleAVFObjC::setTimestamps(const WTF::MediaTime &presentationTimestamp, const WTF::MediaTime &decodeTimestamp)
+{
+    CMItemCount itemCount = 0;
+    if (noErr != CMSampleBufferGetSampleTimingInfoArray(m_sample.get(), 0, nullptr, &itemCount))
+        return;
+
+    Vector<CMSampleTimingInfo> timingInfoArray;
+    timingInfoArray.grow(itemCount);
+    if (noErr != CMSampleBufferGetSampleTimingInfoArray(m_sample.get(), itemCount, timingInfoArray.data(), nullptr))
+        return;
+
+    for (auto& timing : timingInfoArray) {
+        timing.presentationTimeStamp = toCMTime(presentationTimestamp);
+        timing.decodeTimeStamp = toCMTime(decodeTimestamp);
     }
 
     CMSampleBufferRef newSample;
@@ -590,6 +611,9 @@ SourceBufferPrivateAVFObjC::~SourceBufferPrivateAVFObjC()
     ASSERT(!m_client);
     destroyParser();
     destroyRenderers();
+
+    if (m_hasSessionSemaphore)
+        dispatch_semaphore_signal(m_hasSessionSemaphore.get());
 }
 
 void SourceBufferPrivateAVFObjC::didParseStreamDataAsAsset(AVAsset* asset)
@@ -695,15 +719,14 @@ void SourceBufferPrivateAVFObjC::willProvideContentKeyRequestInitializationDataF
     LOG(MediaSource, "SourceBufferPrivateAVFObjC::willProvideContentKeyRequestInitializationDataForTrackID(%p) - track:%d", this, trackID);
     m_protectedTrackID = trackID;
 
-    BEGIN_BLOCK_OBJC_EXCEPTIONS;
-    [m_mediaSource->player()->streamSession() addStreamDataParser:m_parser.get()];
-    END_BLOCK_OBJC_EXCEPTIONS;
+    if (CDMSessionMediaSourceAVFObjC* session = m_mediaSource->player()->cdmSession())
+        session->addParser(m_parser.get());
 #else
     UNUSED_PARAM(trackID);
 #endif
 }
 
-void SourceBufferPrivateAVFObjC::didProvideContentKeyRequestInitializationDataForTrackID(NSData* initData, int trackID)
+void SourceBufferPrivateAVFObjC::didProvideContentKeyRequestInitializationDataForTrackID(NSData* initData, int trackID, OSObjectPtr<dispatch_semaphore_t> hasSessionSemaphore)
 {
     if (!m_mediaSource)
         return;
@@ -715,6 +738,14 @@ void SourceBufferPrivateAVFObjC::didProvideContentKeyRequestInitializationDataFo
     RefPtr<Uint8Array> initDataArray = Uint8Array::create([initData length]);
     [initData getBytes:initDataArray->data() length:initDataArray->length()];
     m_mediaSource->sourceBufferKeyNeeded(this, initDataArray.get());
+    if (auto session = m_mediaSource->player()->cdmSession()) {
+        session->addParser(m_parser.get());
+        dispatch_semaphore_signal(hasSessionSemaphore.get());
+    } else {
+        if (m_hasSessionSemaphore)
+            dispatch_semaphore_signal(m_hasSessionSemaphore.get());
+        m_hasSessionSemaphore = hasSessionSemaphore;
+    }
 #else
     UNUSED_PARAM(initData);
 #endif
@@ -894,6 +925,25 @@ void SourceBufferPrivateAVFObjC::trackDidChangeEnabled(AudioTrackPrivateMediaSou
 
         if (m_mediaSource)
             m_mediaSource->player()->addAudioRenderer(renderer.get());
+    }
+}
+
+void SourceBufferPrivateAVFObjC::setCDMSession(CDMSessionMediaSourceAVFObjC* session)
+{
+    if (session == m_session)
+        return;
+
+    if (m_session)
+        m_session->removeSourceBuffer(this);
+
+    m_session = session;
+
+    if (m_session) {
+        m_session->addSourceBuffer(this);
+        if (m_hasSessionSemaphore) {
+            dispatch_semaphore_signal(m_hasSessionSemaphore.get());
+            m_hasSessionSemaphore = nullptr;
+        }
     }
 }
 

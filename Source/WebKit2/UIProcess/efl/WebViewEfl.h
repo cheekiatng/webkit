@@ -63,15 +63,15 @@ public:
     void setViewBackgroundColor(const WebCore::Color&);
     WebCore::Color viewBackgroundColor();
 private:
-    WebViewEfl(WebProcessPool*, WebPageGroup*);
+    WebViewEfl(WebProcessPool*, API::PageConfiguration&);
 
     void setCursor(const WebCore::Cursor&) override;
-    RefPtr<WebPopupMenuProxy> createPopupMenuProxy(WebPageProxy*) override;
+    RefPtr<WebPopupMenuProxy> createPopupMenuProxy(WebPageProxy&) override;
     void updateTextInputState() override;
     void handleDownloadRequest(DownloadProxy*) override;
 
 #if ENABLE(CONTEXT_MENUS)
-    RefPtr<WebContextMenuProxy> createContextMenuProxy(WebPageProxy*) override;
+    virtual std::unique_ptr<WebContextMenuProxy> createContextMenuProxy(WebPageProxy&, const ContextMenuContextData&, const UserData&) override;
 #endif
 
 #if ENABLE(FULLSCREEN_API)
@@ -92,6 +92,12 @@ private:
 
     virtual void refView() override final { }
     virtual void derefView() override final { }
+
+    virtual void didRestoreScrollPosition() override final { }
+
+#if ENABLE(VIDEO) && USE(GSTREAMER)
+    virtual bool decidePolicyForInstallMissingMediaPluginsPermissionRequest(InstallMissingMediaPluginsPermissionRequest&) override final { return false; };
+#endif
 
 private:
     EwkView* m_ewkView;

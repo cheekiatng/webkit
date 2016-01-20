@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2014-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,7 +48,6 @@
 #import <UIKit/UIPickerContentView_Private.h>
 #import <UIKit/UIPickerView_Private.h>
 #import <UIKit/UIPresentationController_Private.h>
-#import <UIKit/UIPreviewItemController.h>
 #import <UIKit/UIResponder_Private.h>
 #import <UIKit/UIScrollView_Private.h>
 #import <UIKit/UIStringDrawing_Private.h>
@@ -75,40 +74,81 @@
 #import <UIKit/_UINavigationInteractiveTransition.h>
 #import <UIKit/_UINavigationParallaxTransition.h>
 
+#if HAVE(LINK_PREVIEW)
+#import <UIKit/UIPreviewItemController.h>
+#endif
+
 // FIXME: Unconditionally include this file when a new SDK is available. <rdar://problem/20150072>
 #if defined(__has_include) && __has_include(<UIKit/UIDocumentMenuViewController_Private.h>)
 #import <UIKit/UIDocumentMenuViewController_Private.h>
 #else
-@interface UIDocumentMenuViewController (Details)
-@property (nonatomic, assign, setter = _setIgnoreApplicationEntitlementForImport:, getter = _ignoreApplicationEntitlementForImport) BOOL _ignoreApplicationEntitlementForImport;
+@interface UIDocumentMenuViewController ()
+- (instancetype)_initIgnoringApplicationEntitlementForImportOfTypes:(NSArray *)types;
 @end
 #endif
 
 #else
 
-@interface UIAlertController (Details)
+#if HAVE(LINK_PREVIEW)
+typedef NS_ENUM(NSInteger, UIPreviewItemType) {
+    UIPreviewItemTypeNone,
+    UIPreviewItemTypeClientCustom,
+    UIPreviewItemTypeLink,
+    UIPreviewItemTypeImage,
+    UIPreviewItemTypeText,
+};
+
+@class UIPreviewItemController;
+
+@protocol UIPreviewItemDelegate <NSObject>
+- (NSDictionary *)_dataForPreviewItemController:(UIPreviewItemController *)controller atPosition:(CGPoint)position type:(UIPreviewItemType *)type;
+@optional
+- (BOOL)_interactionShouldBeginFromPreviewItemController:(UIPreviewItemController *)controller forPosition:(CGPoint)position;
+- (void)_interactionStartedFromPreviewItemController:(UIPreviewItemController *)controller;
+- (void)_interactionStoppedFromPreviewItemController:(UIPreviewItemController *)controller;
+- (UIViewController *)_presentedViewControllerForPreviewItemController:(UIPreviewItemController *)controller;
+- (void)_previewItemController:(UIPreviewItemController *)controller didDismissPreview:(UIViewController *)viewController committing:(BOOL)committing;
+- (void)_previewItemController:(UIPreviewItemController *)controller commitPreview:(UIViewController *)viewController;
+- (void)_previewItemControllerDidCancelPreview:(UIPreviewItemController *)controller;
+- (UIImage *)_presentationSnapshotForPreviewItemController:(UIPreviewItemController *)controller;
+- (NSArray *)_presentationRectsForPreviewItemController:(UIPreviewItemController *)controller;
+- (CGRect)_presentationRectForPreviewItemController:(UIPreviewItemController *)controller;
+@end
+
+@interface UIPreviewItemController : NSObject
+- (instancetype)initWithView:(UIView *)view;
+@property (assign, nonatomic) id<UIPreviewItemDelegate> delegate;
+@property (assign, nonatomic, readonly) UIPreviewItemType type;
+@property (strong, nonatomic, readonly) NSDictionary *previewData;
+@property (strong, nonatomic, readonly) UIGestureRecognizer *presentationGestureRecognizer;
+@property (strong, nonatomic, readonly) UIGestureRecognizer *presentationSecondaryGestureRecognizer;
+@end
+#endif
+
+@interface UIAlertController ()
 - (void)_addActionWithTitle:(NSString *)title style:(UIAlertActionStyle)style handler:(void (^)(void))handler;
 - (void)_addActionWithTitle:(NSString *)title style:(UIAlertActionStyle)style handler:(void (^)(void))handler shouldDismissHandler:(BOOL (^)(void))shouldDismissHandler;
 @property (nonatomic) UIAlertControllerStyle preferredStyle;
 @end
 
-@interface UIApplication (Details)
+@interface UIApplication ()
 - (UIInterfaceOrientation)interfaceOrientation;
 - (void)_cancelAllTouches;
 - (CGFloat)statusBarHeight;
+- (BOOL)isSuspendedUnderLock;
 @end
 
 typedef NS_ENUM(NSInteger, UIDatePickerPrivateMode)  {
     UIDatePickerModeYearAndMonth = 4269,
 };
 
-@interface UIDatePicker (Details)
+@interface UIDatePicker ()
 @property (nonatomic, readonly, getter=_contentWidth) CGFloat contentWidth;
 @end
 
 #define UICurrentUserInterfaceIdiomIsPad() ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad)
 
-@interface UIDevice (Details)
+@interface UIDevice ()
 @property (nonatomic, readonly, retain) NSString *buildVersion;
 @end
 
@@ -123,7 +163,7 @@ typedef enum {
     kUIKeyboardInputPreProcessed           = 1 << 7,
 } UIKeyboardInputFlags;
 
-@interface UIEvent (Details)
+@interface UIEvent ()
 @property (nonatomic, readonly) UIKeyboardInputFlags _inputFlags;
 - (void *)_hidEvent;
 - (NSString *)_unmodifiedInput;
@@ -136,7 +176,7 @@ typedef enum {
     UIFontTraitPlain = 0x00000000,
 } UIFontTrait;
 
-@interface UIFont (Details)
+@interface UIFont ()
 + (UIFont *)fontWithFamilyName:(NSString *)familyName traits:(UIFontTrait)traits size:(CGFloat)fontSize;
 @end
 
@@ -144,15 +184,15 @@ typedef enum {
     UIAllCorners = 0xFF,
 } UIRectCorners;
 
-@interface UIImagePickerController (Details)
+@interface UIImagePickerController ()
 @property (nonatomic, setter=_setAllowsMultipleSelection:) BOOL _allowsMultipleSelection;
 @end
 
-@interface UIImage (Details)
+@interface UIImage ()
 - (id)initWithCGImage:(CGImageRef)CGImage imageOrientation:(UIImageOrientation)imageOrientation;
 @end
 
-@interface UIKeyCommand (Details)
+@interface UIKeyCommand ()
 @property (nonatomic, readonly) UIEvent *_triggeringEvent;
 @end
 
@@ -176,7 +216,7 @@ typedef enum {
 @interface UIKeyboard : UIView <UIKeyboardImplGeometryDelegate>
 @end
 
-@interface UIKeyboard (Details)
+@interface UIKeyboard ()
 + (CGSize)defaultSizeForInterfaceOrientation:(UIInterfaceOrientation)orientation;
 - (void)activate;
 - (void)geometryChangeDone:(BOOL)keyboardVisible;
@@ -186,7 +226,7 @@ typedef enum {
 @interface UIKeyboardImpl : UIView <UIKeyboardCandidateListDelegate>
 @end
 
-@interface UIKeyboardImpl (Details)
+@interface UIKeyboardImpl ()
 + (UIKeyboardImpl *)activeInstance;
 + (UIKeyboardImpl *)sharedInstance;
 + (CGSize)defaultSizeForInterfaceOrientation:(UIInterfaceOrientation)orientation;
@@ -198,19 +238,20 @@ typedef enum {
 @property (nonatomic, readwrite, retain) UIResponder <UIKeyInput> *delegate;
 @end
 
-@interface UIGestureRecognizer (Details)
+@interface UIGestureRecognizer ()
 - (void)requireOtherGestureToFail:(UIGestureRecognizer *)gestureRecognizer;
 @end
 
-@interface UILongPressGestureRecognizer (Details)
+@interface UILongPressGestureRecognizer ()
 @property (nonatomic) CFTimeInterval delay;
 @property (nonatomic, readonly) CGPoint startPoint;
+@property (nonatomic, assign, setter=_setRequiresQuietImpulse:) BOOL _requiresQuietImpulse;
 @end
 
 @interface _UIWebHighlightLongPressGestureRecognizer : UILongPressGestureRecognizer
 @end
 
-@interface _UIWebHighlightLongPressGestureRecognizer (Details)
+@interface _UIWebHighlightLongPressGestureRecognizer ()
 - (void)cancel;
 @end
 
@@ -219,7 +260,7 @@ typedef enum {
 
 @class UIKeyboardRotationState;
 
-@interface UIPeripheralHost (Details)
+@interface UIPeripheralHost ()
 + (UIPeripheralHost *)sharedInstance;
 + (UIPeripheralHost *)activeInstance;
 + (CGRect)visiblePeripheralFrame;
@@ -230,29 +271,29 @@ typedef enum {
 @interface UIPickerContentView : UIView
 @end
 
-@interface UIPickerContentView (Details)
+@interface UIPickerContentView ()
 +(CGFloat)_checkmarkOffset;
 -(CGFloat)labelWidthForBounds:(CGRect)bounds;
 @property (nonatomic, getter=isChecked) BOOL checked;
 @property (nonatomic, readonly) UILabel *titleLabel;
 @end
 
-@interface UIPickerView (Details)
+@interface UIPickerView ()
 + (CGSize)defaultSizeForCurrentOrientation;
 - (void)_setUsesCheckedSelection:(BOOL)usesCheckedSelection;
 @property (nonatomic, setter=_setMagnifierEnabled:) BOOL _magnifierEnabled;
 @end
 
-@interface UIResponder (Details)
+@interface UIResponder ()
 - (void)_handleKeyUIEvent:(UIEvent *)event;
 @end
 
 @class CADisplay;
-@interface UIScreen (Details)
+@interface UIScreen ()
 - (CADisplay *)_display;
 @end
 
-@interface UIScrollView (Details)
+@interface UIScrollView ()
 - (void)_stopScrollingAndZoomingAnimations;
 - (void)_zoomToCenter:(CGPoint)center scale:(CGFloat)scale duration:(CFTimeInterval)duration force:(BOOL)force;
 - (void)_zoomToCenter:(CGPoint)center scale:(CGFloat)scale duration:(CFTimeInterval)duration;
@@ -268,7 +309,7 @@ typedef enum {
 - (CGSize)_legacy_sizeWithFont:(UIFont *)font minFontSize:(CGFloat)minFontSize actualFontSize:(CGFloat *)actualFontSize forWidth:(CGFloat)width lineBreakMode:(NSLineBreakMode)lineBreakMode;
 @end
 
-@interface UITapGestureRecognizer (Details)
+@interface UITapGestureRecognizer ()
 @property (nonatomic, readonly) CGPoint location;
 @end
 
@@ -312,7 +353,7 @@ typedef enum {
 @interface UITextInteractionAssistant : NSObject
 @end
 
-@interface UITextInteractionAssistant (Details)
+@interface UITextInteractionAssistant ()
 - (void)activateSelection;
 - (void)deactivateSelection;
 - (void)didEndScrollingOverflow;
@@ -321,7 +362,7 @@ typedef enum {
 - (void)willStartScrollingOverflow;
 @end
 
-@interface UIViewController (Details)
+@interface UIViewController ()
 + (UIViewController *)_viewControllerForFullScreenPresentationFromView:(UIView *)view;
 + (UIViewController *)viewControllerForView:(UIView *)view;
 @end
@@ -341,6 +382,7 @@ typedef enum {
 @interface _UIViewControllerTransitionContext : NSObject <UIViewControllerContextTransitioningEx>
 @end
 
+// FIXME: Separate the parts we are simply re-declaring from the ones we are overriding.
 @interface _UIViewControllerTransitionContext (Details)
 - (void) _setTransitionIsInFlight:(BOOL)flag;
 @property (nonatomic, assign, setter=_setAllowUserInteraction:, getter=_allowUserInteraction) BOOL _allowUserInteraction;
@@ -355,7 +397,7 @@ typedef enum {
 @interface _UIViewControllerOneToOneTransitionContext : _UIViewControllerTransitionContext
 @end
 
-@interface _UIViewControllerOneToOneTransitionContext (Details)
+@interface _UIViewControllerOneToOneTransitionContext ()
 @property (nonatomic, assign, setter=_setFromEndFrame:) CGRect fromEndFrame;
 @property (nonatomic, assign, setter=_setFromStartFrame:) CGRect fromStartFrame;
 @property (nonatomic, assign, setter=_setToEndFrame:) CGRect toEndFrame;
@@ -383,7 +425,7 @@ typedef NS_ENUM (NSInteger, _UIBackdropMaskViewFlags) {
     _UIBackdropMaskViewAll = _UIBackdropMaskViewGrayscaleTint | _UIBackdropMaskViewColorTint | _UIBackdropMaskViewFilters,
 };
 
-@interface UIView (Details)
+@interface UIView ()
 + (BOOL)_isInAnimationBlock;
 - (CGSize)size;
 - (void)setFrameOrigin:(CGPoint)origin;
@@ -394,7 +436,7 @@ typedef NS_ENUM (NSInteger, _UIBackdropMaskViewFlags) {
 @interface UIWebSelectionAssistant : NSObject <UIGestureRecognizerDelegate>
 @end
 
-@interface UIWebSelectionAssistant (Details)
+@interface UIWebSelectionAssistant ()
 - (BOOL)isSelectionGestureRecognizer:(UIGestureRecognizer *)gestureRecognizer;
 - (id)initWithView:(UIView *)view;
 - (void)clearSelection;
@@ -445,13 +487,14 @@ typedef NS_ENUM(NSInteger, UIWKGestureType) {
 @interface UIWKSelectionAssistant : UIWebSelectionAssistant
 @end
 
-@interface UIWKSelectionAssistant (Details)
+@interface UIWKSelectionAssistant ()
 - (BOOL)shouldHandleSingleTapAtPoint:(CGPoint)point;
 - (void)blockSelectionChangedWithTouch:(UIWKSelectionTouch)touch withFlags:(UIWKSelectionFlags)flags growThreshold:(CGFloat)grow shrinkThreshold:(CGFloat)shrink;
 - (void)selectionChangedWithGestureAt:(CGPoint)point withGesture:(UIWKGestureType)gestureType withState:(UIGestureRecognizerState)gestureState withFlags:(UIWKSelectionFlags)flags;
 - (void)selectionChangedWithTouchAt:(CGPoint)point withSelectionTouch:(UIWKSelectionTouch)touch withFlags:(UIWKSelectionFlags)flags;
 - (void)selectionChangedWithTouchAt:(CGPoint)point withSelectionTouch:(UIWKSelectionTouch)touch;
 - (void)showDictionaryFor:(NSString *)selectedTerm fromRect:(CGRect)presentationRect;
+- (void)showShareSheetFor:(NSString *)selectedTerm fromRect:(CGRect)presentationRect;
 @property (nonatomic, readonly) UILongPressGestureRecognizer *selectionLongPressRecognizer;
 @end
 
@@ -544,7 +587,7 @@ typedef enum {
 @interface UIWebFormAccessory : UIInputView
 @end
 
-@interface UIWebFormAccessory (Details)
+@interface UIWebFormAccessory ()
 - (void)hideAutoFillButton;
 - (void)setClearVisible:(BOOL)flag;
 - (void)showAutoFillButtonWithTitle:(NSString *)title;
@@ -553,6 +596,7 @@ typedef enum {
 
 @property (nonatomic, assign, getter=isNextEnabled) BOOL nextEnabled;
 @property (nonatomic, assign, getter=isPreviousEnabled) BOOL previousEnabled;
+- (id)initWithInputAssistantItem:(UITextInputAssistantItem *)inputAssistantItem;
 @end
 
 @protocol UIWebFormAccessoryDelegate
@@ -565,7 +609,7 @@ typedef enum {
 @interface UIWebGeolocationPolicyDecider : NSObject
 @end
 
-@interface UIWebGeolocationPolicyDecider (Details)
+@interface UIWebGeolocationPolicyDecider ()
 + (instancetype)sharedPolicyDecider;
 - (void)decidePolicyForGeolocationRequestFromOrigin:(id)securityOrigin requestingURL:(NSURL *)requestingURL window:(UIWindow *)window listener:(id)listener;
 @end
@@ -598,9 +642,7 @@ struct _UIWebTouchEvent {
     struct _UIWebTouchPoint* touchPoints;
     unsigned touchPointCount;
 
-#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 90000
     bool isPotentialTap;
-#endif
 };
 
 @protocol UIWebTouchEventsGestureRecognizerDelegate
@@ -611,7 +653,7 @@ struct _UIWebTouchEvent {
 @interface UIWebTouchEventsGestureRecognizer : UIGestureRecognizer
 @end
 
-@interface UIWebTouchEventsGestureRecognizer (Details)
+@interface UIWebTouchEventsGestureRecognizer ()
 - (id)initWithTarget:(id)target action:(SEL)action touchDelegate:(id <UIWebTouchEventsGestureRecognizerDelegate>)delegate;
 @property (nonatomic, getter=isDefaultPrevented) BOOL defaultPrevented;
 @property (nonatomic, readonly) BOOL inJavaScriptGesture;
@@ -637,7 +679,7 @@ typedef NS_ENUM(NSInteger, _UIBackdropViewStylePrivate) {
 @interface _UIHighlightView : UIView
 @end
 
-@interface _UIHighlightView (Details)
+@interface _UIHighlightView ()
 - (void)setColor:(UIColor *)aColor;
 - (void)setCornerRadii:(NSArray *)cornerRadii;
 - (void)setCornerRadius:(CGFloat)aCornerRadius;
@@ -648,7 +690,7 @@ typedef NS_ENUM(NSInteger, _UIBackdropViewStylePrivate) {
 @interface _UINavigationParallaxTransition : NSObject <UIViewControllerAnimatedTransitioningEx>
 @end
 
-@interface _UINavigationParallaxTransition (Details)
+@interface _UINavigationParallaxTransition ()
 - (instancetype) initWithCurrentOperation:(UINavigationControllerOperation)operation;
 @end
 
@@ -657,7 +699,7 @@ typedef NS_ENUM(NSInteger, _UIBackdropViewStylePrivate) {
 @interface _UINavigationInteractiveTransitionBase : UIPercentDrivenInteractiveTransition <UIGestureRecognizerDelegate>
 @end
 
-@interface _UINavigationInteractiveTransitionBase (Details)
+@interface _UINavigationInteractiveTransitionBase ()
 - (id)initWithGestureRecognizerView:(UIView *)gestureRecognizerView animator:(id<UIViewControllerAnimatedTransitioning>)animator delegate:(id<_UINavigationInteractiveTransitionBaseDelegate>)delegate;
 @property (nonatomic, assign) BOOL shouldReverseTranslation;
 @property (nonatomic, retain) _UINavigationParallaxTransition *animationController;
@@ -673,9 +715,10 @@ typedef NS_ENUM(NSInteger, _UIBackdropViewStylePrivate) {
 
 @class BKSAnimationFenceHandle;
 
-@interface UIWindow (Details)
+@interface UIWindow ()
 + (BKSAnimationFenceHandle *)_synchronizedDrawingFence;
 + (mach_port_t)_synchronizeDrawingAcrossProcesses;
+- (void)_setWindowResolution:(CGFloat)resolution displayIfChanged:(BOOL)displayIfChanged;
 @end
 
 @interface UIWebScrollView : UIScrollView
@@ -686,7 +729,7 @@ typedef NS_ENUM(NSInteger, _UIBackdropViewStylePrivate) {
 
 @class WAKWindow;
 
-@interface UIWebTiledView (Details)
+@interface UIWebTiledView ()
 - (void)setWAKWindow:(WAKWindow *)window;
 @end
 
@@ -697,7 +740,7 @@ typedef enum {
     UIEveryDocumentMask = 0xFFFFFF,
 } UIDocumentMask;
 
-@interface UIWebDocumentView (Details)
+@interface UIWebDocumentView ()
 - (void)setDelegate:(id)delegate;
 - (void)setAutoresizes:(BOOL)flag;
 - (void)setMinimumSize:(CGSize)aSize;
@@ -712,15 +755,15 @@ typedef enum {
 
 @class WebView;
 
-@interface UIWebBrowserView (Details)
+@interface UIWebBrowserView ()
 - (WebView *)webView;
 - (void)setPaused:(BOOL)paused;
 - (void)sendScrollEventIfNecessaryWasUserScroll:(BOOL)userScroll;
 @property (nonatomic) BOOL inputViewObeysDOMFocus;
 @end
 
-@interface UIDocumentMenuViewController (Details)
-@property (nonatomic, assign, setter = _setIgnoreApplicationEntitlementForImport:, getter = _ignoreApplicationEntitlementForImport) BOOL _ignoreApplicationEntitlementForImport;
+@interface UIDocumentMenuViewController ()
+- (instancetype)_initIgnoringApplicationEntitlementForImportOfTypes:(NSArray *)types;
 @end
 
 @protocol UIDocumentPasswordViewDelegate;
@@ -728,7 +771,7 @@ typedef enum {
 @interface UIDocumentPasswordView : UIView <UITextFieldDelegate>
 @end
 
-@interface UIDocumentPasswordView (Details)
+@interface UIDocumentPasswordView ()
 
 - (id)initWithDocumentName:(NSString *)documentName;
 
@@ -748,6 +791,13 @@ typedef enum {
 - (void)didBeginEditingPassword:(UITextField *)passwordField inView:(UIDocumentPasswordView *)passwordView;
 - (void)didEndEditingPassword:(UITextField *)passwordField inView:(UIDocumentPasswordView *)passwordView;
 
+@end
+
+@interface UIViewControllerPreviewAction : NSObject <NSCopying>
+@end
+
+@interface UIViewControllerPreviewAction ()
++ (instancetype)actionWithTitle:(NSString *)title handler:(void (^)(UIViewControllerPreviewAction *action, UIViewController *previewViewController))handler;
 @end
 
 #endif // USE(APPLE_INTERNAL_SDK)
@@ -790,5 +840,7 @@ extern const float UIWebViewStandardViewportWidth;
 
 extern NSString *const UIKeyInputPageUp;
 extern NSString *const UIKeyInputPageDown;
+
+extern const NSString *UIPreviewDataLink;
 
 WTF_EXTERN_C_END

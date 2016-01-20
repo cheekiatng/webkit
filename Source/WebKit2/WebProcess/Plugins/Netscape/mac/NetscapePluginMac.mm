@@ -146,16 +146,16 @@ NPBool NetscapePlugin::convertPoint(double sourceX, double sourceY, NPCoordinate
     if (!getScreenTransform(destSpace, destTransform))
         return false;
 
-    if (!destTransform.isInvertible())
-        return false;
+    if (auto inverse = destTransform.inverse()) {
+        AffineTransform transform = inverse.value() * sourceTransform;
 
-    AffineTransform transform = destTransform.inverse() * sourceTransform;
+        FloatPoint destinationPoint = transform.mapPoint(FloatPoint(sourceX, sourceY));
 
-    FloatPoint destinationPoint = transform.mapPoint(FloatPoint(sourceX, sourceY));
-
-    destX = destinationPoint.x();
-    destY = destinationPoint.y();
-    return true;
+        destX = destinationPoint.x();
+        destY = destinationPoint.y();
+        return true;
+    }
+    return false;
 }
 
 
@@ -444,9 +444,9 @@ static EventModifiers modifiersForEvent(const WebEvent& event)
 
 #endif
 
-void NetscapePlugin::platformPaint(GraphicsContext* context, const IntRect& dirtyRect, bool isSnapshot)
+void NetscapePlugin::platformPaint(GraphicsContext& context, const IntRect& dirtyRect, bool isSnapshot)
 {
-    CGContextRef platformContext = context->platformContext();
+    CGContextRef platformContext = context.platformContext();
 
     switch (m_eventModel) {
         case NPEventModelCocoa: {
@@ -999,7 +999,7 @@ static bool convertStringToKeyCodes(StringView string, ScriptCode scriptCode, Ve
     if (status != noErr)
         return false;
 
-    keyCodes = WTF::move(outputData);
+    keyCodes = WTFMove(outputData);
     return true;
 }
 #endif

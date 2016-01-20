@@ -32,10 +32,12 @@ enum ExitKind : uint8_t {
     ExitKindUnset,
     BadType, // We exited because a type prediction was wrong.
     BadCell, // We exited because we made an incorrect assumption about what cell we would see. Usually used for function checks.
+    BadIdent, // We exited because we made an incorrect assumption about what identifier we would see. Usually used for cached Id check in get_by_val.
     BadExecutable, // We exited because we made an incorrect assumption about what executable we would see.
     BadCache, // We exited because an inline cache was wrong.
     BadConstantCache, // We exited because a cache on a weak constant (usually a prototype) was wrong.
     BadIndexingType, // We exited because an indexing type was wrong.
+    BadTypeInfoFlags, // We exited because we made an incorrect assumption about what TypeInfo flags we would see.
     Overflow, // We exited because of overflow.
     NegativeZero, // We exited because we encountered negative zero.
     Int52Overflow, // We exited because of an Int52 overflow.

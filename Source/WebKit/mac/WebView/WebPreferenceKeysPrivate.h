@@ -99,6 +99,7 @@
 #define WebKitJavaScriptCanAccessClipboardPreferenceKey @"WebKitJavaScriptCanAccessClipboard"
 #define WebKitXSSAuditorEnabledPreferenceKey @"WebKitXSSAuditorEnabled"
 #define WebKitAcceleratedDrawingEnabledPreferenceKey @"WebKitAcceleratedDrawingEnabled"
+#define WebKitDisplayListDrawingEnabledPreferenceKey @"WebKitDisplayListDrawingEnabled"
 #define WebKitCanvasUsesAcceleratedDrawingPreferenceKey @"WebKitCanvasUsesAcceleratedDrawing"
 #define WebKitAcceleratedCompositingEnabledPreferenceKey @"WebKitAcceleratedCompositingEnabled"
 #define WebKitCSSRegionsEnabledPreferenceKey @"WebKitCSSRegionsEnabled"
@@ -120,7 +121,10 @@
 #define WebKitAVFoundationEnabledKey @"WebKitAVFoundationEnabled"
 #define WebKitHixie76WebSocketProtocolEnabledKey @"WebKitHixie76WebSocketProtocolEnabled"
 #define WebKitRequiresUserGestureForMediaPlaybackPreferenceKey @"WebKitMediaPlaybackRequiresUserGesture"
+#define WebKitRequiresUserGestureForAudioPlaybackPreferenceKey @"WebKitAudioPlaybackRequiresUserGesture"
 #define WebKitAllowsInlineMediaPlaybackPreferenceKey @"WebKitMediaPlaybackAllowsInline"
+#define WebKitInlineMediaPlaybackRequiresPlaysInlineAttributeKey @"InlineMediaPlaybackRequiresPlaysInlineAttribute"
+#define WebKitInvisibleAutoplayNotPermittedKey @"InvisibleAutoplayNotPermitted"
 #define WebKitAllowsPictureInPictureMediaPlaybackPreferenceKey @"WebKitAllowsPictureInPictureMediaPlayback"
 #define WebKitAllowsAirPlayForMediaPlaybackPreferenceKey @"WebKitMediaPlaybackAllowsAirPlay"
 #define WebKitMediaControlsScaleWithPageZoomPreferenceKey @"WebKitMediaControlsScaleWithPageZoom"
@@ -192,3 +196,6 @@
 #endif
 
 #define WebKitEnableInheritURIQueryComponentPreferenceKey @"WebKitEnableInheritURIQueryComponent"
+#define WebKitMediaDataLoadsAutomaticallyPreferenceKey @"WebKitMediaDataLoadsAutomatically"
+#define WebKitMockCaptureDevicesEnabledPreferenceKey @"WebKitMockCaptureDevicesEnabled"
+

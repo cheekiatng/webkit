@@ -54,6 +54,7 @@ static const CFStringRef sessionHistoryEntryURLKey = CFSTR("SessionHistoryEntryU
 static const CFStringRef sessionHistoryEntryTitleKey = CFSTR("SessionHistoryEntryTitle");
 static const CFStringRef sessionHistoryEntryOriginalURLKey = CFSTR("SessionHistoryEntryOriginalURL");
 static const CFStringRef sessionHistoryEntryDataKey = CFSTR("SessionHistoryEntryData");
+static const CFStringRef sessionHistoryEntryShouldOpenExternalURLsPolicyKey = CFSTR("SessionHistoryEntryShouldOpenExternalURLsPolicyKey");
 
 // Session history entry data.
 const uint32_t sessionHistoryEntryDataVersion = 2;
@@ -185,7 +186,7 @@ public:
     MallocPtr<uint8_t> finishEncoding(size_t& size)
     {
         size = m_bufferSize;
-        return WTF::move(m_buffer);
+        return WTFMove(m_buffer);
     }
 
 private:
@@ -335,8 +336,8 @@ static void encodeFrameStateNode(HistoryEntryDataEncoder& encoder, const FrameSt
 
     encoder << frameState.referrer;
 
-    encoder << frameState.scrollPoint.x();
-    encoder << frameState.scrollPoint.y();
+    encoder << frameState.scrollPosition.x();
+    encoder << frameState.scrollPosition.y();
 
     encoder << frameState.pageScaleFactor;
 
@@ -426,12 +427,15 @@ static RetainPtr<CFDictionaryRef> encodeSessionHistory(const BackForwardListStat
         auto title = item.pageState.title.createCFString();
         auto originalURL = item.pageState.mainFrameState.originalURLString.createCFString();
         auto data = encodeSessionHistoryEntryData(item.pageState.mainFrameState);
+        auto shouldOpenExternalURLsPolicyValue = static_cast<uint64_t>(item.pageState.shouldOpenExternalURLsPolicy);
+        auto shouldOpenExternalURLsPolicy = adoptCF(CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &shouldOpenExternalURLsPolicyValue));
 
         auto entryDictionary = createDictionary({
             { sessionHistoryEntryURLKey, url.get() },
             { sessionHistoryEntryTitleKey, title.get() },
             { sessionHistoryEntryOriginalURLKey, originalURL.get() },
             { sessionHistoryEntryDataKey, data.get() },
+            { sessionHistoryEntryShouldOpenExternalURLsPolicyKey, shouldOpenExternalURLsPolicy.get() },
         });
 
         CFArrayAppendValue(entries.get(), entryDictionary.get());
@@ -833,7 +837,7 @@ static void decodeFormData(HistoryEntryDataDecoder& decoder, HTTPBody& formData)
         if (!decoder.isValid())
             return;
 
-        formData.elements.append(WTF::move(formDataElement));
+        formData.elements.append(WTFMove(formDataElement));
     }
 
     bool hasGeneratedFiles;
@@ -858,7 +862,7 @@ static void decodeBackForwardTreeNode(HistoryEntryDataDecoder& decoder, FrameSta
         if (!decoder.isValid())
             return;
 
-        frameState.children.append(WTF::move(childFrameState));
+        frameState.children.append(WTFMove(childFrameState));
     }
 
     decoder >> frameState.documentSequenceNumber;
@@ -873,7 +877,7 @@ static void decodeBackForwardTreeNode(HistoryEntryDataDecoder& decoder, FrameSta
         if (!decoder.isValid())
             return;
 
-        frameState.documentState.append(WTF::move(state));
+        frameState.documentState.append(WTFMove(state));
     }
 
     String formContentType;
@@ -884,24 +888,24 @@ static void decodeBackForwardTreeNode(HistoryEntryDataDecoder& decoder, FrameSta
 
     if (hasFormData) {
         HTTPBody httpBody;
-        httpBody.contentType = WTF::move(formContentType);
+        httpBody.contentType = WTFMove(formContentType);
 
         decodeFormData(decoder, httpBody);
 
-        frameState.httpBody = WTF::move(httpBody);
+        frameState.httpBody = WTFMove(httpBody);
     }
 
     decoder >> frameState.itemSequenceNumber;
 
     decoder >> frameState.referrer;
 
-    int32_t scrollPointX;
-    decoder >> scrollPointX;
+    int32_t scrollPositionX;
+    decoder >> scrollPositionX;
 
-    int32_t scrollPointY;
-    decoder >> scrollPointY;
+    int32_t scrollPositionY;
+    decoder >> scrollPositionY;
 
-    frameState.scrollPoint = WebCore::IntPoint(scrollPointX, scrollPointY);
+    frameState.scrollPosition = WebCore::IntPoint(scrollPositionX, scrollPositionY);
 
     decoder >> frameState.pageScaleFactor;
 
@@ -912,7 +916,7 @@ static void decodeBackForwardTreeNode(HistoryEntryDataDecoder& decoder, FrameSta
         Vector<uint8_t> stateObjectData;
         decoder >> stateObjectData;
 
-        frameState.stateObjectData = WTF::move(stateObjectData);
+        frameState.stateObjectData = WTFMove(stateObjectData);
     }
 
     decoder >> frameState.target;
@@ -965,10 +969,20 @@ static bool decodeSessionHistoryEntry(CFDictionaryRef entryDictionary, BackForwa
     if (!historyEntryData)
         return false;
 
+    auto rawShouldOpenExternalURLsPolicy = dynamic_cf_cast<CFNumberRef>(CFDictionaryGetValue(entryDictionary, sessionHistoryEntryShouldOpenExternalURLsPolicyKey));
+    WebCore::ShouldOpenExternalURLsPolicy shouldOpenExternalURLsPolicy;
+    if (rawShouldOpenExternalURLsPolicy) {
+        uint64_t value;
+        CFNumberGetValue(rawShouldOpenExternalURLsPolicy, kCFNumberSInt64Type, &value);
+        shouldOpenExternalURLsPolicy = static_cast<WebCore::ShouldOpenExternalURLsPolicy>(value);
+    } else
+        shouldOpenExternalURLsPolicy = WebCore::ShouldOpenExternalURLsPolicy::ShouldAllowExternalSchemes;
+
     if (!decodeSessionHistoryEntryData(historyEntryData, backForwardListItemState.pageState.mainFrameState))
         return false;
 
     backForwardListItemState.pageState.title = title;
+    backForwardListItemState.pageState.shouldOpenExternalURLsPolicy = shouldOpenExternalURLsPolicy;
     backForwardListItemState.pageState.mainFrameState.urlString = urlString;
     backForwardListItemState.pageState.mainFrameState.originalURLString = originalURLString;
 
@@ -986,7 +1000,7 @@ static bool decodeSessionHistoryEntries(CFArrayRef entriesArray, Vector<BackForw
         if (!decodeSessionHistoryEntry(entryDictionary, entry))
             return false;
 
-        entries.append(WTF::move(entry));
+        entries.append(WTFMove(entry));
     }
 
     return true;

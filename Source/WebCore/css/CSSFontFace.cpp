@@ -37,16 +37,6 @@
 
 namespace WebCore {
 
-bool CSSFontFace::isLoaded() const
-{
-    size_t size = m_sources.size();
-    for (size_t i = 0; i < size; i++) {
-        if (!m_sources[i]->isLoaded())
-            return false;
-    }
-    return true;
-}
-
 bool CSSFontFace::isValid() const
 {
     size_t size = m_sources.size();
@@ -70,7 +60,7 @@ void CSSFontFace::removedFromSegmentedFontFace(CSSSegmentedFontFace* segmentedFo
 void CSSFontFace::addSource(std::unique_ptr<CSSFontFaceSource> source)
 {
     source->setFontFace(this);
-    m_sources.append(WTF::move(source));
+    m_sources.append(WTFMove(source));
 }
 
 void CSSFontFace::fontLoaded(CSSFontFaceSource* source)
@@ -98,9 +88,8 @@ void CSSFontFace::fontLoaded(CSSFontFaceSource* source)
     }
 #endif
 
-    HashSet<CSSSegmentedFontFace*>::iterator end = m_segmentedFontFaces.end();
-    for (HashSet<CSSSegmentedFontFace*>::iterator it = m_segmentedFontFaces.begin(); it != end; ++it)
-        (*it)->fontLoaded(this);
+    for (auto* face : m_segmentedFontFaces)
+        face->fontLoaded(this);
 
 #if ENABLE(FONT_LOAD_EVENTS)
     if (RuntimeEnabledFeatures::sharedFeatures().fontLoadEventsEnabled())
@@ -124,7 +113,7 @@ RefPtr<Font> CSSFontFace::font(const FontDescription& fontDescription, bool synt
 
     size_t size = m_sources.size();
     for (size_t i = 0; i < size; ++i) {
-        if (RefPtr<Font> result = m_sources[i]->font(fontDescription, syntheticBold, syntheticItalic, fontSelector)) {
+        if (RefPtr<Font> result = m_sources[i]->font(fontDescription, syntheticBold, syntheticItalic, fontSelector, m_featureSettings, m_variantSettings)) {
             m_activeSource = m_sources[i].get();
 #if ENABLE(FONT_LOAD_EVENTS)
             if (RuntimeEnabledFeatures::sharedFeatures().fontLoadEventsEnabled() && m_loadState == Loading && m_sources[i]->isLoaded()) {
@@ -142,7 +131,7 @@ RefPtr<Font> CSSFontFace::font(const FontDescription& fontDescription, bool synt
         notifyLoadingDone();
     }
 #endif
-    return 0;
+    return nullptr;
 }
 
 #if ENABLE(FONT_LOAD_EVENTS)

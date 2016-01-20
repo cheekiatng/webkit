@@ -103,11 +103,11 @@ static bool applyCommandToFrame(Frame& frame, EditorCommandSource source, EditAc
     // FIXME: We don't call shouldApplyStyle when the source is DOM; is there a good reason for that?
     switch (source) {
     case CommandFromMenuOrKeyBinding:
-        frame.editor().applyStyleToSelection(WTF::move(style), action);
+        frame.editor().applyStyleToSelection(WTFMove(style), action);
         return true;
     case CommandFromDOM:
     case CommandFromDOMWithUserInterface:
-        frame.editor().applyStyle(WTF::move(style), EditActionUnspecified);
+        frame.editor().applyStyle(WTFMove(style), EditActionUnspecified);
         return true;
     }
     ASSERT_NOT_REACHED();
@@ -165,11 +165,11 @@ static bool executeInsertFragment(Frame& frame, PassRefPtr<DocumentFragment> fra
     return true;
 }
 
-static bool executeInsertNode(Frame& frame, PassRefPtr<Node> content)
+static bool executeInsertNode(Frame& frame, Ref<Node>&& content)
 {
     RefPtr<DocumentFragment> fragment = DocumentFragment::create(*frame.document());
     ExceptionCode ec = 0;
-    fragment->appendChild(content, ec);
+    fragment->appendChild(WTFMove(content), ec);
     if (ec)
         return false;
     return executeInsertFragment(frame, fragment.release());
@@ -182,7 +182,7 @@ static bool expandSelectionToGranularity(Frame& frame, TextGranularity granulari
     RefPtr<Range> newRange = selection.toNormalizedRange();
     if (!newRange)
         return false;
-    if (newRange->collapsed(IGNORE_EXCEPTION))
+    if (newRange->collapsed())
         return false;
     RefPtr<Range> oldRange = selection.toNormalizedRange();
     EAffinity affinity = selection.affinity();
@@ -235,7 +235,7 @@ static RefPtr<Range> unionDOMRanges(Range* a, Range* b)
     Range* start = a->compareBoundaryPoints(Range::START_TO_START, b, ASSERT_NO_EXCEPTION) <= 0 ? a : b;
     Range* end = a->compareBoundaryPoints(Range::END_TO_END, b, ASSERT_NO_EXCEPTION) <= 0 ? b : a;
 
-    return Range::create(a->ownerDocument(), start->startContainer(), start->startOffset(), end->endContainer(), end->endOffset());
+    return Range::create(a->ownerDocument(), &start->startContainer(), start->startOffset(), &end->endContainer(), end->endOffset());
 }
 
 // Execute command functions
@@ -464,10 +464,10 @@ static bool executeInsertBacktab(Frame& frame, Event* event, EditorCommandSource
 
 static bool executeInsertHorizontalRule(Frame& frame, Event*, EditorCommandSource, const String& value)
 {
-    RefPtr<HTMLHRElement> rule = HTMLHRElement::create(*frame.document());
+    Ref<HTMLHRElement> rule = HTMLHRElement::create(*frame.document());
     if (!value.isEmpty())
         rule->setIdAttribute(value);
-    return executeInsertNode(frame, rule.release());
+    return executeInsertNode(frame, WTFMove(rule));
 }
 
 static bool executeInsertHTML(Frame& frame, Event*, EditorCommandSource, const String& value)
@@ -478,9 +478,9 @@ static bool executeInsertHTML(Frame& frame, Event*, EditorCommandSource, const S
 static bool executeInsertImage(Frame& frame, Event*, EditorCommandSource, const String& value)
 {
     // FIXME: If userInterface is true, we should display a dialog box and let the user choose a local image.
-    RefPtr<HTMLImageElement> image = HTMLImageElement::create(*frame.document());
+    Ref<HTMLImageElement> image = HTMLImageElement::create(*frame.document());
     image->setSrc(value);
-    return executeInsertNode(frame, image.release());
+    return executeInsertNode(frame, WTFMove(image));
 }
 
 static bool executeInsertLineBreak(Frame& frame, Event* event, EditorCommandSource source, const String&)
@@ -1037,7 +1037,7 @@ static bool executeStrikethrough(Frame& frame, Event*, EditorCommandSource sourc
     Ref<EditingStyle> style = EditingStyle::create();
     style->setStrikeThroughChange(textDecorationChangeForToggling(frame.editor(), CSSPropertyWebkitTextDecorationsInEffect, "line-through"));
     // FIXME: Needs a new EditAction!
-    return applyCommandToFrame(frame, source, EditActionUnderline, WTF::move(style));
+    return applyCommandToFrame(frame, source, EditActionUnderline, WTFMove(style));
 }
 
 static bool executeStyleWithCSS(Frame& frame, Event*, EditorCommandSource, const String& value)
@@ -1104,7 +1104,7 @@ static bool executeUnderline(Frame& frame, Event*, EditorCommandSource source, c
     Ref<EditingStyle> style = EditingStyle::create();
     TextDecorationChange change = textDecorationChangeForToggling(frame.editor(), CSSPropertyWebkitTextDecorationsInEffect, "underline");
     style->setUnderlineChange(change);
-    return applyCommandToFrame(frame, source, EditActionUnderline, WTF::move(style));
+    return applyCommandToFrame(frame, source, EditActionUnderline, WTFMove(style));
 }
 
 static bool executeUndo(Frame& frame, Event*, EditorCommandSource, const String&)
@@ -1647,9 +1647,9 @@ static const CommandMap& createCommandMap()
 
     CommandMap& commandMap = *new CommandMap;
 
-    for (size_t i = 0; i < WTF_ARRAY_LENGTH(commands); ++i) {
-        ASSERT(!commandMap.get(commands[i].name));
-        commandMap.set(commands[i].name, &commands[i].command);
+    for (auto& command : commands) {
+        ASSERT(!commandMap.get(command.name));
+        commandMap.set(command.name, &command.command);
     }
 
     return commandMap;
@@ -1677,7 +1677,6 @@ bool Editor::commandIsSupportedFromMenuOrKeyBinding(const String& commandName)
 }
 
 Editor::Command::Command()
-    : m_command(0)
 {
 }
 

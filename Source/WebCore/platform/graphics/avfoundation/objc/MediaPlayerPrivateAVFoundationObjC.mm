@@ -37,9 +37,11 @@
 #import "CDMSessionAVFoundationObjC.h"
 #import "Cookie.h"
 #import "ExceptionCodePlaceholder.h"
+#import "Extensions3D.h"
 #import "FloatConversion.h"
 #import "FloatConversion.h"
 #import "GraphicsContext.h"
+#import "GraphicsContext3D.h"
 #import "GraphicsContextCG.h"
 #import "InbandMetadataTextTrackPrivateAVF.h"
 #import "InbandTextTrackPrivateAVFObjC.h"
@@ -48,6 +50,7 @@
 #import "URL.h"
 #import "Logging.h"
 #import "MediaPlaybackTargetMac.h"
+#import "MediaPlaybackTargetMock.h"
 #import "MediaSelectionGroupAVFObjC.h"
 #import "MediaTimeAVFoundation.h"
 #import "PlatformTimeRanges.h"
@@ -62,6 +65,7 @@
 #import "WebCoreCALayerExtras.h"
 #import "WebCoreSystemInterface.h"
 #import <functional>
+#import <map>
 #import <objc/runtime.h>
 #import <runtime/DataView.h>
 #import <runtime/JSCInlines.h>
@@ -72,6 +76,7 @@
 #import <wtf/CurrentTime.h>
 #import <wtf/ListHashSet.h>
 #import <wtf/NeverDestroyed.h>
+#import <wtf/OSObjectPtr.h>
 #import <wtf/text/CString.h>
 #import <wtf/text/StringBuilder.h>
 
@@ -96,6 +101,10 @@
 
 #if USE(CFNETWORK)
 #include "CFNSURLConnectionSPI.h"
+#endif
+
+#if PLATFORM(IOS)
+#include <OpenGLES/ES3/glext.h>
 #endif
 
 namespace std {
@@ -153,6 +162,7 @@ typedef AVMediaSelectionOption AVMediaSelectionOptionType;
 #import "CoreMediaSoftLink.h"
 
 SOFT_LINK_FRAMEWORK_OPTIONAL(AVFoundation)
+
 SOFT_LINK_FRAMEWORK_OPTIONAL(CoreImage)
 SOFT_LINK_FRAMEWORK_OPTIONAL(CoreVideo)
 
@@ -294,6 +304,24 @@ SOFT_LINK_POINTER(AVFoundation, AVURLAssetBoundNetworkInterfaceName, NSString *)
 #define AVURLAssetBoundNetworkInterfaceName getAVURLAssetBoundNetworkInterfaceName()
 #endif
 
+#if PLATFORM(IOS)
+SOFT_LINK(CoreVideo, CVOpenGLESTextureCacheCreate, CVReturn, (CFAllocatorRef allocator, CFDictionaryRef cacheAttributes, CVEAGLContext eaglContext, CFDictionaryRef textureAttributes, CVOpenGLESTextureCacheRef* cacheOut), (allocator, cacheAttributes, eaglContext, textureAttributes, cacheOut))
+SOFT_LINK(CoreVideo, CVOpenGLESTextureCacheCreateTextureFromImage, CVReturn, (CFAllocatorRef allocator, CVOpenGLESTextureCacheRef textureCache, CVImageBufferRef sourceImage, CFDictionaryRef textureAttributes, GLenum target, GLint internalFormat, GLsizei width, GLsizei height, GLenum format, GLenum type, size_t planeIndex, CVOpenGLESTextureRef* textureOut), (allocator, textureCache, sourceImage, textureAttributes, target, internalFormat, width, height, format, type, planeIndex, textureOut))
+SOFT_LINK(CoreVideo, CVOpenGLESTextureCacheFlush, void, (CVOpenGLESTextureCacheRef textureCache, CVOptionFlags options), (textureCache, options))
+SOFT_LINK(CoreVideo, CVOpenGLESTextureGetTarget, GLenum, (CVOpenGLESTextureRef image), (image))
+SOFT_LINK(CoreVideo, CVOpenGLESTextureGetName, GLuint, (CVOpenGLESTextureRef image), (image))
+SOFT_LINK_POINTER(CoreVideo, kCVPixelBufferIOSurfaceOpenGLESFBOCompatibilityKey, NSString *)
+#define kCVPixelBufferIOSurfaceOpenGLESFBOCompatibilityKey getkCVPixelBufferIOSurfaceOpenGLESFBOCompatibilityKey()
+#else
+SOFT_LINK(CoreVideo, CVOpenGLTextureCacheCreate, CVReturn, (CFAllocatorRef allocator, CFDictionaryRef cacheAttributes, CGLContextObj cglContext, CGLPixelFormatObj cglPixelFormat, CFDictionaryRef textureAttributes, CVOpenGLTextureCacheRef* cacheOut), (allocator, cacheAttributes, cglContext, cglPixelFormat, textureAttributes, cacheOut))
+SOFT_LINK(CoreVideo, CVOpenGLTextureCacheCreateTextureFromImage, CVReturn, (CFAllocatorRef allocator, CVOpenGLTextureCacheRef textureCache, CVImageBufferRef sourceImage, CFDictionaryRef attributes, CVOpenGLTextureRef* textureOut), (allocator, textureCache, sourceImage, attributes, textureOut))
+SOFT_LINK(CoreVideo, CVOpenGLTextureCacheFlush, void, (CVOpenGLTextureCacheRef textureCache, CVOptionFlags options), (textureCache, options))
+SOFT_LINK(CoreVideo, CVOpenGLTextureGetTarget, GLenum, (CVOpenGLTextureRef image), (image))
+SOFT_LINK(CoreVideo, CVOpenGLTextureGetName, GLuint, (CVOpenGLTextureRef image), (image))
+SOFT_LINK_POINTER(CoreVideo, kCVPixelBufferIOSurfaceOpenGLFBOCompatibilityKey, NSString *)
+#define kCVPixelBufferIOSurfaceOpenGLFBOCompatibilityKey getkCVPixelBufferIOSurfaceOpenGLFBOCompatibilityKey()
+#endif
+
 using namespace WebCore;
 
 enum MediaPlayerAVFoundationObservationContext {
@@ -358,15 +386,6 @@ static const char *boolString(bool val)
 {
     return val ? "true" : "false";
 }
-#endif
-
-#if ENABLE(ENCRYPTED_MEDIA_V2)
-typedef HashMap<MediaPlayer*, MediaPlayerPrivateAVFoundationObjC*> PlayerToPrivateMapType;
-static PlayerToPrivateMapType& playerToPrivateMap()
-{
-    DEPRECATED_DEFINE_STATIC_LOCAL(PlayerToPrivateMapType, map, ());
-    return map;
-};
 #endif
 
 #if HAVE(AVFOUNDATION_LOADER_DELEGATE)
@@ -484,16 +503,10 @@ MediaPlayerPrivateAVFoundationObjC::MediaPlayerPrivateAVFoundationObjC(MediaPlay
     , m_allowsWirelessVideoPlayback(true)
 #endif
 {
-#if ENABLE(ENCRYPTED_MEDIA_V2)
-    playerToPrivateMap().set(player, this);
-#endif
 }
 
 MediaPlayerPrivateAVFoundationObjC::~MediaPlayerPrivateAVFoundationObjC()
 {
-#if ENABLE(ENCRYPTED_MEDIA_V2)
-    playerToPrivateMap().remove(player());
-#endif
 #if HAVE(AVFOUNDATION_LOADER_DELEGATE)
     [m_loaderDelegate.get() setCallback:0];
     [[m_avAsset.get() resourceLoader] setDelegate:nil queue:0];
@@ -622,6 +635,7 @@ void MediaPlayerPrivateAVFoundationObjC::destroyContextVideoRenderer()
 {
 #if HAVE(AVFOUNDATION_VIDEO_OUTPUT)
     destroyVideoOutput();
+    destroyOpenGLVideoOutput();
 #endif
     destroyImageGenerator();
 }
@@ -653,7 +667,7 @@ void MediaPlayerPrivateAVFoundationObjC::createVideoLayer()
         if (!m_videoLayer)
             createAVPlayerLayer();
 
-#if USE(VIDEOTOOLBOX) && (!defined(__MAC_OS_X_VERSION_MIN_REQUIRED) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000)
+#if USE(VIDEOTOOLBOX)
         if (!m_videoOutput)
             createVideoOutput();
 #endif
@@ -669,14 +683,14 @@ void MediaPlayerPrivateAVFoundationObjC::createAVPlayerLayer()
 
     m_videoLayer = adoptNS([allocAVPlayerLayerInstance() init]);
     [m_videoLayer setPlayer:m_avPlayer.get()];
-    [m_videoLayer setBackgroundColor:cachedCGColor(Color::black, ColorSpaceDeviceRGB)];
+    [m_videoLayer setBackgroundColor:cachedCGColor(Color::black)];
 #ifndef NDEBUG
     [m_videoLayer setName:@"MediaPlayerPrivate AVPlayerLayer"];
 #endif
     [m_videoLayer addObserver:m_objcObserver.get() forKeyPath:@"readyForDisplay" options:NSKeyValueObservingOptionNew context:(void *)MediaPlayerAVFoundationObservationContextAVPlayerLayer];
     updateVideoLayerGravity();
     [m_videoLayer setContentsScale:player()->client().mediaPlayerContentsScale()];
-    IntSize defaultSize = player()->client().mediaPlayerContentBoxRect().pixelSnappedSize();
+    IntSize defaultSize = snappedIntRect(player()->client().mediaPlayerContentBoxRect()).size();
     LOG(Media, "MediaPlayerPrivateAVFoundationObjC::createVideoLayer(%p) - returning %p", this, m_videoLayer.get());
 
 #if PLATFORM(IOS)
@@ -1044,31 +1058,29 @@ void MediaPlayerPrivateAVFoundationObjC::beginLoadingMetadata()
 {
     LOG(Media, "MediaPlayerPrivateAVFoundationObjC::beginLoadingMetadata(%p) - requesting metadata loading", this);
 
-    dispatch_group_t metadataLoadingGroup = dispatch_group_create();
-    dispatch_group_enter(metadataLoadingGroup);
+    OSObjectPtr<dispatch_group_t> metadataLoadingGroup = adoptOSObject(dispatch_group_create());
+    dispatch_group_enter(metadataLoadingGroup.get());
     auto weakThis = createWeakPtr();
     [m_avAsset.get() loadValuesAsynchronouslyForKeys:assetMetadataKeyNames() completionHandler:^{
 
         callOnMainThread([weakThis, metadataLoadingGroup] {
             if (weakThis && [weakThis->m_avAsset.get() statusOfValueForKey:@"tracks" error:nil] == AVKeyValueStatusLoaded) {
                 for (AVAssetTrack *track in [weakThis->m_avAsset.get() tracks]) {
-                    dispatch_group_enter(metadataLoadingGroup);
+                    dispatch_group_enter(metadataLoadingGroup.get());
                     [track loadValuesAsynchronouslyForKeys:assetTrackMetadataKeyNames() completionHandler:^{
-                        dispatch_group_leave(metadataLoadingGroup);
+                        dispatch_group_leave(metadataLoadingGroup.get());
                     }];
                 }
             }
-            dispatch_group_leave(metadataLoadingGroup);
+            dispatch_group_leave(metadataLoadingGroup.get());
         });
     }];
 
-    dispatch_group_notify(metadataLoadingGroup, dispatch_get_main_queue(), ^{
+    dispatch_group_notify(metadataLoadingGroup.get(), dispatch_get_main_queue(), ^{
         callOnMainThread([weakThis] {
             if (weakThis)
                 [weakThis->m_objcObserver.get() metadataLoaded];
         });
-
-        dispatch_release(metadataLoadingGroup);
     });
 }
 
@@ -1305,6 +1317,8 @@ void MediaPlayerPrivateAVFoundationObjC::seekToTime(const MediaTime& time, const
 
     auto weakThis = createWeakPtr();
 
+    LOG(Media, "MediaPlayerPrivateAVFoundationObjC::seekToTime(%p) - calling seekToTime", this);
+
     [m_avPlayerItem.get() seekToTime:cmTime toleranceBefore:cmBefore toleranceAfter:cmAfter completionHandler:^(BOOL finished) {
         callOnMainThread([weakThis, finished] {
             auto _this = weakThis.get();
@@ -1493,9 +1507,9 @@ long MediaPlayerPrivateAVFoundationObjC::assetErrorCode() const
     return [error code];
 }
 
-void MediaPlayerPrivateAVFoundationObjC::paintCurrentFrameInContext(GraphicsContext* context, const FloatRect& rect)
+void MediaPlayerPrivateAVFoundationObjC::paintCurrentFrameInContext(GraphicsContext& context, const FloatRect& rect)
 {
-    if (!metaDataAvailable() || context->paintingDisabled())
+    if (!metaDataAvailable() || context.paintingDisabled())
         return;
 
     setDelayCallbacks(true);
@@ -1514,9 +1528,9 @@ void MediaPlayerPrivateAVFoundationObjC::paintCurrentFrameInContext(GraphicsCont
     m_videoFrameHasDrawn = true;
 }
 
-void MediaPlayerPrivateAVFoundationObjC::paint(GraphicsContext* context, const FloatRect& rect)
+void MediaPlayerPrivateAVFoundationObjC::paint(GraphicsContext& context, const FloatRect& rect)
 {
-    if (!metaDataAvailable() || context->paintingDisabled())
+    if (!metaDataAvailable() || context.paintingDisabled())
         return;
 
     // We can ignore the request if we are already rendering to a layer.
@@ -1530,18 +1544,18 @@ void MediaPlayerPrivateAVFoundationObjC::paint(GraphicsContext* context, const F
     paintCurrentFrameInContext(context, rect);
 }
 
-void MediaPlayerPrivateAVFoundationObjC::paintWithImageGenerator(GraphicsContext* context, const FloatRect& rect)
+void MediaPlayerPrivateAVFoundationObjC::paintWithImageGenerator(GraphicsContext& context, const FloatRect& rect)
 {
     LOG(Media, "MediaPlayerPrivateAVFoundationObjC::paintWithImageGenerator(%p)", this);
 
     RetainPtr<CGImageRef> image = createImageForTimeInRect(currentTime(), rect);
     if (image) {
-        GraphicsContextStateSaver stateSaver(*context);
-        context->translate(rect.x(), rect.y() + rect.height());
-        context->scale(FloatSize(1.0f, -1.0f));
-        context->setImageInterpolationQuality(InterpolationLow);
+        GraphicsContextStateSaver stateSaver(context);
+        context.translate(rect.x(), rect.y() + rect.height());
+        context.scale(FloatSize(1.0f, -1.0f));
+        context.setImageInterpolationQuality(InterpolationLow);
         IntRect paintRect(IntPoint(0, 0), IntSize(rect.width(), rect.height()));
-        CGContextDrawImage(context->platformContext(), CGRectMake(0, 0, paintRect.width(), paintRect.height()), image.get());
+        CGContextDrawImage(context.platformContext(), CGRectMake(0, 0, paintRect.width(), paintRect.height()), image.get());
         image = 0;
     }
 }
@@ -1574,7 +1588,7 @@ RetainPtr<CGImageRef> MediaPlayerPrivateAVFoundationObjC::createImageForTimeInRe
 
     [m_imageGenerator.get() setMaximumSize:CGSize(rect.size())];
     RetainPtr<CGImageRef> rawImage = adoptCF([m_imageGenerator.get() copyCGImageAtTime:CMTimeMakeWithSeconds(time, 600) actualTime:nil error:nil]);
-    RetainPtr<CGImageRef> image = adoptCF(CGImageCreateCopyWithColorSpace(rawImage.get(), deviceRGBColorSpaceRef()));
+    RetainPtr<CGImageRef> image = adoptCF(CGImageCreateCopyWithColorSpace(rawImage.get(), sRGBColorSpaceRef()));
 
 #if !LOG_DISABLED
     double duration = monotonicallyIncreasingTime() - start;
@@ -2187,7 +2201,7 @@ void MediaPlayerPrivateAVFoundationObjC::createVideoOutput()
     if (!m_avPlayerItem || m_videoOutput)
         return;
 
-#if USE(VIDEOTOOLBOX) && (!defined(__MAC_OS_X_VERSION_MIN_REQUIRED) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000)
+#if USE(VIDEOTOOLBOX)
     NSDictionary* attributes = nil;
 #else
     NSDictionary* attributes = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithUnsignedInt:kCVPixelFormatType_32BGRA], kCVPixelBufferPixelFormatTypeKey,
@@ -2199,10 +2213,6 @@ void MediaPlayerPrivateAVFoundationObjC::createVideoOutput()
     [m_videoOutput setDelegate:m_videoOutputDelegate.get() queue:globalPullDelegateQueue()];
 
     [m_avPlayerItem.get() addOutput:m_videoOutput.get()];
-
-#if defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED < 101000
-    waitForVideoOutputMediaDataWillChange();
-#endif
 
     LOG(Media, "MediaPlayerPrivateAVFoundationObjC::createVideoOutput(%p) - returning %p", this, m_videoOutput.get());
 }
@@ -2308,7 +2318,7 @@ static RetainPtr<CGImageRef> createImageFromPixelBuffer(CVPixelBufferRef pixelBu
     CGDataProviderDirectCallbacks providerCallbacks = { 0, CVPixelBufferGetBytePointerCallback, CVPixelBufferReleaseBytePointerCallback, 0, CVPixelBufferReleaseInfoCallback };
     RetainPtr<CGDataProviderRef> provider = adoptCF(CGDataProviderCreateDirect(pixelBuffer, byteLength, &providerCallbacks));
 
-    return adoptCF(CGImageCreate(width, height, 8, 32, bytesPerRow, deviceRGBColorSpaceRef(), bitmapInfo, provider.get(), NULL, false, kCGRenderingIntentDefault));
+    return adoptCF(CGImageCreate(width, height, 8, 32, bytesPerRow, sRGBColorSpaceRef(), bitmapInfo, provider.get(), NULL, false, kCGRenderingIntentDefault));
 }
 
 void MediaPlayerPrivateAVFoundationObjC::updateLastImage()
@@ -2322,12 +2332,10 @@ void MediaPlayerPrivateAVFoundationObjC::updateLastImage()
         m_lastImage = createImageFromPixelBuffer(pixelBuffer.get());
 }
 
-void MediaPlayerPrivateAVFoundationObjC::paintWithVideoOutput(GraphicsContext* context, const FloatRect& outputRect)
+void MediaPlayerPrivateAVFoundationObjC::paintWithVideoOutput(GraphicsContext& context, const FloatRect& outputRect)
 {
-#if (!defined(__MAC_OS_X_VERSION_MIN_REQUIRED) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000)
     if (m_videoOutput && !m_lastImage && !videoOutputHasAvailableFrame())
         waitForVideoOutputMediaDataWillChange();
-#endif
 
     updateLastImage();
 
@@ -2340,19 +2348,273 @@ void MediaPlayerPrivateAVFoundationObjC::paintWithVideoOutput(GraphicsContext* c
 
     LOG(Media, "MediaPlayerPrivateAVFoundationObjC::paintWithVideoOutput(%p)", this);
 
-    GraphicsContextStateSaver stateSaver(*context);
+    GraphicsContextStateSaver stateSaver(context);
     FloatRect imageRect(0, 0, CGImageGetWidth(m_lastImage.get()), CGImageGetHeight(m_lastImage.get()));
     AffineTransform videoTransform = [firstEnabledVideoTrack preferredTransform];
-    FloatRect transformedOutputRect = videoTransform.inverse().mapRect(outputRect);
+    FloatRect transformedOutputRect = videoTransform.inverse().valueOr(AffineTransform()).mapRect(outputRect);
 
-    context->concatCTM(videoTransform);
-    context->drawNativeImage(m_lastImage.get(), imageRect.size(), ColorSpaceDeviceRGB, transformedOutputRect, imageRect);
+    context.concatCTM(videoTransform);
+    context.drawNativeImage(m_lastImage.get(), imageRect.size(), transformedOutputRect, imageRect);
 
     // If we have created an AVAssetImageGenerator in the past due to m_videoOutput not having an available
     // video frame, destroy it now that it is no longer needed.
     if (m_imageGenerator)
         destroyImageGenerator();
 
+}
+
+void MediaPlayerPrivateAVFoundationObjC::createOpenGLVideoOutput()
+{
+    LOG(Media, "MediaPlayerPrivateAVFoundationObjC::createOpenGLVideoOutput(%p)", this);
+
+    if (!m_avPlayerItem || m_openGLVideoOutput)
+        return;
+
+#if PLATFORM(IOS)
+    NSDictionary* attributes = @{(NSString *)kCVPixelBufferIOSurfaceOpenGLESFBOCompatibilityKey: @YES};
+#else
+    NSDictionary* attributes = @{(NSString *)kCVPixelBufferIOSurfaceOpenGLFBOCompatibilityKey: @YES};
+#endif
+    m_openGLVideoOutput = adoptNS([allocAVPlayerItemVideoOutputInstance() initWithPixelBufferAttributes:attributes]);
+    ASSERT(m_openGLVideoOutput);
+
+    [m_avPlayerItem.get() addOutput:m_openGLVideoOutput.get()];
+
+    LOG(Media, "MediaPlayerPrivateAVFoundationObjC::createOpenGLVideoOutput(%p) - returning %p", this, m_openGLVideoOutput.get());
+}
+
+void MediaPlayerPrivateAVFoundationObjC::destroyOpenGLVideoOutput()
+{
+    if (!m_openGLVideoOutput)
+        return;
+
+    if (m_avPlayerItem)
+        [m_avPlayerItem.get() removeOutput:m_openGLVideoOutput.get()];
+    LOG(Media, "MediaPlayerPrivateAVFoundationObjC::destroyOpenGLVideoOutput(%p) - destroying  %p", this, m_videoOutput.get());
+
+    m_openGLVideoOutput = 0;
+}
+
+void MediaPlayerPrivateAVFoundationObjC::updateLastOpenGLImage()
+{
+    if (!m_openGLVideoOutput)
+        return;
+
+    CMTime currentTime = [m_openGLVideoOutput itemTimeForHostTime:CACurrentMediaTime()];
+    if (![m_openGLVideoOutput hasNewPixelBufferForItemTime:currentTime])
+        return;
+
+    m_lastOpenGLImage = adoptCF([m_openGLVideoOutput copyPixelBufferForItemTime:currentTime itemTimeForDisplay:nil]);
+}
+
+#if !LOG_DISABLED
+
+#define STRINGIFY_PAIR(e) e, #e
+static std::map<uint32_t, const char*>& enumToStringMap()
+{
+    static NeverDestroyed<std::map<uint32_t, const char*>> map;
+    if (map.get().empty()) {
+        std::map<uint32_t, const char*> stringMap;
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGBA));
+        map.get().emplace(STRINGIFY_PAIR(GL_LUMINANCE_ALPHA));
+        map.get().emplace(STRINGIFY_PAIR(GL_LUMINANCE));
+        map.get().emplace(STRINGIFY_PAIR(GL_ALPHA));
+        map.get().emplace(STRINGIFY_PAIR(GL_R8));
+        map.get().emplace(STRINGIFY_PAIR(GL_R16F));
+        map.get().emplace(STRINGIFY_PAIR(GL_R32F));
+        map.get().emplace(STRINGIFY_PAIR(GL_R8UI));
+        map.get().emplace(STRINGIFY_PAIR(GL_R8I));
+        map.get().emplace(STRINGIFY_PAIR(GL_R16UI));
+        map.get().emplace(STRINGIFY_PAIR(GL_R16I));
+        map.get().emplace(STRINGIFY_PAIR(GL_R32UI));
+        map.get().emplace(STRINGIFY_PAIR(GL_R32I));
+        map.get().emplace(STRINGIFY_PAIR(GL_RG8));
+        map.get().emplace(STRINGIFY_PAIR(GL_RG16F));
+        map.get().emplace(STRINGIFY_PAIR(GL_RG32F));
+        map.get().emplace(STRINGIFY_PAIR(GL_RG8UI));
+        map.get().emplace(STRINGIFY_PAIR(GL_RG8I));
+        map.get().emplace(STRINGIFY_PAIR(GL_RG16UI));
+        map.get().emplace(STRINGIFY_PAIR(GL_RG16I));
+        map.get().emplace(STRINGIFY_PAIR(GL_RG32UI));
+        map.get().emplace(STRINGIFY_PAIR(GL_RG32I));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB8));
+        map.get().emplace(STRINGIFY_PAIR(GL_SRGB8));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGBA8));
+        map.get().emplace(STRINGIFY_PAIR(GL_SRGB8_ALPHA8));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGBA4));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB10_A2));
+        map.get().emplace(STRINGIFY_PAIR(GL_DEPTH_COMPONENT16));
+        map.get().emplace(STRINGIFY_PAIR(GL_DEPTH_COMPONENT24));
+        map.get().emplace(STRINGIFY_PAIR(GL_DEPTH_COMPONENT32F));
+        map.get().emplace(STRINGIFY_PAIR(GL_DEPTH24_STENCIL8));
+        map.get().emplace(STRINGIFY_PAIR(GL_DEPTH32F_STENCIL8));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGBA));
+        map.get().emplace(STRINGIFY_PAIR(GL_LUMINANCE_ALPHA));
+        map.get().emplace(STRINGIFY_PAIR(GL_LUMINANCE));
+        map.get().emplace(STRINGIFY_PAIR(GL_ALPHA));
+        map.get().emplace(STRINGIFY_PAIR(GL_RED));
+        map.get().emplace(STRINGIFY_PAIR(GL_RG_INTEGER));
+        map.get().emplace(STRINGIFY_PAIR(GL_DEPTH_STENCIL));
+        map.get().emplace(STRINGIFY_PAIR(GL_UNSIGNED_BYTE));
+        map.get().emplace(STRINGIFY_PAIR(GL_UNSIGNED_SHORT_5_6_5));
+        map.get().emplace(STRINGIFY_PAIR(GL_UNSIGNED_SHORT_4_4_4_4));
+        map.get().emplace(STRINGIFY_PAIR(GL_UNSIGNED_SHORT_5_5_5_1));
+        map.get().emplace(STRINGIFY_PAIR(GL_BYTE));
+        map.get().emplace(STRINGIFY_PAIR(GL_HALF_FLOAT));
+        map.get().emplace(STRINGIFY_PAIR(GL_FLOAT));
+        map.get().emplace(STRINGIFY_PAIR(GL_UNSIGNED_SHORT));
+        map.get().emplace(STRINGIFY_PAIR(GL_SHORT));
+        map.get().emplace(STRINGIFY_PAIR(GL_UNSIGNED_INT));
+        map.get().emplace(STRINGIFY_PAIR(GL_INT));
+        map.get().emplace(STRINGIFY_PAIR(GL_UNSIGNED_INT_2_10_10_10_REV));
+        map.get().emplace(STRINGIFY_PAIR(GL_UNSIGNED_INT_24_8));
+        map.get().emplace(STRINGIFY_PAIR(GL_FLOAT_32_UNSIGNED_INT_24_8_REV));
+
+#if PLATFORM(IOS)
+        map.get().emplace(STRINGIFY_PAIR(GL_RED_INTEGER));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB_INTEGER));
+        map.get().emplace(STRINGIFY_PAIR(GL_RG8_SNORM));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB565));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB8_SNORM));
+        map.get().emplace(STRINGIFY_PAIR(GL_R11F_G11F_B10F));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB9_E5));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB16F));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB32F));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB8UI));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB8I));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB16UI));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB16I));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB32UI));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB32I));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGBA8_SNORM));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGBA16F));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGBA32F));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGBA8UI));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGBA8I));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB10_A2UI));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGBA16UI));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGBA16I));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGBA32I));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGBA32UI));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGB5_A1));
+        map.get().emplace(STRINGIFY_PAIR(GL_RG));
+        map.get().emplace(STRINGIFY_PAIR(GL_RGBA_INTEGER));
+        map.get().emplace(STRINGIFY_PAIR(GL_DEPTH_COMPONENT));
+        map.get().emplace(STRINGIFY_PAIR(GL_UNSIGNED_INT_10F_11F_11F_REV));
+        map.get().emplace(STRINGIFY_PAIR(GL_UNSIGNED_INT_5_9_9_9_REV));
+#endif
+    }
+    return map.get();
+}
+
+#endif // !LOG_DISABLED
+
+bool MediaPlayerPrivateAVFoundationObjC::copyVideoTextureToPlatformTexture(GraphicsContext3D* context, Platform3DObject outputTexture, GC3Denum outputTarget, GC3Dint level, GC3Denum internalFormat, GC3Denum format, GC3Denum type, bool premultiplyAlpha, bool flipY)
+{
+    if (flipY || premultiplyAlpha)
+        return false;
+
+    ASSERT(context);
+
+    if (!m_openGLVideoOutput)
+        createOpenGLVideoOutput();
+
+    updateLastOpenGLImage();
+
+    if (!m_lastOpenGLImage)
+        return false;
+
+    if (!m_openGLTextureCache) {
+#if PLATFORM(IOS)
+        CVOpenGLESTextureCacheRef cache = nullptr;
+        CVReturn error = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, nullptr, context->platformGraphicsContext3D(), nullptr, &cache);
+#else
+        CVOpenGLTextureCacheRef cache = nullptr;
+        CVReturn error = CVOpenGLTextureCacheCreate(kCFAllocatorDefault, nullptr, context->platformGraphicsContext3D(), CGLGetPixelFormat(context->platformGraphicsContext3D()), nullptr, &cache);
+#endif
+        if (error != kCVReturnSuccess)
+            return false;
+        m_openGLTextureCache = adoptCF(cache);
+    }
+
+    size_t width = CVPixelBufferGetWidth(m_lastOpenGLImage.get());
+    size_t height = CVPixelBufferGetHeight(m_lastOpenGLImage.get());
+
+#if PLATFORM(IOS)
+    CVOpenGLESTextureRef bareVideoTexture = nullptr;
+    if (kCVReturnSuccess != CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault, m_openGLTextureCache.get(), m_lastOpenGLImage.get(), nullptr, outputTarget, internalFormat, width, height, format, type, level, &bareVideoTexture))
+        return false;
+    RetainPtr<CVOpenGLESTextureRef> videoTexture = adoptCF(bareVideoTexture);
+    Platform3DObject videoTextureName = CVOpenGLESTextureGetName(videoTexture.get());
+    GC3Denum videoTextureTarget = CVOpenGLESTextureGetTarget(videoTexture.get());
+#else
+    CVOpenGLTextureRef bareVideoTexture = nullptr;
+    if (kCVReturnSuccess != CVOpenGLTextureCacheCreateTextureFromImage(kCFAllocatorDefault, m_openGLTextureCache.get(), m_lastOpenGLImage.get(), nullptr, &bareVideoTexture))
+        return false;
+    RetainPtr<CVOpenGLTextureRef> videoTexture = adoptCF(bareVideoTexture);
+    Platform3DObject videoTextureName = CVOpenGLTextureGetName(videoTexture.get());
+    GC3Denum videoTextureTarget = CVOpenGLTextureGetTarget(videoTexture.get());
+#endif
+
+    auto weakThis = createWeakPtr();
+    dispatch_async(dispatch_get_main_queue(), [weakThis] {
+        if (!weakThis)
+            return;
+
+        if (auto cache = weakThis->m_openGLTextureCache.get())
+#if PLATFORM(IOS)
+            CVOpenGLESTextureCacheFlush(cache, 0);
+#else
+            CVOpenGLTextureCacheFlush(cache, 0);
+#endif
+    });
+
+    LOG(Media, "MediaPlayerPrivateAVFoundationObjC::copyVideoTextureToPlatformTexture(%p) - internalFormat: %s, format: %s, type: %s", this, enumToStringMap()[internalFormat], enumToStringMap()[format], enumToStringMap()[type]);
+
+    // Save the origial bound texture & framebuffer names so we can re-bind them after copying the video texture.
+    GC3Dint boundTexture = 0;
+    GC3Dint boundReadFramebuffer = 0;
+    context->getIntegerv(GraphicsContext3D::TEXTURE_BINDING_2D, &boundTexture);
+    context->getIntegerv(GraphicsContext3D::READ_FRAMEBUFFER_BINDING, &boundReadFramebuffer);
+
+    context->bindTexture(videoTextureTarget, videoTextureName);
+    context->texParameteri(GraphicsContext3D::TEXTURE_2D, GraphicsContext3D::TEXTURE_MIN_FILTER, GraphicsContext3D::LINEAR);
+    context->texParameterf(GraphicsContext3D::TEXTURE_2D, GraphicsContext3D::TEXTURE_WRAP_S, GraphicsContext3D::CLAMP_TO_EDGE);
+    context->texParameterf(GraphicsContext3D::TEXTURE_2D, GraphicsContext3D::TEXTURE_WRAP_T, GraphicsContext3D::CLAMP_TO_EDGE);
+
+    // Create a framebuffer object to represent the video texture's memory.
+    Platform3DObject readFramebuffer = context->createFramebuffer();
+
+    // Make that framebuffer the read source from which drawing commands will read voxels.
+    context->bindFramebuffer(GraphicsContext3D::READ_FRAMEBUFFER, readFramebuffer);
+
+    // Allocate uninitialized memory for the output texture.
+    context->bindTexture(outputTarget, outputTexture);
+    context->texParameteri(GraphicsContext3D::TEXTURE_2D, GraphicsContext3D::TEXTURE_MIN_FILTER, GraphicsContext3D::LINEAR);
+    context->texParameterf(GraphicsContext3D::TEXTURE_2D, GraphicsContext3D::TEXTURE_WRAP_S, GraphicsContext3D::CLAMP_TO_EDGE);
+    context->texParameterf(GraphicsContext3D::TEXTURE_2D, GraphicsContext3D::TEXTURE_WRAP_T, GraphicsContext3D::CLAMP_TO_EDGE);
+    context->texImage2DDirect(outputTarget, level, internalFormat, width, height, 0, format, type, nullptr);
+
+    // Attach the video texture to the framebuffer.
+    context->framebufferTexture2D(GraphicsContext3D::READ_FRAMEBUFFER, GraphicsContext3D::COLOR_ATTACHMENT0, videoTextureTarget, videoTextureName, level);
+
+    GC3Denum status = context->checkFramebufferStatus(GraphicsContext3D::READ_FRAMEBUFFER);
+    if (status != GraphicsContext3D::FRAMEBUFFER_COMPLETE)
+        return false;
+
+    // Copy texture from the read framebuffer (and thus the video texture) to the output texture.
+    context->copyTexImage2D(outputTarget, level, internalFormat, 0, 0, width, height, 0);
+
+    // Restore the previous texture and framebuffer bindings.
+    context->bindTexture(outputTarget, boundTexture);
+    context->bindFramebuffer(GraphicsContext3D::READ_FRAMEBUFFER, boundReadFramebuffer);
+
+    // Clean up after ourselves.
+    context->deleteFramebuffer(readFramebuffer);
+
+    return !context->getError();
 }
 
 PassNativeImagePtr MediaPlayerPrivateAVFoundationObjC::nativeImageForCurrentTime()
@@ -2484,12 +2746,12 @@ void MediaPlayerPrivateAVFoundationObjC::keyAdded()
         m_keyURIToRequestMap.remove(keyId);
 }
 
-std::unique_ptr<CDMSession> MediaPlayerPrivateAVFoundationObjC::createSession(const String& keySystem)
+std::unique_ptr<CDMSession> MediaPlayerPrivateAVFoundationObjC::createSession(const String& keySystem, CDMSessionClient* client)
 {
     if (!keySystemIsSupported(keySystem))
         return nullptr;
 
-    return std::make_unique<CDMSessionAVFoundationObjC>(this);
+    return std::make_unique<CDMSessionAVFoundationObjC>(this, client);
 }
 #endif
 
@@ -2736,10 +2998,19 @@ String MediaPlayerPrivateAVFoundationObjC::languageOfPrimaryAudioTrack() const
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
 bool MediaPlayerPrivateAVFoundationObjC::isCurrentPlaybackTargetWireless() const
 {
-    if (!m_avPlayer)
-        return false;
+    bool wirelessTarget = false;
 
-    bool wirelessTarget = m_avPlayer.get().externalPlaybackActive;
+#if !PLATFORM(IOS)
+    if (m_playbackTarget) {
+        if (m_playbackTarget->targetType() == MediaPlaybackTarget::AVFoundation)
+            wirelessTarget = m_avPlayer && m_avPlayer.get().externalPlaybackActive;
+        else
+            wirelessTarget = m_shouldPlayToPlaybackTarget && m_playbackTarget->hasActiveRoute();
+    }
+#else
+    wirelessTarget = m_avPlayer && m_avPlayer.get().externalPlaybackActive;
+#endif
+
     LOG(Media, "MediaPlayerPrivateAVFoundationObjC::isCurrentPlaybackTargetWireless(%p) - returning %s", this, boolString(wirelessTarget));
 
     return wirelessTarget;
@@ -2775,8 +3046,8 @@ String MediaPlayerPrivateAVFoundationObjC::wirelessPlaybackTargetName() const
 
     String wirelessTargetName;
 #if !PLATFORM(IOS)
-    if (m_outputContext)
-        wirelessTargetName = m_outputContext.get().deviceName;
+    if (m_playbackTarget)
+        wirelessTargetName = m_playbackTarget->deviceName();
 #else
     wirelessTargetName = wkExernalDeviceDisplayNameForPlayer(m_avPlayer.get());
 #endif
@@ -2811,31 +3082,56 @@ void MediaPlayerPrivateAVFoundationObjC::setWirelessVideoPlaybackDisabled(bool d
 #if !PLATFORM(IOS)
 void MediaPlayerPrivateAVFoundationObjC::setWirelessPlaybackTarget(Ref<MediaPlaybackTarget>&& target)
 {
-    MediaPlaybackTargetMac* macTarget = toMediaPlaybackTargetMac(&target.get());
+    m_playbackTarget = WTFMove(target);
 
-    m_outputContext = macTarget->outputContext();
-    LOG(Media, "MediaPlayerPrivateAVFoundationObjC::setWirelessPlaybackTarget(%p) - target = %p, device name = %s", this, m_outputContext.get(), [m_outputContext.get().deviceName UTF8String]);
+    m_outputContext = m_playbackTarget->targetType() == MediaPlaybackTarget::AVFoundation ? toMediaPlaybackTargetMac(m_playbackTarget.get())->outputContext() : nullptr;
 
-    if (!m_outputContext || !m_outputContext.get().deviceName)
+    LOG(Media, "MediaPlayerPrivateAVFoundationObjC::setWirelessPlaybackTarget(%p) - target = %p, device name = %s", this, m_outputContext.get(), m_playbackTarget->deviceName().utf8().data());
+
+    if (!m_playbackTarget->hasActiveRoute())
         setShouldPlayToPlaybackTarget(false);
 }
 
 void MediaPlayerPrivateAVFoundationObjC::setShouldPlayToPlaybackTarget(bool shouldPlay)
 {
+    if (m_shouldPlayToPlaybackTarget == shouldPlay)
+        return;
+
     m_shouldPlayToPlaybackTarget = shouldPlay;
 
-    AVOutputContext *newContext = shouldPlay ? m_outputContext.get() : nil;
-    LOG(Media, "MediaPlayerPrivateAVFoundationObjC::setShouldPlayToPlaybackTarget(%p) - target = %p, shouldPlay = %s", this, newContext, boolString(shouldPlay));
-
-    if (!m_avPlayer)
+    if (!m_playbackTarget)
         return;
 
-    RetainPtr<AVOutputContext> currentContext = m_avPlayer.get().outputContext;
-    if ((!newContext && !currentContext.get()) || [currentContext.get() isEqual:newContext])
+    if (m_playbackTarget->targetType() == MediaPlaybackTarget::AVFoundation) {
+        AVOutputContext *newContext = shouldPlay ? m_outputContext.get() : nil;
+
+        LOG(Media, "MediaPlayerPrivateAVFoundationObjC::setShouldPlayToPlaybackTarget(%p) - target = %p, shouldPlay = %s", this, newContext, boolString(shouldPlay));
+
+        if (!m_avPlayer)
+            return;
+
+        RetainPtr<AVOutputContext> currentContext = m_avPlayer.get().outputContext;
+        if ((!newContext && !currentContext.get()) || [currentContext.get() isEqual:newContext])
+            return;
+
+        setDelayCallbacks(true);
+        m_avPlayer.get().outputContext = newContext;
+        setDelayCallbacks(false);
+
         return;
+    }
+
+    ASSERT(m_playbackTarget->targetType() == MediaPlaybackTarget::Mock);
+
+    LOG(Media, "MediaPlayerPrivateAVFoundationObjC::setShouldPlayToPlaybackTarget(%p) - target = {Mock}, shouldPlay = %s", this, boolString(shouldPlay));
 
     setDelayCallbacks(true);
-    m_avPlayer.get().outputContext = newContext;
+    auto weakThis = createWeakPtr();
+    scheduleMainThreadNotification(MediaPlayerPrivateAVFoundation::Notification([weakThis] {
+        if (!weakThis)
+            return;
+        weakThis->playbackTargetIsWirelessDidChange();
+    }));
     setDelayCallbacks(false);
 }
 #endif // !PLATFORM(IOS)

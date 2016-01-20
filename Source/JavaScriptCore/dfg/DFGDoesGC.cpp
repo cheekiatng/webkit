@@ -50,10 +50,12 @@ bool doesGC(Graph& graph, Node* node)
     case Identity:
     case GetCallee:
     case GetArgumentCount:
+    case GetRestLength:
     case GetLocal:
     case SetLocal:
     case MovHint:
     case ZombieHint:
+    case ExitOK:
     case Phantom:
     case Upsilon:
     case Phi:
@@ -83,6 +85,7 @@ bool doesGC(Graph& graph, Node* node)
     case ArithMax:
     case ArithPow:
     case ArithSqrt:
+    case ArithRandom:
     case ArithRound:
     case ArithFRound:
     case ArithSin:
@@ -94,19 +97,27 @@ bool doesGC(Graph& graph, Node* node)
     case PutById:
     case PutByIdFlush:
     case PutByIdDirect:
+    case PutGetterById:
+    case PutSetterById:
+    case PutGetterSetterById:
+    case PutGetterByVal:
+    case PutSetterByVal:
     case CheckStructure:
     case GetExecutable:
     case GetButterfly:
+    case GetButterflyReadOnly:
     case CheckArray:
     case GetScope:
     case SkipScope:
     case GetClosureVar:
     case PutClosureVar:
     case GetGlobalVar:
-    case PutGlobalVar:
+    case GetGlobalLexicalVariable:
+    case PutGlobalVariable:
     case VarInjectionWatchpoint:
     case CheckCell:
     case CheckNotEmpty:
+    case CheckIdent:
     case RegExpExec:
     case RegExpTest:
     case CompareLess:
@@ -114,24 +125,26 @@ bool doesGC(Graph& graph, Node* node)
     case CompareGreater:
     case CompareGreaterEq:
     case CompareEq:
-    case CompareEqConstant:
     case CompareStrictEq:
     case Call:
+    case TailCallInlinedCaller:
     case Construct:
     case CallVarargs:
+    case TailCallVarargsInlinedCaller:
     case ConstructVarargs:
     case LoadVarargs:
     case CallForwardVarargs:
     case ConstructForwardVarargs:
-    case NativeCall:
-    case NativeConstruct:
+    case TailCallForwardVarargs:
+    case TailCallForwardVarargsInlinedCaller:
     case Breakpoint:
     case ProfileWillCall:
     case ProfileDidCall:
     case ProfileType:
     case ProfileControlFlow:
-    case CheckHasInstance:
+    case OverridesHasInstance:
     case InstanceOf:
+    case InstanceOfCustom:
     case IsUndefined:
     case IsBoolean:
     case IsNumber:
@@ -149,6 +162,8 @@ bool doesGC(Graph& graph, Node* node)
     case Branch:
     case Switch:
     case Return:
+    case TailCall:
+    case TailCallVarargs:
     case Throw:
     case CountExecution:
     case ForceOSRExit:
@@ -167,6 +182,7 @@ bool doesGC(Graph& graph, Node* node)
     case CheckInBounds:
     case ConstantStoragePointer:
     case Check:
+    case CheckTypeInfoFlags:
     case MultiGetByOffset:
     case ValueRep:
     case DoubleRep:
@@ -199,6 +215,7 @@ bool doesGC(Graph& graph, Node* node)
     case BottomValue:
     case PhantomNewObject:
     case PhantomNewFunction:
+    case PhantomNewGeneratorFunction:
     case PhantomCreateActivation:
     case PhantomDirectArguments:
     case PhantomClonedArguments:
@@ -211,6 +228,7 @@ bool doesGC(Graph& graph, Node* node)
     case GetStack:
     case GetFromArguments:
     case PutToArguments:
+    case CopyRest:
         return false;
 
     case CreateActivation:
@@ -230,7 +248,9 @@ bool doesGC(Graph& graph, Node* node)
     case NewRegexp:
     case NewStringObject:
     case MakeRope:
+    case NewArrowFunction:
     case NewFunction:
+    case NewGeneratorFunction:
     case NewTypedArray:
     case ThrowReferenceError:
     case GetPropertyEnumerator:
@@ -239,6 +259,7 @@ bool doesGC(Graph& graph, Node* node)
     case ToIndexString:
     case MaterializeNewObject:
     case MaterializeCreateActivation:
+    case StrCat:
         return true;
         
     case MultiPutByOffset:

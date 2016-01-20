@@ -62,7 +62,7 @@ static HTTPBody toHTTPBody(const FormData& formData)
             break;
         }
 
-        httpBody.elements.append(WTF::move(element));
+        httpBody.elements.append(WTFMove(element));
     }
 
     return httpBody;
@@ -84,14 +84,14 @@ static FrameState toFrameState(const HistoryItem& historyItem)
     frameState.documentSequenceNumber = historyItem.documentSequenceNumber();
     frameState.itemSequenceNumber = historyItem.itemSequenceNumber();
 
-    frameState.scrollPoint = historyItem.scrollPoint();
+    frameState.scrollPosition = historyItem.scrollPosition();
     frameState.pageScaleFactor = historyItem.pageScaleFactor();
 
     if (FormData* formData = const_cast<HistoryItem&>(historyItem).formData()) {
         HTTPBody httpBody = toHTTPBody(*formData);
         httpBody.contentType = historyItem.formContentType();
 
-        frameState.httpBody = WTF::move(httpBody);
+        frameState.httpBody = WTFMove(httpBody);
     }
 
 #if PLATFORM(IOS)
@@ -104,7 +104,7 @@ static FrameState toFrameState(const HistoryItem& historyItem)
 
     for (auto& childHistoryItem : historyItem.children()) {
         FrameState childFrameState = toFrameState(childHistoryItem);
-        frameState.children.append(WTF::move(childFrameState));
+        frameState.children.append(WTFMove(childFrameState));
     }
 
     return frameState;
@@ -116,6 +116,7 @@ PageState toPageState(const WebCore::HistoryItem& historyItem)
 
     pageState.title = historyItem.title();
     pageState.mainFrameState = toFrameState(historyItem);
+    pageState.shouldOpenExternalURLsPolicy = historyItem.shouldOpenExternalURLsPolicy();
 
     return pageState;
 }
@@ -153,13 +154,13 @@ static void applyFrameState(HistoryItem& historyItem, const FrameState& frameSta
 
     if (frameState.stateObjectData) {
         Vector<uint8_t> stateObjectData = frameState.stateObjectData.value();
-        historyItem.setStateObject(SerializedScriptValue::adopt(stateObjectData));
+        historyItem.setStateObject(SerializedScriptValue::adopt(WTFMove(stateObjectData)));
     }
 
     historyItem.setDocumentSequenceNumber(frameState.documentSequenceNumber);
     historyItem.setItemSequenceNumber(frameState.itemSequenceNumber);
 
-    historyItem.setScrollPoint(frameState.scrollPoint);
+    historyItem.setScrollPosition(frameState.scrollPosition);
     historyItem.setPageScaleFactor(frameState.pageScaleFactor);
 
     if (frameState.httpBody) {
@@ -181,13 +182,14 @@ static void applyFrameState(HistoryItem& historyItem, const FrameState& frameSta
         Ref<HistoryItem> childHistoryItem = HistoryItem::create(childFrameState.urlString, String());
         applyFrameState(childHistoryItem, childFrameState);
 
-        historyItem.addChildItem(WTF::move(childHistoryItem));
+        historyItem.addChildItem(WTFMove(childHistoryItem));
     }
 }
 
 Ref<HistoryItem> toHistoryItem(const PageState& pageState)
 {
     Ref<HistoryItem> historyItem = HistoryItem::create(pageState.mainFrameState.urlString, pageState.title);
+    historyItem->setShouldOpenExternalURLsPolicy(pageState.shouldOpenExternalURLsPolicy);
     applyFrameState(historyItem, pageState.mainFrameState);
 
     return historyItem;

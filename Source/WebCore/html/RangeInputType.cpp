@@ -46,6 +46,7 @@
 #include "SliderThumbElement.h"
 #include <limits>
 #include <wtf/MathExtras.h>
+#include <wtf/NeverDestroyed.h>
 
 #if ENABLE(TOUCH_EVENTS)
 #include "Touch.h"
@@ -113,7 +114,7 @@ bool RangeInputType::supportsRequired() const
 
 StepRange RangeInputType::createStepRange(AnyStepHandling anyStepHandling) const
 {
-    DEPRECATED_DEFINE_STATIC_LOCAL(const StepRange::StepDescription, stepDescription, (rangeDefaultStep, rangeDefaultStepBase, rangeStepScaleFactor));
+    static NeverDestroyed<const StepRange::StepDescription> stepDescription(rangeDefaultStep, rangeDefaultStepBase, rangeStepScaleFactor);
 
     const Decimal minimum = parseToNumber(element().fastGetAttribute(minAttr), rangeDefaultMinimum);
     const Decimal maximum = ensureMaximum(parseToNumber(element().fastGetAttribute(maxAttr), rangeDefaultMaximum), minimum, rangeDefaultMaximum);
@@ -253,12 +254,12 @@ void RangeInputType::createShadowSubtree()
     ASSERT(element().userAgentShadowRoot());
 
     Document& document = element().document();
-    RefPtr<HTMLDivElement> track = HTMLDivElement::create(document);
+    Ref<HTMLDivElement> track = HTMLDivElement::create(document);
     track->setPseudo(AtomicString("-webkit-slider-runnable-track", AtomicString::ConstructFromLiteral));
     track->appendChild(SliderThumbElement::create(document), IGNORE_EXCEPTION);
-    RefPtr<HTMLElement> container = SliderContainerElement::create(document);
-    container->appendChild(track.release(), IGNORE_EXCEPTION);
-    element().userAgentShadowRoot()->appendChild(container.release(), IGNORE_EXCEPTION);
+    Ref<HTMLElement> container = SliderContainerElement::create(document);
+    container->appendChild(WTFMove(track), IGNORE_EXCEPTION);
+    element().userAgentShadowRoot()->appendChild(WTFMove(container), IGNORE_EXCEPTION);
 }
 
 HTMLElement* RangeInputType::sliderTrackElement() const
@@ -286,7 +287,7 @@ HTMLElement* RangeInputType::sliderThumbElement() const
 
 RenderPtr<RenderElement> RangeInputType::createInputRenderer(Ref<RenderStyle>&& style)
 {
-    return createRenderer<RenderSlider>(element(), WTF::move(style));
+    return createRenderer<RenderSlider>(element(), WTFMove(style));
 }
 
 Decimal RangeInputType::parseToNumber(const String& src, const Decimal& defaultValue) const
@@ -382,11 +383,11 @@ void RangeInputType::updateTickMarkValues()
     std::sort(m_tickMarkValues.begin(), m_tickMarkValues.end());
 }
 
-Decimal RangeInputType::findClosestTickMarkValue(const Decimal& value)
+Optional<Decimal> RangeInputType::findClosestTickMarkValue(const Decimal& value)
 {
     updateTickMarkValues();
     if (!m_tickMarkValues.size())
-        return Decimal::nan();
+        return Nullopt;
 
     size_t left = 0;
     size_t right = m_tickMarkValues.size();
@@ -408,10 +409,18 @@ Decimal RangeInputType::findClosestTickMarkValue(const Decimal& value)
         else
             right = middle;
     }
-    const Decimal closestLeft = middle ? m_tickMarkValues[middle - 1] : Decimal::infinity(Decimal::Negative);
-    const Decimal closestRight = middle != m_tickMarkValues.size() ? m_tickMarkValues[middle] : Decimal::infinity(Decimal::Positive);
-    if (closestRight - value < value - closestLeft)
+
+    Optional<Decimal> closestLeft = middle ? makeOptional(m_tickMarkValues[middle - 1]) : Nullopt;
+    Optional<Decimal> closestRight = middle != m_tickMarkValues.size() ? makeOptional(m_tickMarkValues[middle]) : Nullopt;
+
+    if (!closestLeft)
         return closestRight;
+    if (!closestRight)
+        return closestLeft;
+
+    if (*closestRight - value < value - *closestLeft)
+        return closestRight;
+
     return closestLeft;
 }
 #endif
